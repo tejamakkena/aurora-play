@@ -3,7 +3,7 @@
 # Comprehensive Game Audit Script for Issue #26
 # This script analyzes all 9 games for performance and functionality issues
 
-OUTPUT_DIR="audit_reports"
+OUTPUT_DIR="docs/audit_reports"
 mkdir -p "$OUTPUT_DIR"
 
 echo "🔍 Starting comprehensive game audit for Issue #26..."

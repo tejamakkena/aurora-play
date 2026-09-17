@@ -226,7 +226,7 @@ def audit_game(game):
 
 def generate_report(all_results):
     """Generate comprehensive audit report"""
-    report_path = Path(__file__).parent.parent / "PERFORMANCE_AUDIT_REPORT.md"
+    report_path = Path(__file__).parent.parent / "docs" / "PERFORMANCE_AUDIT_REPORT.md"
     
     with open(report_path, "w") as f:
         f.write("# GameLab2 Performance Audit Report\n\n")
