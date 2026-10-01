@@ -21,6 +21,12 @@ struct TVLobbyView: View {
     // above it are focusable too.
     @Namespace private var lobbyFocus
 
+    private var joinLinkText: String {
+        let url = AppConstants.serverURL
+        let port = url.port.map { ":\($0)" } ?? ""
+        return "\(url.host ?? "")\(port)/join/\(room.code)"
+    }
+
     private var canAddBot: Bool {
         (room.botsAllowed ?? false) && room.players.count < room.gameID.maxPlayers
     }
@@ -76,6 +82,12 @@ struct TVLobbyView: View {
                     .background(Color.white)
                     .cornerRadius(16)
                 }
+
+                // The same link the QR encodes, for anyone who'd rather type
+                // it into a browser (or when hosting on a LAN address).
+                Text(joinLinkText)
+                    .font(.system(.callout, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.55))
             }
             .frame(maxWidth: 520)
 

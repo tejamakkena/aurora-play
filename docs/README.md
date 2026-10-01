@@ -2,6 +2,10 @@
 
 ## Project and Deployment
 
+- [Game Night Guide](GAME_NIGHT.md) -- running a party, joining, LAN hosting
+- [Local-Network Plan](LOCAL_NETWORK_PLAN.md)
+- [Native Hub Migration Plan](NATIVE_HUB_MIGRATION_PLAN.md)
+
 - [Docker Deployment](DOCKER_DEPLOYMENT.md)
 - [Security Policy](../SECURITY.md)
 - [Rate Limiting](RATE_LIMITING.md)

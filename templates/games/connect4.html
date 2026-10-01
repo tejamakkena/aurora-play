@@ -805,6 +805,6 @@
     window.user = {{ user | tojson | safe }};
     console.log('User data loaded:', window.user);
 </script>
-<script src="{{ url_for('static', filename='js/utils.js') }}"></script>
+<!-- utils.js (CleanupManager) is already loaded by base.html. -->
 <script src="{{ url_for('static', filename='js/games/connect4.js') }}"></script>
 {% endblock %}

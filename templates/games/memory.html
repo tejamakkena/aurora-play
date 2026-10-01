@@ -75,5 +75,9 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<!-- After base.html's utils.js, which defines CleanupManager. -->
 <script src="{{ url_for('static', filename='js/games/memory.js') }}"></script>
 {% endblock %}

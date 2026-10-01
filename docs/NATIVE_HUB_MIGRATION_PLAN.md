@@ -13,10 +13,13 @@ consolidation so no single PR has to do it all.
 - `SOCKETIO_CORS_ORIGINS` default tightened to same-origin.
 - No-emoji CI gate (`.github/workflows/no-emoji-check.yml`).
 
-## Phase 2 — Engine ports (next)
+## Phase 2 — Engine ports (ported; legacy retirement pending)
 
-Port legacy games one at a time as `native_hub` engines, keeping the
-legacy route until the port is proven:
+Every legacy `GameID` now has a real `native_hub` engine (no placeholders
+remain, and every game has a TV board -- Chess and Most Likely To were the
+last two). What is left of this phase is the deliberate last step: deleting
+each legacy `games/<name>/` module and template, which waits until the web
+pages are no longer needed (Phase 4). Original order, for reference:
 
 1. Trivia / KBC — content packs (`en`/`te`/`hi`) already live here.
 2. Tambola, Poker, Mafia, Pictionary — the high-traffic party games.

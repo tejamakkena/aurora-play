@@ -8,6 +8,11 @@ struct JoinRoomView: View {
     /// Remembered between games so guests only type their name once.
     @AppStorage("aurora_player_name") private var savedName = ""
 
+    // Advanced: point the app at a server on the party Wi-Fi.
+    @State private var showServer = false
+    @State private var serverText = ""
+    @State private var serverError = false
+
     @State private var code = ""
     @State private var name = ""
     @State private var shakeCode = false
@@ -141,7 +146,10 @@ struct JoinRoomView: View {
                 .buttonStyle(.plain)
                 .disabled(!canJoin)
                 .padding(.horizontal, 32)
-                .padding(.bottom, 40)
+
+                serverSettings
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 40)
             }
         }
         .onTapGesture { focusedField = nil }
@@ -152,6 +160,56 @@ struct JoinRoomView: View {
         .onChange(of: initialCode) { newCode in
             if let newCode { code = newCode }
         }
+    }
+
+    /// Collapsed by default; only the host who runs a LAN server needs it.
+    private var serverSettings: some View {
+        VStack(spacing: 10) {
+            Button {
+                serverText = UserDefaults.standard.string(forKey: AppConstants.serverOverrideKey) ?? ""
+                serverError = false
+                showServer.toggle()
+            } label: {
+                Label("Server: \(AppConstants.serverURL.host ?? "?")", systemImage: "server.rack")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.35))
+            }
+            .buttonStyle(.plain)
+
+            if showServer {
+                TextField("e.g. 192.168.1.20:5000", text: $serverText)
+                    .font(.callout.monospaced())
+                    .foregroundColor(.white)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(serverError ? Color.red : Color.white.opacity(0.15), lineWidth: 1))
+                HStack(spacing: 12) {
+                    Button("Use default") { applyServer(nil) }
+                        .foregroundColor(.white.opacity(0.6))
+                    Spacer()
+                    Button("Connect") { applyServer(serverText) }
+                        .foregroundColor(.cyan)
+                }
+                .font(.callout.bold())
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func applyServer(_ raw: String?) {
+        if let raw, !raw.trimmingCharacters(in: .whitespaces).isEmpty {
+            guard let url = AppConstants.validServerURL(raw) else { serverError = true; return }
+            UserDefaults.standard.set(url.absoluteString, forKey: AppConstants.serverOverrideKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: AppConstants.serverOverrideKey)
+        }
+        serverError = false
+        showServer = false
+        GameSocketManager.shared.disconnect()
+        GameSocketManager.shared.connect(to: AppConstants.serverURL)
     }
 
     private var canJoin: Bool { code.count == 6 && !name.trimmingCharacters(in: .whitespaces).isEmpty }

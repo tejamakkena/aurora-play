@@ -380,6 +380,14 @@ class CleanupManager {
     }
     
     /**
+     * Alias for cleanup(): several game scripts call destroy(), which used to
+     * throw and abort whatever followed it (e.g. Canvas Battle's reload).
+     */
+    destroy() {
+        this.cleanup();
+    }
+
+    /**
      * Clean up all registered resources
      */
     cleanup() {

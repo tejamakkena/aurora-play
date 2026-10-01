@@ -4,19 +4,27 @@ Goal: a party with no reliable internet can still play — one device hosts,
 everyone else joins over the local network. This is phased because true
 offline (no server at all) needs client-side engines that do not exist yet.
 
-## Phase 1 — LAN host (small work, big payoff)
+## Phase 1 — LAN host (done)
 
-- Run the Flask server on the host device (laptop) with `--host=0.0.0.0`.
-- Phones join via `http://<host-lan-ip>:5000`; the TV shows
-  `/native/qr/<code>` encoding that LAN URL.
-- Add a "Copy LAN join link" affordance next to the QR on the TV lobby so
-  the host can share the exact URL (IP + port) without typing.
-- No code changes to game logic; document the one command in the README.
+- `python app.py` already serves on `0.0.0.0:5000`.
+- The QR (`/native/qr/<code>`) encodes this server's own `/join/<code>`
+  page by default; `NATIVE_JOIN_URL_BASE` points it at a LAN address.
+- The TV lobby prints the join link (host, port, code) under the QR -- the
+  tvOS stand-in for "copy link", since a TV has no clipboard to share.
+- Apps: the phone's join screen has a **Server** field (saved in
+  `UserDefaults`); the TV reads an `AuroraServerURL` Info.plist value. Both
+  allow plain HTTP to local-network hosts (`NSAllowsLocalNetworking`).
+- The one-command setup is documented in [GAME_NIGHT.md](GAME_NIGHT.md).
 
-## Phase 2 — Resilient reconnects
+## Phase 2 — Resilient reconnects (done)
 
-- Client-side rejoin with the same `playerID` after a drop (server already
-  keys players by id; needs a `rejoin_room` event that re-attaches the sid).
+- No new event was needed: `join_room` with an existing `playerID` already
+  re-attaches the new sid to the seat. `GameSocketManager.onConnected`
+  hooks re-send it after every reconnect -- phones as their player, the TV
+  as a board (`isTV`).
+- The phone stays on its controller across a rejoin (`room_joined` is
+  routed by room state), and the server pushes `private_state` straight
+  away.
 - Room state survives transient disconnects; the reaper already spares
   rooms with humans connected.
 
