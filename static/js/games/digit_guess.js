@@ -250,7 +250,7 @@ function updatePlayersList() {
         const nameSpan = document.createElement('span');
         nameSpan.textContent = player.name;
         if (player.is_host) {
-            nameSpan.textContent += ' 👑';
+            nameSpan.textContent += ' (Host)';
         }
         
         const statusSpan = document.createElement('span');
@@ -328,7 +328,7 @@ function updateTurnIndicator() {
     const isMyTurn = gameState.currentTurn === gameState.myPlayerId;
     
     if (isMyTurn) {
-        indicator.textContent = '🎯 Your Turn - Make a Guess!';
+        indicator.textContent = 'Your Turn - Make a Guess!';
         indicator.style.borderColor = '#00ff88';
         document.getElementById('guess-input').disabled = false;
         document.getElementById('submit-guess-btn').disabled = false;
@@ -382,7 +382,7 @@ function updateGuessHistory() {
                 <span class="guess-number">${item.guess}</span>
             </div>
             <div class="guess-feedback">
-                <span class="feedback-stat">🎯 ${item.feedback.correct_positions} in position</span>
+                <span class="feedback-stat">${item.feedback.correct_positions} in position</span>
                 <span class="feedback-stat">✓ ${item.feedback.correct_digits} total correct</span>
             </div>
         `;
@@ -426,7 +426,7 @@ function showGameOver(data) {
     
     const isWinner = data.winner_id === gameState.myPlayerId;
     
-    document.getElementById('game-over-title').textContent = isWinner ? 'You Win! 🎉' : 'Game Over';
+    document.getElementById('game-over-title').textContent = isWinner ? 'You Win!' : 'Game Over';
     document.getElementById('winner-announcement').textContent = 
         isWinner ? 'Congratulations! You cracked the code!' : `${data.winner_name} wins!`;
     

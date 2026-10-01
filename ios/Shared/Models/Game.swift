@@ -9,7 +9,7 @@ import Foundation
 /// missing game, and every field has to be stated deliberately.
 struct GameMeta {
     let displayName: String
-    let emoji: String
+    let sfSymbol: String
     let category: GameCategory
     let minPlayers: Int
     let maxPlayers: Int
@@ -50,6 +50,7 @@ enum GameID: String, Codable, CaseIterable {
     case emojiMovie    = "emoji_movie"
     case npat          = "npat"
     case antakshari    = "antakshari"
+    case mostLikelyTo  = "most_likely_to"
 
     // MARK: Mid group — roles, deduction and negotiation
     case cipherGrid        = "cipher_grid"
@@ -83,171 +84,178 @@ enum GameID: String, Codable, CaseIterable {
 
         // ---- Originals -------------------------------------------------
         case .trivia:
-            return .init(displayName: "Trivia", emoji: "🧠", category: .knowledge,
+            return .init(displayName: "Trivia", sfSymbol: "brain.head.profile", category: .knowledge,
                          minPlayers: 2, maxPlayers: 10, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .poker:
-            return .init(displayName: "Poker", emoji: "🃏", category: .casino,
+            return .init(displayName: "Poker", sfSymbol: "suit.spade.fill", category: .casino,
                          minPlayers: 2, maxPlayers: 8, hasPrivateInfo: true,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .tambola:
-            return .init(displayName: "Tambola", emoji: "🎱", category: .casino,
+            return .init(displayName: "Tambola", sfSymbol: "circle.grid.3x3.fill", category: .casino,
                          minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .mafia:
-            return .init(displayName: "Mafia", emoji: "🕵️", category: .social,
+            return .init(displayName: "Mafia", sfSymbol: "eye.fill", category: .social,
                          minPlayers: 5, maxPlayers: 15, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .heist:
-            return .init(displayName: "Heist", emoji: "🏦", category: .social,
+            return .init(displayName: "Heist", sfSymbol: "banknote.fill", category: .social,
                          minPlayers: 3, maxPlayers: 6, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .stockPanic:
-            return .init(displayName: "Stock Panic", emoji: "📈", category: .strategy,
+            return .init(displayName: "Stock Panic", sfSymbol: "chart.line.uptrend.xyaxis", category: .strategy,
                          minPlayers: 2, maxPlayers: 6, hasPrivateInfo: true,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .mindMeld:
-            return .init(displayName: "Mind Meld", emoji: "🔮", category: .knowledge,
+            return .init(displayName: "Mind Meld", sfSymbol: "sparkles", category: .knowledge,
                          minPlayers: 3, maxPlayers: 8, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .hotGrid:
-            return .init(displayName: "Hot Grid", emoji: "💣", category: .strategy,
+            return .init(displayName: "Hot Grid", sfSymbol: "burst.fill", category: .strategy,
                          minPlayers: 2, maxPlayers: 8, hasPrivateInfo: false,
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .speedSculptor:
-            return .init(displayName: "Speed Sculptor", emoji: "🎨", category: .creative,
+            return .init(displayName: "Speed Sculptor", sfSymbol: "paintpalette.fill", category: .creative,
                          minPlayers: 3, maxPlayers: 8, hasPrivateInfo: true,
                          phoneInputStyle: .draw, supportsRemote: false, soloPlayable: false)
         case .pong:
-            return .init(displayName: "Pong", emoji: "🏓", category: .action,
+            return .init(displayName: "Pong", sfSymbol: "circle.fill", category: .action,
                          minPlayers: 2, maxPlayers: 2, hasPrivateInfo: false,
                          phoneInputStyle: .tilt, supportsRemote: false, soloPlayable: false)
         case .connectFour:
-            return .init(displayName: "Connect 4", emoji: "🟡", category: .strategy,
+            return .init(displayName: "Connect 4", sfSymbol: "square.grid.3x3.fill", category: .strategy,
                          minPlayers: 2, maxPlayers: 2, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .chess:
-            return .init(displayName: "Chess", emoji: "♟️", category: .strategy,
+            return .init(displayName: "Chess", sfSymbol: "checkerboard.rectangle", category: .strategy,
                          minPlayers: 2, maxPlayers: 2, hasPrivateInfo: false,
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .snakeLadder:
-            return .init(displayName: "Snake & Ladder", emoji: "🪜", category: .strategy,
+            return .init(displayName: "Snake & Ladder", sfSymbol: "arrow.up.right", category: .strategy,
                          minPlayers: 2, maxPlayers: 6, hasPrivateInfo: false,
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .roulette:
-            return .init(displayName: "Roulette", emoji: "🎡", category: .casino,
+            return .init(displayName: "Roulette", sfSymbol: "record.circle.fill", category: .casino,
                          minPlayers: 1, maxPlayers: 8, hasPrivateInfo: false,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .rajaMantri:
-            return .init(displayName: "Raja Mantri", emoji: "👑", category: .social,
+            return .init(displayName: "Raja Mantri", sfSymbol: "crown.fill", category: .social,
                          minPlayers: 4, maxPlayers: 4, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .memory:
-            return .init(displayName: "Memory", emoji: "🧩", category: .strategy,
+            return .init(displayName: "Memory", sfSymbol: "puzzlepiece.fill", category: .strategy,
                          minPlayers: 2, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .digitGuess:
-            return .init(displayName: "Digit Guess", emoji: "🔢", category: .knowledge,
+            return .init(displayName: "Digit Guess", sfSymbol: "textformat.123", category: .knowledge,
                          minPlayers: 2, maxPlayers: 4, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 
         // ---- Party -----------------------------------------------------
         case .bluffIt:
-            return .init(displayName: "Bluff It", emoji: "🎭", category: .party,
+            return .init(displayName: "Bluff It", sfSymbol: "eye.slash.fill", category: .party,
                          minPlayers: 3, maxPlayers: 16, hasPrivateInfo: true,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .lastTap:
-            return .init(displayName: "Last Tap Standing", emoji: "⚡", category: .party,
+            return .init(displayName: "Last Tap Standing", sfSymbol: "bolt.fill", category: .party,
                          minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .herd:
-            return .init(displayName: "Herd", emoji: "🐑", category: .party,
+            return .init(displayName: "Herd", sfSymbol: "person.3.fill", category: .party,
                          minPlayers: 3, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .emojiMovie:
-            return .init(displayName: "Emoji Movie", emoji: "🎬", category: .party,
+            return .init(displayName: "Emoji Movie", sfSymbol: "clapperboard.fill", category: .party,
                          minPlayers: 3, maxPlayers: 16, hasPrivateInfo: true,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .npat:
-            return .init(displayName: "Name Place Animal Thing", emoji: "🅰️", category: .party,
+            return .init(displayName: "Name Place Animal Thing", sfSymbol: "a.circle.fill", category: .party,
                          minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .antakshari:
-            return .init(displayName: "Antakshari", emoji: "🎵", category: .party,
+            return .init(displayName: "Antakshari", sfSymbol: "music.note", category: .party,
                          minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
+        case .mostLikelyTo:
+            return .init(displayName: "Most Likely To", sfSymbol: "hand.thumbsup.fill", category: .party,
+                         minPlayers: 3, maxPlayers: 20, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 
         // ---- Mid group -------------------------------------------------
+
         case .cipherGrid:
-            return .init(displayName: "Cipher Grid", emoji: "🔠", category: .social,
+            return .init(displayName: "Cipher Grid", sfSymbol: "key.fill", category: .social,
                          minPlayers: 4, maxPlayers: 12, hasPrivateInfo: true,
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .oddOneOut:
-            return .init(displayName: "Odd One Out", emoji: "🕶️", category: .social,
+            return .init(displayName: "Odd One Out", sfSymbol: "eyeglasses", category: .social,
                          minPlayers: 4, maxPlayers: 10, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .sealedAuction:
-            return .init(displayName: "Sealed Auction", emoji: "💰", category: .strategy,
+            return .init(displayName: "Sealed Auction", sfSymbol: "hammer.fill", category: .strategy,
                          minPlayers: 2, maxPlayers: 8, hasPrivateInfo: true,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .wavelength:
-            return .init(displayName: "Wavelength", emoji: "📡", category: .party,
+            return .init(displayName: "Wavelength", sfSymbol: "antenna.radiowaves.left.and.right", category: .party,
                          minPlayers: 3, maxPlayers: 10, hasPrivateInfo: true,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .kbc:
-            return .init(displayName: "KBC Hot Seat", emoji: "💺", category: .knowledge,
+            return .init(displayName: "KBC Hot Seat", sfSymbol: "trophy.fill", category: .knowledge,
                          minPlayers: 1, maxPlayers: 20, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .bollywoodCharades:
-            return .init(displayName: "Bollywood Charades", emoji: "💃", category: .party,
+            // Positioned as Dumb Charades; the content pack is Bollywood
+            // movies. Engine id stays "bollywood_charades" (wire protocol).
+            return .init(displayName: "Dumb Charades", sfSymbol: "figure.dance", category: .party,
                          minPlayers: 3, maxPlayers: 16, hasPrivateInfo: true,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
 
         // ---- Duel and co-op --------------------------------------------
         case .defuse:
-            return .init(displayName: "Defuse", emoji: "🧨", category: .coop,
+            return .init(displayName: "Defuse", sfSymbol: "timer.fill", category: .coop,
                          minPlayers: 2, maxPlayers: 6, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .battleship:
-            return .init(displayName: "Battleship", emoji: "🚢", category: .strategy,
+            return .init(displayName: "Battleship", sfSymbol: "sailboat.fill", category: .strategy,
                          minPlayers: 2, maxPlayers: 2, hasPrivateInfo: true,
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .airHockey:
-            return .init(displayName: "Air Hockey", emoji: "🏒", category: .action,
+            return .init(displayName: "Air Hockey", sfSymbol: "hockey.puck.fill", category: .action,
                          minPlayers: 2, maxPlayers: 2, hasPrivateInfo: false,
                          phoneInputStyle: .tilt, supportsRemote: false, soloPlayable: false)
         case .heistEscape:
-            return .init(displayName: "Heist Escape", emoji: "🗝️", category: .coop,
+            return .init(displayName: "Heist Escape", sfSymbol: "door.left.hand.open", category: .coop,
                          minPlayers: 2, maxPlayers: 4, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .ludo:
-            return .init(displayName: "Ludo", emoji: "🎲", category: .strategy,
+            return .init(displayName: "Ludo", sfSymbol: "dice.fill", category: .strategy,
                          minPlayers: 2, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .carrom:
-            return .init(displayName: "Carrom", emoji: "⚫", category: .strategy,
+            return .init(displayName: "Carrom", sfSymbol: "circle.dashed", category: .strategy,
                          minPlayers: 2, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .teenPatti:
-            return .init(displayName: "Teen Patti", emoji: "🎴", category: .casino,
+            return .init(displayName: "Teen Patti", sfSymbol: "rectangle.stack.fill", category: .casino,
                          minPlayers: 2, maxPlayers: 8, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 
         // ---- Solo / Siri Remote ----------------------------------------
         case .neonSnake:
-            return .init(displayName: "Neon Snake", emoji: "🐍", category: .solo,
+            return .init(displayName: "Neon Snake", sfSymbol: "waveform.path", category: .solo,
                          minPlayers: 1, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .dpad, supportsRemote: true, soloPlayable: true)
         case .twenty48:
-            return .init(displayName: "2048", emoji: "2️⃣", category: .solo,
+            return .init(displayName: "2048", sfSymbol: "square.grid.2x2.fill", category: .solo,
                          minPlayers: 1, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .swipe, supportsRemote: true, soloPlayable: true)
         case .brickBreaker:
-            return .init(displayName: "Brick Breaker", emoji: "🧱", category: .solo,
+            return .init(displayName: "Brick Breaker", sfSymbol: "rectangle.grid.2x2.fill", category: .solo,
                          minPlayers: 1, maxPlayers: 2, hasPrivateInfo: false,
                          phoneInputStyle: .tilt, supportsRemote: true, soloPlayable: true)
         case .simonSays:
-            return .init(displayName: "Simon Says", emoji: "🟩", category: .solo,
+            return .init(displayName: "Simon Says", sfSymbol: "circle.grid.2x2.fill", category: .solo,
                          minPlayers: 1, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .dpad, supportsRemote: true, soloPlayable: true)
         case .atlas:
@@ -264,7 +272,7 @@ enum GameID: String, Codable, CaseIterable {
             // false here routes Atlas through the plain join flow instead,
             // same as Trivia or Poker -- a phone is required from the very
             // first player, which is the only way this game ever works.
-            return .init(displayName: "Atlas", emoji: "🌍", category: .solo,
+            return .init(displayName: "Atlas", sfSymbol: "globe", category: .solo,
                          minPlayers: 1, maxPlayers: 8, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
 
@@ -279,7 +287,7 @@ enum GameID: String, Codable, CaseIterable {
             // input a Siri Remote can't cleanly provide alongside steering.
             // Routing through the normal "Invite Friends" join flow (like
             // Trivia/Poker) is the only configuration that actually works.
-            return .init(displayName: "Blast Runners", emoji: "⛏️", category: .coop,
+            return .init(displayName: "Blast Runners", sfSymbol: "figure.run", category: .coop,
                          minPlayers: 1, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .dpadPlusAction, supportsRemote: false, soloPlayable: false)
         }
@@ -287,7 +295,7 @@ enum GameID: String, Codable, CaseIterable {
 
     // Convenience accessors so existing call sites keep working unchanged.
     var displayName: String          { meta.displayName }
-    var emoji: String                { meta.emoji }
+    var sfSymbol: String             { meta.sfSymbol }
     var category: GameCategory       { meta.category }
     var minPlayers: Int              { meta.minPlayers }
     var maxPlayers: Int              { meta.maxPlayers }

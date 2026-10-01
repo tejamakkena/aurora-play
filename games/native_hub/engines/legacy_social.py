@@ -17,6 +17,7 @@ import random
 import time
 
 from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engines.content_packs import questions_for
 
 # ---------------------------------------------------------------------------
 # Mafia -- verified against MafiaBoardState/MafiaControllerView. Role names
@@ -392,7 +393,8 @@ class TriviaEngine(NativeGameEngine):
 
     def start(self, players):
         self.scores = {p.id: 0 for p in players}
-        self.pool = random.sample(TRIVIA_QUESTIONS, min(self.TOTAL_ROUNDS, len(TRIVIA_QUESTIONS)))
+        pool = questions_for(getattr(self.room, "content_pack", "en"), "trivia")
+        self.pool = random.sample(pool, min(self.TOTAL_ROUNDS, len(pool)))
         self.round = 0
         self._next_question()
 

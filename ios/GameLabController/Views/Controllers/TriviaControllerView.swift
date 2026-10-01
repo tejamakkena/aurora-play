@@ -22,7 +22,7 @@ struct TriviaControllerView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("🧠 Trivia")
+                Text("Trivia")
                     .font(.headline)
                     .foregroundColor(.white)
                 Spacer()

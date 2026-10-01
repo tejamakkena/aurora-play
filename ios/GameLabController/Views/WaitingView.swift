@@ -28,8 +28,9 @@ struct WaitingView: View {
 
             // Game badge
             VStack(spacing: 12) {
-                Text(room.gameID.emoji)
-                    .font(.system(size: 72))
+                Image(systemName: room.gameID.sfSymbol)
+                    .font(.system(size: 64))
+                    .foregroundColor(.white.opacity(0.85))
                 Text(room.gameID.displayName)
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)

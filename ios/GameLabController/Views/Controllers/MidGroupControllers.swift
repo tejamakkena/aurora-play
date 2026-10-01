@@ -42,7 +42,7 @@ struct CipherGridControllerView: View {
     }
 
     var body: some View {
-        ControllerShell(title: "🔠 Cipher Grid",
+        ControllerShell(title: "Cipher Grid",
                         subtitle: isSpymaster ? "\(team.capitalized) spymaster — keep it secret"
                                               : "\(team.capitalized) team") {
             VStack(spacing: 12) {
@@ -82,7 +82,7 @@ struct CipherGridControllerView: View {
                 .padding(.horizontal, 14)
 
                 if isSpymaster {
-                    Text("🙈 Don't let anyone see this screen")
+                    Text("Don't let anyone see this screen")
                         .font(.caption).foregroundColor(.orange)
                 } else if !canGuess {
                     Text("Waiting for the other team…")
@@ -117,14 +117,14 @@ struct OddOneOutControllerView: View {
     @State private var showGuess = false
 
     var body: some View {
-        ControllerShell(title: "🕶️ Odd One Out",
+        ControllerShell(title: "Odd One Out",
                         subtitle: phase == "vote" ? "Vote for the spy" : "Ask questions",
                         secondsLeft: seconds) {
             ScrollView {
                 VStack(spacing: 18) {
                     if isSpy {
                         VStack(spacing: 8) {
-                            Text("🕶️").font(.system(size: 60))
+                            Image(systemName: "eyeglasses").font(.system(size: 56)).foregroundColor(.white.opacity(0.75))
                             Text("YOU ARE THE SPY")
                                 .font(.title3.bold()).tracking(2).foregroundColor(.red)
                             Text("You don't know the location. Blend in.")
@@ -209,7 +209,7 @@ struct SealedAuctionControllerView: View {
     @State private var trackedRound = -1
 
     var body: some View {
-        ControllerShell(title: "💰 Sealed Auction",
+        ControllerShell(title: "Sealed Auction",
                         subtitle: "Budget \(budget)", secondsLeft: seconds) {
             VStack(spacing: 20) {
                 VStack(spacing: 6) {
@@ -221,10 +221,10 @@ struct SealedAuctionControllerView: View {
                 .padding(.horizontal, 24).padding(.top, 24)
 
                 if phase != "bid" {
-                    WaitingState(icon: "🔨", text: "Bids revealed on the TV",
+                    WaitingState(systemIcon: "hammer.fill", text: "Bids revealed on the TV",
                                  detail: myBid.map { "You bid \($0)" })
                 } else if let placed = myBid {
-                    WaitingState(icon: "🤐", text: "Bid sealed",
+                    WaitingState(systemIcon: "lock.fill", text: "Bid sealed",
                                  detail: "You bid \(placed) — nobody can see it yet")
                 } else {
                     VStack(spacing: 10) {
@@ -269,7 +269,7 @@ struct WavelengthControllerView: View {
     @State private var dial: Double = 50
 
     var body: some View {
-        ControllerShell(title: "📡 Wavelength",
+        ControllerShell(title: "Wavelength",
                         subtitle: isPsychic ? "You're the psychic" : "Read the clue",
                         secondsLeft: seconds) {
             VStack(spacing: 20) {
@@ -314,7 +314,7 @@ struct WavelengthControllerView: View {
                         Text("\(Int(dial))").font(.title2.bold()).foregroundColor(.cyan)
                     }
                 } else {
-                    WaitingState(icon: "📡",
+                    WaitingState(systemIcon: "antenna.radiowaves.left.and.right",
                                  text: clue.isEmpty ? "Waiting for the clue…" : "“\(clue)”",
                                  detail: isPsychic ? "The team is turning the dial"
                                                    : "Watch the TV")
@@ -350,13 +350,13 @@ struct KBCControllerView: View {
     }
 
     var body: some View {
-        ControllerShell(title: "💺 KBC Hot Seat",
+        ControllerShell(title: "KBC Hot Seat",
                         subtitle: isHotSeat ? "₹\(prize) question" : "Audience",
                         secondsLeft: seconds) {
             ScrollView {
                 VStack(spacing: 14) {
                     if !isHotSeat && !canPoll {
-                        WaitingState(icon: "👀", text: "Watching from the audience",
+                        WaitingState(systemIcon: "eye.fill", text: "Watching from the audience",
                                      detail: "You'll vote if the Audience Poll lifeline is used")
                     } else {
                         Text(question).font(.headline).foregroundColor(.white)
@@ -364,7 +364,7 @@ struct KBCControllerView: View {
                             .padding(.horizontal, 20).padding(.top, 16)
 
                         if canPoll {
-                            Text("📊 Audience Poll — help them out")
+                            Text("Audience Poll — help them out")
                                 .font(.caption.bold()).foregroundColor(.cyan)
                         }
 
@@ -431,13 +431,13 @@ struct BollywoodCharadesControllerView: View {
     @State private var guess = ""
 
     var body: some View {
-        ControllerShell(title: "💃 Bollywood Charades",
+        ControllerShell(title: "Bollywood Charades",
                         subtitle: isActor ? "You're acting" : "Guess the film",
                         secondsLeft: seconds) {
             VStack(spacing: 18) {
                 if isActor {
                     VStack(spacing: 12) {
-                        Text("🎭").font(.system(size: 70))
+                        Image(systemName: "theatermasks.fill").font(.system(size: 64)).foregroundColor(.white.opacity(0.75))
                         Text("ACT THIS OUT").font(.caption.bold()).tracking(3)
                             .foregroundColor(.white.opacity(0.4))
                         Text(title ?? "…").font(.title.bold())
@@ -448,7 +448,7 @@ struct BollywoodCharadesControllerView: View {
                     }
                     .padding(.top, 30)
                 } else if gotIt {
-                    WaitingState(icon: "✅", text: "You got it!",
+                    WaitingState(systemIcon: "checkmark.circle.fill", text: "You got it!",
                                  detail: "Waiting for the round to end")
                 } else if canGuess {
                     Spacer()
@@ -460,7 +460,7 @@ struct BollywoodCharadesControllerView: View {
                     }
                     Spacer()
                 } else {
-                    WaitingState(icon: "🎬", text: "Reveal is on the TV")
+                    WaitingState(systemIcon: "clapperboard.fill", text: "Reveal is on the TV")
                 }
                 Spacer(minLength: 0)
             }

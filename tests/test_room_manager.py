@@ -46,7 +46,7 @@ class TestJSONShape:
         p = Player(id="dev-1", name="Teja", is_ready=True, score=7, is_host=True)
         assert p.to_json() == {
             "id": "dev-1", "name": "Teja",
-            "isReady": True, "score": 7, "isHost": True,
+            "isReady": True, "score": 7, "isHost": True, "isBot": False,
         }
 
     def test_room_matches_swift_struct(self, registry):

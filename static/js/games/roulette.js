@@ -153,7 +153,7 @@ function initMultiplayer() {
     });
 
     mpSocket.on('wheel_result', data => {
-        const colorEmoji = data.color === 'red' ? '🔴' : data.color === 'green' ? '🟢' : '⚫';
+        const colorEmoji = data.color === 'red' ? 'Red' : data.color === 'green' ? 'Green' : 'Black';
         const myResult = data.player_results[mpPlayerId];
         const banner = document.getElementById('mp-result-banner');
 
@@ -170,7 +170,7 @@ function initMultiplayer() {
     });
 
     mpSocket.on('roulette_error', data => {
-        alert('⚠️ ' + data.message);
+        alert(data.message);
     });
 }
 
@@ -183,7 +183,7 @@ function renderMpPlayers(players, container) {
     players.forEach(p => {
         const row = document.createElement('div');
         row.className = 'mp-player-row';
-        row.innerHTML = `<span>${p.name}${p.is_host ? ' 👑' : ''}</span><span>$${p.chips}</span>`;
+        row.innerHTML = `<span>${p.name}${p.is_host ? ' (Host)' : ''}</span><span>$${p.chips}</span>`;
         list.appendChild(row);
     });
 }
@@ -286,7 +286,7 @@ function placeBet(btn) {
         const chipValue = gameState.currentChipValue;
         
         if (gameState.totalMoney < chipValue) {
-            showMessage('💸 Not enough money!', 'error');
+            showMessage('Not enough money!', 'error');
             return;
         }
         
@@ -304,7 +304,7 @@ function placeBet(btn) {
         // Enable spin button
         if (spinBtn) {
             spinBtn.disabled = false;
-            spinBtn.innerHTML = '🎰 SPIN TO WIN!';
+            spinBtn.innerHTML = 'SPIN TO WIN!';
             spinBtn.classList.add('btn-spin-ready');
         }
         
@@ -348,7 +348,7 @@ function clearBets(refund = true) {
         
         if (spinBtn) {
             spinBtn.disabled = true;
-            spinBtn.innerHTML = '🎰 Place Bets First';
+            spinBtn.innerHTML = 'Place Bets First';
             spinBtn.classList.remove('btn-spin-ready');
         }
         
@@ -507,14 +507,14 @@ function spinWheel() {
         
         const totalBets = Object.values(gameState.bets).reduce((sum, val) => sum + val, 0);
         if (totalBets === 0) {
-            showMessage('🎯 Place your bets first!', 'warning');
+            showMessage('Place your bets first!', 'warning');
             return;
         }
         
         gameState.isSpinning = true;
         if (spinBtn) {
             spinBtn.disabled = true;
-            spinBtn.innerHTML = '🎰 SPINNING...';
+            spinBtn.innerHTML = 'SPINNING...';
         }
         
         // Select winning number and calculate target rotation
@@ -564,7 +564,7 @@ function spinWheel() {
                 gameState.isSpinning = false;
                 if (spinBtn) {
                     spinBtn.disabled = false;
-                    spinBtn.innerHTML = '🎰 SPIN TO WIN!';
+                    spinBtn.innerHTML = 'SPIN TO WIN!';
                 }
             }
         }
@@ -576,7 +576,7 @@ function spinWheel() {
         gameState.isSpinning = false;
         if (spinBtn) {
             spinBtn.disabled = false;
-            spinBtn.innerHTML = '🎰 SPIN TO WIN!';
+            spinBtn.innerHTML = 'SPIN TO WIN!';
         }
     }
 }
@@ -634,19 +634,19 @@ function finishSpin(winningNumber) {
         const totalBet = Object.values(gameState.bets).reduce((sum, val) => sum + val, 0);
         const netResult = totalWin - totalBet;
         
-        let resultMessage = `🎲 Number: ${winningNumber.num} (${winningNumber.color.toUpperCase()})\n\n`;
+        let resultMessage = `Number: ${winningNumber.num} (${winningNumber.color.toUpperCase()})\n\n`;
         
         if (netResult > 0) {
-            resultMessage += `🎉 YOU WON $${netResult}!`;
+            resultMessage += `YOU WON $${netResult}!`;
             if (results.length > 0) {
                 resultMessage += `\n\nWinning Bets:\n${results.join('\n')}`;
             }
             showMessage(resultMessage, 'success');
         } else if (netResult < 0) {
-            resultMessage += `😔 You lost $${Math.abs(netResult)}`;
+            resultMessage += `You lost $${Math.abs(netResult)}`;
             showMessage(resultMessage, 'error');
         } else {
-            resultMessage += `💰 Break even!`;
+            resultMessage += `Break even!`;
             showMessage(resultMessage, 'info');
         }
         

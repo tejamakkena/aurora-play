@@ -59,7 +59,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎲 Tambola (Housie)</h1>
+        <h1>Tambola (Housie)</h1>
 
         <div id="statusMessage"></div>
 
@@ -72,34 +72,34 @@
             <input type="text" id="gameIdInput" placeholder="Game ID (to join)">
 
             <div style="display:flex; gap:8px; margin-top:8px;">
-                <button id="createGame">🎯 Create Game</button>
-                <button id="joinGame">🚪 Join Game</button>
+                <button id="createGame">Create Game</button>
+                <button id="joinGame">Join Game</button>
             </div>
         </div>
 
         <div id="gameArea">
             <div class="game-info">
-                <span>Game ID: <strong id="gameIdDisplay">—</strong></span>
-                <span>Players: <strong id="playerCount">1</strong></span>
-                <span>Remaining: <strong id="remainingCount">90</strong></span>
+                <span>Game ID:<strong id="gameIdDisplay">—</strong></span>
+                <span>Players:<strong id="playerCount">1</strong></span>
+                <span>Remaining:<strong id="remainingCount">90</strong></span>
             </div>
 
             <div class="number-display" id="currentNumber">--</div>
 
             <div id="hostControls" style="display:none;">
                 <button id="startGame">▶ Start Game</button>
-                <button id="callNumber">🎲 Call Next Number</button>
+                <button id="callNumber">Call Next Number</button>
             </div>
 
             <h3 style="text-align:center; color:#aaa;">Your Ticket</h3>
             <div class="ticket-grid" id="ticketGrid"></div>
 
             <div class="controls">
-                <button id="btn-early_5" onclick="claimWin('early_5')">⭐ Early 5</button>
+                <button id="btn-early_5" onclick="claimWin('early_5')">Early 5</button>
                 <button id="btn-top_line" onclick="claimWin('top_line')">— Top Line</button>
                 <button id="btn-middle_line" onclick="claimWin('middle_line')">— Middle Line</button>
                 <button id="btn-bottom_line" onclick="claimWin('bottom_line')">— Bottom Line</button>
-                <button id="btn-full_house" onclick="claimWin('full_house')">🏠 Full House</button>
+                <button id="btn-full_house" onclick="claimWin('full_house')">Full House</button>
             </div>
 
             <div class="called-numbers">

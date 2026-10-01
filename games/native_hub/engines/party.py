@@ -646,6 +646,112 @@ class AntakshariEngine(RoundBasedEngine):
         return state
 
 
+class MostLikelyToEngine(RoundBasedEngine):
+    """Vote for who in the room fits the prompt. Secret ballot until reveal.
+
+    Everyone votes at once, nobody can vote for themselves, and the tally
+    stays hidden until the reveal phase. Points go to the players who
+    received votes, with a bonus for the top-voted player(s).
+    """
+
+    game_id = "most_likely_to"
+    min_players = 3
+    max_players = 20
+    total_rounds = 5
+    first_phase = "vote"
+    phase_seconds = {"vote": 30, "reveal": 10}
+
+    POINTS_PER_VOTE = 100
+    TOP_VOTE_BONUS = 250
+
+    def __init__(self, room, broadcaster):
+        super().__init__(room, broadcaster)
+        self.prompt = ""
+        self.votes: dict[str, str] = {}      # voter_id -> target_id
+        self.used: set[int] = set()
+        self.round_results: list[dict] = []  # per-target counts, reveal only
+
+    def begin_phase(self, phase):
+        if phase == "vote":
+            pool = [i for i in range(len(C.MOST_LIKELY_PROMPTS)) if i not in self.used]
+            if not pool:
+                self.used.clear()
+                pool = list(range(len(C.MOST_LIKELY_PROMPTS)))
+            idx = random.choice(pool)
+            self.used.add(idx)
+            self.prompt = C.MOST_LIKELY_PROMPTS[idx]
+            self.votes = {}
+            self.round_results = []
+
+    def handle_action(self, player_id, action, data):
+        if action != "vote" or self.phase != "vote":
+            return
+        if self.room.player(player_id) is None:
+            return                            # unknown voter
+        target = data.get("targetID")
+        if target == player_id:
+            return                            # no self-votes
+        if self.room.player(target) is None:
+            return                            # unknown target
+        self.votes[player_id] = target
+        # Mirror into submissions so the room fast-forwards once everyone
+        # has voted instead of burning the rest of the clock.
+        self.submissions[player_id] = target
+
+    def resolve_phase(self, phase):
+        if phase == "vote":
+            self._tally_and_score()
+            return "reveal"
+        return None
+
+    def _tally_and_score(self):
+        counts: dict[str, int] = {}
+        for target in self.votes.values():
+            if target not in self.scores:
+                continue                      # target left mid-round
+            counts[target] = counts.get(target, 0) + 1
+        if not counts:
+            self.round_results = []
+            return
+        top = max(counts.values())
+        self.round_results = [
+            {"playerID": tid, "name": self.player_name(tid),
+             "votes": n, "topVoted": n == top}
+            for tid, n in sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+        ]
+        for tid, n in counts.items():
+            self.award(tid, self.POINTS_PER_VOTE * n)
+            if n == top:
+                self.award(tid, self.TOP_VOTE_BONUS)
+
+    def public_state(self):
+        state = self.base_public()
+        state.update({
+            "prompt": self.prompt,
+            # Count only -- who voted for whom stays secret until reveal.
+            "votesSoFar": len(self.votes),
+            "roundResults": self.round_results if self.phase == "reveal" else [],
+        })
+        return state
+
+    def private_state(self, player_id):
+        state = self.base_private(player_id)
+        state.update({
+            "prompt": self.prompt,
+            "hasVoted": player_id in self.votes,
+            "myVoteTargetID": self.votes.get(player_id),
+            # The phone needs the roster to vote; everyone sees everyone
+            # here, so there is nothing secret to hide.
+            "players": self.scoreboard(),
+            "myPlayerID": player_id,
+        })
+        return state
+
+    def on_player_leave(self, player_id):
+        super().on_player_leave(player_id)
+        self.votes.pop(player_id, None)
+
+
 ENGINES = {
     "bluff_it": BluffItEngine,
     "last_tap": LastTapEngine,
@@ -653,4 +759,5 @@ ENGINES = {
     "emoji_movie": EmojiMovieEngine,
     "npat": NPATEngine,
     "antakshari": AntakshariEngine,
+    "most_likely_to": MostLikelyToEngine,
 }

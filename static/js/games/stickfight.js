@@ -526,11 +526,11 @@ function endGame(winnerId, winnerName, scores) {
     gs.over = true;
     cancelAnimationFrame(gs.rafId);
     const isWinner = winnerId === socket.id;
-    $('result-text').textContent = isWinner ? '🏆 You Win!' : `${winnerName || 'No one'} wins!`;
+    $('result-text').textContent = isWinner ? 'You Win!' : `${winnerName || 'No one'} wins!`;
     if (scores) {
         $('final-scores').innerHTML = scores.sort((a, b) => b.kills - a.kills)
             .map((s, i) => `<div class="ranking-item${i === 0 ? ' winner' : ''}">
-              <span class="rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span>
+              <span class="rank">${i === 0 ? '1st' : i === 1 ? '2nd' : '3rd'}</span>
               <span>${s.name}</span>
               <span style="margin-left:auto;color:var(--primary-color)">${s.kills} kills</span>
             </div>`).join('');

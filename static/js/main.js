@@ -181,7 +181,7 @@ const PREVIEWS = {
         ctx.globalAlpha = 1; ctx.shadowBlur = 0;
         ctx.fillStyle = 'rgba(30,30,60,0.55)';
         ctx.font = '10px Space Grotesk, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText('🎨 Artist Battle', 26, h - 26);
+        ctx.fillText('Artist Battle', 26, h - 26);
     },
 
     snake(ctx, w, h, t) {
@@ -273,7 +273,7 @@ const PREVIEWS = {
 
     memory(ctx, w, h, t) {
         ctx.fillStyle = '#04000f'; ctx.fillRect(0, 0, w, h);
-        const pairs = ['⭐', '🎯', '🎮', '🎪'];
+        const pairs = ['A', 'B', 'C', 'D'];
         const all = [...pairs, ...pairs];
         const cols = 4, cw = 56, ch = 52, gap = 10;
         const ox = (w - (cw * cols + gap * (cols - 1))) / 2;
@@ -361,7 +361,7 @@ const PREVIEWS = {
         const pulse = (Math.sin(t * 2) + 1) * 0.5;
         ctx.fillStyle = `rgba(0,245,255,${0.55 + pulse * 0.45})`;
         ctx.font = 'bold 12px Orbitron, monospace'; ctx.textAlign = 'center';
-        ctx.fillText('❓  TRIVIA TIME', w / 2, 36);
+        ctx.fillText('TRIVIA TIME', w / 2, 36);
         const opts = ['A','B','C','D'];
         const cols = ['#00f5ff','#bf5fff','#f59e0b','#10b981'];
         opts.forEach((opt, i) => {
@@ -427,7 +427,7 @@ const PREVIEWS = {
         }
         const lp = path[Math.max(0, step - 1)];
         ctx.font = '15px sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText('✏️', lp.x - 8, lp.y + 5);
+        ctx.fillText('+', lp.x - 8, lp.y + 5);
         ctx.fillStyle = '#555';
         ctx.font = 'bold 10px Orbitron, monospace'; ctx.textAlign = 'center';
         ctx.fillText('_ _ _ _ _', w / 2, h - 14);
@@ -451,7 +451,7 @@ const PREVIEWS = {
         const vp = (Math.sin(t * 3) + 1) * 0.5;
         ctx.fillStyle = `rgba(255,68,68,${0.45 + vp * 0.55})`;
         ctx.font = 'bold 11px Orbitron, monospace'; ctx.textAlign = 'center';
-        ctx.fillText('🗳️  VOTE!', w / 2, 26);
+        ctx.fillText('VOTE!', w / 2, 26);
     },
 
     tambola(ctx, w, h, t) {
@@ -489,10 +489,10 @@ const PREVIEWS = {
     raja_mantri(ctx, w, h, t) {
         ctx.fillStyle = '#04000f'; ctx.fillRect(0, 0, w, h);
         const cards = [
-            {label:'👑', name:'Raja',   col:'#f59e0b'},
-            {label:'⚔️',  name:'Mantri', col:'#10b981'},
-            {label:'🏛️', name:'Kotwal', col:'#00f5ff'},
-            {label:'🪓', name:'Chor',   col:'#f43f5e'},
+            {label:'R', name:'Raja',   col:'#f59e0b'},
+            {label:'M',  name:'Mantri', col:'#10b981'},
+            {label:'K', name:'Kotwal', col:'#00f5ff'},
+            {label:'C', name:'Chor',   col:'#f43f5e'},
         ];
         cards.forEach((card, i) => {
             const a = -0.42 + i * 0.28;
@@ -543,7 +543,7 @@ const PREVIEWS = {
             ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = 'bold 10px Orbitron, monospace'; ctx.textAlign = 'left';
             ctx.fillText(g.digits, 26, y + 14);
             ctx.fillStyle = '#f59e0b'; ctx.textAlign = 'right';
-            ctx.fillText('🐂' + g.bulls + ' 🐄' + g.cows, w - 22, y + 14);
+            ctx.fillText('B' + g.bulls + ' C' + g.cows, w - 22, y + 14);
         });
         ctx.globalAlpha = 1;
         const blink = Math.floor(t * 2) % 2 === 0;

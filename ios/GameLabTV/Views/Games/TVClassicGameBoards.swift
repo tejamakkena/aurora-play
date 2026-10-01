@@ -6,7 +6,7 @@ struct PlaceholderBoardView: View {
     let game: GameID
     var body: some View {
         VStack(spacing: 20) {
-            Text(game.emoji).font(.system(size: 80))
+            Image(systemName: game.sfSymbol).font(.system(size: 80)).foregroundColor(.white.opacity(0.7))
             Text(game.displayName).font(.largeTitle.bold()).foregroundColor(.white)
             Text("Coming soon").foregroundColor(.white.opacity(0.4))
         }
@@ -187,7 +187,7 @@ struct TVPokerBoardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(vm.state.phase.uppercased()).font(.caption.bold()).tracking(3)
                             .foregroundColor(.yellow.opacity(0.85))
-                        Text("🃏 Poker").font(.title2.bold()).foregroundColor(.white)
+                        Text("Poker").font(.title2.bold()).foregroundColor(.white)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
@@ -384,10 +384,10 @@ struct TVConnect4BoardView: View {
             TVScoreHeader(players: room.players, currentPlayerID: vm.state.currentPlayerID)
                 .padding(.top, 40)
 
-            Text("🟡 Connect 4").font(.largeTitle.bold()).foregroundColor(.white)
+            Text("Connect 4").font(.largeTitle.bold()).foregroundColor(.white)
 
             if let winner = vm.state.winner {
-                Text("\(winner) wins! 🎉").font(.title2.bold()).foregroundColor(.yellow)
+                Text("\(winner) wins!").font(.title2.bold()).foregroundColor(.yellow)
             } else {
                 Text(vm.state.currentPlayerName.isEmpty ? "" : "\(vm.state.currentPlayerName)'s turn")
                     .font(.title3).foregroundColor(.white.opacity(0.6))
@@ -669,7 +669,7 @@ struct TVMemoryBoardView: View {
             TVScoreHeader(players: room.players, currentPlayerID: vm.state.currentPlayerID)
                 .padding(.top, 40)
 
-            Text("🧩 Memory").font(.largeTitle.bold()).foregroundColor(.white)
+            Text("Memory").font(.largeTitle.bold()).foregroundColor(.white)
 
             Text(vm.state.currentPlayerName.isEmpty ? "" : "\(vm.state.currentPlayerName)'s turn")
                 .font(.title3).foregroundColor(.white.opacity(0.5))
@@ -766,9 +766,9 @@ struct TVMafiaBoardView: View {
         VStack(spacing: 32) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("🕵️ Mafia").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
-                    Text(vm.state.phase == "day" ? "☀️ Day \(vm.state.round) — Vote to eliminate"
-                         : "🌙 Night — Mafia is choosing")
+                    Text("Mafia").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+                    Text(vm.state.phase == "day" ? "Day \(vm.state.round) — Vote to eliminate"
+                         : "Night — Mafia is choosing")
                         .font(.title3).foregroundColor(.white.opacity(0.5))
                 }
                 Spacer()
@@ -832,7 +832,7 @@ private struct MafiaPlayerTile: View {
                 Circle()
                     .fill(player.isAlive ? Color.white.opacity(0.1) : Color.red.opacity(0.15))
                     .frame(width: 64, height: 64)
-                Text(player.isAlive ? String(player.name.prefix(1)) : "💀")
+                Text(player.isAlive ? String(player.name.prefix(1)) : "–")
                     .font(.title.bold()).foregroundColor(.white)
             }
             Text(player.name).font(.subheadline)
@@ -896,10 +896,10 @@ struct TVDigitGuessBoardView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("🔢 Digit Guess").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+            Text("Digit Guess").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
                 .padding(.top, 40)
 
-            Text(vm.state.solved ? "Code cracked! 🎉" : "Guess the secret 4-digit code")
+            Text(vm.state.solved ? "Code cracked!" : "Guess the secret 4-digit code")
                 .font(.title3).foregroundColor(vm.state.solved ? .green : .white.opacity(0.5))
 
             // Player columns
@@ -914,7 +914,7 @@ struct TVDigitGuessBoardView: View {
                                     .font(.system(.body, design: .monospaced).bold())
                                     .foregroundColor(.white)
                                 Spacer()
-                                Text("🐂\(guess.bulls) 🐄\(guess.cows)")
+                                Text("Bulls \(guess.bulls) · Cows \(guess.cows)")
                                     .font(.caption).foregroundColor(.white.opacity(0.6))
                             }
                             .padding(.horizontal, 12).padding(.vertical, 6)
@@ -991,7 +991,7 @@ struct TVRajaMantriBoard: View {
     var body: some View {
         VStack(spacing: 32) {
             HStack {
-                Text("👑 Raja Mantri").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
+                Text("Raja Mantri").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
                 Spacer()
                 Text("Round \(vm.state.round)").font(.title3).foregroundColor(.white.opacity(0.4))
             }
@@ -1045,7 +1045,7 @@ private struct RajaMantriPlayerCard: View {
     let player: RajaPlayer
     var body: some View {
         VStack(spacing: 10) {
-            Text(player.revealedRole.map { roleEmoji($0) } ?? "🂠").font(.system(size: 48))
+            Text(player.revealedRole.map { roleEmoji($0) } ?? "?").font(.system(size: 48))
             Text(player.name).font(.headline).foregroundColor(.white)
             if let role = player.revealedRole {
                 Text(role).font(.caption.bold()).foregroundColor(roleColor(role))
@@ -1059,7 +1059,7 @@ private struct RajaMantriPlayerCard: View {
     }
 
     private func roleEmoji(_ r: String) -> String {
-        switch r { case "Raja": return "👑"; case "Mantri": return "🎩"; case "Chor": return "🦹"; default: return "⚔️" }
+        switch r { case "Raja": return "R"; case "Mantri": return "M"; case "Chor": return "C"; default: return "?" }
     }
     private func roleColor(_ r: String) -> Color {
         switch r { case "Raja": return .yellow; case "Mantri": return .purple; case "Chor": return .red; default: return .cyan }
@@ -1117,7 +1117,7 @@ struct TVTambolaBoardView: View {
         HStack(spacing: 60) {
             // Left — caller column
             VStack(spacing: 20) {
-                Text("🎱 Tambola").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
+                Text("Tambola").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
 
                 if let last = vm.state.lastCalled {
                     VStack(spacing: 8) {
@@ -1135,7 +1135,7 @@ struct TVTambolaBoardView: View {
 
                 // Claims
                 ForEach(vm.state.claims, id: \.self) { claim in
-                    Text("🎉 \(claim)").font(.headline).foregroundColor(.green)
+                    Text("\(claim)").font(.headline).foregroundColor(.green)
                 }
             }
             .frame(width: 320)
@@ -1192,7 +1192,7 @@ struct TVStockPanicBoardView: View {
     var body: some View {
         VStack(spacing: 24) {
             HStack {
-                Text("📈 Stock Panic").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
+                Text("Stock Panic").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
                 Spacer()
                 if let news = vm.state.latestNews {
                     HStack(spacing: 8) {
@@ -1295,7 +1295,7 @@ struct TVMindMeldBoardView: View {
 
     var body: some View {
         VStack(spacing: 32) {
-            Text("🔮 Mind Meld").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+            Text("Mind Meld").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
                 .padding(.top, 40)
 
             if let category = vm.state.category {
@@ -1403,7 +1403,7 @@ struct TVHotGridBoardView: View {
     var body: some View {
         VStack(spacing: 32) {
             HStack {
-                Text("💣 Hot Grid").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
+                Text("Hot Grid").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
                 Spacer()
                 Text("\(vm.state.currentPlayerName)'s turn").font(.title3).foregroundColor(.yellow)
             }
@@ -1451,13 +1451,13 @@ private struct HotGridTileView: View {
             Text("?").font(.system(size: 36, weight: .bold)).foregroundColor(.white.opacity(0.3))
         case .coin(let v):
             VStack(spacing: 2) {
-                Text("🪙").font(.system(size: 36))
+                Image(systemName: "dollarsign.circle.fill").font(.system(size: 34)).foregroundColor(.yellow)
                 Text("+\(v)").font(.caption.bold()).foregroundColor(.yellow)
             }
         case .trap:
-            Text("💀").font(.system(size: 40))
+            Image(systemName: "burst.fill").font(.system(size: 36)).foregroundColor(.red)
         case .teleport:
-            Text("🌀").font(.system(size: 40))
+            Image(systemName: "tornado").font(.system(size: 36)).foregroundColor(.cyan)
         }
     }
 
@@ -1511,7 +1511,7 @@ struct TVSpeedSculptorBoardView: View {
     var body: some View {
         VStack(spacing: 24) {
             HStack {
-                Text("🎨 Speed Sculptor").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
+                Text("Speed Sculptor").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
                 Spacer()
                 if let prompt = vm.state.prompt {
                     Text("Drawing: \(prompt)").font(.title2.bold()).foregroundColor(.yellow)

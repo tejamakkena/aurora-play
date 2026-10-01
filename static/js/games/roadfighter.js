@@ -443,10 +443,10 @@ function setupSocket() {
         cancelAnimationFrame(gs.rafId);
         if (data.results) {
             const myRank = data.results.findIndex(r => r.id === socket.id);
-            $('result-text').textContent = myRank === 0 ? '🏆 You Win!' : `You finished #${myRank + 1}`;
+            $('result-text').textContent = myRank === 0 ? 'You Win!' : `You finished #${myRank + 1}`;
             $('final-scores').innerHTML = data.results.map((r, i) =>
                 `<div class="ranking-item${i === 0 ? ' winner' : ''}">
-                  <span class="rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span>
+                  <span class="rank">${i === 0 ? '1st' : i === 1 ? '2nd' : '3rd'}</span>
                   <span>${r.name}</span>
                   <span style="margin-left:auto;color:var(--primary-color)">${r.score} pts</span>
                 </div>`

@@ -624,7 +624,7 @@ struct TVDefuseBoardView: View {
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("🧨 Defuse").font(.system(size: 38, weight: .bold))
+                        Text("Defuse").font(.system(size: 38, weight: .bold))
                             .foregroundColor(.white)
                         Text("\(vm.state.defuserName) holds the bomb — everyone else has the manual")
                             .font(.headline).foregroundColor(.white.opacity(0.55))
@@ -632,7 +632,7 @@ struct TVDefuseBoardView: View {
                     Spacer()
                     HStack(spacing: 8) {
                         ForEach(0..<vm.state.maxStrikes, id: \.self) { i in
-                            Text("✕").font(.title.bold())
+                            Image(systemName: "xmark").font(.title.bold()).foregroundColor(.white.opacity(0.7))
                                 .foregroundColor(i < vm.state.strikes ? .red : .white.opacity(0.2))
                         }
                     }
@@ -653,7 +653,7 @@ struct TVDefuseBoardView: View {
 
                 if vm.state.finished {
                     VStack(spacing: 16) {
-                        Text(vm.state.won ? "💚" : "💥").font(.system(size: 130))
+                        Image(systemName: vm.state.won ? "heart.fill" : "burst.fill").font(.system(size: 120)).foregroundColor(vm.state.won ? .green : .red)
                         Text(vm.state.won ? "DEFUSED" : "BOOM")
                             .font(.system(size: 64, weight: .heavy)).tracking(6)
                             .foregroundColor(vm.state.won ? .green : .red)
@@ -751,7 +751,7 @@ struct TVBattleshipBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🚢", title: "Battleship",
+            TVRoundHeader(symbol: "sailboat.fill", title: "Battleship",
                           round: 0, totalRounds: 0, secondsLeft: 0,
                           phaseLabel: vm.state.winner != nil ? "game over" : "fire!")
             Spacer()
@@ -771,9 +771,13 @@ struct TVBattleshipBoardView: View {
                                           : Color.blue.opacity(0.28))
                                     .frame(width: 52, height: 52)
                                     .overlay(
-                                        Text(board.shots[cell] == "hit" ? "💥"
-                                             : board.shots[cell] == "miss" ? "·" : "")
-                                            .font(.title3)
+                                        Group {
+                                            if board.shots[cell] == "hit" {
+                                                Image(systemName: "xmark").font(.title3)
+                                            } else if board.shots[cell] == "miss" {
+                                                Text("·")
+                                            }
+                                        }
                                     )
                             }
                         }
@@ -782,7 +786,7 @@ struct TVBattleshipBoardView: View {
             }
             if let winner = vm.state.winner,
                let name = vm.state.players.first(where: { $0.id == winner })?.name {
-                Text("🏆 \(name) wins")
+                Text("\(name) wins")
                     .font(.system(size: 44, weight: .heavy)).foregroundColor(.yellow)
                     .padding(.top, 26)
             }
@@ -934,13 +938,13 @@ struct TVHeistEscapeBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🗝️", title: "Heist Escape",
+            TVRoundHeader(symbol: "door.left.hand.open", title: "Heist Escape",
                           round: 0, totalRounds: 0, secondsLeft: vm.state.secondsLeft,
                           phaseLabel: "each phone holds part of the map")
             Spacer()
             if vm.state.finished {
                 VStack(spacing: 16) {
-                    Text(vm.state.won ? "🎉" : "🚨").font(.system(size: 130))
+                    Image(systemName: vm.state.won ? "party.popper.fill" : "exclamationmark.triangle.fill").font(.system(size: 120)).foregroundColor(vm.state.won ? .yellow : .red)
                     Text(vm.state.won ? "ESCAPED" : "CAUGHT")
                         .font(.system(size: 60, weight: .heavy)).tracking(5)
                         .foregroundColor(vm.state.won ? .green : .red)
@@ -956,9 +960,9 @@ struct TVHeistEscapeBoardView: View {
                                       : vm.state.trail.contains(cell) ? Color.cyan.opacity(0.2)
                                       : Color.white.opacity(0.05))
                             if cell == vm.state.position {
-                                Text("🕵️").font(.system(size: 44))
+                                Image(systemName: "person.fill").font(.system(size: 40)).foregroundColor(.white)
                             } else if cell == vm.state.exitCell {
-                                Text("🚪").font(.system(size: 38))
+                                Image(systemName: "door.left.hand.open").font(.system(size: 34)).foregroundColor(.white)
                             }
                         }
                         .frame(width: 90, height: 90)
@@ -1008,7 +1012,7 @@ struct TVLudoBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🎲", title: "Ludo", round: 0, totalRounds: 0, secondsLeft: 0,
+            TVRoundHeader(symbol: "dice.fill", title: "Ludo", round: 0, totalRounds: 0, secondsLeft: 0,
                           phaseLabel: vm.state.rolled ? "pick a token" : "roll the dice")
             Spacer()
             HStack(spacing: 70) {
@@ -1030,7 +1034,7 @@ struct TVLudoBoardView: View {
                         }
                     }
                     VStack(spacing: 6) {
-                        Text("🎲").font(.system(size: 60))
+                        Image(systemName: "dice.fill").font(.system(size: 56)).foregroundColor(.white.opacity(0.8))
                         Text(vm.state.die > 0 ? "\(vm.state.die)" : "—")
                             .font(.system(size: 70, weight: .heavy)).foregroundColor(.white)
                     }
@@ -1131,7 +1135,7 @@ struct TVCarromBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "⚫", title: "Carrom", round: 0, totalRounds: 0, secondsLeft: 0,
+            TVRoundHeader(symbol: "circle.dashed", title: "Carrom", round: 0, totalRounds: 0, secondsLeft: 0,
                           phaseLabel: "first to \(vm.state.targetScore)")
             // Same fix as Neon Snake/Brick Breaker/Air Hockey: a fixed 8pt
             // scale sized the board purely off its own default 100x100 unit
@@ -1251,7 +1255,7 @@ struct TVTeenPattiBoardView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("🎴 Teen Patti").font(.system(size: 38, weight: .bold))
+                Text("Teen Patti").font(.system(size: 38, weight: .bold))
                     .foregroundColor(.white)
                 Spacer()
                 VStack(spacing: 2) {

@@ -18,7 +18,7 @@ struct Connect4ControllerView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("🟡 Connect 4").font(.headline).foregroundColor(.white)
+                Text("Connect 4").font(.headline).foregroundColor(.white)
                 Spacer()
                 Circle()
                     .fill(myColor == "red" ? Color.red : Color.yellow)
@@ -102,7 +102,7 @@ struct ChessControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("♟️ Chess").font(.headline).foregroundColor(.white)
+                Text("Chess").font(.headline).foregroundColor(.white)
                 Spacer()
                 Text(myColor.capitalized).font(.subheadline)
                     .foregroundColor(myColor == "white" ? .white : .black.opacity(0.8))
@@ -219,7 +219,7 @@ struct MemoryControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("🧩 Memory").font(.headline).foregroundColor(.white)
+                Text("Memory").font(.headline).foregroundColor(.white)
                 Spacer()
                 Text("Pairs: \(myScore)").font(.subheadline.bold()).foregroundColor(.cyan)
             }
@@ -332,7 +332,7 @@ struct RouletteControllerView: View {
     // `target` that is a key of ROULETTE_PAYOUTS, and an `amount` that is a
     // positive Int no larger than the player's chips.
     private let betTargets: [(String, String)] = [
-        ("red", "🔴 Red"), ("black", "⚫ Black"),
+        ("red", "Red"), ("black", "Black"),
         ("odd", "Odd"), ("even", "Even"),
         ("1-12", "1st 12"), ("13-24", "2nd 12"), ("25-36", "3rd 12"),
         ("low", "1–18"), ("high", "19–36"),
@@ -368,7 +368,7 @@ struct RouletteControllerView: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text("🎡 Roulette")
+            Text("Roulette")
                 .font(.title2.bold())
                 .foregroundColor(.white)
                 .lineLimit(1)
@@ -524,7 +524,7 @@ struct RouletteControllerView: View {
             Divider().background(Color.white.opacity(0.08))
 
             Button(action: spin) {
-                Text(isSpinning ? "Spinning…" : "🎰 Spin!")
+                Text(isSpinning ? "Spinning…" : "Spin!")
                     .font(.headline.bold())
                     .frame(maxWidth: .infinity, minHeight: 54)
                     .background(
@@ -690,23 +690,23 @@ struct MafiaControllerView: View {
     }
 
     private var roleCard: some View {
-        let (emoji, color, desc): (String, Color, String) = {
+        let (symbol, color, desc): (String, Color, String) = {
             switch role {
-            case "mafia":   return ("🔪", .red, "Eliminate town at night")
-            case "sheriff": return ("⭐", .yellow, "Investigate one player per night")
-            case "doctor":  return ("💉", .green, "Save one player per night")
-            default:        return ("👤", .white, "Vote out Mafia during the day")
+            case "mafia":   return ("moon.stars.fill", .red, "Eliminate town at night")
+            case "sheriff": return ("magnifyingglass", .yellow, "Investigate one player per night")
+            case "doctor":  return ("cross.fill", .green, "Save one player per night")
+            default:        return ("person.fill", .white, "Vote out Mafia during the day")
             }
         }()
 
         return HStack(spacing: 12) {
-            Text(emoji).font(.system(size: 36))
+            Image(systemName: symbol).font(.system(size: 30)).foregroundColor(color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(role.capitalized).font(.headline).foregroundColor(color)
                 Text(desc).font(.caption).foregroundColor(.white.opacity(0.5))
             }
             Spacer()
-            Text(phase == "day" ? "☀️ Day" : "🌙 Night")
+            Text(phase == "day" ? "Day" : "Night")
                 .font(.caption.bold())
                 .foregroundColor(phase == "day" ? .yellow : .cyan)
         }
@@ -781,7 +781,7 @@ struct MafiaControllerView: View {
 
             default:
                 VStack(spacing: 12) {
-                    Text("🌙").font(.system(size: 56))
+                    Image(systemName: "moon.fill").font(.system(size: 52)).foregroundColor(.cyan.opacity(0.8))
                     Text("Sleep tight…\nMafia is choosing their target.").font(.body)
                         .foregroundColor(.white.opacity(0.5)).multilineTextAlignment(.center)
                 }
@@ -791,7 +791,7 @@ struct MafiaControllerView: View {
 
     private var eliminatedView: some View {
         VStack(spacing: 16) {
-            Text("💀").font(.system(size: 72))
+            Image(systemName: "skull").font(.system(size: 64)).foregroundColor(.white.opacity(0.7))
             Text("You were eliminated").font(.title2.bold()).foregroundColor(.red)
             Text("Watch the TV to see how the game ends.").font(.subheadline)
                 .foregroundColor(.white.opacity(0.5)).multilineTextAlignment(.center)
@@ -832,7 +832,7 @@ struct DigitGuessControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("🔢 Digit Guess").font(.headline).foregroundColor(.white)
+                Text("Digit Guess").font(.headline).foregroundColor(.white)
                 Spacer()
                 Text("Guesses: \(myGuesses.count)").font(.subheadline).foregroundColor(.white.opacity(0.5))
             }
@@ -842,7 +842,7 @@ struct DigitGuessControllerView: View {
 
             if won {
                 VStack(spacing: 12) {
-                    Text("🎉").font(.system(size: 60))
+                    Image(systemName: "party.popper.fill").font(.system(size: 56)).foregroundColor(.green)
                     Text("You cracked it!").font(.title2.bold()).foregroundColor(.green)
                     Text("in \(myGuesses.count) guesses").foregroundColor(.white.opacity(0.5))
                 }
@@ -890,7 +890,7 @@ struct DigitGuessControllerView: View {
                                     Text(g["guess"] as? String ?? "????")
                                         .font(.system(.body, design: .monospaced).bold()).foregroundColor(.white)
                                     Spacer()
-                                    Text("🐂\(g["bulls"] as? Int ?? 0)  🐄\(g["cows"] as? Int ?? 0)")
+                                    Text("Bulls \(g["bulls"] as? Int ?? 0) · Cows \(g["cows"] as? Int ?? 0)")
                                         .font(.caption).foregroundColor(.white.opacity(0.6))
                                 }
                                 .padding(.horizontal, 16).padding(.vertical, 8)
@@ -934,7 +934,7 @@ struct RajaMantriControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("👑 Raja Mantri").font(.headline).foregroundColor(.white)
+                Text("Raja Mantri").font(.headline).foregroundColor(.white)
                 Spacer()
                 Text("Score: \(myScore)").font(.subheadline.bold()).foregroundColor(.cyan)
             }
@@ -987,7 +987,7 @@ struct RajaMantriControllerView: View {
     }
 
     private func roleEmoji(_ r: String) -> String {
-        switch r { case "Raja": return "👑"; case "Mantri": return "🎩"; case "Chor": return "🦹"; default: return "⚔️" }
+        switch r { case "Raja": return "R"; case "Mantri": return "M"; case "Chor": return "C"; default: return "?" }
     }
     private func roleColor(_ r: String) -> Color {
         switch r { case "Raja": return .yellow; case "Mantri": return .purple; case "Chor": return .red; default: return .cyan }

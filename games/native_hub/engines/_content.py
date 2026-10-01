@@ -167,3 +167,32 @@ ATLAS_PLACES = {
     "oman", "oslo", "ottawa", "osaka",
     "lebanon", "libya", "laos", "london", "lucknow", "lisbon",
 }
+
+# ---- Most Likely To: secret-ballot party voting -----------------------------
+MOST_LIKELY_PROMPTS = [
+    "Most likely to fall asleep during a family movie night.",
+    "Most likely to take charge of the music at a party.",
+    "Most likely to be late to a wedding.",
+    "Most likely to eat the most at a buffet.",
+    "Most likely to win an argument with mom.",
+    "Most likely to forget where they parked the car.",
+    "Most likely to take a hundred photos and post none.",
+    "Most likely to start dancing first at a sangeet.",
+    "Most likely to know all the cricket scores by heart.",
+    "Most likely to order extra dessert.",
+    "Most likely to lose their phone inside their own house.",
+    "Most likely to give the best wedding speech.",
+    "Most likely to call the family group chat instead of texting.",
+    "Most likely to finish everyone else's leftovers.",
+    "Most likely to plan the next family trip.",
+    "Most likely to binge a whole series in one night.",
+    "Most likely to be the peacemaker in a family debate.",
+    "Most likely to bring the best homemade dish to a potluck.",
+    "Most likely to get lost but refuse to ask for directions.",
+    "Most likely to remember everyone's birthday.",
+    "Most likely to fall for a WhatsApp forward.",
+    "Most likely to be the first one ready for an outing.",
+    "Most likely to steal the blanket at night.",
+    "Most likely to host the next Diwali party.",
+    "Most likely to sing in the car like nobody is listening.",
+]

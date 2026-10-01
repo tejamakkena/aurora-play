@@ -118,7 +118,7 @@ class TestJoinRoom:
         assert set(payload) == {"room", "playerID"}
         assert payload["playerID"] == "dev-1"
         assert set(payload["room"]["players"][0]) == {
-            "id", "name", "isReady", "score", "isHost"}
+            "id", "name", "isReady", "score", "isHost", "isBot"}
 
     def test_first_phone_becomes_host(self, server, tv):
         app, socketio = server

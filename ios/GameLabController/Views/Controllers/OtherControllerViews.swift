@@ -338,7 +338,7 @@ struct PongControllerView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            Text("🏓 Pong")
+            Text("Pong")
                 .font(.largeTitle.bold()).foregroundColor(.white)
 
             Text("Tilt your phone to move your paddle")
@@ -418,7 +418,7 @@ struct MindMeldControllerView: View {
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
-            Text("🔮 Mind Meld").font(.largeTitle.bold()).foregroundColor(.white)
+            Text("Mind Meld").font(.largeTitle.bold()).foregroundColor(.white)
             Text("Category: \(category)").font(.title3).foregroundColor(.cyan)
             Text("Type ONE word that fits the category.\nTry to match what others think!").font(.subheadline)
                 .foregroundColor(.white.opacity(0.5)).multilineTextAlignment(.center)
@@ -466,7 +466,7 @@ struct HotGridControllerView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("💣 Hot Grid").font(.largeTitle.bold()).foregroundColor(.white)
+            Text("Hot Grid").font(.largeTitle.bold()).foregroundColor(.white)
             Text(isMyTurn ? "Pick a tile!" : "Waiting for your turn…")
                 .font(.title3).foregroundColor(isMyTurn ? .yellow : .white.opacity(0.4))
 
@@ -508,7 +508,7 @@ struct StockPanicControllerView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                Text("📈 Stock Panic").font(.title.bold()).foregroundColor(.white)
+                Text("Stock Panic").font(.title.bold()).foregroundColor(.white)
                 Text("Cash: $\(cash)").font(.headline).foregroundColor(.green)
 
                 ForEach(stocks, id: \.self) { stock in
@@ -549,7 +549,7 @@ struct SpeedSculptorControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("🎨 Draw: \(prompt)").font(.headline).foregroundColor(.white)
+                Text("Draw: \(prompt)").font(.headline).foregroundColor(.white)
                 Spacer()
                 Button("Clear") { lines = []; currentLine = nil }
                     .foregroundColor(.cyan).buttonStyle(.plain)
@@ -633,7 +633,7 @@ struct TambolaControllerView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("🎱 Tambola").font(.title.bold()).foregroundColor(.white)
+            Text("Tambola").font(.title.bold()).foregroundColor(.white)
             Text("Your Ticket").font(.subheadline).foregroundColor(.white.opacity(0.4))
 
             VStack(spacing: 6) {
@@ -660,7 +660,7 @@ struct TambolaControllerView: View {
             }
 
             Button(action: { onAction("claim", ["type": "full_house"]) }) {
-                Text("🎉 Claim Full House!").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
+                Text("Claim Full House!").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(RoundedRectangle(cornerRadius: 14).fill(Color.yellow.opacity(0.85)))
                     .foregroundColor(.black)
             }
@@ -683,7 +683,7 @@ struct GenericTapControllerView: View {
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            Text(room.gameID.emoji).font(.system(size: 72))
+            Image(systemName: room.gameID.sfSymbol).font(.system(size: 64)).foregroundColor(.white.opacity(0.85))
             Text(room.gameID.displayName).font(.title.bold()).foregroundColor(.white)
             Text("Game in progress").foregroundColor(.white.opacity(0.4))
             Spacer()
@@ -712,7 +712,7 @@ struct ResultsControllerView: View {
         VStack(spacing: 0) {
             // Header
             VStack(spacing: 8) {
-                Text("🏁 Game Over").font(.largeTitle.bold()).foregroundColor(.white)
+                Text("Game Over").font(.largeTitle.bold()).foregroundColor(.white)
                 Text(room.gameID.displayName).font(.subheadline).foregroundColor(.white.opacity(0.4))
             }
             .padding(.top, 48).padding(.bottom, 24)
@@ -770,7 +770,7 @@ struct ResultsControllerView: View {
     }
 
     private func rankEmoji(_ rank: Int) -> String {
-        switch rank { case 1: return "🥇"; case 2: return "🥈"; case 3: return "🥉"; default: return "\(rank)." }
+        ordinal(rank)
     }
 
     private func ordinal(_ n: Int) -> String {
@@ -828,8 +828,8 @@ struct BlastRunnersControllerView: View {
 
     var body: some View {
         ControllerShell(
-            title: "⛏️ Blast Runners",
-            subtitle: "Level \(level) of 25 · 💎 \(gemsRemaining) left"
+            title: "Blast Runners",
+            subtitle: "Level \(level) of 25 · \(gemsRemaining) gems left"
         ) {
             VStack(spacing: 18) {
                 statusBar
@@ -879,10 +879,10 @@ struct BlastRunnersControllerView: View {
             Text("Team down — resetting level \(level)…")
                 .font(.headline).foregroundColor(.red)
         case "levelComplete":
-            Text("Level \(level) clear! 🎉")
+            Text("Level \(level) clear!")
                 .font(.headline).foregroundColor(.green)
         case "gameComplete":
-            Text("All 25 levels cleared! 🏆")
+            Text("All 25 levels cleared!")
                 .font(.headline).foregroundColor(.yellow)
         default:
             if !isAlive {

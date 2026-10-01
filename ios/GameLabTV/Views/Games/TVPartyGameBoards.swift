@@ -9,7 +9,7 @@ import SwiftUI
 // MARK: - Shared chrome
 
 struct TVRoundHeader: View {
-    let emoji: String
+    let symbol: String
     let title: String
     let round: Int
     let totalRounds: Int
@@ -24,7 +24,10 @@ struct TVRoundHeader: View {
                         .font(.caption.bold()).tracking(3)
                         .foregroundColor(.cyan.opacity(0.8))
                 }
-                Text("\(emoji) \(title)")
+                HStack(spacing: 12) {
+                        Image(systemName: symbol).foregroundColor(.white.opacity(0.85))
+                        Text(title)
+                    }
                     .font(.system(size: 38, weight: .bold))
                     .foregroundColor(.white)
             }
@@ -168,7 +171,7 @@ struct TVBluffItBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🎭", title: "Bluff It",
+            TVRoundHeader(symbol: "eye.slash.fill", title: "Bluff It",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: vm.state.base.phase == "write" ? "write a lie"
@@ -261,7 +264,7 @@ struct TVLastTapBoardView: View {
                 .animation(.easeIn(duration: 0.05), value: vm.state.phase)
 
             VStack(spacing: 0) {
-                TVRoundHeader(emoji: "⚡", title: "Last Tap Standing",
+                TVRoundHeader(symbol: "bolt.fill", title: "Last Tap Standing",
                               round: vm.state.round, totalRounds: 0, secondsLeft: 0,
                               phaseLabel: "\(vm.state.aliveCount) still in")
                 Spacer()
@@ -276,7 +279,7 @@ struct TVLastTapBoardView: View {
                         .foregroundColor(.black)
                 case "final":
                     VStack(spacing: 16) {
-                        Text("🏆").font(.system(size: 110))
+                        Image(systemName: "trophy.fill").font(.system(size: 100)).foregroundColor(.yellow)
                         Text(vm.state.players.first { $0.id == vm.state.winner }?.name ?? "Winner")
                             .font(.system(size: 62, weight: .heavy)).foregroundColor(.yellow)
                     }
@@ -330,7 +333,7 @@ struct TVHerdBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🐑", title: "Herd",
+            TVRoundHeader(symbol: "person.3.fill", title: "Herd",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: "match the majority")
@@ -390,14 +393,14 @@ struct TVEmojiMovieBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🎬", title: "Emoji Movie",
+            TVRoundHeader(symbol: "clapperboard.fill", title: "Emoji Movie",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: vm.state.base.phase)
             Spacer()
             if vm.state.base.phase == "compose" {
                 VStack(spacing: 18) {
-                    Text("✍️").font(.system(size: 100))
+                    Image(systemName: "pencil").font(.system(size: 90)).foregroundColor(.white.opacity(0.7))
                     Text("Everyone is describing their secret title")
                         .font(.title2).foregroundColor(.white.opacity(0.6))
                     Text("\(vm.state.composedCount) submitted")
@@ -451,7 +454,7 @@ struct TVNPATBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🅰️", title: "Name Place Animal Thing",
+            TVRoundHeader(symbol: "a.circle.fill", title: "Name Place Animal Thing",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft)
             Spacer()
@@ -525,7 +528,7 @@ struct TVAntakshariBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🎵", title: "Antakshari",
+            TVRoundHeader(symbol: "music.note", title: "Antakshari",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft)
             Spacer()

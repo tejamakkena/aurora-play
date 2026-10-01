@@ -9,6 +9,7 @@ import time
 
 from games.native_hub.engines import _content as C
 from games.native_hub.engines._bases import RoundBasedEngine
+from games.native_hub.engines.content_packs import questions_for
 from games.native_hub.engine import NativeGameEngine
 
 
@@ -548,8 +549,9 @@ class KBCEngine(NativeGameEngine):
     def start(self, players):
         self.order = [p.id for p in players]
         self.hot_seat = self.order[0] if self.order else None
-        self.questions = random.sample(C.KBC_QUESTIONS,
-                                       min(len(C.KBC_LADDER), len(C.KBC_QUESTIONS)))
+        pool = questions_for(getattr(self.room, "content_pack", "en"), "kbc")
+        self.questions = random.sample(pool,
+                                       min(len(C.KBC_LADDER), len(pool)))
         self._load_question()
 
     def _load_question(self):

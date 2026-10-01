@@ -22,7 +22,7 @@ struct JoinRoomView: View {
             VStack(spacing: 40) {
                 // Logo
                 VStack(spacing: 6) {
-                    Text("🎮")
+                    Image(systemName: "gamecontroller.fill").font(.system(size: 64)).foregroundColor(.white.opacity(0.8))
                         .font(.system(size: 64))
                     Text("Aurora Play")
                         .font(.system(size: 36, weight: .black, design: .rounded))

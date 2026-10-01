@@ -101,7 +101,7 @@ private struct GuardControllerView: View {
             Button(action: submitCameras) {
                 HStack(spacing: 8) {
                     Image(systemName: hasSubmitted ? "checkmark.shield.fill" : "shield.fill")
-                    Text(hasSubmitted ? "Cameras Locked ✓" : "Lock Cameras")
+                    Text(hasSubmitted ? "Cameras Locked" : "Lock Cameras")
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, 18)
@@ -115,7 +115,7 @@ private struct GuardControllerView: View {
 
     private var watchingPhase: some View {
         VStack(spacing: 16) {
-            Text("📷 Cameras Active")
+            Text("Cameras Active")
                 .font(.title3.bold()).foregroundColor(.red)
             Text("Watching for thieves…")
                 .foregroundColor(.white.opacity(0.5))
@@ -140,7 +140,7 @@ private struct GuardControllerView: View {
 
     private var roleBadge: some View {
         HStack(spacing: 12) {
-            Text("🛡").font(.system(size: 32))
+            Image(systemName: "shield.fill").font(.system(size: 28)).foregroundColor(.red)
             VStack(alignment: .leading, spacing: 2) {
                 Text("You are the Guard").font(.headline).foregroundColor(.red)
                 Text("Only YOU can see camera positions").font(.caption).foregroundColor(.white.opacity(0.5))
@@ -222,7 +222,7 @@ private struct ThiefControllerView: View {
             Text("Col \(myPosition.col)  Row \(myPosition.row)")
                 .font(.system(.body, design: .monospaced)).foregroundColor(.cyan)
             if hasReachedVault {
-                Text("💰 GOT IT").font(.caption.bold()).foregroundColor(.yellow)
+                Text("VAULT REACHED").font(.caption.bold()).foregroundColor(.yellow)
             }
         }
         .padding(.horizontal, 24)
@@ -255,7 +255,7 @@ private struct ThiefControllerView: View {
 
     private var caughtView: some View {
         VStack(spacing: 16) {
-            Text("🚨").font(.system(size: 60))
+            Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 56)).foregroundColor(.red)
             Text("You were caught!").font(.title2.bold()).foregroundColor(.red)
             Text("Watch the TV to see how it ends.").foregroundColor(.white.opacity(0.5))
         }
@@ -272,10 +272,10 @@ private struct ThiefControllerView: View {
 
     private var roleBadge: some View {
         HStack(spacing: 12) {
-            Text("🥷").font(.system(size: 32))
+            Image(systemName: "person.fill").font(.system(size: 28)).foregroundColor(.cyan)
             VStack(alignment: .leading, spacing: 2) {
                 Text("You are a Thief").font(.headline).foregroundColor(.cyan)
-                Text("Reach 💰 then escape 🚪").font(.caption).foregroundColor(.white.opacity(0.5))
+                Text("Reach the vault, then escape").font(.caption).foregroundColor(.white.opacity(0.5))
             }
             Spacer()
             Text("Round \(currentRound)").font(.caption.bold()).foregroundColor(.white.opacity(0.4))

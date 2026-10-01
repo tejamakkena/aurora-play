@@ -129,7 +129,7 @@ function setupSocket() {
     cleanup.addSocketListener(socket, 'pong_game_over', data => {
         gs.gameOver = true;
         cancelAnimationFrame(gs.rafId);
-        const w = data.winner === gs.mySide ? 'You Win! 🏆' : 'You Lose 😢';
+        const w = data.winner === gs.mySide ? 'You Win!' : 'You Lose';
         $('result-text').textContent = w;
         $('final-score').textContent = `${data.score.left} – ${data.score.right}`;
         showSection('over');
@@ -260,7 +260,7 @@ function endGame() {
     socket.emit('pong_game_over', { room_code: gs.roomCode, winner, score: gs.score });
     gs.gameOver = true;
     cancelAnimationFrame(gs.rafId);
-    $('result-text').textContent = winner === gs.mySide ? 'You Win! 🏆' : 'You Lose 😢';
+    $('result-text').textContent = winner === gs.mySide ? 'You Win!' : 'You Lose';
     $('final-score').textContent = `${gs.score.left} – ${gs.score.right}`;
     showSection('over');
 }

@@ -19,21 +19,21 @@ struct DefuseControllerView: View {
     private var won: Bool { privateData.bool("won") }
 
     var body: some View {
-        ControllerShell(title: "🧨 Defuse",
+        ControllerShell(title: "Defuse",
                         subtitle: isDefuser ? "You hold the bomb" : "You have the manual",
                         secondsLeft: seconds) {
             ScrollView {
                 VStack(spacing: 16) {
                     HStack(spacing: 8) {
                         ForEach(0..<3, id: \.self) { i in
-                            Text("✕").font(.title3.bold())
+                            Image(systemName: "xmark").font(.title3.bold()).foregroundColor(.white.opacity(0.7))
                                 .foregroundColor(i < strikes ? .red : .white.opacity(0.15))
                         }
                     }
                     .padding(.top, 14)
 
                     if finished {
-                        WaitingState(icon: won ? "💚" : "💥",
+                        WaitingState(systemIcon: won ? "heart.fill" : "burst.fill",
                                      text: won ? "Defused!" : "Boom.")
                     } else if isDefuser {
                         defuserControls
@@ -116,7 +116,7 @@ struct DefuseControllerView: View {
 
     private var manualPages: some View {
         VStack(spacing: 14) {
-            Text("📖 DEFUSAL MANUAL").font(.caption.bold()).tracking(3)
+            Text("DEFUSAL MANUAL").font(.caption.bold()).tracking(3)
                 .foregroundColor(.cyan)
             Text("You can't see the bomb. Read this out loud.")
                 .font(.caption).foregroundColor(.white.opacity(0.45))
@@ -176,7 +176,7 @@ struct BattleshipControllerView: View {
     @State private var showingFleet = false
 
     var body: some View {
-        ControllerShell(title: "🚢 Battleship",
+        ControllerShell(title: "Battleship",
                         subtitle: isMyTurn ? "Your shot" : "Opponent's turn") {
             VStack(spacing: 12) {
                 Picker("", selection: $showingFleet) {
@@ -210,7 +210,7 @@ struct BattleshipControllerView: View {
                 }
                 .padding(.horizontal, 20)
 
-                Text(showingFleet ? "🙈 Your fleet — keep this hidden"
+                Text(showingFleet ? "Your fleet — keep this hidden"
                                   : isMyTurn ? "Tap a square to fire" : "Waiting…")
                     .font(.caption)
                     .foregroundColor(showingFleet ? .orange : .white.opacity(0.45))
@@ -241,7 +241,7 @@ struct AirHockeyControllerView: View {
     @State private var lastSendTime: Double = 0
 
     var body: some View {
-        ControllerShell(title: "🏒 Air Hockey", subtitle: "Score \(score)") {
+        ControllerShell(title: "Air Hockey", subtitle: "Score \(score)") {
             VStack(spacing: 18) {
                 Text("Drag to move your paddle")
                     .font(.caption).foregroundColor(.white.opacity(0.45)).padding(.top, 20)
@@ -302,11 +302,11 @@ struct HeistEscapeControllerView: View {
     }
 
     var body: some View {
-        ControllerShell(title: "🗝️ Heist Escape",
+        ControllerShell(title: "Heist Escape",
                         subtitle: "Your piece of the map", secondsLeft: seconds) {
             VStack(spacing: 14) {
                 if finished {
-                    WaitingState(icon: won ? "🎉" : "🚨",
+                    WaitingState(systemIcon: won ? "party.popper.fill" : "exclamationmark.triangle.fill",
                                  text: won ? "Escaped!" : "Out of time")
                 } else {
                     Text("Only you can see these walls — describe them")
@@ -322,8 +322,8 @@ struct HeistEscapeControllerView: View {
                                     .fill(cell == position ? Color.cyan.opacity(0.4)
                                           : cell == exitCell ? Color.green.opacity(0.35)
                                           : Color.white.opacity(0.06))
-                                if cell == position { Text("🕵️").font(.caption) }
-                                else if cell == exitCell { Text("🚪").font(.caption) }
+                                if cell == position { Image(systemName: "person.fill").font(.caption).foregroundColor(.white) }
+                                else if cell == exitCell { Image(systemName: "door.left.hand.open").font(.caption).foregroundColor(.white) }
                             }
                             .aspectRatio(1, contentMode: .fit)
                             .overlay(alignment: .trailing) {
@@ -393,16 +393,16 @@ struct LudoControllerView: View {
     }
 
     var body: some View {
-        ControllerShell(title: "🎲 Ludo",
+        ControllerShell(title: "Ludo",
                         subtitle: isMyTurn ? (canRoll ? "Roll the dice" : "Pick a token")
                                            : "Waiting for your turn") {
             VStack(spacing: 20) {
                 if !isMyTurn {
-                    WaitingState(icon: "⏳", text: "Not your turn yet")
+                    WaitingState(systemIcon: "hourglass", text: "Not your turn yet")
                 } else {
                     Button(action: { if canRoll { onAction("roll", [:]) } }) {
                         VStack(spacing: 6) {
-                            Text(die > 0 ? "\(die)" : "🎲")
+                            Text(die > 0 ? "\(die)" : "–")
                                 .font(.system(size: 76, weight: .heavy, design: .rounded))
                                 .foregroundColor(.white)
                             Text(canRoll ? "Tap to roll" : "Rolled")
@@ -458,10 +458,10 @@ struct CarromControllerView: View {
     private var power: Double { min(1, Double(hypot(aim.width, aim.height)) / 140) }
 
     var body: some View {
-        ControllerShell(title: "⚫ Carrom", subtitle: canFlick ? "Your shot" : "Opponent's turn") {
+        ControllerShell(title: "Carrom", subtitle: canFlick ? "Your shot" : "Opponent's turn") {
             VStack(spacing: 16) {
                 if !canFlick {
-                    WaitingState(icon: "⏳", text: "Waiting for your turn",
+                    WaitingState(systemIcon: "hourglass", text: "Waiting for your turn",
                                  detail: "Score \(score)")
                 } else {
                     Text("Slide to position, then pull back and release")
@@ -547,11 +547,11 @@ struct TeenPattiControllerView: View {
     }
 
     var body: some View {
-        ControllerShell(title: "🎴 Teen Patti",
+        ControllerShell(title: "Teen Patti",
                         subtitle: "Chips \(chips) · Pot \(pot)") {
             VStack(spacing: 18) {
                 if folded {
-                    WaitingState(icon: "🚪", text: "You folded",
+                    WaitingState(systemIcon: "door.left.hand.open", text: "You folded",
                                  detail: "Waiting for the hand to finish")
                 } else {
                     HStack(spacing: 12) {
@@ -682,7 +682,7 @@ struct SimonSaysControllerView: View {
 
     var body: some View {
         ControllerShell(
-            title: "🟩 Simon Says",
+            title: "Simon Says",
             subtitle: isOut ? "You're out"
                 : phase == "show" ? "Watch the sequence…"
                 : isMyTurn ? "Your turn — round \(round)"
@@ -718,7 +718,7 @@ struct SwipeControllerView: View {
     let onAction: (String, [String: Any]) -> Void
 
     var body: some View {
-        ControllerShell(title: "2️⃣ 2048",
+        ControllerShell(title: "2048",
                         subtitle: "Score \(privateData.int("score"))") {
             VStack(spacing: 16) {
                 Spacer()
@@ -759,7 +759,7 @@ struct PaddleControllerView: View {
     private var width: Double { privateData.dbl("width", 100) }
 
     var body: some View {
-        ControllerShell(title: "🧱 Brick Breaker",
+        ControllerShell(title: "Brick Breaker",
                         subtitle: "Score \(privateData.int("score")) · \(privateData.int("lives")) lives") {
             VStack(spacing: 16) {
                 Spacer()
@@ -796,7 +796,7 @@ struct AtlasControllerView: View {
     @State private var place = ""
 
     var body: some View {
-        ControllerShell(title: "🌍 Atlas",
+        ControllerShell(title: "Atlas",
                         subtitle: isOut ? "You're out" : (isMyTurn ? "Your turn" : "Waiting"),
                         secondsLeft: isMyTurn ? seconds : nil) {
             VStack(spacing: 16) {
@@ -810,7 +810,7 @@ struct AtlasControllerView: View {
                 .padding(.top, 24)
 
                 if isOut {
-                    WaitingState(icon: "🌍", text: "Out of the chain")
+                    WaitingState(systemIcon: "globe", text: "Out of the chain")
                 } else if isMyTurn {
                     AnswerField(placeholder: "Place name", text: $place)
                     if !error.isEmpty {
@@ -822,7 +822,7 @@ struct AtlasControllerView: View {
                         place = ""
                     }
                 } else {
-                    WaitingState(icon: "⏳", text: "Someone else's turn")
+                    WaitingState(systemIcon: "hourglass", text: "Someone else's turn")
                 }
                 Spacer(minLength: 0)
             }

@@ -35,9 +35,13 @@ struct TVLobbyView: View {
                     Text("aurora.app  •  Enter code above")
                         .font(.body)
                         .foregroundColor(.white.opacity(0.4))
+
+                    Text("or scan to join")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.4))
                 }
 
-                // Animated pulse ring around code
+                // Scannable QR for zero-typing join, served by /native/qr/<code>.
                 ZStack {
                     Circle()
                         .stroke(Color.purple.opacity(0.2), lineWidth: 2)
@@ -48,8 +52,20 @@ struct TVLobbyView: View {
                         .scaleEffect(1.05)
                         .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: true)
 
-                    Text(room.gameID.emoji)
-                        .font(.system(size: 80))
+                    AsyncImage(url: AppConstants.serverURL
+                        .appendingPathComponent("native/qr/\(room.code)")) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFit()
+                        default:
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 80))
+                                .foregroundColor(.white.opacity(0.4))
+                        }
+                    }
+                    .frame(width: 170, height: 170)
+                    .background(Color.white)
+                    .cornerRadius(16)
                 }
             }
             .frame(maxWidth: 520)
@@ -128,6 +144,14 @@ private struct PlayerRow: View {
                 .font(.body)
 
             if player.isHost { Text("HOST").font(.caption2).foregroundColor(.cyan) }
+            if player.isBot {
+                Text("BOT")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.orange.opacity(0.2)))
+            }
 
             Spacer()
 

@@ -80,3 +80,49 @@ class TicTacToeGame:
             'state': self.state,
             'players': self.players
         }
+
+
+_WINNING_COMBINATIONS = (
+    (0, 1, 2), (3, 4, 5), (6, 7, 8),
+    (0, 3, 6), (1, 4, 7), (2, 5, 8),
+    (0, 4, 8), (2, 4, 6),
+)
+
+
+def _cell(board, i):
+    v = board[i]
+    return v if v not in (None, "") else None
+
+
+def check_winner(board):
+    """Return the winning mark ('X'/'O'/...), or None. Module-level helper."""
+    for a, b, c in _WINNING_COMBINATIONS:
+        ca, cb, cc = _cell(board, a), _cell(board, b), _cell(board, c)
+        if ca and ca == cb == cc:
+            return ca
+    return None
+
+
+def check_draw(board):
+    """True when the board is full and nobody won."""
+    return all(_cell(board, i) for i in range(9)) and check_winner(board) is None
+
+
+def get_ai_move(board, symbol):
+    """Pick a move: win if possible, block if needed, else first open cell."""
+    import random
+    open_cells = [i for i in range(9) if not _cell(board, i)]
+    if not open_cells:
+        raise ValueError("no moves left")
+    for i in open_cells:
+        trial = list(board)
+        trial[i] = symbol
+        if check_winner(trial) == symbol:
+            return i
+    opponent = "O" if symbol == "X" else "X"
+    for i in open_cells:
+        trial = list(board)
+        trial[i] = opponent
+        if check_winner(trial) == opponent:
+            return i
+    return random.choice(open_cells)

@@ -13,8 +13,19 @@ def create_app(config_name='default'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
-    # Initialize Socket.IO
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+    # Initialize Socket.IO. Origins are configurable via
+    # SOCKETIO_CORS_ORIGINS (comma-separated); unset/empty means
+    # same-origin only. "*" restores the previous wide-open behavior.
+    raw_origins = app.config.get("SOCKETIO_CORS_ORIGINS", "")
+    if raw_origins == "*":
+        app.logger.warning(
+            "Socket.IO CORS is wide open (*); set SOCKETIO_CORS_ORIGINS "
+            "to a comma-separated allowlist to restrict browser origins.")
+        cors_origins = "*"
+    else:
+        cors_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+    socketio = SocketIO(app, cors_allowed_origins=cors_origins,
+                        async_mode='threading')
 
     # Initialize Rate Limiter
     # Default limits: 200 requests/day, 50 requests/hour per IP
@@ -110,6 +121,7 @@ def create_app(config_name='default'):
     # Native iOS/tvOS hub -- isolated on the '/native' namespace so it cannot
     # collide with the browser games' default-namespace room events.
     from games.native_hub.socket_events import register_native_events
+    from games.native_hub.qr import qr_bp
 
     # After creating socketio
     register_poker_events(socketio)
@@ -128,6 +140,7 @@ def create_app(config_name='default'):
     register_stickfight_events(socketio)
     register_roadfighter_events(socketio)
     register_native_events(socketio)
+    app.register_blueprint(qr_bp)
 
 
     # Login required decorator

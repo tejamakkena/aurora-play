@@ -106,7 +106,7 @@ struct TVCipherGridBoardView: View {
             HStack(spacing: 40) {
                 ForEach(["red", "blue"], id: \.self) { team in
                     if let name = vm.state.spymasters[team] {
-                        Text("\(team == "red" ? "🔴" : "🔵") Spymaster: \(name)")
+                        Text("\(team == "red" ? "Red" : "Blue") spymaster: \(name)")
                             .font(.headline).foregroundColor(.white.opacity(0.55))
                     }
                 }
@@ -164,7 +164,7 @@ struct TVOddOneOutBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🕶️", title: "Odd One Out",
+            TVRoundHeader(symbol: "eyeglasses", title: "Odd One Out",
                           round: 0, totalRounds: 0, secondsLeft: vm.state.secondsLeft,
                           phaseLabel: vm.state.phase == "question" ? "ask questions" : "vote")
             Spacer()
@@ -176,7 +176,7 @@ struct TVOddOneOutBoardView: View {
                     Text(location).font(.system(size: 62, weight: .heavy))
                         .foregroundColor(.cyan)
                     if let spy = vm.state.spyName {
-                        Text("🕶️ The spy was \(spy)").font(.title2)
+                        Text("The spy was \(spy)").font(.title2)
                             .foregroundColor(.yellow)
                     }
                     Text(vm.state.winner == "spy" ? "Spy wins" : "Players win")
@@ -204,7 +204,7 @@ struct TVOddOneOutBoardView: View {
                 .padding(.horizontal, 250)
             } else {
                 VStack(spacing: 18) {
-                    Text("🤔").font(.system(size: 110))
+                    Image(systemName: "questionmark.circle.fill").font(.system(size: 100)).foregroundColor(.white.opacity(0.6))
                     Text("Question each other")
                         .font(.system(size: 44, weight: .bold)).foregroundColor(.white)
                     Text("Everyone knows the location — except one of you")
@@ -256,7 +256,7 @@ struct TVSealedAuctionBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "💰", title: "Sealed Auction",
+            TVRoundHeader(symbol: "hammer.fill", title: "Sealed Auction",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: vm.state.base.phase == "bid" ? "bids are sealed" : "reveal")
@@ -335,7 +335,7 @@ struct TVWavelengthBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "📡", title: "Wavelength",
+            TVRoundHeader(symbol: "antenna.radiowaves.left.and.right", title: "Wavelength",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: "\(vm.state.psychicName) is the psychic")
@@ -459,7 +459,7 @@ struct TVKBCBoardView: View {
             .frame(width: 260).padding(.vertical, 50).padding(.leading, 40)
 
             VStack(spacing: 0) {
-                TVRoundHeader(emoji: "💺", title: "KBC Hot Seat",
+                TVRoundHeader(symbol: "trophy.fill", title: "KBC Hot Seat",
                               round: 0, totalRounds: 0, secondsLeft: vm.state.secondsLeft,
                               phaseLabel: "\(vm.state.hotSeatName) in the hot seat")
                 Spacer()
@@ -489,7 +489,7 @@ struct TVKBCBoardView: View {
                     .padding(.horizontal, 60)
 
                     if vm.state.phase == "poll" {
-                        Text("📊 Audience poll — \(vm.state.pollCount) votes in")
+                        Text("Audience poll — \(vm.state.pollCount) votes in")
                             .font(.title3).foregroundColor(.cyan)
                     }
 
@@ -540,7 +540,7 @@ struct TVBollywoodCharadesBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "💃", title: "Bollywood Charades",
+            TVRoundHeader(symbol: "figure.dance", title: "Bollywood Charades",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: "\(vm.state.actorName) is acting")
@@ -555,7 +555,7 @@ struct TVBollywoodCharadesBoardView: View {
                     }
                 } else {
                     VStack(spacing: 16) {
-                        Text("🎭").font(.system(size: 120))
+                        Image(systemName: "theatermasks.fill").font(.system(size: 110)).foregroundColor(.white.opacity(0.7))
                         Text("Act it out — no words!")
                             .font(.system(size: 44, weight: .bold)).foregroundColor(.white)
                         Text("Only \(vm.state.actorName) knows the film")
@@ -569,7 +569,7 @@ struct TVBollywoodCharadesBoardView: View {
                             .foregroundColor(.white.opacity(0.4))
                         HStack(spacing: 12) {
                             ForEach(vm.state.correctNames, id: \.self) { name in
-                                Text("✅ \(name)").font(.headline).foregroundColor(.green)
+                                Text("\(name)").font(.headline).foregroundColor(.green)
                                     .padding(.horizontal, 18).padding(.vertical, 10)
                                     .background(Capsule().fill(.green.opacity(0.15)))
                             }

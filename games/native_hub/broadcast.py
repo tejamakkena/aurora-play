@@ -16,6 +16,7 @@ import logging
 import time
 
 from games.native_hub import NAMESPACE
+from games.native_hub import bots
 from games.native_hub.registry import engine_for
 from utils.room_manager import RoomState, rooms
 
@@ -155,6 +156,18 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
                         # Even without simulation, time-driven engines need a
                         # nudge to roll phases over when a deadline passes.
                         room.engine.tick(dt)
+                    # Bot seats act here, on the same lock and through the
+                    # same handle_action path as real players.
+                    for bot in room.players:
+                        if bot.is_bot and bot.connected:
+                            act = bots.maybe_bot_action(room.engine, bot)
+                            if act is not None:
+                                verb, payload = act
+                                try:
+                                    room.engine.handle_action(bot.id, verb, payload)
+                                except Exception:
+                                    logger.exception("bot action failed room=%s",
+                                                     code)
                     over = room.engine.is_over()
                 else:
                     over = False

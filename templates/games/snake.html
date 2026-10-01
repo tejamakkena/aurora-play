@@ -7,26 +7,26 @@
 
 <div class="container">
     <div class="game-header">
-        <a href="/" class="btn btn-secondary back-btn">⬅️ Home</a>
-        <h1>🐍🪜 Snake & Ladder</h1>
+        <a href="/" class="btn btn-secondary back-btn">Home</a>
+        <h1>Snake & Ladder</h1>
         <div class="spacer"></div>
     </div>
     
     <!-- Mode Selection -->
     <div id="mode-selection" class="game-section">
         <div class="game-card">
-            <div class="game-icon-large">🎲</div>
+            <div class="game-icon-large"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
             <h2>Choose Game Mode</h2>
             <p class="subtitle-text">Play solo against AI or challenge friends!</p>
             
             <div class="mode-buttons">
                 <button id="solo-mode-btn" class="mode-btn" type="button" style="cursor: pointer;">
-                    <div class="mode-icon">🤖</div>
+                    <div class="mode-icon"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
                     <h3>Solo vs AI</h3>
                     <p>Race against computer opponents</p>
                 </button>
                 <button id="multiplayer-mode-btn" class="mode-btn" type="button" style="cursor: pointer;">
-                    <div class="mode-icon">👥</div>
+                    <div class="mode-icon"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
                     <h3>Multiplayer</h3>
                     <p>Play with friends online</p>
                 </button>
@@ -37,7 +37,7 @@
     <!-- Solo Setup -->
     <div id="solo-setup" class="game-section" style="display: none;">
         <div class="game-card">
-            <div class="game-icon-large">🤖</div>
+            <div class="game-icon-large"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
             <h2>Solo Game Setup</h2>
             
             <div class="setup-options">
@@ -53,14 +53,14 @@
                 <div class="option-group">
                     <label>AI Difficulty:</label>
                     <div class="difficulty-btns">
-                        <button class="diff-btn active" data-diff="easy" type="button">😊 Easy</button>
-                        <button class="diff-btn" data-diff="medium" type="button">😐 Medium</button>
-                        <button class="diff-btn" data-diff="hard" type="button">😈 Hard</button>
+                        <button class="diff-btn active" data-diff="easy" type="button">Easy</button>
+                        <button class="diff-btn" data-diff="medium" type="button">Medium</button>
+                        <button class="diff-btn" data-diff="hard" type="button">Hard</button>
                     </div>
                 </div>
                 
-                <button id="start-solo-btn" class="btn btn-primary" type="button">🎮 Start Game</button>
-                <button id="back-from-solo-btn" class="btn btn-secondary" type="button">⬅️ Back</button>
+                <button id="start-solo-btn" class="btn btn-primary" type="button">Start Game</button>
+                <button id="back-from-solo-btn" class="btn btn-secondary" type="button">Back</button>
             </div>
         </div>
     </div>
@@ -68,45 +68,45 @@
     <!-- Multiplayer Lobby -->
     <div id="multiplayer-lobby" class="game-section" style="display: none;">
         <div class="game-card">
-            <div class="game-icon-large">🎮</div>
+            <div class="game-icon-large"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
             <h2>Multiplayer Lobby</h2>
             
             <div class="lobby-controls">
                 <button id="create-room-btn" class="btn btn-primary" type="button">
-                    ➕ Create Room
+                     Create Room
                 </button>
                 <div class="join-room-section">
                     <input type="text" id="room-code-input" placeholder="Enter Room Code" class="room-input" maxlength="4">
                     <button id="join-room-btn" class="btn btn-secondary" type="button">
-                        🚪 Join Room
+                         Join Room
                     </button>
                 </div>
             </div>
             
             <div class="rooms-container">
                 <div class="rooms-header">
-                    <h3>🎮 Active Rooms</h3>
-                    <button id="refresh-rooms-btn" class="refresh-btn" type="button">🔄 Refresh</button>
+                    <h3>Active Rooms</h3>
+                    <button id="refresh-rooms-btn" class="refresh-btn" type="button">Refresh</button>
                 </div>
                 <div id="rooms-list" class="rooms-list">
                     <div class="empty-rooms">Loading rooms...</div>
                 </div>
             </div>
             
-            <button id="back-from-lobby-btn" class="btn btn-secondary" type="button">⬅️ Back</button>
+            <button id="back-from-lobby-btn" class="btn btn-secondary" type="button">Back</button>
         </div>
     </div>
     
     <!-- Waiting Room -->
     <div id="waiting-room" class="game-section" style="display: none;">
         <div class="game-card">
-            <div class="game-icon-large">⏳</div>
+            <div class="game-icon-large"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
             <h2>Waiting Room</h2>
             
             <div class="room-code-display">
                 <span>Room Code:</span>
                 <span id="waiting-room-code" class="room-code">------</span>
-                <button id="copy-room-code-btn" class="btn btn-secondary">📋 Copy</button>
+                <button id="copy-room-code-btn" class="btn btn-secondary">Copy</button>
             </div>
             
             <div class="players-waiting">
@@ -122,10 +122,10 @@
     
             <div class="waiting-actions">
                 <button id="start-multiplayer-btn" class="btn btn-primary" style="display: none;">
-                    🎮 Start Game
+                     Start Game
                 </button>
                 <button id="leave-room-btn" class="btn btn-secondary">
-                    ⬅️ Leave Room
+                     Leave Room
                 </button>
             </div>
         </div>
@@ -146,15 +146,15 @@
         
         <div class="game-layout">
             <div class="players-panel">
-                <h3>🎮 Players</h3>
+                <h3>Players</h3>
                 <div id="players-info" class="players-info"></div>
                 
                 <div class="dice-section">
                     <div class="dice-display" id="dice-display">
-                        <div class="dice-face">🎲</div>
+                        <div class="dice-face"></div>
                     </div>
                     <button id="roll-dice-btn" class="btn btn-primary dice-btn" type="button" disabled>
-                        🎲 Roll Dice
+                         Roll Dice
                     </button>
                     <div class="dice-result" id="dice-result"></div>
                 </div>
@@ -169,20 +169,20 @@
     <!-- Results Screen -->
     <div id="results-screen" class="game-section" style="display: none;">
         <div class="game-card results-card">
-            <div class="result-icon-large" id="result-icon">🏆</div>
+            <div class="result-icon-large" id="result-icon"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
             <h2 id="result-title">Game Over!</h2>
             
             <div class="final-rankings">
-                <h3>🏆 Final Rankings</h3>
+                <h3>Final Rankings</h3>
                 <div id="final-rankings-list" class="rankings-list"></div>
             </div>
             
             <div class="result-message" id="result-message"></div>
             
             <div class="result-actions">
-                <button id="play-again-btn" class="btn btn-primary" type="button">🔄 Play Again</button>
-                <button id="new-game-btn" class="btn btn-secondary" type="button">🎯 New Game</button>
-                <a href="/" class="btn btn-secondary">🏠 Home</a>
+                <button id="play-again-btn" class="btn btn-primary" type="button">Play Again</button>
+                <button id="new-game-btn" class="btn btn-secondary" type="button">New Game</button>
+                <a href="/" class="btn btn-secondary">Home</a>
             </div>
         </div>
     </div>

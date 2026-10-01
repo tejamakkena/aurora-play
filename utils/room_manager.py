@@ -19,6 +19,7 @@ Two design points worth stating up front:
 import random
 import threading
 import time
+import uuid
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
@@ -51,7 +52,12 @@ def generate_room_code(exists: Callable[[str], bool]) -> str:
 
 @dataclass
 class Player:
-    """One phone. ``id`` is the stable device UUID, ``sid`` the current socket."""
+    """One phone. ``id`` is the stable device UUID, ``sid`` the current socket.
+
+    A bot (``is_bot=True``) is a seat filler with no socket: it never appears
+    in ``player_by_sid``, can never hold the host flag, and does not keep a
+    room alive on its own (see ``Room.is_empty``).
+    """
 
     id: str
     name: str
@@ -61,15 +67,22 @@ class Player:
     sid: str | None = None
     connected: bool = True
     disconnected_at: float | None = None
+    is_bot: bool = False
+    # Bot bookkeeping, maintained by games.native_hub.bots: the phase key the
+    # bot last scheduled for, and the timestamp after which it may act.
+    bot_phase_key: str = ""
+    bot_act_at: float = 0.0
 
     def to_json(self) -> dict:
-        """Exactly the Swift ``Player`` struct -- all five keys, no optionals."""
+        """The Swift ``Player`` struct. ``isBot`` is additive -- Swift's
+        ``JSONDecoder`` ignores unknown keys, so old clients keep working."""
         return {
             "id": self.id,
             "name": self.name,
             "isReady": self.is_ready,
             "score": self.score,
             "isHost": self.is_host,
+            "isBot": self.is_bot,
         }
 
 
@@ -81,6 +94,9 @@ class Room:
     players: list[Player] = field(default_factory=list)   # phones only
     tv_sids: set[str] = field(default_factory=set)        # TV / board sockets
     solo: bool = False
+    #: Content-pack id ("en", "te", "hi", ...) chosen at room creation.
+    #: Engines read it via ``getattr(room, "content_pack", "en")``.
+    content_pack: str = "en"
     # The solo placeholder's identity, held here rather than added to
     # `players` immediately at create_room time -- deferred until start_game
     # actually fires, and only materialized then if nobody real has joined by
@@ -115,7 +131,10 @@ class Room:
         return next((p for p in self.players if p.is_host), None)
 
     def is_empty(self) -> bool:
-        return not self.tv_sids and not self.connected_players()
+        # Bots do not count: a room with only bots and no TV is dead weight
+        # and should be reaped like any other empty room.
+        return not self.tv_sids and not any(
+            p.connected and not p.is_bot for p in self.players)
 
     def to_json(self) -> dict:
         """Exactly the Swift ``Room`` struct."""
@@ -141,6 +160,32 @@ class Room:
             is_host=not any(p.is_host for p in self.players),
         )
         self.players.append(player)
+        self.touch()
+        return player
+
+    def add_bot(self, name: str | None = None) -> Player:
+        """Add a bot seat filler. Bots never become host and have no socket."""
+        from games.native_hub.bots import BOT_NAMES
+        if name is None:
+            taken = {p.name for p in self.players}
+            name = next((n for n in BOT_NAMES if n not in taken),
+                        f"Bot {len(self.players) + 1}")
+        player = Player(
+            id=f"bot-{uuid.uuid4().hex[:8]}",
+            name=name,
+            is_host=False,
+            is_bot=True,
+        )
+        self.players.append(player)
+        self.touch()
+        return player
+
+    def remove_bot(self, player_id: str) -> Player | None:
+        """Remove a bot. Refuses to remove human players."""
+        player = self.player(player_id)
+        if player is None or not player.is_bot:
+            return None
+        self.players.remove(player)
         self.touch()
         return player
 
@@ -208,12 +253,13 @@ class Room:
         return True
 
     def reassign_host(self) -> None:
-        """Ensure exactly one connected player holds the host flag."""
-        if any(p.is_host and p.connected for p in self.players):
+        """Ensure exactly one connected human player holds the host flag."""
+        if any(p.is_host and p.connected and not p.is_bot for p in self.players):
             return
         for p in self.players:
             p.is_host = False
-        nxt = next((p for p in self.players if p.connected), None)
+        nxt = next((p for p in self.players if p.connected and not p.is_bot),
+                   None)
         if nxt is not None:
             nxt.is_host = True
 

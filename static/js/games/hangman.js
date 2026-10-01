@@ -1,4 +1,6 @@
-/* Hangman client */
+/* Hangman client - all listeners/timers routed through CleanupManager */
+const cleanup = new CleanupManager();
+
 const socket = io();
 
 const BODY_PARTS = ['hm-head', 'hm-body', 'hm-left-arm', 'hm-right-arm', 'hm-left-leg', 'hm-right-leg'];
@@ -33,8 +35,8 @@ function showToast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+    cleanup.clearTimeout(toastTimer);
+    toastTimer = cleanup.addTimeout(setTimeout(() => t.classList.remove('show'), 3000));
 }
 
 // ── Helpers ───────────────────────────────────────────────
@@ -89,7 +91,7 @@ function buildKeyboard(guessedLetters) {
         if (guessedLetters.includes(letter)) {
             btn.disabled = true;
         }
-        btn.addEventListener('click', () => guessLetter(letter));
+        cleanup.addEventListener(btn, 'click', () => guessLetter(letter));
         kb.appendChild(btn);
     });
 }
@@ -171,8 +173,8 @@ function playAgain() {
     socket.emit('hangman_play_again', { room_code: state.roomCode });
 }
 
-// ── Socket events ─────────────────────────────────────────
-socket.on('hangman_room_created', data => {
+// ── Socket events (tracked for cleanup) ───────────────────
+cleanup.addSocketListener(socket, 'hangman_room_created', data => {
     state.roomCode = data.room_code;
     state.playerId = data.player_id;
     state.isHost = true;
@@ -184,7 +186,7 @@ socket.on('hangman_room_created', data => {
     showScreen('waiting');
 });
 
-socket.on('hangman_room_joined', data => {
+cleanup.addSocketListener(socket, 'hangman_room_joined', data => {
     state.roomCode = data.room_code;
     state.playerId = data.player_id;
     state.isHost = false;
@@ -196,21 +198,21 @@ socket.on('hangman_room_joined', data => {
     showScreen('waiting');
 });
 
-socket.on('hangman_player_joined', data => {
+cleanup.addSocketListener(socket, 'hangman_player_joined', data => {
     renderPlayers(data.players, 'players-container');
 });
 
-socket.on('hangman_enter_word', () => {
+cleanup.addSocketListener(socket, 'hangman_enter_word', () => {
     document.getElementById('inp-word').value = '';
     document.getElementById('inp-hint').value = '';
     showScreen('setWord');
 });
 
-socket.on('hangman_waiting_for_word', () => {
+cleanup.addSocketListener(socket, 'hangman_waiting_for_word', () => {
     showScreen('waitWord');
 });
 
-socket.on('hangman_game_started', data => {
+cleanup.addSocketListener(socket, 'hangman_game_started', data => {
     state.gameActive = true;
 
     if (state.isHost) {
@@ -222,7 +224,7 @@ socket.on('hangman_game_started', data => {
     showScreen('game');
 });
 
-socket.on('hangman_letter_guessed', data => {
+cleanup.addSocketListener(socket, 'hangman_letter_guessed', data => {
     applyGameState(data);
 
     if (!state.isHost && data.last_letter) {
@@ -231,12 +233,12 @@ socket.on('hangman_letter_guessed', data => {
 
     // Brief flash of who guessed
     if (data.guesser_name) {
-        const verb = data.outcome === 'correct' ? '✅ correct' : '❌ wrong';
+        const verb = data.outcome === 'correct' ? 'correct' : 'wrong';
         showToast(`${data.guesser_name}: "${data.last_letter}" — ${verb}`);
     }
 });
 
-socket.on('hangman_game_over', data => {
+cleanup.addSocketListener(socket, 'hangman_game_over', data => {
     state.gameActive = false;
 
     // Final board state
@@ -246,9 +248,9 @@ socket.on('hangman_game_over', data => {
     // Over screen
     const resultEl = document.getElementById('over-result');
     if (data.winner === 'guessers') {
-        resultEl.innerHTML = '<div class="result-win">🎉 Guessers Win!</div>';
+        resultEl.innerHTML = '<div class="result-win">Guessers Win!</div>';
     } else {
-        resultEl.innerHTML = '<div class="result-lose">💀 Host Wins!</div><p style="color:#aaa;margin-bottom:8px">The word was not guessed in time.</p>';
+        resultEl.innerHTML = '<div class="result-lose">Host Wins!</div><p style="color:#aaa;margin-bottom:8px">The word was not guessed in time.</p>';
     }
 
     document.getElementById('over-word').textContent = data.secret_word || '';
@@ -260,7 +262,7 @@ socket.on('hangman_game_over', data => {
     showScreen('over');
 });
 
-socket.on('hangman_player_left', data => {
+cleanup.addSocketListener(socket, 'hangman_player_left', data => {
     renderPlayers(data.players, 'players-container');
     // If we are now host (new_host assigned server-side)
     const me = data.players.find(p => p.id === state.playerId);
@@ -275,30 +277,37 @@ socket.on('hangman_player_left', data => {
     }
 });
 
-socket.on('hangman_error', data => {
+cleanup.addSocketListener(socket, 'hangman_error', data => {
     showToast(data.message || 'Something went wrong!');
 });
 
-// ── DOM wiring ────────────────────────────────────────────
+// ── DOM wiring (tracked for cleanup) ──────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btn-create').addEventListener('click', createRoom);
-    document.getElementById('btn-join-show').addEventListener('click', () => showScreen('join'));
-    document.getElementById('btn-join-back').addEventListener('click', () => showScreen('mode'));
-    document.getElementById('btn-join-submit').addEventListener('click', joinRoom);
-    document.getElementById('inp-room-code').addEventListener('keypress', e => {
+    cleanup.addEventListener(document.getElementById('btn-create'), 'click', createRoom);
+    cleanup.addEventListener(document.getElementById('btn-join-show'), 'click', () => showScreen('join'));
+    cleanup.addEventListener(document.getElementById('btn-join-back'), 'click', () => showScreen('mode'));
+    cleanup.addEventListener(document.getElementById('btn-join-submit'), 'click', joinRoom);
+    cleanup.addEventListener(document.getElementById('inp-room-code'), 'keypress', e => {
         if (e.key === 'Enter') joinRoom();
     });
-    document.getElementById('btn-copy').addEventListener('click', () => {
+    cleanup.addEventListener(document.getElementById('btn-copy'), 'click', () => {
         navigator.clipboard.writeText(state.roomCode || '');
         showToast('Room code copied!');
     });
-    document.getElementById('btn-start').addEventListener('click', startGame);
-    document.getElementById('btn-leave-waiting').addEventListener('click', leaveRoom);
-    document.getElementById('btn-set-word').addEventListener('click', setWord);
-    document.getElementById('inp-word').addEventListener('keypress', e => {
+    cleanup.addEventListener(document.getElementById('btn-start'), 'click', startGame);
+    cleanup.addEventListener(document.getElementById('btn-leave-waiting'), 'click', leaveRoom);
+    cleanup.addEventListener(document.getElementById('btn-set-word'), 'click', setWord);
+    cleanup.addEventListener(document.getElementById('inp-word'), 'keypress', e => {
         if (e.key === 'Enter') setWord();
     });
-    document.getElementById('btn-leave-game').addEventListener('click', leaveRoom);
-    document.getElementById('btn-play-again').addEventListener('click', playAgain);
-    document.getElementById('btn-exit').addEventListener('click', leaveRoom);
+    cleanup.addEventListener(document.getElementById('btn-leave-game'), 'click', leaveRoom);
+    cleanup.addEventListener(document.getElementById('btn-play-again'), 'click', playAgain);
+    cleanup.addEventListener(document.getElementById('btn-exit'), 'click', leaveRoom);
 });
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    cleanup.cleanup();
+});
+
+console.log('Hangman script loaded with CleanupManager');
