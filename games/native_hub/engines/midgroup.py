@@ -134,6 +134,16 @@ class CipherGridEngine(NativeGameEngine):
         self.clue = {"word": "", "count": 0}
         self.guesses_left = 0
 
+    def on_player_leave(self, player_id):
+        # A spymaster whose phone drops would leave their team unable to
+        # clue ever again; hand the key to a teammate who is still here.
+        team = self.teams.get(player_id)
+        if team and self.spymasters.get(team) == player_id:
+            for p in self.room.connected_players():
+                if p.id != player_id and self.teams.get(p.id) == team:
+                    self.spymasters[team] = p.id
+                    break
+
     def public_state(self):
         return {
             # Only revealed colours go out publicly. The unrevealed key never

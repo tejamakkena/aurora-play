@@ -453,8 +453,10 @@ struct CarromControllerView: View {
     @State private var position: Double = 50
 
     /// Drag back from the striker to aim; the pull length becomes the power,
-    /// the same gesture people already expect from a real board.
-    private var angle: Double { atan2(Double(aim.width), Double(-aim.height)) }
+    /// the same gesture people already expect from a real board. The shot
+    /// flies opposite the pull (along the drawn aim line). Server convention:
+    /// angle 0 = straight up the board, direction (sin a, -cos a).
+    private var angle: Double { atan2(Double(-aim.width), Double(aim.height)) }
     private var power: Double { min(1, Double(hypot(aim.width, aim.height)) / 140) }
 
     var body: some View {
@@ -770,7 +772,7 @@ struct PaddleControllerView: View {
                         .contentShape(Rectangle())
                         .gesture(
                             DragGesture(minimumDistance: 0).onChanged { value in
-                                let t = min(max(0, value.location.x / geo.size.width), 1)
+                                let t = Double(min(max(0, value.location.x / geo.size.width), 1))
                                 onAction("paddle", ["x": t * width])
                             }
                         )

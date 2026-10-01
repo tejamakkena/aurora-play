@@ -139,6 +139,11 @@ class MemoryEngine(TurnBasedEngine):
         self.cards: list[str] = []
         self.matched: set[int] = set()
         self.flipped: list[int] = []
+        # A mismatched pair stays face-up this long so everyone can see
+        # (and memorise) it before the turn passes.
+        self.hide_at: float = 0.0
+
+    MISMATCH_SHOW_SECONDS = 1.6
 
     def setup(self):
         symbols = random.sample(self.SYMBOLS, self.PAIRS)
@@ -149,6 +154,8 @@ class MemoryEngine(TurnBasedEngine):
     def handle_action(self, player_id, action, data):
         if self._finished or action != "flip" or not self.is_my_turn(player_id):
             return
+        if self.hide_at:
+            return                          # mismatched pair still showing
         idx = data.get("index")
         if not isinstance(idx, int) or not 0 <= idx < len(self.cards):
             return
@@ -162,13 +169,30 @@ class MemoryEngine(TurnBasedEngine):
         a, b = self.flipped
         if self.cards[a] == self.cards[b]:
             self.matched.update({a, b})
-            self.award(player_id, 1)
+            self.scores[player_id] = self.scores.get(player_id, 0) + 1
+            player = self.room.player(player_id)
+            if player is not None:
+                player.score = self.scores[player_id]
             self.flipped = []
             if len(self.matched) == len(self.cards):
                 self.finish()
+            # A match keeps the turn.
         else:
+            self.hide_at = time.time() + self.MISMATCH_SHOW_SECONDS
+
+    def on_player_leave(self, player_id):
+        if self.hide_at and self.is_my_turn(player_id):
+            self.hide_at = 0.0
+            self.flipped = []
+        super().on_player_leave(player_id)
+
+    def tick(self, dt):
+        if self.hide_at and time.time() >= self.hide_at:
+            self.hide_at = 0.0
             self.flipped = []
             self.next_turn()
+            return
+        super().tick(dt)
 
     def public_state(self):
         state = self.base_public()

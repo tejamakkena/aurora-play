@@ -88,14 +88,25 @@ def _best_hand(cards):
 
 
 class PokerEngine(TurnBasedEngine):
+    """Texas Hold'em over several hands.
+
+    The table plays up to ``MAX_HANDS`` hands (dealer button rotating) or
+    until one player holds every chip; final ranking is by chip count. Each
+    hand ends on a short "showdown" pause so the TV can show who took the
+    pot before the next deal.
+    """
+
     game_id = "poker"
     min_players = 2
     max_players = 8
+    turn_seconds = 45
 
     STARTING_CHIPS = 1000
     SMALL_BLIND = 10
     BIG_BLIND = 20
     STREETS = ["preflop", "flop", "turn", "river", "showdown"]
+    MAX_HANDS = 10
+    HAND_PAUSE_SECONDS = 6
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -111,22 +122,105 @@ class PokerEngine(TurnBasedEngine):
         self.acted: set[str] = set()
         self.phase = "preflop"
         self.showdown: list[dict] = []
+        self.hand_number = 0
+        self.next_hand_at = 0.0
+        self.game_over_pending = False
+        self.last_hand: dict | None = None
 
     def setup(self):
-        n = len(self.order)
-        self.deck = _make_deck()
         self.chips = {pid: self.STARTING_CHIPS for pid in self.order}
-        self.contrib = {pid: 0 for pid in self.order}
-        for pid in self.order:
-            self.hands[pid] = [self.deck.pop(), self.deck.pop()]
+        self._start_hand()
 
-        sb_pos = 1 % n
-        bb_pos = 2 % n
-        self._post(self.order[sb_pos], self.SMALL_BLIND)
-        self._post(self.order[bb_pos], self.BIG_BLIND)
-        self.current_bet = self.BIG_BLIND
-        self.turn_index = (bb_pos + 1) % n
-        self.reset_turn_clock()
+    # ---- hand lifecycle ------------------------------------------------
+
+    def _seated(self):
+        return [pid for pid in self.order if self.chips.get(pid, 0) > 0]
+
+    def _start_hand(self):
+        seated = self._seated()
+        if len(seated) < 2:
+            self._finish_game()
+            return
+        self.hand_number += 1
+        self.deck = _make_deck()
+        self.hands = {pid: [self.deck.pop(), self.deck.pop()] for pid in seated}
+        self.community = []
+        self.contrib = {pid: 0 for pid in self.order}
+        self.folded = {pid for pid in self.order if pid not in seated}
+        self.all_in = set()
+        self.acted = set()
+        self.phase = "preflop"
+        self.showdown = []
+        self.winner = None
+        self.next_hand_at = 0.0
+
+        n = len(seated)
+        dealer = (self.hand_number - 1) % n
+        if n == 2:
+            sb, bb = seated[dealer], seated[(dealer + 1) % n]   # heads-up: button posts SB
+        else:
+            sb, bb = seated[(dealer + 1) % n], seated[(dealer + 2) % n]
+        self._post(sb, self.SMALL_BLIND)
+        self._post(bb, self.BIG_BLIND)
+        self.current_bet = max(self.contrib.values())
+
+        self.turn_index = self.order.index(bb)
+        if len(self._actionable()) <= 1 and self._bets_settled():
+            self._run_out()
+            return
+        self.next_turn()
+
+    def _end_hand(self, winners, share):
+        self.pot = 0
+        self.phase = "showdown"
+        self.winner = winners[0] if len(winners) == 1 else None
+        self.last_hand = {
+            "handNumber": self.hand_number,
+            "winnerIDs": list(winners),
+            "winnerNames": [self.player_name(w) for w in winners],
+            "amount": share,
+        }
+        self._sync_scores()
+        self.deadline = 0.0
+        if len(self._seated()) < 2 or self.hand_number >= self.MAX_HANDS:
+            self.game_over_pending = True
+        self.next_hand_at = time.time() + self.HAND_PAUSE_SECONDS
+
+    def _finish_game(self):
+        self._sync_scores()
+        leader = max(self.order, key=lambda pid: self.chips.get(pid, 0)) if self.order else None
+        self.finish(winner=leader)
+
+    def tick(self, dt):
+        if self._finished:
+            return
+        if self.next_hand_at:
+            if time.time() >= self.next_hand_at:
+                self.next_hand_at = 0.0
+                if self.game_over_pending:
+                    self._finish_game()
+                else:
+                    self._start_hand()
+            return
+        super().tick(dt)
+
+    def on_turn_timeout(self):
+        # An idle phone checks when it can and folds when it would have to pay.
+        pid = self.current_player_id()
+        if pid is None:
+            return
+        to_call = self.current_bet - self.contrib.get(pid, 0)
+        self.handle_action(pid, "check" if to_call <= 0 else "fold", {})
+
+    def on_player_leave(self, player_id):
+        if (not self._finished and not self.next_hand_at
+                and player_id in self.hands and player_id not in self.folded
+                and self.is_my_turn(player_id)):
+            self.handle_action(player_id, "fold", {})
+            return
+        super().on_player_leave(player_id)
+
+    # ---- betting -------------------------------------------------------
 
     def _post(self, pid, amount):
         amount = min(amount, self.chips[pid])
@@ -139,31 +233,40 @@ class PokerEngine(TurnBasedEngine):
     def _live(self):
         return [pid for pid in self.order if pid not in self.folded]
 
+    def _actionable(self):
+        return [pid for pid in self.order if pid not in self.folded and pid not in self.all_in]
+
+    def _bets_settled(self):
+        return all(self.contrib[pid] >= self.current_bet for pid in self._actionable())
+
     def next_turn(self):
-        live = [pid for pid in self.order if pid not in self.folded and pid not in self.all_in]
+        live = self._actionable()
         if not live:
             return
         for _ in range(len(self.order)):
             self.turn_index = (self.turn_index + 1) % len(self.order)
             pid = self.order[self.turn_index]
-            if pid in live and self._is_live(pid):
+            if pid in live:
                 break
         self.reset_turn_clock()
 
     def _round_complete(self):
-        live = [pid for pid in self.order if pid not in self.folded and pid not in self.all_in]
+        live = self._actionable()
         if not live:
             return True
+        if len(live) == 1 and self.contrib[live[0]] >= self.current_bet:
+            return True       # everyone else is all-in or folded
         return all(pid in self.acted and self.contrib[pid] == self.current_bet for pid in live)
 
     def handle_action(self, player_id, action, data):
-        if self._finished or player_id in self.folded or not self.is_my_turn(player_id):
+        if (self._finished or self.next_hand_at or player_id in self.folded
+                or player_id in self.all_in or not self.is_my_turn(player_id)):
             return
 
         if action == "fold":
             self.folded.add(player_id)
             self.acted.add(player_id)
-        elif action == "check":
+        elif action in ("check", "call"):
             call_amount = min(self.current_bet - self.contrib[player_id], self.chips[player_id])
             if call_amount > 0:
                 self.chips[player_id] -= call_amount
@@ -174,7 +277,10 @@ class PokerEngine(TurnBasedEngine):
             self.acted.add(player_id)
         elif action == "bet":
             amount = data.get("amount")
-            if not isinstance(amount, int) or amount <= self.contrib[player_id]:
+            if not isinstance(amount, int):
+                return
+            amount = max(amount, self.current_bet)       # never less than a call
+            if amount <= self.contrib[player_id]:
                 return
             cost = min(amount - self.contrib[player_id], self.chips[player_id])
             self.chips[player_id] -= cost
@@ -204,22 +310,30 @@ class PokerEngine(TurnBasedEngine):
         self.contrib = {pid: 0 for pid in self.order}
         self.current_bet = 0
 
+        if self.phase == "river":
+            self._showdown()
+            return
         idx = self.STREETS.index(self.phase)
         if self.phase == "preflop":
             self.community += [self.deck.pop() for _ in range(3)]
-        elif self.phase in ("flop", "turn"):
+        else:
             self.community.append(self.deck.pop())
-        elif self.phase == "river":
-            self._showdown()
-            return
         self.phase = self.STREETS[idx + 1]
 
-        live = [pid for pid in self.order if pid not in self.folded and pid not in self.all_in]
-        if not live:
-            self._showdown()
+        live = self._actionable()
+        if len(live) <= 1:
+            self._run_out()                 # nobody left to bet against
             return
-        self.turn_index = self.order.index(live[0])
-        self.reset_turn_clock()
+        # First to act after the flop: the first live seat after the button.
+        self.turn_index = self.order.index(live[0]) - 1
+        self.next_turn()
+
+    def _run_out(self):
+        """Deal the rest of the board with no more betting, then show down."""
+        while len(self.community) < 5:
+            self.community.append(self.deck.pop())
+        self.phase = "river"
+        self._showdown()
 
     def _showdown(self):
         self.phase = "showdown"
@@ -232,18 +346,16 @@ class PokerEngine(TurnBasedEngine):
             {"playerID": pid, "name": self.player_name(pid), "cards": self.hands[pid]}
             for pid in live
         ]
-        share = self.pot // len(winners)
+        share, remainder = divmod(self.pot, len(winners))
         for pid in winners:
             self.chips[pid] += share
-        self.pot = 0
-        self.finish(winner=winners[0])
-        self._sync_scores()
+        self.chips[winners[0]] += remainder
+        self._end_hand(winners, share)
 
     def _award(self, winner):
+        amount = self.pot
         self.chips[winner] += self.pot
-        self.pot = 0
-        self.finish(winner=winner)
-        self._sync_scores()
+        self._end_hand([winner], amount)
 
     def _sync_scores(self):
         for pid in self.order:
@@ -273,17 +385,30 @@ class PokerEngine(TurnBasedEngine):
                 for pid in self.order
             ],
             "showdown": self.showdown,
+            "handNumber": self.hand_number,
+            "maxHands": self.MAX_HANDS,
+            "lastHand": self.last_hand,
         })
         return state
 
     def private_state(self, player_id):
         state = self.base_private(player_id)
         min_bet = self.current_bet + self.BIG_BLIND if self.current_bet else self.BIG_BLIND
+        to_call = max(0, min(self.current_bet - self.contrib.get(player_id, 0),
+                             self.chips.get(player_id, 0)))
         state.update({
             "hand": self.hands.get(player_id, []),
             "chips": self.chips.get(player_id, 0),
-            "minBet": min_bet,
+            "minBet": min(min_bet, self.chips.get(player_id, 0) + self.contrib.get(player_id, 0)),
+            "toCall": to_call,
             "folded": player_id in self.folded,
+            "allIn": player_id in self.all_in,
+            "isMyTurn": (self.is_my_turn(player_id) and not self.next_hand_at
+                         and player_id not in self.folded and player_id not in self.all_in),
+            "phase": self.phase,
+            "handNumber": self.hand_number,
+            "maxHands": self.MAX_HANDS,
+            "lastHand": self.last_hand,
         })
         return state
 
@@ -645,7 +770,9 @@ class DigitGuessEngine(NativeGameEngine):
             return
 
         bulls, cows = self._feedback(self.secret, code)
-        self.guesses[player_id].append({"guess": code, "bulls": bulls, "cows": cows})
+        # "guess" is what the phone reads, "code" what the TV board reads.
+        self.guesses[player_id].append({"guess": code, "code": code,
+                                        "bulls": bulls, "cows": cows})
         if bulls == 4:
             self.winner = player_id
             self._finished = True

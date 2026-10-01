@@ -13,6 +13,18 @@ struct PokerControllerView: View {
     @State private var betAmount: Double = 0
     private var minBet: Int { privateData["minBet"] as? Int ?? 0 }
     private var maxBet: Int { chips }
+    private var toCall: Int { privateData["toCall"] as? Int ?? 0 }
+    private var folded: Bool { privateData["folded"] as? Bool ?? false }
+    private var allIn: Bool { privateData["allIn"] as? Bool ?? false }
+    private var handNumber: Int { privateData["handNumber"] as? Int ?? 0 }
+    private var maxHands: Int { privateData["maxHands"] as? Int ?? 0 }
+    private var lastHandText: String? {
+        guard (privateData["phase"] as? String) == "showdown",
+              let last = privateData["lastHand"] as? [String: Any],
+              let names = last["winnerNames"] as? [Any] else { return nil }
+        let who = names.compactMap { $0 as? String }.joined(separator: " & ")
+        return who.isEmpty ? nil : "\(who) won $\(last["amount"] as? Int ?? 0)"
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -32,13 +44,20 @@ struct PokerControllerView: View {
             Spacer(minLength: 4)
 
             HStack(spacing: 22) {
-                ForEach(Array(hand.enumerated()), id: \.offset) { _, card in
+                ForEach(Array(hand.enumerated()), id: \.offset) { i, card in
+                    // New identity each hand, so the fresh cards start face-down.
                     FlippableHoleCard(card: card)
+                        .id("\(handNumber)-\(i)-\(card)")
                 }
             }
+            .opacity(folded ? 0.35 : 1)
 
             Spacer(minLength: 4)
 
+            if maxHands > 0 {
+                Text("Hand \(handNumber) of \(maxHands)")
+                    .font(.caption.bold()).foregroundColor(.white.opacity(0.5))
+            }
             Text("Chips: \(chips)").font(.headline).foregroundColor(.white)
 
             if canBet {
@@ -55,15 +74,21 @@ struct PokerControllerView: View {
 
                     HStack(spacing: 12) {
                         ActionBtn("Fold",  color: .red)    { onAction("fold",  [:]) }
-                        ActionBtn("Check", color: .gray)   { onAction("check", [:]) }
-                        ActionBtn("Bet",   color: .yellow)  { onAction("bet",   ["amount": Int(betAmount)]) }
+                        ActionBtn(toCall > 0 ? "Call \(toCall)" : "Check", color: .gray) {
+                            onAction(toCall > 0 ? "call" : "check", [:])
+                        }
+                        ActionBtn(toCall > 0 ? "Raise" : "Bet", color: .yellow) {
+                            onAction("bet", ["amount": max(Int(betAmount), minBet)])
+                        }
                     }
                     .padding(.horizontal, 20)
                 }
                 .padding(.bottom, 28)
+                .onAppear { betAmount = Double(minBet) }
             } else {
-                Text("Waiting for your turn…")
-                    .foregroundColor(.white.opacity(0.4))
+                Text(lastHandText ?? (folded ? "You folded this hand" :
+                                      allIn ? "You're all in!" : "Waiting for your turn…"))
+                    .foregroundColor(lastHandText != nil ? .yellow : .white.opacity(0.4))
                     .padding(.bottom, 28)
             }
         }
@@ -412,21 +437,39 @@ struct MindMeldControllerView: View {
     let onAction: (String, [String: Any]) -> Void
 
     @State private var wordInput = ""
-    @State private var hasSubmitted = false
+    /// The round this phone submitted in. Compared against the server's round
+    /// so a new round re-opens the input (it used to stay locked after round 1).
+    @State private var submittedRound: Int? = nil
     private var category: String { privateData["category"] as? String ?? "" }
+    private var round: Int { privateData["round"] as? Int ?? 0 }
+    private var totalRounds: Int { privateData["totalRounds"] as? Int ?? 0 }
+    private var showReveal: Bool { privateData["showReveal"] as? Bool ?? false }
+    private var myWord: String? { privateData["myWord"] as? String }
+    private var hasSubmitted: Bool {
+        (privateData["hasSubmitted"] as? Bool ?? false) || submittedRound == round
+    }
 
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 28) {
             Spacer()
             Text("Mind Meld").font(.largeTitle.bold()).foregroundColor(.white)
+            if totalRounds > 0 {
+                Text("Round \(round) of \(totalRounds)")
+                    .font(.caption.bold()).foregroundColor(.white.opacity(0.5))
+            }
             Text("Category: \(category)").font(.title3).foregroundColor(.cyan)
             Text("Type ONE word that fits the category.\nTry to match what others think!").font(.subheadline)
                 .foregroundColor(.white.opacity(0.5)).multilineTextAlignment(.center)
 
-            if !hasSubmitted {
+            if showReveal {
+                Image(systemName: "tv").font(.system(size: 54)).foregroundColor(.purple)
+                Text("Look at the TV for the melds!").font(.title3).foregroundColor(.white)
+            } else if !hasSubmitted {
                 TextField("Your word…", text: $wordInput)
                     .font(.title2).foregroundColor(.white).multilineTextAlignment(.center)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .submitLabel(.send)
+                    .onSubmit(submit)
                     .padding(16)
                     .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.08)))
                     .padding(.horizontal, 32)
@@ -436,21 +479,28 @@ struct MindMeldControllerView: View {
                         .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple))
                         .foregroundColor(.white)
                 }
-                .buttonStyle(.plain).disabled(wordInput.isEmpty).padding(.horizontal, 32)
+                .buttonStyle(.plain)
+                .disabled(wordInput.trimmingCharacters(in: .whitespaces).isEmpty)
+                .padding(.horizontal, 32)
             } else {
                 Image(systemName: "brain.filled.head.profile").font(.system(size: 60)).foregroundColor(.purple)
-                Text("Word submitted!\nWatch the TV for the meld…").font(.title3).foregroundColor(.white)
+                Text("You said \"\(myWord ?? wordInput)\"\nWaiting for the others…").font(.title3).foregroundColor(.white)
                     .multilineTextAlignment(.center)
             }
             Spacer()
         }
         .background(Color(hex: "0d0a14").ignoresSafeArea())
+        .onChange(of: round) { _ in
+            wordInput = ""
+            submittedRound = nil
+        }
     }
 
     private func submit() {
-        guard !wordInput.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        hasSubmitted = true
-        onAction("word", ["word": wordInput.trimmingCharacters(in: .whitespaces).lowercased()])
+        let word = wordInput.trimmingCharacters(in: .whitespaces)
+        guard !word.isEmpty, !hasSubmitted else { return }
+        submittedRound = round
+        onAction("word", ["word": word.lowercased()])
     }
 }
 
@@ -460,37 +510,84 @@ struct HotGridControllerView: View {
     let privateData: [String: Any]
     let onAction: (String, [String: Any]) -> Void
 
-    @State private var hasPicked = false
+    /// The tile just tapped, held only until the server's next update so a
+    /// double tap can't send two picks. Cleared on every turn or board change
+    /// (it used to be a one-shot flag that hid the grid for the rest of the game).
+    @State private var pendingPick: Int? = nil
     private var isMyTurn: Bool { (privateData["isMyTurn"] as? Bool) ?? false }
+    private var score: Int { privateData["score"] as? Int ?? 0 }
+    private var tiles: [String] {
+        (privateData["tiles"] as? [Any] ?? []).compactMap { $0 as? String }
+    }
+    private var lastPickText: String? {
+        guard let last = privateData["lastPick"] as? [String: Any],
+              let name = last["name"] as? String,
+              let delta = last["delta"] as? Int else { return nil }
+        return delta >= 0 ? "\(name) found +\(delta)" : "\(name) hit a trap \(delta)"
+    }
     private let gridSize = 5
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 18) {
             Text("Hot Grid").font(.largeTitle.bold()).foregroundColor(.white)
-            Text(isMyTurn ? "Pick a tile!" : "Waiting for your turn…")
+            Text("Score \(score)").font(.headline).foregroundColor(.cyan)
+            Text(isMyTurn ? "Pick a hidden tile!" : "Waiting for your turn…")
                 .font(.title3).foregroundColor(isMyTurn ? .yellow : .white.opacity(0.4))
-
-            if isMyTurn && !hasPicked {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: gridSize), spacing: 12) {
-                    ForEach(0..<gridSize*gridSize, id: \.self) { idx in
-                        Button(action: { pick(idx) }) {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.white.opacity(0.1))
-                                .frame(height: 52)
-                                .overlay(Text("?").font(.title2).foregroundColor(.white.opacity(0.5)))
-                        }.buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 20)
+            if let lastPickText {
+                Text(lastPickText).font(.caption).foregroundColor(.white.opacity(0.5))
             }
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: gridSize), spacing: 10) {
+                ForEach(0..<gridSize*gridSize, id: \.self) { idx in
+                    let tile = idx < tiles.count ? tiles[idx] : "hidden"
+                    let hidden = tile == "hidden"
+                    Button(action: { pick(idx) }) {
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(fill(for: tile, pending: pendingPick == idx))
+                            .frame(height: 52)
+                            .overlay(label(for: tile))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!isMyTurn || !hidden || pendingPick != nil)
+                }
+            }
+            .padding(.horizontal, 20)
+            .opacity(isMyTurn ? 1 : 0.55)
             Spacer()
         }
         .padding(.top, 40)
         .background(Color(hex: "0a0a0a").ignoresSafeArea())
+        .onChange(of: isMyTurn) { _ in pendingPick = nil }
+        .onChange(of: tiles) { _ in pendingPick = nil }
+    }
+
+    private func fill(for tile: String, pending: Bool) -> Color {
+        if pending { return Color.yellow.opacity(0.5) }
+        switch tile {
+        case "hidden":   return Color.white.opacity(0.1)
+        case "trap":     return Color.red.opacity(0.35)
+        case "teleport": return Color.purple.opacity(0.35)
+        default:         return Color.green.opacity(0.3)
+        }
+    }
+
+    @ViewBuilder
+    private func label(for tile: String) -> some View {
+        switch tile {
+        case "hidden":
+            Text("?").font(.title2).foregroundColor(.white.opacity(0.5))
+        case "trap":
+            Image(systemName: "flame.fill").foregroundColor(.red)
+        case "teleport":
+            Image(systemName: "sparkles").foregroundColor(.purple)
+        default:
+            Text("+\(tile)").font(.headline).foregroundColor(.green)
+        }
     }
 
     private func pick(_ index: Int) {
-        hasPicked = true
+        guard isMyTurn, pendingPick == nil else { return }
+        pendingPick = index
         onAction("pick_tile", ["index": index])
     }
 }
@@ -543,72 +640,141 @@ struct SpeedSculptorControllerView: View {
 
     @State private var lines: [DrawLine] = []
     @State private var currentLine: DrawLine? = nil
-    @State private var submitted = false
+    @State private var submittedRound: Int? = nil
+    @State private var canvasSize: CGSize = .zero
     private var prompt: String { privateData["prompt"] as? String ?? "?" }
+    private var round: Int { privateData["round"] as? Int ?? 0 }
+    private var votingPhase: Bool { privateData["votingPhase"] as? Bool ?? false }
+    private var secondsLeft: Int { privateData["secondsLeft"] as? Int ?? 0 }
+    private var myVote: String? { privateData["myVote"] as? String }
+    private var submitted: Bool {
+        (privateData["hasSubmitted"] as? Bool ?? false) || submittedRound == round
+    }
+    private var candidates: [(id: String, name: String)] {
+        (privateData["candidates"] as? [Any] ?? []).compactMap {
+            guard let d = $0 as? [String: Any], let id = d["id"] as? String else { return nil }
+            return (id, d["playerName"] as? String ?? "Player")
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Draw: \(prompt)").font(.headline).foregroundColor(.white)
+                Text(votingPhase ? "Vote: best \(prompt)" : "Draw: \(prompt)")
+                    .font(.headline).foregroundColor(.white)
                 Spacer()
-                Button("Clear") { lines = []; currentLine = nil }
-                    .foregroundColor(.cyan).buttonStyle(.plain)
+                if secondsLeft > 0 {
+                    Text("\(secondsLeft)s").font(.headline.monospacedDigit())
+                        .foregroundColor(secondsLeft <= 5 ? .red : .cyan)
+                }
+                if !votingPhase && !submitted {
+                    Button("Clear") { lines = []; currentLine = nil }
+                        .foregroundColor(.cyan).buttonStyle(.plain).padding(.leading, 12)
+                }
             }
             .padding(16)
             .background(Color.white.opacity(0.06))
 
-            // Drawing canvas
-            Canvas { ctx, size in
-                for line in lines {
-                    var path = Path()
-                    guard let first = line.points.first else { continue }
-                    path.move(to: first)
-                    for pt in line.points.dropFirst() { path.addLine(to: pt) }
-                    ctx.stroke(path, with: .color(line.color), style: .init(lineWidth: line.width, lineCap: .round, lineJoin: .round))
-                }
-                if let current = currentLine {
-                    var path = Path()
-                    guard let first = current.points.first else { return }
-                    path.move(to: first)
-                    for pt in current.points.dropFirst() { path.addLine(to: pt) }
-                    ctx.stroke(path, with: .color(current.color), style: .init(lineWidth: current.width, lineCap: .round, lineJoin: .round))
-                }
-            }
-            .background(Color.white)
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        if currentLine == nil {
-                            currentLine = DrawLine(points: [value.location], color: .black, width: 4)
-                        } else {
-                            currentLine?.points.append(value.location)
-                        }
-                    }
-                    .onEnded { _ in
-                        if let line = currentLine { lines.append(line) }
-                        currentLine = nil
-                    }
-            )
-
-            if !submitted {
-                Button(action: submitDrawing) {
-                    Text("Submit Drawing").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple))
-                        .foregroundColor(.white)
-                }
-                .buttonStyle(.plain).padding(16)
+            if votingPhase {
+                votingList
             } else {
-                Text("✓ Submitted! Watch the TV.").foregroundColor(.green).padding(16)
+                drawingCanvas
+                if !submitted {
+                    Button(action: submitDrawing) {
+                        Text("Submit Drawing").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple))
+                            .foregroundColor(.white)
+                    }
+                    .buttonStyle(.plain).padding(16)
+                } else {
+                    Label("Submitted! Watch the TV.", systemImage: "checkmark.circle.fill")
+                        .foregroundColor(.green).padding(16)
+                }
             }
         }
         .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .onChange(of: round) { _ in
+            lines = []
+            currentLine = nil
+            submittedRound = nil
+        }
+    }
+
+    private var drawingCanvas: some View {
+        Canvas { ctx, size in
+            for line in lines + (currentLine.map { [$0] } ?? []) {
+                var path = Path()
+                guard let first = line.points.first else { continue }
+                path.move(to: first)
+                for pt in line.points.dropFirst() { path.addLine(to: pt) }
+                ctx.stroke(path, with: .color(line.color), style: .init(lineWidth: line.width, lineCap: .round, lineJoin: .round))
+            }
+        }
+        .background(Color.white)
+        .background(GeometryReader { geo in
+            Color.clear
+                .onAppear { canvasSize = geo.size }
+                .onChange(of: geo.size) { canvasSize = $0 }
+        })
+        .allowsHitTesting(!submitted)
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    if currentLine == nil {
+                        currentLine = DrawLine(points: [value.location], color: .black, width: 4)
+                    } else if let last = currentLine?.points.last,
+                              hypot(value.location.x - last.x, value.location.y - last.y) >= 3 {
+                        // Skip near-duplicate points: keeps the payload small.
+                        currentLine?.points.append(value.location)
+                    }
+                }
+                .onEnded { _ in
+                    if let line = currentLine { lines.append(line) }
+                    currentLine = nil
+                }
+        )
+    }
+
+    private var votingList: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                Text("Look at the drawings on the TV and vote for your favourite")
+                    .font(.subheadline).foregroundColor(.white.opacity(0.6))
+                    .multilineTextAlignment(.center).padding(.top, 20)
+                if candidates.isEmpty {
+                    Text("No other drawings this round").foregroundColor(.white.opacity(0.4))
+                }
+                ForEach(candidates, id: \.id) { c in
+                    let chosen = myVote == c.id
+                    Button { onAction("vote", ["targetID": c.id]) } label: {
+                        HStack {
+                            Text(c.name).font(.headline)
+                            Spacer()
+                            Image(systemName: chosen ? "hand.thumbsup.fill" : "hand.thumbsup")
+                        }
+                        .foregroundColor(chosen ? .black : .white)
+                        .padding(18)
+                        .background(RoundedRectangle(cornerRadius: 14)
+                            .fill(chosen ? Color.cyan : Color.white.opacity(0.08)))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
     }
 
     private func submitDrawing() {
-        submitted = true
-        // Encode lines as simplified point arrays for server
-        let encoded = lines.map { line in
-            line.points.map { ["x": $0.x, "y": $0.y] }
+        guard !submitted else { return }
+        submittedRound = round
+        let w = max(Double(canvasSize.width), 1)
+        let h = max(Double(canvasSize.height), 1)
+        // Normalised [x, y] pairs (0...1), 3 decimals -- what the TV draws.
+        let encoded: [[[Double]]] = lines.map { line in
+            line.points.map { p in
+                [(Double(p.x) / w * 1000).rounded() / 1000,
+                 (Double(p.y) / h * 1000).rounded() / 1000]
+            }
         }
         onAction("drawing", ["lines": encoded, "prompt": prompt])
     }

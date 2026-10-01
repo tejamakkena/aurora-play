@@ -183,6 +183,18 @@ struct TVPokerBoardView: View {
                         Text(vm.state.phase.uppercased()).font(.caption.bold()).tracking(3)
                             .foregroundColor(.yellow.opacity(0.85))
                         Text("Poker").font(.title2.bold()).foregroundColor(.white)
+                        if vm.state.maxHands > 0 {
+                            Text("Hand \(vm.state.handNumber) of \(vm.state.maxHands)")
+                                .font(.headline).foregroundColor(.white.opacity(0.6))
+                        }
+                    }
+                    Spacer()
+                    if vm.state.phase == "showdown", let result = vm.state.handResult {
+                        Label(result, systemImage: "crown.fill")
+                            .font(.system(size: 34, weight: .heavy))
+                            .foregroundColor(.yellow)
+                            .padding(.horizontal, 28).padding(.vertical, 14)
+                            .background(Capsule().fill(Color.black.opacity(0.6)))
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
@@ -273,8 +285,22 @@ struct PokerBoardState {
     /// Drives the dealer's showdown reaction gesture; nil while a hand is
     /// still in progress.
     var winnerID: String?
+    var handNumber = 0
+    var maxHands = 0
+    /// "Asha wins $340" while the between-hands showdown pause is up.
+    var handResult: String? = nil
 
     mutating func update(from data: [String: AnyCodable]) {
+        if let v = data["handNumber"]?.value as? Int      { handNumber = v }
+        if let v = data["maxHands"]?.value as? Int        { maxHands = v }
+        if let last = data["lastHand"]?.value as? [String: Any],
+           let names = last["winnerNames"] as? [Any] {
+            let who = names.compactMap { $0 as? String }.joined(separator: " & ")
+            let amount = last["amount"] as? Int ?? 0
+            handResult = who.isEmpty ? nil : "\(who) wins $\(amount)"
+        } else {
+            handResult = nil
+        }
         if let v = data["pot"]?.value as? Int             { pot = v }
         if let v = data["phase"]?.value as? String        { phase = v }
         if let v = data["communityCards"]?.value as? [String] { communityCards = v }
@@ -382,7 +408,9 @@ struct TVConnect4BoardView: View {
             Text("Connect 4").font(.largeTitle.bold()).foregroundColor(.white)
 
             if let winner = vm.state.winner {
-                Text("\(winner) wins!").font(.title2.bold()).foregroundColor(.yellow)
+                // `winner` is a player ID; show the name.
+                let name = room.players.first(where: { $0.id == winner })?.name ?? "Winner"
+                Text("\(name) wins!").font(.title2.bold()).foregroundColor(.yellow)
             } else {
                 Text(vm.state.currentPlayerName.isEmpty ? "" : "\(vm.state.currentPlayerName)'s turn")
                     .font(.title3).foregroundColor(.white.opacity(0.6))

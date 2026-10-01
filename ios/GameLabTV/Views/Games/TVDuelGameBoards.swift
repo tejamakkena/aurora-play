@@ -1111,10 +1111,12 @@ struct CarromState {
     var strikerX: Double = 50
     var currentPlayerID: String? = nil
     var targetScore = 8
+    var shotsLeft: Int? = nil
     var winner: String? = nil
     var players: [BoardPlayer] = []
 
     mutating func update(from d: [String: AnyCodable]) {
+        shotsLeft = d["shotsLeft"]?.value as? Int
         if let v = d["board"]?.value as? Double { board = v }
         if let v = d["strikerX"]?.value as? Double { strikerX = v }
         if let v = d["targetScore"]?.value as? Int { targetScore = v }
@@ -1136,7 +1138,8 @@ struct TVCarromBoardView: View {
     var body: some View {
         VStack(spacing: 0) {
             TVRoundHeader(symbol: "circle.dashed", title: "Carrom", round: 0, totalRounds: 0, secondsLeft: 0,
-                          phaseLabel: "first to \(vm.state.targetScore)")
+                          phaseLabel: vm.state.shotsLeft.map { "first to \(vm.state.targetScore)  -  \($0) shots left" }
+                                      ?? "first to \(vm.state.targetScore)")
             // Same fix as Neon Snake/Brick Breaker/Air Hockey: a fixed 8pt
             // scale sized the board purely off its own default 100x100 unit
             // grid, regardless of how much bigger the actual TV screen is.
@@ -1158,12 +1161,16 @@ struct TVCarromBoardView: View {
                             .stroke(Color(hex: "6b4f2a"), lineWidth: 10))
 
                     Canvas { ctx, size in
-                        // Pockets
+                        // Pockets, coins and striker are drawn at the same radii
+                        // the server's shot physics uses (CarromEngine POCKET_R,
+                        // COIN_R, STRIKER_R, STRIKER_Y), so what looks like it
+                        // should drop does.
+                        let pocketR = 8 * scale
                         for p in [CGPoint(x: 0, y: 0), CGPoint(x: size.width, y: 0),
                                   CGPoint(x: 0, y: size.height),
                                   CGPoint(x: size.width, y: size.height)] {
-                            ctx.fill(Path(ellipseIn: CGRect(x: p.x - 28, y: p.y - 28,
-                                                            width: 56, height: 56)),
+                            ctx.fill(Path(ellipseIn: CGRect(x: p.x - pocketR, y: p.y - pocketR,
+                                                            width: pocketR * 2, height: pocketR * 2)),
                                      with: .color(.black))
                         }
                         ctx.stroke(Path(ellipseIn: CGRect(x: size.width / 2 - 45,
@@ -1177,15 +1184,17 @@ struct TVCarromBoardView: View {
                             let color: Color = coin.kind == "queen" ? .red
                                              : coin.kind == "black" ? .black
                                              : Color(hex: "f5e6c8")
-                            ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(coin.x) * scale - 12,
-                                                            y: CGFloat(coin.y) * scale - 12,
-                                                            width: 24, height: 24)),
+                            let coinR = 2.5 * scale
+                            ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(coin.x) * scale - coinR,
+                                                            y: CGFloat(coin.y) * scale - coinR,
+                                                            width: coinR * 2, height: coinR * 2)),
                                      with: .color(color))
                         }
                         // Striker
-                        ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(vm.state.strikerX) * scale - 16,
-                                                        y: 92 * scale - 16,
-                                                        width: 32, height: 32)),
+                        let strikerR = 3.2 * scale
+                        ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(vm.state.strikerX) * scale - strikerR,
+                                                        y: 88 * scale - strikerR,
+                                                        width: strikerR * 2, height: strikerR * 2)),
                                  with: .color(.cyan))
                     }
                     .frame(width: CGFloat(vm.state.board) * scale, height: CGFloat(vm.state.board) * scale)
