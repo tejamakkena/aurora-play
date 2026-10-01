@@ -144,9 +144,9 @@ cleanup.addEventListener(document, 'DOMContentLoaded', function() {
         cleanup.addEventListener(copyCodeBtn, 'click', () => {
             const code = document.getElementById('waiting-room-code').textContent;
             navigator.clipboard.writeText(code).then(() => {
-                copyCodeBtn.textContent = '✅ Copied!';
+                copyCodeBtn.textContent = 'Copied!';
                 setTimeout(() => {
-                    copyCodeBtn.textContent = '📋 Copy';
+                    copyCodeBtn.textContent = 'Copy';
                 }, 2000);
             });
         });
@@ -318,7 +318,7 @@ function displayRooms(rooms) {
         <div class="room-item" onclick="joinRoomFromList('${room.code}')">
             <div class="room-code">${room.code}</div>
             <div class="room-info">
-                <span class="room-players">👥 ${room.player_count}/4</span>
+                <span class="room-players">${room.player_count}/4</span>
                 <span class="room-status">${room.status}</span>
             </div>
         </div>
@@ -343,8 +343,8 @@ function updatePlayersList(players) {
         <div class="player-item ${player.is_host ? 'host' : ''}">
             <span class="player-number">${index + 1}</span>
             <span class="player-name">${player.name}</span>
-            ${player.is_host ? '<span class="host-badge">👑 Host</span>' : ''}
-            <span class="player-status">✅</span>
+            ${player.is_host ? '<span class="host-badge">Host</span>' : ''}
+            <span class="player-status">Ready</span>
         </div>
     `).join('');
 }
@@ -543,17 +543,17 @@ function showResults() {
     let icon = '';
     
     if (percentage >= 90) {
-        message = '🌟 Outstanding! You\'re a trivia master!';
-        icon = '🏆';
+        message = 'Outstanding! You\'re a trivia master!';
+        icon = '';
     } else if (percentage >= 70) {
-        message = '👏 Great job! Very impressive performance!';
-        icon = '🎉';
+        message = 'Great job! Very impressive performance!';
+        icon = '';
     } else if (percentage >= 50) {
-        message = '👍 Good effort! Keep practicing!';
-        icon = '💪';
+        message = 'Good effort! Keep practicing!';
+        icon = '';
     } else {
-        message = '📚 Keep learning! You\'ll do better next time!';
-        icon = '📖';
+        message = 'Keep learning! You\'ll do better next time!';
+        icon = '';
     }
     
     document.getElementById('result-icon').textContent = icon;
@@ -575,9 +575,9 @@ function showMultiplayerResults(finalScores) {
     if (rankings) {
         rankings.innerHTML = sortedScores.map(([name, score], index) => {
             let medal = '';
-            if (index === 0) medal = '🥇';
-            else if (index === 1) medal = '🥈';
-            else if (index === 2) medal = '🥉';
+            if (index === 0) medal = '1st';
+            else if (index === 1) medal = '2nd';
+            else if (index === 2) medal = '3rd';
             
             return `
                 <div class="ranking-item ${index === 0 ? 'winner' : ''}">

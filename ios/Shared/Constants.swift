@@ -6,7 +6,37 @@ enum AppConstants {
     // IP changes. Render's free tier sleeps after ~15 min idle and takes
     // 30-60s to wake on the first request after that; that's expected, not
     // a bug.
-    static let serverURL = URL(string: "https://gamelab2.onrender.com")!
+    static let defaultServerURL = URL(string: "https://gamelab2.onrender.com")!
+
+    /// UserDefaults key for a host-chosen server, e.g. a laptop on the party
+    /// Wi-Fi ("http://192.168.1.20:5000") when the internet is unreliable.
+    static let serverOverrideKey = "aurora_server_url"
+
+    /// The game server: a saved override (set from the phone's join screen),
+    /// else an `AuroraServerURL` Info.plist value baked in at build time,
+    /// else the hosted default.
+    static var serverURL: URL {
+        if let saved = UserDefaults.standard.string(forKey: serverOverrideKey),
+           let url = validServerURL(saved) {
+            return url
+        }
+        if let baked = Bundle.main.object(forInfoDictionaryKey: "AuroraServerURL") as? String,
+           let url = validServerURL(baked) {
+            return url
+        }
+        return defaultServerURL
+    }
+
+    /// Accepts "192.168.1.20:5000" or a full http(s) URL; nil if unusable.
+    static func validServerURL(_ raw: String) -> URL? {
+        var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return nil }
+        if !text.lowercased().hasPrefix("http://") && !text.lowercased().hasPrefix("https://") {
+            text = "http://" + text
+        }
+        guard let url = URL(string: text), let host = url.host, !host.isEmpty else { return nil }
+        return url
+    }
 
     /// The native apps talk to their own Socket.IO namespace, kept separate
     /// from the browser games so the two cannot collide.

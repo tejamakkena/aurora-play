@@ -352,10 +352,10 @@ function generateBoard() {
             
             if (SNAKES[cellNumber]) {
                 cell.classList.add('snake-cell');
-                cellContent.innerHTML = `<div class="cell-number">${cellNumber}</div><div class="snake-icon">🐍</div>`;
+                cellContent.innerHTML = `<div class="cell-number">${cellNumber}</div><div class="snake-icon">S</div>`;
             } else if (LADDERS[cellNumber]) {
                 cell.classList.add('ladder-cell');
-                cellContent.innerHTML = `<div class="cell-number">${cellNumber}</div><div class="ladder-icon">🪜</div>`;
+                cellContent.innerHTML = `<div class="cell-number">${cellNumber}</div><div class="ladder-icon">L</div>`;
             } else {
                 cellContent.innerHTML = `<div class="cell-number">${cellNumber}</div>`;
             }
@@ -386,7 +386,7 @@ function updatePlayersPanel() {
             <div class="player-details">
                 <div class="player-name">
                     ${player.name} 
-                    ${player.id === gameState.currentPlayer ? '👈' : ''}
+                    ${player.id === gameState.currentPlayer ? '(turn)' : ''}
                 </div>
                 <div class="player-position">
                     Position: <span id="pos-${player.id}" style="color: ${player.color}; font-weight: bold; font-size: 1.2em;">0</span>
@@ -508,7 +508,7 @@ function animateDice(finalRoll, callback) {
 }
 
 function getDiceFace(number) {
-    const faces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+    const faces = ['1', '2', '3', '4', '5', '6'];
     return faces[number - 1];
 }
 
@@ -519,7 +519,7 @@ function movePlayer(playerId, steps) {
     
     if (newPos > 100) {
         newPos = currentPos;
-        showMessage('⚠️ Too high! Stay in position.');
+        showMessage('Too high! Stay in position.');
     }
     
     gameState.playerPositions[playerId] = newPos;
@@ -527,14 +527,14 @@ function movePlayer(playerId, steps) {
     
     if (SNAKES[newPos]) {
         setTimeout(() => {
-            showMessage(`🐍 Snake! Going down to ${SNAKES[newPos]}`);
+            showMessage(`Snake! Going down to ${SNAKES[newPos]}`);
             gameState.playerPositions[playerId] = SNAKES[newPos];
             updateBoard();
             checkWinner(playerId);
         }, 1000);
     } else if (LADDERS[newPos]) {
         setTimeout(() => {
-            showMessage(`🪜 Ladder! Climbing up to ${LADDERS[newPos]}`);
+            showMessage(`Ladder! Climbing up to ${LADDERS[newPos]}`);
             gameState.playerPositions[playerId] = LADDERS[newPos];
             updateBoard();
             checkWinner(playerId);
@@ -569,7 +569,7 @@ function nextTurn() {
     
     if (gameState.mode === 'solo' && currentPlayer.isAI) {
         disableDice();
-        showMessage('🤖 AI is thinking...');
+        showMessage('AI is thinking...');
         setTimeout(() => {
             rollDice();
         }, 1500);
@@ -612,9 +612,9 @@ function showResults(data) {
     if (rankingsList) {
         rankingsList.innerHTML = sortedPlayers.map((player, index) => {
             let medal = '';
-            if (index === 0) medal = '🥇';
-            else if (index === 1) medal = '🥈';
-            else if (index === 2) medal = '🥉';
+            if (index === 0) medal = '1st';
+            else if (index === 1) medal = '2nd';
+            else if (index === 2) medal = '3rd';
             
             return `
                 <div class="ranking-item ${index === 0 ? 'winner' : ''}">
@@ -628,11 +628,11 @@ function showResults(data) {
     }
     
     if (sortedPlayers[0].id === gameState.myPlayerId) {
-        if (resultIcon) resultIcon.textContent = '🏆';
+        if (resultIcon) resultIcon.textContent = '';
         if (resultTitle) resultTitle.textContent = 'You Won!';
         if (resultMessage) resultMessage.textContent = 'Congratulations! You reached 100 first!';
     } else {
-        if (resultIcon) resultIcon.textContent = '🎮';
+        if (resultIcon) resultIcon.textContent = '';
         if (resultTitle) resultTitle.textContent = 'Game Over!';
         if (resultMessage) resultMessage.textContent = `${data.winner} won the game!`;
     }
@@ -724,9 +724,9 @@ function copyRoomCode() {
     const code = document.getElementById('waiting-room-code').textContent;
     navigator.clipboard.writeText(code).then(() => {
         const btn = document.getElementById('copy-room-code-btn');
-        btn.textContent = '✅ Copied!';
+        btn.textContent = 'Copied!';
         setTimeout(() => {
-            btn.textContent = '📋 Copy';
+            btn.textContent = 'Copy';
         }, 2000);
     });
 }
@@ -747,7 +747,7 @@ function updateWaitingRoom(players) {
                 ${index + 1}
             </div>
             <span class="player-name">${player.name}</span>
-            ${player.is_host ? '<span class="host-badge">👑 Host</span>' : ''}
+            ${player.is_host ? '<span class="host-badge">Host</span>' : ''}
         </div>
     `).join('');
     
@@ -771,7 +771,7 @@ function updateWaitingRoom(players) {
             startBtn.style.display = 'block';
             if (hasEnoughPlayers) {
                 startBtn.disabled = false;
-                startBtn.textContent = '🎮 Start Game';
+                startBtn.textContent = 'Start Game';
                 console.log('✅ Start button ENABLED for host');
             } else {
                 startBtn.disabled = true;
@@ -859,9 +859,9 @@ function handleRemotePlayerMove(data) {
     if (data.snake_or_ladder) {
         const playerName = gameState.players.find(p => p.id === data.player_id)?.name;
         if (data.snake_or_ladder.type === 'snake') {
-            showMessage(`🐍 ${playerName} hit a snake! Going down to ${data.new_position}`);
+            showMessage(`${playerName} hit a snake! Going down to ${data.new_position}`);
         } else {
-            showMessage(`🪜 ${playerName} climbed a ladder! Going up to ${data.new_position}`);
+            showMessage(`${playerName} climbed a ladder! Going up to ${data.new_position}`);
         }
     }
 }

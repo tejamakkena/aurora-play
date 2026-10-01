@@ -4,23 +4,23 @@
 {% block content %}
 <div class="game-section">
     <div class="game-header">
-        <a href="/" class="btn btn-secondary back-btn">← Home</a>
-        <h1>🥊 Stick Fight</h1>
+        <a href="/" class="btn btn-secondary back-btn">Home</a>
+        <h1>Stick Fight</h1>
         <div class="spacer"></div>
     </div>
 
     <!-- MODE -->
     <div id="mode-section" class="lobby-panel">
-        <div class="game-icon-large">🥊</div>
+        <div class="game-icon-large"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
         <h2 style="text-align:center;margin-bottom:8px">Stick Fight</h2>
         <p style="text-align:center;color:var(--text-muted);margin-bottom:32px">2–4 player arena brawler. Last fighter standing wins!</p>
         <div class="lobby-actions">
-            <button id="create-btn" class="btn btn-primary lobby-big-btn">⚡ Create Room</button>
-            <button id="join-btn-show" class="btn btn-secondary lobby-big-btn">🔗 Join Room</button>
+            <button id="create-btn" class="btn btn-primary lobby-big-btn">Create Room</button>
+            <button id="join-btn-show" class="btn btn-secondary lobby-big-btn">Join Room</button>
         </div>
         <div class="controls-hint">
-            <p><strong>← → / A D</strong> Move &nbsp;|&nbsp; <strong>↑ / W / Space</strong> Jump</p>
-            <p><strong>J</strong> Punch &nbsp;|&nbsp; <strong>K</strong> Kick</p>
+            <p><strong>/ A D</strong>Move &nbsp;|&nbsp;<strong>/ W / Space</strong>Jump</p>
+            <p><strong>J</strong>Punch &nbsp;|&nbsp;<strong>K</strong>Kick</p>
         </div>
     </div>
 
@@ -31,8 +31,8 @@
             <input type="text" id="room-code-input" placeholder="ROOM CODE" maxlength="6" autocomplete="off" style="letter-spacing:0.2em;text-align:center;font-size:1.4em">
         </div>
         <div class="lobby-actions">
-            <button id="join-submit" class="btn btn-primary lobby-big-btn">Join →</button>
-            <button id="back-to-mode" class="btn btn-secondary">← Back</button>
+            <button id="join-submit" class="btn btn-primary lobby-big-btn">Join</button>
+            <button id="back-to-mode" class="btn btn-secondary">Back</button>
         </div>
     </div>
 
@@ -41,7 +41,7 @@
         <h2 style="text-align:center;margin-bottom:8px">Waiting Room</h2>
         <div class="room-code-display" style="margin:20px auto;max-width:320px">
             <span class="code" id="display-room-code" style="font-size:2.4em;letter-spacing:0.2em"></span><br>
-            <button id="copy-code-btn" class="copy-btn" style="margin-top:10px">📋 Copy Code</button>
+            <button id="copy-code-btn" class="copy-btn" style="margin-top:10px">Copy Code</button>
         </div>
         <div class="players-waiting">
             <h3 style="color:var(--text-muted);font-size:0.85em;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:12px">Fighters (2–4)</h3>
@@ -60,12 +60,12 @@
 
     <!-- GAME OVER -->
     <div id="gameover-section" class="lobby-panel hidden" style="text-align:center">
-        <div style="font-size:4em;margin-bottom:16px">🏆</div>
+        <div style="font-size:4em;margin-bottom:16px"></div>
         <h2 id="result-text" style="font-size:2em;margin-bottom:24px"></h2>
         <div id="final-scores" class="final-rankings-list" style="max-width:400px;margin:0 auto 24px"></div>
         <div class="lobby-actions">
-            <button id="play-again-btn" class="btn btn-primary">🔄 Play Again</button>
-            <button id="exit-btn" class="btn btn-secondary">← Home</button>
+            <button id="play-again-btn" class="btn btn-primary">Play Again</button>
+            <button id="exit-btn" class="btn btn-secondary">Home</button>
         </div>
     </div>
 </div>

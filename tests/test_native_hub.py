@@ -87,7 +87,8 @@ class TestCreateRoom:
         tv.emit("create_room", {"gameID": "trivia", "hostName": "TV", "hostID": "tv-1"},
                 namespace=NS)
         room = latest(tv, "room_updated")
-        assert set(room) == {"code", "gameID", "players", "state"}
+        assert set(room) == {"code", "gameID", "players", "state",
+                               "contentPack", "botsAllowed", "usesContentPack"}
         assert room["gameID"] == "trivia" and room["state"] == "lobby"
         assert len(room["code"]) == 6
 
@@ -118,7 +119,7 @@ class TestJoinRoom:
         assert set(payload) == {"room", "playerID"}
         assert payload["playerID"] == "dev-1"
         assert set(payload["room"]["players"][0]) == {
-            "id", "name", "isReady", "score", "isHost"}
+            "id", "name", "isReady", "score", "isHost", "isBot"}
 
     def test_first_phone_becomes_host(self, server, tv):
         app, socketio = server
@@ -362,3 +363,52 @@ class TestLeaveAndReconnect:
                                      "playerID": "dev-late", "isTV": False},
                        namespace=NS)
         assert latest(latecomer, "error")["code"] == "GAME_IN_PROGRESS"
+
+
+class TestLobbyOptions:
+    """Bots and question language, set from the TV or host lobby."""
+
+    def test_room_reports_bot_and_pack_support(self, tv):
+        tv.emit("create_room", {"gameID": "trivia", "hostName": "TV", "hostID": "tv-1"},
+                namespace=NS)
+        room = latest(tv, "room_updated")
+        assert room["botsAllowed"] is True
+        assert room["usesContentPack"] is True
+        assert room["contentPack"] == "en"
+
+    def test_tv_can_switch_content_pack(self, tv):
+        tv.emit("create_room", {"gameID": "kbc", "hostName": "TV", "hostID": "tv-1"},
+                namespace=NS)
+        code = latest(tv, "room_updated")["code"]
+        tv.emit("set_content_pack", {"roomCode": code, "contentPack": "te"}, namespace=NS)
+        assert latest(tv, "room_updated")["contentPack"] == "te"
+        assert rooms.get(code).content_pack == "te"
+        tv.emit("set_content_pack", {"roomCode": code, "contentPack": "xx"}, namespace=NS)
+        assert latest(tv, "room_updated")["contentPack"] == "en"
+
+    def test_non_host_phone_cannot_switch_pack(self, server, tv):
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "trivia", players=2)
+        phones[1].emit("set_content_pack", {"roomCode": code, "contentPack": "hi"},
+                       namespace=NS)
+        assert latest(phones[1], "error")["code"] == "NOT_HOST"
+        assert rooms.get(code).content_pack == "en"
+
+    def test_bots_refused_for_games_without_a_policy(self, tv):
+        tv.emit("create_room", {"gameID": "chess", "hostName": "TV", "hostID": "tv-1"},
+                namespace=NS)
+        room = latest(tv, "room_updated")
+        assert room["botsAllowed"] is False
+        tv.emit("add_bot", {"roomCode": room["code"]}, namespace=NS)
+        assert latest(tv, "error")["code"] == "BOTS_UNSUPPORTED"
+        assert rooms.get(room["code"]).players == []
+
+    def test_tv_adds_and_removes_bot(self, tv):
+        tv.emit("create_room", {"gameID": "most_likely_to", "hostName": "TV",
+                                "hostID": "tv-1"}, namespace=NS)
+        code = latest(tv, "room_updated")["code"]
+        tv.emit("add_bot", {"roomCode": code}, namespace=NS)
+        players = latest(tv, "room_updated")["players"]
+        assert len(players) == 1 and players[0]["isBot"] is True
+        tv.emit("remove_bot", {"roomCode": code, "botID": players[0]["id"]}, namespace=NS)
+        assert latest(tv, "room_updated")["players"] == []

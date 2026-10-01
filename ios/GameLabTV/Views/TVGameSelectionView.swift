@@ -454,8 +454,9 @@ private struct TVGameCard: View {
                     .opacity(isFocused ? (halo ? 1.0 : 0.45) : 0.28)
                     .scaleEffect(isFocused && halo ? 1.06 : 1.0)
 
-                Text(game.emoji)
-                    .font(.system(size: 58))
+                Image(systemName: game.sfSymbol)
+                    .font(.system(size: 52))
+                    .foregroundColor(.white)
                     .shadow(color: style.accent.opacity(isFocused ? 0.85 : 0), radius: 14)
                     .offset(y: bob ? -5 : 0)
             }

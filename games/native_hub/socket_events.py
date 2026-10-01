@@ -19,6 +19,7 @@ from flask_socketio import join_room as socket_join_room
 from flask_socketio import leave_room as socket_leave_room
 
 from games.native_hub import NAMESPACE
+from games.native_hub.bots import POLICIES as BOT_POLICIES
 from games.native_hub.broadcast import (
     Broadcaster, broadcast_state, finish_game, push_error, push_room,
     start_pump, start_reaper,
@@ -50,6 +51,17 @@ def _rate_limited(sid: str) -> bool:
     return False
 
 
+def _valid_pack(raw) -> str:
+    """Sanitize the client-supplied content-pack id. Unknown -> 'en'."""
+    pack = str(raw or "en").strip().lower()[:8]
+    try:
+        from games.native_hub.engines.content_packs import PACKS
+        allowed = set(PACKS)
+    except Exception:
+        allowed = {"en", "te", "hi"}
+    return pack if pack in allowed else "en"
+
+
 def register_native_events(socketio):
     """Attach every ``/native`` handler and start the room reaper."""
 
@@ -60,6 +72,8 @@ def register_native_events(socketio):
     def handle_create_room(data):
         data = v.as_dict(data)
         sid = request.sid
+        if _rate_limited(sid):
+            return
 
         gid = v.game_id(data.get("gameID"))
         if gid is None:
@@ -68,6 +82,7 @@ def register_native_events(socketio):
 
         solo = bool(data.get("solo"))
         room = rooms.create(gid, solo=solo)
+        room.content_pack = _valid_pack(data.get("contentPack"))
         socket_join_room(room.code, namespace=NAMESPACE)
         rooms.bind_sid(sid, room.code)
 
@@ -98,6 +113,8 @@ def register_native_events(socketio):
     def handle_join_room(data):
         data = v.as_dict(data)
         sid = request.sid
+        if _rate_limited(sid):
+            return
 
         code = v.room_code(data.get("roomCode"))
         if code is None:
@@ -164,6 +181,91 @@ def register_native_events(socketio):
                 payload = {"roomCode": code, "playerID": pid,
                            "privateData": room.engine.private_state(pid)}
             socketio.emit("private_state", payload, to=sid, namespace=NAMESPACE)
+
+    # ---- add_bot / remove_bot --------------------------------------------
+    # The host (or the TV) can fill empty seats with bots while still in the
+    # lobby, so a group of three can play an eight-player party game.
+    @socketio.on("add_bot", namespace=NAMESPACE)
+    def handle_add_bot(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if sid not in room.tv_sids:
+                actor = room.player_by_sid(sid)
+                if actor is None or not actor.is_host:
+                    push_error(socketio, sid, "Only the host can add bots",
+                               "NOT_HOST")
+                    return
+            if room.state is not RoomState.LOBBY:
+                push_error(socketio, sid, "Bots can only join the lobby",
+                           "GAME_IN_PROGRESS")
+                return
+            if room.game_id not in BOT_POLICIES:
+                # A bot with no policy never acts: it would stall a turn-based
+                # game on its turn and make every round wait out the clock.
+                push_error(socketio, sid, "Bots can't play this game yet",
+                           "BOTS_UNSUPPORTED")
+                return
+            if len(room.players) >= engine_for(room.game_id).max_players:
+                push_error(socketio, sid, "Room is full", "ROOM_FULL")
+                return
+            bot = room.add_bot()
+        push_room(socketio, room)
+        logger.info("room %s bot %s added", code, bot.id)
+
+    @socketio.on("remove_bot", namespace=NAMESPACE)
+    def handle_remove_bot(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        bot_id = v.player_id(data.get("botID"))
+        room = rooms.get(code) if code else None
+        if room is None or bot_id is None:
+            return
+        with room.lock:
+            if sid not in room.tv_sids:
+                actor = room.player_by_sid(sid)
+                if actor is None or not actor.is_host:
+                    push_error(socketio, sid, "Only the host can remove bots",
+                               "NOT_HOST")
+                    return
+            if room.remove_bot(bot_id) is None:
+                return
+        push_room(socketio, room)
+        logger.info("room %s bot %s removed", code, bot_id)
+
+    # ---- set_content_pack ----------------------------------------------
+    # The TV (or the host's phone) picks the question language in the lobby.
+    @socketio.on("set_content_pack", namespace=NAMESPACE)
+    def handle_set_content_pack(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if sid not in room.tv_sids:
+                actor = room.player_by_sid(sid)
+                if actor is None or not actor.is_host:
+                    push_error(socketio, sid, "Only the host can change the language",
+                               "NOT_HOST")
+                    return
+            if room.state is RoomState.PLAYING:
+                return
+            room.content_pack = _valid_pack(data.get("contentPack"))
+            room.touch()
+        push_room(socketio, room)
 
     # ---- player_ready --------------------------------------------------
     @socketio.on("player_ready", namespace=NAMESPACE)

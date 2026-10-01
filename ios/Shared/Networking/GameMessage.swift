@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 
 // All Socket.IO events flow through these typed messages.
 
@@ -11,6 +12,9 @@ enum ClientEvent: String {
     case gameAction     = "game_action"    // generic per-game payload
     case startGame      = "start_game"
     case leaveRoom      = "leave_room"
+    case addBot         = "add_bot"          // TV or host, lobby only
+    case removeBot      = "remove_bot"
+    case setContentPack = "set_content_pack" // question language (Trivia/KBC)
 }
 
 // MARK: - Inbound (server → client)
@@ -96,6 +100,10 @@ struct AnyCodable: Codable {
         case let v as Bool:               try container.encode(v)
         case let v as Int:                try container.encode(v)
         case let v as Double:             try container.encode(v)
+        // CGFloat/Float are not Double at runtime; without these a touch
+        // coordinate or slider value silently went out as null.
+        case let v as CGFloat:            try container.encode(Double(v))
+        case let v as Float:              try container.encode(Double(v))
         case let v as String:             try container.encode(v)
         case let v as [Any]:
             try container.encode(v.map { AnyCodable($0) })

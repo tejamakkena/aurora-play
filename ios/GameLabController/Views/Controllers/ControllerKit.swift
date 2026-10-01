@@ -70,13 +70,13 @@ struct ControllerShell<Content: View>: View {
 }
 
 struct WaitingState: View {
-    let icon: String
+    let systemIcon: String
     let text: String
     var detail: String? = nil
 
     var body: some View {
         VStack(spacing: 14) {
-            Text(icon).font(.system(size: 64))
+            Image(systemName: systemIcon).font(.system(size: 56)).foregroundColor(.white.opacity(0.75))
             Text(text).font(.title3.bold()).foregroundColor(.white)
                 .multilineTextAlignment(.center)
             if let detail {

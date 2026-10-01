@@ -19,6 +19,13 @@ class Config:
     RATELIMIT_STORAGE_URL = os.environ.get('RATELIMIT_STORAGE_URL', 'memory://')
     RATELIMIT_HEADERS_ENABLED = True
 
+    # Socket.IO CORS origins: comma-separated list, or "*" to allow all.
+    # Default is same-origin only. The web UI is served by this app (same
+    # origin needs no CORS entry) and the native iOS/tvOS apps do not send
+    # an Origin header, so they are unaffected. Set SOCKETIO_CORS_ORIGINS
+    # explicitly if a third-party web client needs cross-origin access.
+    SOCKETIO_CORS_ORIGINS = os.environ.get('SOCKETIO_CORS_ORIGINS', '')
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

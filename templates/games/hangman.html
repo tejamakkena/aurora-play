@@ -196,15 +196,15 @@
 
     <!-- Mode Selection -->
     <div id="screen-mode" class="screen">
-        <h1>🪢 Hangman</h1>
+        <h1>Hangman</h1>
         <p class="subtitle">One sets the word — the rest guess letter by letter!</p>
         <div class="mode-buttons">
             <button class="mode-btn" id="btn-create">
-                <div class="icon">🎮</div>
+                <div class="icon"></div>
                 Create Room <span style="font-size:.8em;font-weight:400;display:block;color:#c4b5fd">You set the secret word</span>
             </button>
             <button class="mode-btn" id="btn-join-show">
-                <div class="icon">🔗</div>
+                <div class="icon"></div>
                 Join Room <span style="font-size:.8em;font-weight:400;display:block;color:#c4b5fd">Guess the word!</span>
             </button>
         </div>
@@ -218,7 +218,7 @@
             <input type="text" id="inp-room-code" placeholder="XXXXXX" maxlength="6">
             <button class="btn btn-primary" id="btn-join-submit" style="width:100%">Join</button>
         </div>
-        <button class="btn btn-secondary" id="btn-join-back">← Back</button>
+        <button class="btn btn-secondary" id="btn-join-back">Back</button>
     </div>
 
     <!-- Waiting Room -->
@@ -227,7 +227,7 @@
         <div class="room-info">
             <div style="color:#ccc;font-size:.9em">Room Code</div>
             <div class="room-code" id="disp-room-code">------</div>
-            <button class="btn btn-secondary" id="btn-copy" style="font-size:.85em;padding:8px 18px">📋 Copy</button>
+            <button class="btn btn-secondary" id="btn-copy" style="font-size:.85em;padding:8px 18px">Copy</button>
         </div>
         <div class="players-list">
             <h3 style="color:#fff;margin-bottom:12px">Players</h3>
@@ -242,7 +242,7 @@
 
     <!-- Host: Set Word -->
     <div id="screen-set-word" class="screen hidden">
-        <h1>🤫 Set Your Word</h1>
+        <h1>Set Your Word</h1>
         <p class="subtitle">Type a word or phrase — others will guess it!</p>
         <div class="input-card">
             <label>Secret Word / Phrase</label>
@@ -255,7 +255,7 @@
 
     <!-- Waiting for word (guessers) -->
     <div id="screen-wait-word" class="screen hidden">
-        <h1>⏳ Hold on…</h1>
+        <h1>Hold on…</h1>
         <p class="subtitle">The host is choosing a word. Get ready!</p>
     </div>
 
@@ -266,10 +266,10 @@
             <div class="game-left">
                 <svg class="gallows-svg" viewBox="0 0 180 220" xmlns="http://www.w3.org/2000/svg">
                     <!-- Gallows structure -->
-                    <line class="gallows-structure" x1="10" y1="210" x2="160" y2="210"/> <!-- base -->
-                    <line class="gallows-structure" x1="40"  y1="210" x2="40"  y2="15"/>  <!-- pole -->
-                    <line class="gallows-structure" x1="40"  y1="15"  x2="120" y2="15"/>  <!-- beam -->
-                    <line class="gallows-structure" x1="120" y1="15"  x2="120" y2="45"/>  <!-- rope -->
+                    <line class="gallows-structure" x1="10" y1="210" x2="160" y2="210"/><!-- base -->
+                    <line class="gallows-structure" x1="40"  y1="210" x2="40"  y2="15"/><!-- pole -->
+                    <line class="gallows-structure" x1="40"  y1="15"  x2="120" y2="15"/><!-- beam -->
+                    <line class="gallows-structure" x1="120" y1="15"  x2="120" y2="45"/><!-- rope -->
                     <!-- Body parts -->
                     <circle id="hm-head"       class="body-part" cx="120" cy="62"  r="17"/>
                     <line   id="hm-body"        class="body-part" x1="120" y1="79"  x2="120" y2="145"/>

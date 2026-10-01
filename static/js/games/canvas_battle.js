@@ -304,9 +304,9 @@ function copyRoomCode() {
     const roomCode = gameState.roomCode;
     navigator.clipboard.writeText(roomCode).then(() => {
         const btn = copyCodeBtn;
-        btn.textContent = '✅ Copied!';
+        btn.textContent = 'Copied!';
         const timeoutId = setTimeout(() => {
-            btn.textContent = '📋 Copy Code';
+            btn.textContent = 'Copy Code';
         }, 2000);
         cleanup.addTimeout(timeoutId);
     });
@@ -319,7 +319,7 @@ function markReady() {
 
     const btn = readyBtn;
     btn.disabled = true;
-    btn.textContent = '✅ Ready!';
+    btn.textContent = 'Ready!';
 }
 
 function startGame() {
@@ -363,8 +363,8 @@ function updatePlayersList(players) {
             <div style="flex: 1;">
                 <div style="font-weight: bold;">${player.name}</div>
                 <div style="font-size: 0.9em; opacity: 0.7;">
-                    ${player.is_host ? '👑 Host' : '👤 Player'}
-                    ${player.ready ? ' • ✅ Ready' : ''}
+                    ${player.is_host ? 'Host' : 'Player'}
+                    ${player.ready ? ' • Ready' : ''}
                 </div>
             </div>
         `;
@@ -463,7 +463,7 @@ function submitDrawing() {
 
         if (submitDrawingBtn) {
             submitDrawingBtn.disabled = true;
-            submitDrawingBtn.textContent = '✅ Submitted!';
+            submitDrawingBtn.textContent = 'Submitted!';
         }
         
         console.log('✅ Drawing submitted successfully');
@@ -554,7 +554,7 @@ function submitVote() {
 
     if (submitVoteBtn) {
         submitVoteBtn.disabled = true;
-        submitVoteBtn.textContent = '✅ Vote Submitted!';
+        submitVoteBtn.textContent = 'Vote Submitted!';
     }
 
     // Auto end voting after 3 seconds
@@ -585,7 +585,7 @@ function displayResults(results, isRound) {
         else if (index === 1) div.classList.add('second');
         else if (index === 2) div.classList.add('third');
 
-        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🎨';
+        const medal = index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : '';
 
         div.innerHTML = `
             <div class="result-rank">${medal}</div>
@@ -641,7 +641,7 @@ function updateTimerDisplay() {
     
     const minutes = Math.floor(gameState.timeLeft / 60);
     const seconds = gameState.timeLeft % 60;
-    display.textContent = `⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    display.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
     
     if (gameState.timeLeft <= 10) {
         display.classList.add('warning');
@@ -708,7 +708,7 @@ cleanup.addSocketListener(socket, 'drawing_round_start', (data) => {
 
     if (submitDrawingBtn) {
         submitDrawingBtn.disabled = false;
-        submitDrawingBtn.textContent = '✅ Submit Drawing';
+        submitDrawingBtn.textContent = 'Submit Drawing';
     }
 
     startTimer(data.time_limit);
@@ -733,7 +733,7 @@ cleanup.addSocketListener(socket, 'voting_round_start', (data) => {
 
     if (submitVoteBtn) {
         submitVoteBtn.disabled = true;
-        submitVoteBtn.textContent = '🗳️ Submit Vote';
+        submitVoteBtn.textContent = 'Submit Vote';
     }
     gameState.selectedSubmission = null;
 });

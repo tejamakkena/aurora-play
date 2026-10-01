@@ -53,7 +53,15 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         NSMotionUsageDescription: "Aurora Play uses motion to let you tilt and shake your phone as a game controller."
         NSLocalNetworkUsageDescription: "Aurora Play connects to the game server on your local network."
+        # Plain http to a LAN host (a laptop running the server at a party).
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         ITSAppUsesNonExemptEncryption: false
+        # auroraplay://join/<CODE> -- opened by the TV lobby's QR code via
+        # the /join/<code> web page, and pre-fills the room code.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.gamelab.controller.join
+            CFBundleURLSchemes: [auroraplay]
 
     settings:
       base:
@@ -93,6 +101,8 @@ targets:
         CFBundleShortVersionString: "1.0"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         NSLocalNetworkUsageDescription: "Aurora connects to the game server on your local network."
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         ITSAppUsesNonExemptEncryption: false
 
     settings:

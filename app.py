@@ -9,12 +9,57 @@ from google.auth.transport import requests
 
 
 
+def make_origin_checker(raw_origins):
+    """Build engine.io's origin check: same host as the request, or allowlisted.
+
+    An empty list must never reach engine.io: it treats ``[]`` as "allow no
+    origin at all" and rejects every request carrying an Origin header --
+    the browser games' WebSocket upgrades and POSTs, and the iOS socket
+    library's WebSocket upgrade. Same-host is compared on hostname only, so
+    a proxy that rewrites the scheme (Render terminates TLS) or a client
+    that spells out the default port still matches.
+    """
+    from urllib.parse import urlsplit
+
+    allowlist = {o.strip().rstrip("/") for o in raw_origins.split(",") if o.strip()}
+
+    def _host(value):
+        value = (value or "").split(",")[0].strip()
+        if "//" not in value:
+            value = "//" + value
+        return (urlsplit(value).hostname or "").lower()
+
+    def check(origin, environ=None):
+        if not origin:
+            return True
+        if origin.rstrip("/") in allowlist:
+            return True
+        environ = environ or {}
+        origin_host = _host(origin)
+        request_hosts = {_host(environ.get("HTTP_HOST")),
+                         _host(environ.get("HTTP_X_FORWARDED_HOST"))}
+        return bool(origin_host) and origin_host in request_hosts
+
+    return check
+
+
 def create_app(config_name='default'):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
-    # Initialize Socket.IO
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+    # Initialize Socket.IO. Same-host origins are always accepted; extra
+    # origins come from SOCKETIO_CORS_ORIGINS (comma-separated). "*" restores
+    # the previous wide-open behavior.
+    raw_origins = app.config.get("SOCKETIO_CORS_ORIGINS", "")
+    if raw_origins == "*":
+        app.logger.warning(
+            "Socket.IO CORS is wide open (*); set SOCKETIO_CORS_ORIGINS "
+            "to a comma-separated allowlist to restrict browser origins.")
+        cors_origins = "*"
+    else:
+        cors_origins = make_origin_checker(raw_origins)
+    socketio = SocketIO(app, cors_allowed_origins=cors_origins,
+                        async_mode='threading')
 
     # Initialize Rate Limiter
     # Default limits: 200 requests/day, 50 requests/hour per IP
@@ -110,6 +155,7 @@ def create_app(config_name='default'):
     # Native iOS/tvOS hub -- isolated on the '/native' namespace so it cannot
     # collide with the browser games' default-namespace room events.
     from games.native_hub.socket_events import register_native_events
+    from games.native_hub.qr import qr_bp
 
     # After creating socketio
     register_poker_events(socketio)
@@ -128,6 +174,7 @@ def create_app(config_name='default'):
     register_stickfight_events(socketio)
     register_roadfighter_events(socketio)
     register_native_events(socketio)
+    app.register_blueprint(qr_bp)
 
 
     # Login required decorator

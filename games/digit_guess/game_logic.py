@@ -93,3 +93,21 @@ def get_game_state_display(guesses, player_name):
         }
         for g in guesses
     ]
+
+
+def generate_secret_code():
+    """Generate a 4-digit secret with all unique digits, as a string."""
+    import random
+    digits = random.sample("0123456789", 4)
+    return "".join(digits)
+
+
+def check_guess(secret, guess):
+    """Return (bulls, cows): exact-position matches and digit matches.
+
+    Note: argument order is (secret, guess), matching calculate_feedback.
+    """
+    fb = calculate_feedback(secret, guess)
+    bulls = fb["correct_positions"]
+    cows = fb["correct_digits"] - bulls
+    return bulls, cows

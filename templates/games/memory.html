@@ -12,8 +12,8 @@
 <div class="container">
     <!-- Header with Back Button -->
     <div class="game-header">
-        <a href="/" class="btn btn-secondary back-btn">⬅️ Home</a>
-        <h1>🧠💭 Memory Game</h1>
+        <a href="/" class="btn btn-secondary back-btn">Home</a>
+        <h1>Memory Game</h1>
         <div class="spacer"></div>
     </div>
     
@@ -28,8 +28,8 @@
         
         <div class="rooms-container">
             <div class="rooms-header">
-                <h2>🎮 Active Rooms</h2>
-                <button id="refresh-rooms-btn" class="refresh-btn">🔄 Refresh</button>
+                <h2>Active Rooms</h2>
+                <button id="refresh-rooms-btn" class="refresh-btn">Refresh</button>
             </div>
             <div id="rooms-list" class="rooms-list">
                 <div class="empty-rooms">Loading rooms...</div>
@@ -51,7 +51,7 @@
             <!-- Cards will be generated here -->
         </div>
         
-        <button id="back-to-lobby" class="btn btn-secondary">⬅️ Back to Lobby</button>
+        <button id="back-to-lobby" class="btn btn-secondary">Back to Lobby</button>
     </div>
 </div>
 
@@ -59,7 +59,7 @@
 <div id="game-end-modal" class="modal hidden">
     <div class="modal-content">
         <div class="modal-header">
-            <div id="modal-icon">🏆</div>
+            <div id="modal-icon"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
             <h2 id="modal-title"></h2>
         </div>
         <div class="modal-body">
@@ -69,11 +69,15 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button id="play-again-btn" class="btn btn-primary">🔄 Play Again</button>
-            <button id="exit-to-lobby-btn" class="btn btn-secondary">⬅️ Exit to Lobby</button>
+            <button id="play-again-btn" class="btn btn-primary">Play Again</button>
+            <button id="exit-to-lobby-btn" class="btn btn-secondary">Exit to Lobby</button>
         </div>
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<!-- After base.html's utils.js, which defines CleanupManager. -->
 <script src="{{ url_for('static', filename='js/games/memory.js') }}"></script>
 {% endblock %}

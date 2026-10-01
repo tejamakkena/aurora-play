@@ -44,6 +44,7 @@ struct ControllerGameView: View {
         case .emojiMovie:    EmojiMovieControllerView(privateData: privateData, onAction: onAction)
         case .npat:          NPATControllerView(privateData: privateData, onAction: onAction)
         case .antakshari:    AntakshariControllerView(privateData: privateData, onAction: onAction)
+        case .mostLikelyTo:  MostLikelyToControllerView(privateData: privateData, onAction: onAction)
 
         // Mid group
         case .cipherGrid:    CipherGridControllerView(privateData: privateData, onAction: onAction)
@@ -65,7 +66,7 @@ struct ControllerGameView: View {
 
         // Solo — the phone is optional here; the Siri Remote sends the same actions.
         case .neonSnake:
-            DPadControllerView(title: "🐍 Neon Snake", actionName: "turn",
+            DPadControllerView(title: "Neon Snake", actionName: "turn",
                                payloadKey: "direction",
                                privateData: privateData, onAction: onAction)
         case .simonSays:

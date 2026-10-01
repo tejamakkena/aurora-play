@@ -230,7 +230,7 @@ function updatePlayersList() {
         if (player && player.is_host) {
             const hostBadge = document.createElement('span');
             hostBadge.className = 'host-badge';
-            hostBadge.textContent = '👑 HOST';
+            hostBadge.textContent = 'HOST';
             playerItem.appendChild(hostBadge);
         }
         
@@ -374,7 +374,7 @@ function showGameOver(winner, reason) {
         announcement.textContent = "It's a Draw!";
         announcement.className = 'winner-announcement';
     } else if (winner === gameState.myColor) {
-        announcement.textContent = 'You Win! 🎉';
+        announcement.textContent = 'You Win!';
         announcement.className = `winner-announcement ${winner}`;
     } else {
         announcement.textContent = 'You Lose';

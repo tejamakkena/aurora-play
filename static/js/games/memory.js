@@ -50,13 +50,13 @@ async function loadRooms() {
                         <div class="room-info">
                             <div class="room-code">${room.room_code}</div>
                             <div class="room-status ${statusClass}">
-                                👥 ${room.player_count}/${room.max_players} • ${statusText}
+                                ${room.player_count}/${room.max_players} • ${statusText}
                             </div>
                         </div>
                         <button class="join-room-btn btn" 
                                 onclick="joinGameByCode('${room.room_code}')" 
                                 ${room.is_full ? 'disabled' : ''}>
-                            ${room.is_full ? '🔒 Full' : '▶️ Join'}
+                            ${room.is_full ? 'Full' : 'Join'}
                         </button>
                     </div>
                 `;
@@ -229,7 +229,7 @@ function updateGameUI() {
         statusEl.textContent = 'Waiting for players...';
         statusEl.className = 'status-waiting';
     } else if (isMyTurn) {
-        statusEl.textContent = '🎯 Your Turn!';
+        statusEl.textContent = 'Your Turn!';
         statusEl.className = 'status-your-turn';
     } else {
         statusEl.textContent = `${currentPlayerName}'s Turn`;
@@ -256,7 +256,7 @@ function updateScoreboard() {
         return `
             <div class="player-score ${activeClass} ${meClass}">
                 <div class="player-name">${pinfo.name}${isMe ? ' (You)' : ''}</div>
-                <div class="player-points">🏆 ${pinfo.score} ${pinfo.score === 1 ? 'pair' : 'pairs'}</div>
+                <div class="player-points">${pinfo.score} ${pinfo.score === 1 ? 'pair' : 'pairs'}</div>
             </div>
         `;
     }).join('');
@@ -277,7 +277,7 @@ function updateGrid() {
             
             const cardFront = document.createElement('div');
             cardFront.className = 'card-front';
-            cardFront.textContent = '❓';
+            cardFront.textContent = '?';
             
             const cardBack = document.createElement('div');
             cardBack.className = 'card-back';
@@ -386,14 +386,14 @@ function showGameEndModal() {
     const finalScores = document.getElementById('final-scores');
     
     if (gameState.winner === playerId) {
-        title.textContent = '🎉 You Won!';
+        title.textContent = 'You Won!';
         message.textContent = 'Congratulations! You found the most pairs!';
     } else if (gameState.winner === 'TIE') {
-        title.textContent = '🤝 It\'s a Tie!';
+        title.textContent = 'It\'s a Tie!';
         message.textContent = 'Great game! You tied for the win!';
     } else {
         const winnerName = gameState.players[gameState.winner]?.name || 'Unknown';
-        title.textContent = '👏 Game Over';
+        title.textContent = 'Game Over';
         message.textContent = `${winnerName} won the game!`;
     }
     
@@ -405,7 +405,7 @@ function showGameEndModal() {
         <div class="final-score-item ${pid === playerId ? 'highlight' : ''}">
             <span class="rank">#${index + 1}</span>
             <span class="name">${pinfo.name}${pid === playerId ? ' (You)' : ''}</span>
-            <span class="score">🏆 ${pinfo.score}</span>
+            <span class="score">${pinfo.score}</span>
         </div>
     `).join('');
     

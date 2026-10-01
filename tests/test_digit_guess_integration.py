@@ -5,7 +5,7 @@ Test script for Digit Guess game logic
 
 import sys
 import os
-sys.path.insert(0, '/home/jarvis/.openclaw/workspace/gamelab2/gamelab2/games/digit_guess')
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'games', 'digit_guess'))
 
 # Import directly from game_logic to avoid Flask dependencies
 import game_logic

@@ -603,19 +603,19 @@
 <div class="canvas-battle-container">
     <!-- Mode Selection -->
     <div id="mode-selection" class="game-section">
-        <h1 style="text-align: center; color: white; margin-bottom: 20px;">🎨 Canvas Battle</h1>
+        <h1 style="text-align: center; color: white; margin-bottom: 20px;">Canvas Battle</h1>
         <p style="text-align: center; color: #aaa; margin-bottom: 40px;">
             Draw on the theme, vote for the best artwork, and become the ultimate artist!
         </p>
         
         <div class="mode-buttons">
             <button id="create-room-btn" class="mode-btn">
-                <div class="mode-icon">🎨</div>
+                <div class="mode-icon"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
                 <h3>Create Room</h3>
                 <p>Start a new canvas battle</p>
             </button>
             <button id="join-room-btn-start" class="mode-btn">
-                <div class="mode-icon">🚪</div>
+                <div class="mode-icon"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg></div>
                 <h3>Join Room</h3>
                 <p>Enter an existing game</p>
             </button>
@@ -630,7 +630,7 @@
                 <input type="text" id="room-code-input" placeholder="XXXXXX" maxlength="6">
                 <button id="join-room-submit-btn" class="btn btn-primary">Join</button>
             </div>
-            <button id="back-to-mode-btn" class="btn btn-secondary" style="width: 100%; margin-top: 20px;">⬅️ Back</button>
+            <button id="back-to-mode-btn" class="btn btn-secondary" style="width: 100%; margin-top: 20px;">Back</button>
         </div>
     </div>
 
@@ -640,7 +640,7 @@
             <div class="room-code-display">
                 <h2>Room Code</h2>
                 <div class="room-code" id="display-room-code">------</div>
-                <button id="copy-code-btn" class="btn btn-secondary">📋 Copy Code</button>
+                <button id="copy-code-btn" class="btn btn-secondary">Copy Code</button>
             </div>
 
             <div class="players-waiting">
@@ -649,12 +649,12 @@
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-                <button id="ready-btn" class="btn btn-primary">✅ I'm Ready</button>
+                <button id="ready-btn" class="btn btn-primary">I'm Ready</button>
             </div>
 
             <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px;">
-                <button id="start-game-btn" class="btn btn-primary hidden">🎮 Start Game</button>
-                <button id="leave-room-btn" class="btn btn-secondary">🚪 Leave Room</button>
+                <button id="start-game-btn" class="btn btn-primary hidden">Start Game</button>
+                <button id="leave-room-btn" class="btn btn-secondary">Leave Room</button>
             </div>
         </div>
     </div>
@@ -666,7 +666,7 @@
             <div class="theme-display">
                 <div>Theme:</div>
                 <div class="theme-text" id="theme-text">Waiting...</div>
-                <div class="timer-display" id="timer-display">⏱️ 0:00</div>
+                <div class="timer-display" id="timer-display">0:00</div>
             </div>
 
             <div class="canvas-container">
@@ -675,16 +675,16 @@
                 </div>
                 
                 <div class="toolbar">
-                    <button class="tool-btn active" data-tool="pen" title="Pen">🖊️</button>
-                    <button class="tool-btn" data-tool="eraser" title="Eraser">🧹</button>
+                    <button class="tool-btn active" data-tool="pen" title="Pen"></button>
+                    <button class="tool-btn" data-tool="eraser" title="Eraser"></button>
                     <input type="color" class="color-picker" id="color-picker" value="#000000">
                     <input type="range" id="brush-size" min="1" max="20" value="3">
-                    <button class="tool-btn" id="clear-canvas-btn" title="Clear">🗑️</button>
+                    <button class="tool-btn" id="clear-canvas-btn" title="Clear"></button>
                 </div>
             </div>
 
             <div style="text-align: center; margin-top: 20px;">
-                <button id="submit-drawing-btn" class="btn btn-primary">✅ Submit Drawing</button>
+                <button id="submit-drawing-btn" class="btn btn-primary">Submit Drawing</button>
             </div>
         </div>
     </div>
@@ -700,7 +700,7 @@
             <div id="submissions-container" class="submissions-grid"></div>
 
             <div style="text-align: center; margin-top: 30px;">
-                <button id="submit-vote-btn" class="btn btn-primary" disabled>🗳️ Submit Vote</button>
+                <button id="submit-vote-btn" class="btn btn-primary" disabled>Submit Vote</button>
             </div>
         </div>
     </div>
@@ -713,8 +713,8 @@
             <div id="results-list" class="results-list"></div>
 
             <div style="text-align: center; margin-top: 30px;">
-                <button id="next-round-btn" class="btn btn-primary hidden">➡️ Next Round</button>
-                <button id="view-final-results-btn" class="btn btn-primary hidden">🏆 View Final Results</button>
+                <button id="next-round-btn" class="btn btn-primary hidden">Next Round</button>
+                <button id="view-final-results-btn" class="btn btn-primary hidden">View Final Results</button>
             </div>
         </div>
     </div>
@@ -722,12 +722,12 @@
     <!-- Final Results Screen -->
     <div id="final-results-screen" class="game-section hidden">
         <div class="results-area">
-            <h1 style="text-align: center; margin-bottom: 30px;">🎉 Final Results</h1>
+            <h1 style="text-align: center; margin-bottom: 30px;">Final Results</h1>
             
             <div id="final-results-list" class="results-list"></div>
 
             <div style="text-align: center; margin-top: 30px;">
-                <button id="new-game-btn" class="btn btn-primary">🎮 New Game</button>
+                <button id="new-game-btn" class="btn btn-primary">New Game</button>
             </div>
         </div>
     </div>

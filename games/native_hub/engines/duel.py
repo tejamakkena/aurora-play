@@ -41,7 +41,8 @@ class DefuseEngine(NativeGameEngine):
         self.log: list[str] = []
 
     def start(self, players):
-        self.defuser = players[0].id if players else None
+        # Random, so "Play Again" hands the bomb to someone new.
+        self.defuser = random.choice(players).id if players else None
         self.deadline = time.time() + self.FUSE_SECONDS
         self.modules = [self._wires(), self._button(), self._symbols(), self._wires()]
         self.module_index = 0
@@ -244,7 +245,8 @@ class BattleshipEngine(TurnBasedEngine):
             if self._all_sunk(target, player_id):
                 self.finish(winner=player_id)
                 return
-            return          # a hit earns another shot
+            self.reset_turn_clock()
+            return          # a hit earns another shot (with a fresh clock)
         self.next_turn()
 
     def _all_sunk(self, owner, shooter):
@@ -605,20 +607,28 @@ class LudoEngine(TurnBasedEngine):
         if action == "roll" and not self.rolled:
             self.die = random.randint(1, 6)
             self.rolled = True
-            if not self._legal_moves(player_id):
+            legal = self._legal_moves(player_id)
+            if not legal:
                 # Nothing playable -- pass rather than stalling the table.
                 self._end_turn(extra=False)
+            elif len({self.tokens[player_id][i] for i in legal}) == 1:
+                # Only one real choice (one movable token, or several
+                # identical yard tokens on a 6): play it, no extra tap.
+                self._move(player_id, legal[0])
             return
 
         if action == "move" and self.rolled:
             idx = data.get("token")
             if not isinstance(idx, int) or idx not in self._legal_moves(player_id):
                 return
-            captured = self._apply_move(player_id, idx)
-            if self._has_won(player_id):
-                self.finish(winner=player_id)
-                return
-            self._end_turn(extra=(self.die == 6 or captured))
+            self._move(player_id, idx)
+
+    def _move(self, player_id, idx):
+        captured = self._apply_move(player_id, idx)
+        if self._has_won(player_id):
+            self.finish(winner=player_id)
+            return
+        self._end_turn(extra=(self.die == 6 or captured))
 
     def _legal_moves(self, player_id):
         moves = []
@@ -667,8 +677,9 @@ class LudoEngine(TurnBasedEngine):
         return all(v >= 100 + self.HOME_RUN - 1 for v in self.tokens[player_id])
 
     def _end_turn(self, extra):
+        # `die` keeps the last roll so the TV and phones can still show it;
+        # `rolled` is what gates the next roll/move.
         self.rolled = False
-        self.die = 0
         if not extra:
             self.next_turn()
         else:
@@ -718,15 +729,23 @@ class CarromEngine(TurnBasedEngine):
     turn_seconds = 45
 
     BOARD = 100.0
-    POCKET_R = 7.0
+    POCKET_R = 8.0
     COIN_R = 2.5
-    TARGET_SCORE = 8
+    STRIKER_R = 3.2
+    STRIKER_Y = 88.0
+    TARGET_SCORE = 6
+    #: How many coins one shot can knock on in a chain.
+    MAX_CHAIN = 12
+    #: Every game ends: after this many shots each, highest score wins.
+    SHOTS_PER_PLAYER = 10
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
         self.coins: list[dict] = []
         self.striker_x = 50.0
         self.last_shot: dict = {}
+        self.shots_taken = 0
+        self._travel_budget = 0
 
     def setup(self):
         # Nine white, nine black, one queen, ringed around the centre.
@@ -762,55 +781,108 @@ class CarromEngine(TurnBasedEngine):
         self._resolve_shot(player_id, float(angle), max(0.0, min(1.0, float(power))))
 
     def _resolve_shot(self, player_id, angle, power):
-        """Straight-line striker travel with a simple radius test per coin.
-
-        Full rigid-body physics would need a client-side simulation to look
-        right; a deterministic sweep keeps the server authoritative and the
-        board on the TV always correct.
+        """Deterministic top-down shot: the striker travels until it hits a
+        coin, which takes the energy along the contact normal, bounces off
+        the cushions, can knock other coins on, and drops if its path
+        crosses a pocket. Kept server-side so the TV board is always right.
         """
-        potted = []
-        sx, sy = self.striker_x, 92.0
+        self.shots_taken += 1
+        self._travel_budget = 80
         dx, dy = math.sin(angle), -math.cos(angle)
-        reach = 25.0 + power * 85.0
+        reach = 30.0 + power * 150.0
+        potted: list[dict] = []
+        striker_potted = self._travel(self.striker_x, self.STRIKER_Y, dx, dy, reach,
+                                      self.STRIKER_R, None, 0, potted)
 
-        for step in range(int(reach)):
-            cx, cy = sx + dx * step, sy + dy * step
-            if not (0 <= cx <= self.BOARD and 0 <= cy <= self.BOARD):
-                break
-            for coin in self.coins:
-                if coin["potted"]:
-                    continue
-                if math.hypot(coin["x"] - cx, coin["y"] - cy) < self.COIN_R + 2.0:
-                    # Nudge the coin along the striker's line and see if it drops.
-                    coin["x"] += dx * (10.0 + power * 30.0)
-                    coin["y"] += dy * (10.0 + power * 30.0)
-                    coin["x"] = max(0.0, min(self.BOARD, coin["x"]))
-                    coin["y"] = max(0.0, min(self.BOARD, coin["y"]))
-                    if self._in_pocket(coin["x"], coin["y"]):
-                        coin["potted"] = True
-                        potted.append(coin)
-
-        gained = 0
-        for coin in potted:
-            gained += 3 if coin["kind"] == "queen" else 1
+        gained = sum(3 if c["kind"] == "queen" else 1 for c in potted)
+        foul = striker_potted
+        if foul:
+            gained -= 1                       # pocketing the striker costs a point
         if gained:
-            self.scores[player_id] = self.scores.get(player_id, 0) + gained
+            self.scores[player_id] = max(0, self.scores.get(player_id, 0) + gained)
             player = self.room.player(player_id)
             if player is not None:
                 player.score = self.scores[player_id]
 
         self.last_shot = {
             "playerID": player_id, "angle": angle, "power": power,
-            "potted": [c["id"] for c in potted], "gained": gained,
+            "potted": [c["id"] for c in potted], "gained": gained, "foul": foul,
         }
 
         if self.scores.get(player_id, 0) >= self.TARGET_SCORE:
             self.finish(winner=player_id)
             return
-        if not potted:
-            self.next_turn()      # potting keeps the turn, as in the real game
+        if all(c["potted"] for c in self.coins) or self.shots_taken >= self.max_shots():
+            self._finish_on_points()
+            return
+        if potted and not foul:
+            self.reset_turn_clock()           # potting keeps the turn
         else:
-            self.reset_turn_clock()
+            self.next_turn()
+
+    def max_shots(self):
+        return self.SHOTS_PER_PLAYER * max(1, len(self.order))
+
+    def _finish_on_points(self):
+        best = max(self.order, key=lambda pid: self.scores.get(pid, 0)) if self.order else None
+        top = self.scores.get(best, 0) if best else 0
+        leaders = [pid for pid in self.order if self.scores.get(pid, 0) == top]
+        self.finish(winner=best if len(leaders) == 1 else None)
+
+    def _travel(self, x, y, ux, uy, dist, radius, coin, depth, potted):
+        """Move a body along (ux, uy) for ``dist`` units, resolving cushion
+        bounces, pockets and equal-mass collisions (the struck coin takes
+        the normal component, the hitter carries on along the tangent).
+        Returns True if this was the striker and it fell in a pocket."""
+        self._travel_budget -= 1
+        step = 0.5
+        travelled = 0.0
+        lo, hi = radius, self.BOARD - radius
+        while travelled < dist:
+            x += ux * step
+            y += uy * step
+            travelled += step
+            # Cushions: reflect and lose a little energy.
+            if x < lo or x > hi:
+                x = lo + (lo - x) if x < lo else hi - (x - hi)
+                ux = -ux
+                dist -= (dist - travelled) * 0.2
+            if y < lo or y > hi:
+                y = lo + (lo - y) if y < lo else hi - (y - hi)
+                uy = -uy
+                dist -= (dist - travelled) * 0.2
+            if self._in_pocket(x, y):
+                if coin is not None:
+                    coin["potted"] = True
+                    potted.append(coin)
+                    return False
+                return True
+            for other in self.coins:
+                if other["potted"] or other is coin:
+                    continue
+                gap = math.hypot(other["x"] - x, other["y"] - y)
+                if gap >= radius + self.COIN_R:
+                    continue
+                nx, ny = (other["x"] - x) / (gap or 1), (other["y"] - y) / (gap or 1)
+                along = nx * ux + ny * uy
+                if along <= 0:
+                    continue                  # already moving apart
+                remaining = (dist - travelled) * 0.92
+                if coin is not None:
+                    coin["x"], coin["y"] = x, y
+                if self._travel_budget <= 0 or depth >= self.MAX_CHAIN:
+                    return False
+                self._travel(other["x"], other["y"], nx, ny, remaining * along + 1.0,
+                             self.COIN_R, other, depth + 1, potted)
+                tx, ty = ux - along * nx, uy - along * ny
+                tn = math.hypot(tx, ty)
+                if tn < 0.05:
+                    return False              # head-on: the hitter stops dead
+                return self._travel(x, y, tx / tn, ty / tn, remaining * tn,
+                                    radius, coin, depth + 1, potted)
+        if coin is not None:
+            coin["x"], coin["y"] = round(x, 2), round(y, 2)
+        return False
 
     def _in_pocket(self, x, y):
         for px, py in ((0, 0), (0, self.BOARD), (self.BOARD, 0), (self.BOARD, self.BOARD)):
@@ -830,6 +902,7 @@ class CarromEngine(TurnBasedEngine):
             "strikerX": round(self.striker_x, 1),
             "lastShot": self.last_shot,
             "targetScore": self.TARGET_SCORE,
+            "shotsLeft": max(0, self.max_shots() - self.shots_taken),
         })
         return state
 
@@ -882,8 +955,34 @@ class TeenPattiEngine(TurnBasedEngine):
     def _live(self):
         return [p for p in self.order if p not in self.folded]
 
+    def next_turn(self):
+        # Folded players are out of the hand: never hand them the turn.
+        for _ in range(max(1, len(self.order))):
+            super().next_turn()
+            if self.current_player_id() not in self.folded:
+                break
+
+    def on_turn_timeout(self):
+        # Sitting on your turn past the clock packs your hand, like a real
+        # table -- otherwise one idle phone stalls everyone for 40s a lap.
+        pid = self.current_player_id()
+        if pid is not None and pid not in self.folded:
+            self.handle_action(pid, "fold", {})
+        else:
+            self.next_turn()
+
+    def on_player_leave(self, player_id):
+        if player_id in self.order and player_id not in self.folded and not self._finished:
+            self.folded.add(player_id)
+            if len(self._live()) == 1:
+                self._award(self._live()[0])
+                return
+        super().on_player_leave(player_id)
+
     def handle_action(self, player_id, action, data):
         if self._finished or not self.is_my_turn(player_id):
+            return
+        if player_id in self.folded:
             return
 
         if action == "fold":

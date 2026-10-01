@@ -59,7 +59,7 @@ struct TVBlastRunnersBoardView: View {
     private var headerBar: some View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("⛏️ Blast Runners")
+                Text("Blast Runners")
                     .font(.system(size: 34, weight: .bold))
                     .foregroundColor(.white)
                 Text("Level \(vm.state.level) of \(vm.state.maxLevel)")
@@ -167,7 +167,7 @@ struct BlastRunnersBoardState {
         switch phase {
         case "levelComplete": return "Level \(level) Clear!"
         case "levelFailed":   return "Team Down — Resetting Level \(level)"
-        case "gameComplete":  return "All 25 Levels Cleared! 🏆"
+        case "gameComplete":  return "All 25 Levels Cleared!"
         default: return nil
         }
     }

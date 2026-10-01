@@ -1,0 +1,52 @@
+name: No-Emoji UI Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  no-emoji:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan app-owned UI for emoji
+        run: |
+          python3 - <<'PYEOF'
+          import pathlib, re, sys
+          EMOJI_RE = re.compile('[' '\U0001F000-\U0001FAFF' '\u2600-\u27BF'
+                                '\u2B00-\u2BFF' '\uFE0F' '\u200D' '\u20E3'
+                                '\u2190-\u21FF' '\u2300-\u23FF' ']')
+          # Deliberate exceptions: card suits, tic-tac-toe marks, text
+          # check/cross/play glyphs, card-back, roadfighter heart.
+          EXEMPT = set('\u2660\u2665\u2666\u2663\u2B55\u274C\u2713\u2715\u25B6\U0001F0A0')
+          # Emoji Movie palette + user submissions are user-generated content.
+          SKIP_FILES = {'ios/GameLabController/Views/Controllers/PartyControllers.swift'}
+          failures = []
+          scan = list(pathlib.Path('templates').rglob('*.html')) + \
+                 list(pathlib.Path('static').rglob('*.js')) + \
+                 list(pathlib.Path('ios').rglob('*.swift'))
+          for p in sorted(scan):
+              rel = str(p)
+              if rel in SKIP_FILES:
+                  continue
+              for i, line in enumerate(p.read_text(errors='replace').splitlines(), 1):
+                  s = line.strip()
+                  if 'console.' in s[:22]:
+                      continue  # dev logs, not user-facing UI
+                  if rel.endswith('.swift') and s.startswith('//'):
+                      continue
+                  bad = [c for c in line
+                         if ord(c) > 0x2500 and c not in EXEMPT
+                         and not (0x0C00 <= ord(c) <= 0x0C7F or 0x0900 <= ord(c) <= 0x097F)]
+                  if bad:
+                      failures.append(f'{rel}:{i}: {"".join(sorted(set(bad)))}')
+          if failures:
+              print('App-owned emoji found (not in allowlist):')
+              print('\n'.join(failures))
+              sys.exit(1)
+          print('No app-owned emoji found.')
+          PYEOF

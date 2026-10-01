@@ -29,6 +29,9 @@ class RoundBasedEngine(NativeGameEngine):
     total_rounds: int = 5
     phase_seconds: dict[str, int] = {}       # phase name -> duration
     first_phase: str = "collect"
+    #: Later phases that may also end early once everyone has submitted
+    #: (the first phase always may). Only for single-answer phases.
+    early_phases: tuple = ()
 
     def __init__(self, room, broadcaster) -> None:
         super().__init__(room, broadcaster)
@@ -66,7 +69,8 @@ class RoundBasedEngine(NativeGameEngine):
             return
         if self.deadline and time.time() >= self.deadline:
             self.advance()
-        elif self.everyone_submitted() and self.phase == self.first_phase:
+        elif self.everyone_submitted() and (self.phase == self.first_phase
+                                            or self.phase in self.early_phases):
             # Nobody left to wait for -- don't burn the rest of the clock.
             self.advance()
 
@@ -246,7 +250,15 @@ class TurnBasedEngine(NativeGameEngine):
         return self._finished
 
     def results(self) -> list[dict]:
-        return self.ranked_results(self.scores)
+        # Many board games only record a winner (no running score), so a
+        # plain score sort would leave every player tied at 0 and could rank
+        # the loser first. The winner always tops the table.
+        ranked = self.ranked_results(self.scores)
+        if self.winner:
+            ranked.sort(key=lambda r: r["playerID"] != self.winner)
+            for rank, row in enumerate(ranked, start=1):
+                row["rank"] = rank
+        return ranked
 
     def on_player_leave(self, player_id: str) -> None:
         if self.current_player_id() == player_id:

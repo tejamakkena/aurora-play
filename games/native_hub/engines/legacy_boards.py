@@ -129,6 +129,7 @@ class MemoryEngine(TurnBasedEngine):
     game_id = "memory"
     min_players = 2
     max_players = 4
+    turn_seconds = 30           # an idle phone passes its turn
 
     SYMBOLS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼',
                '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔']
@@ -139,6 +140,11 @@ class MemoryEngine(TurnBasedEngine):
         self.cards: list[str] = []
         self.matched: set[int] = set()
         self.flipped: list[int] = []
+        # A mismatched pair stays face-up this long so everyone can see
+        # (and memorise) it before the turn passes.
+        self.hide_at: float = 0.0
+
+    MISMATCH_SHOW_SECONDS = 1.6
 
     def setup(self):
         symbols = random.sample(self.SYMBOLS, self.PAIRS)
@@ -149,6 +155,8 @@ class MemoryEngine(TurnBasedEngine):
     def handle_action(self, player_id, action, data):
         if self._finished or action != "flip" or not self.is_my_turn(player_id):
             return
+        if self.hide_at:
+            return                          # mismatched pair still showing
         idx = data.get("index")
         if not isinstance(idx, int) or not 0 <= idx < len(self.cards):
             return
@@ -162,13 +170,34 @@ class MemoryEngine(TurnBasedEngine):
         a, b = self.flipped
         if self.cards[a] == self.cards[b]:
             self.matched.update({a, b})
-            self.award(player_id, 1)
+            self.scores[player_id] = self.scores.get(player_id, 0) + 1
+            player = self.room.player(player_id)
+            if player is not None:
+                player.score = self.scores[player_id]
             self.flipped = []
             if len(self.matched) == len(self.cards):
                 self.finish()
+            # A match keeps the turn.
         else:
+            self.hide_at = time.time() + self.MISMATCH_SHOW_SECONDS
+
+    def on_player_leave(self, player_id):
+        if self.hide_at and self.is_my_turn(player_id):
+            self.hide_at = 0.0
+            self.flipped = []
+        super().on_player_leave(player_id)
+
+    def tick(self, dt):
+        if self.hide_at and time.time() >= self.hide_at:
+            self.hide_at = 0.0
             self.flipped = []
             self.next_turn()
+            return
+        super().tick(dt)
+
+    def on_turn_timeout(self):
+        self.flipped = []
+        super().on_turn_timeout()
 
     def public_state(self):
         state = self.base_public()
@@ -205,9 +234,9 @@ class MemoryEngine(TurnBasedEngine):
 # different game). Original implementation: pseudo-legal piece movement,
 # captures, no check/checkmate detection -- the game ends when a king is
 # captured, a common simplification for casual implementations. Verified
-# against ChessControllerView's board/validMoves/pieceColor/isMyTurn keys;
-# the TV board is TVWebGameBoardView (a placeholder in this codebase), so
-# there is no TV state contract to match for this game.
+# against ChessControllerView's board/validMoves/pieceColor/isMyTurn keys.
+# The TV board (TVChessBoardView) reads board/pieceColors/turnColor/
+# lastMove/captured/inCheck from public_state. Pawns auto-promote to queens.
 # ---------------------------------------------------------------------------
 
 WHITE_PIECES = {"K": "♔", "Q": "♕", "R": "♖", "B": "♗", "N": "♘", "P": "♙"}
@@ -225,6 +254,9 @@ class ChessEngine(TurnBasedEngine):
         self.piece_color: dict[str, str] = {}
         self.selected: dict[str, tuple] = {}
         self.captured_king = False
+        self.last_move: list[list[int]] | None = None
+        self.captured: dict[str, list[str]] = {"white": [], "black": []}
+        self.draw = False
 
     def setup(self):
         back = ["R", "N", "B", "Q", "K", "B", "N", "R"]
@@ -345,16 +377,67 @@ class ChessEngine(TurnBasedEngine):
             target = self.board[tr][tc]
             if self._piece_kind(target) == "K":
                 self.captured_king = True
-            self.board[tr][tc] = self.board[fr][fc]
+            if target:
+                self.captured[color].append(target)
+            moving = self.board[fr][fc]
+            # Auto-promote a pawn reaching the far rank to a queen.
+            if self._piece_kind(moving) == "P" and tr in (0, 7):
+                moving = WHITE_PIECES["Q"] if color == "white" else BLACK_PIECES["Q"]
+            self.board[tr][tc] = moving
             self.board[fr][fc] = ""
+            self.last_move = [[fr, fc], [tr, tc]]
             self.selected.pop(player_id, None)
             if self.captured_king:
+                self.scores[player_id] = 1
+                player = self.room.player(player_id)
+                if player is not None:
+                    player.score = 1
                 self.finish(winner=player_id)
                 return
             self.next_turn()
+            nxt = self.current_player_id()
+            if nxt and not self._has_any_move(self.piece_color.get(nxt)):
+                self.draw = True                  # stalemate: nothing can move
+                self.finish(winner=None)
+
+    def _has_any_move(self, color):
+        for r in range(8):
+            for c in range(8):
+                if self._owner_color(self.board[r][c]) == color and self._valid_moves(r, c):
+                    return True
+        return False
+
+    def _king_attacked(self, color):
+        """True when ``color``'s king could be taken on the opponent's next move."""
+        king = WHITE_PIECES["K"] if color == "white" else BLACK_PIECES["K"]
+        pos = next(((r, c) for r in range(8) for c in range(8)
+                    if self.board[r][c] == king), None)
+        if pos is None:
+            return False
+        for r in range(8):
+            for c in range(8):
+                owner = self._owner_color(self.board[r][c])
+                if owner and owner != color and pos in self._valid_moves(r, c):
+                    return True
+        return False
+
+    def _turn_color(self):
+        pid = self.current_player_id()
+        return self.piece_color.get(pid) if pid else None
 
     def public_state(self):
-        return self.base_public()
+        state = self.base_public()
+        turn_color = self._turn_color()
+        state.update({
+            "board": [row[:] for row in self.board],
+            "pieceColors": dict(self.piece_color),
+            "turnColor": turn_color,
+            "lastMove": self.last_move,
+            "captured": {k: v[:] for k, v in self.captured.items()},
+            "inCheck": bool(turn_color) and not self._finished and self._king_attacked(turn_color),
+            "draw": self.draw,
+        })
+        return state
 
     def private_state(self, player_id):
         state = self.base_private(player_id)
@@ -363,6 +446,9 @@ class ChessEngine(TurnBasedEngine):
             "pieceColor": self.piece_color.get(player_id, "white"),
             "board": [row[:] for row in self.board],
             "validMoves": [[r, c] for r, c in self._valid_moves(*sel)] if sel else [],
+            "lastMove": self.last_move,
+            "inCheck": (self.is_my_turn(player_id) and not self._finished
+                        and self._king_attacked(self.piece_color.get(player_id, "white"))),
         })
         return state
 

@@ -9,7 +9,7 @@ import SwiftUI
 // MARK: - Shared chrome
 
 struct TVRoundHeader: View {
-    let emoji: String
+    let symbol: String
     let title: String
     let round: Int
     let totalRounds: Int
@@ -24,7 +24,10 @@ struct TVRoundHeader: View {
                         .font(.caption.bold()).tracking(3)
                         .foregroundColor(.cyan.opacity(0.8))
                 }
-                Text("\(emoji) \(title)")
+                HStack(spacing: 12) {
+                        Image(systemName: symbol).foregroundColor(.white.opacity(0.85))
+                        Text(title)
+                    }
                     .font(.system(size: 38, weight: .bold))
                     .foregroundColor(.white)
             }
@@ -168,7 +171,7 @@ struct TVBluffItBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🎭", title: "Bluff It",
+            TVRoundHeader(symbol: "eye.slash.fill", title: "Bluff It",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: vm.state.base.phase == "write" ? "write a lie"
@@ -261,7 +264,7 @@ struct TVLastTapBoardView: View {
                 .animation(.easeIn(duration: 0.05), value: vm.state.phase)
 
             VStack(spacing: 0) {
-                TVRoundHeader(emoji: "⚡", title: "Last Tap Standing",
+                TVRoundHeader(symbol: "bolt.fill", title: "Last Tap Standing",
                               round: vm.state.round, totalRounds: 0, secondsLeft: 0,
                               phaseLabel: "\(vm.state.aliveCount) still in")
                 Spacer()
@@ -276,7 +279,7 @@ struct TVLastTapBoardView: View {
                         .foregroundColor(.black)
                 case "final":
                     VStack(spacing: 16) {
-                        Text("🏆").font(.system(size: 110))
+                        Image(systemName: "trophy.fill").font(.system(size: 100)).foregroundColor(.yellow)
                         Text(vm.state.players.first { $0.id == vm.state.winner }?.name ?? "Winner")
                             .font(.system(size: 62, weight: .heavy)).foregroundColor(.yellow)
                     }
@@ -330,7 +333,7 @@ struct TVHerdBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🐑", title: "Herd",
+            TVRoundHeader(symbol: "person.3.fill", title: "Herd",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: "match the majority")
@@ -390,14 +393,14 @@ struct TVEmojiMovieBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🎬", title: "Emoji Movie",
+            TVRoundHeader(symbol: "clapperboard.fill", title: "Emoji Movie",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: vm.state.base.phase)
             Spacer()
             if vm.state.base.phase == "compose" {
                 VStack(spacing: 18) {
-                    Text("✍️").font(.system(size: 100))
+                    Image(systemName: "pencil").font(.system(size: 90)).foregroundColor(.white.opacity(0.7))
                     Text("Everyone is describing their secret title")
                         .font(.title2).foregroundColor(.white.opacity(0.6))
                     Text("\(vm.state.composedCount) submitted")
@@ -451,7 +454,7 @@ struct TVNPATBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🅰️", title: "Name Place Animal Thing",
+            TVRoundHeader(symbol: "a.circle.fill", title: "Name Place Animal Thing",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft)
             Spacer()
@@ -525,7 +528,7 @@ struct TVAntakshariBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(emoji: "🎵", title: "Antakshari",
+            TVRoundHeader(symbol: "music.note", title: "Antakshari",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft)
             Spacer()
@@ -568,5 +571,125 @@ struct TVAntakshariBoardView: View {
         }
         .frame(width: 200).padding(.vertical, 24)
         .background(RoundedRectangle(cornerRadius: 18).fill(color.opacity(0.15)))
+    }
+}
+
+// MARK: - Most Likely To
+
+struct MostLikelyResult: Identifiable {
+    let id: String
+    let name: String
+    let votes: Int
+    let topVoted: Bool
+}
+
+struct MostLikelyState {
+    var base = RoundBoardState()
+    var prompt = ""
+    var votesSoFar = 0
+    var results: [MostLikelyResult] = []
+
+    mutating func update(from d: [String: AnyCodable]) {
+        base.updateBase(from: d)
+        if let v = d["prompt"]?.value as? String { prompt = v }
+        if let v = d["votesSoFar"]?.value as? Int { votesSoFar = v }
+        let raw = d["roundResults"]?.value as? [Any] ?? []
+        results = raw.compactMap { item -> MostLikelyResult? in
+            guard let r = item as? [String: Any],
+                  let id = r["playerID"] as? String else { return nil }
+            return MostLikelyResult(id: id,
+                                    name: r["name"] as? String ?? "Player",
+                                    votes: r["votes"] as? Int ?? 0,
+                                    topVoted: r["topVoted"] as? Bool ?? false)
+        }
+    }
+}
+
+struct TVMostLikelyToBoardView: View {
+    let room: Room
+    @StateObject private var vm = TVBoardModel(initial: MostLikelyState()) { $0.update(from: $1) }
+
+    private var isReveal: Bool { vm.state.base.phase == "reveal" }
+    private var maxVotes: Int { max(1, vm.state.results.map(\.votes).max() ?? 1) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TVRoundHeader(symbol: "hand.thumbsup.fill", title: "Most Likely To",
+                          round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
+                          secondsLeft: vm.state.base.secondsLeft,
+                          phaseLabel: isReveal ? "the room has spoken" : "secret ballot")
+            Spacer()
+            VStack(spacing: 40) {
+                // Prompts already read "Most likely to ...".
+                Text("Who is…")
+                    .font(.title2.bold()).foregroundColor(.white.opacity(0.5))
+                Text(vm.state.prompt)
+                    .font(.system(size: 54, weight: .heavy))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 120)
+
+                if isReveal {
+                    revealBars
+                } else {
+                    ballotProgress
+                }
+            }
+            Spacer()
+            TVScoreStrip(players: vm.state.base.players, highlight: vm.state.base.submitted)
+        }
+        .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    private var ballotProgress: some View {
+        let total = vm.state.base.players.count
+        return VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                ForEach(vm.state.base.players) { p in
+                    let voted = vm.state.base.submitted.contains(p.id)
+                    Image(systemName: voted ? "checkmark.seal.fill" : "hourglass")
+                        .font(.system(size: 30))
+                        .foregroundColor(voted ? .green : .white.opacity(0.25))
+                }
+            }
+            Text("\(vm.state.votesSoFar) of \(total) votes in. Vote on your phone.")
+                .font(.title3).foregroundColor(.white.opacity(0.5))
+        }
+    }
+
+    private var revealBars: some View {
+        Group {
+            if vm.state.results.isEmpty {
+                Text("Nobody voted this round")
+                    .font(.title2).foregroundColor(.white.opacity(0.5))
+            } else {
+                VStack(spacing: 14) {
+                    ForEach(vm.state.results.prefix(6)) { r in
+                        HStack(spacing: 20) {
+                            Image(systemName: r.topVoted ? "crown.fill" : "person.fill")
+                                .font(.title2)
+                                .foregroundColor(r.topVoted ? .yellow : .white.opacity(0.4))
+                                .frame(width: 44)
+                            Text(r.name)
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(r.topVoted ? .yellow : .white)
+                                .frame(width: 280, alignment: .leading)
+                            GeometryReader { geo in
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(r.topVoted ? Color.yellow : Color.cyan.opacity(0.55))
+                                    .frame(width: geo.size.width * CGFloat(r.votes) / CGFloat(maxVotes))
+                                    .animation(.spring(response: 0.6), value: r.votes)
+                            }
+                            .frame(height: 40)
+                            Text("\(r.votes)")
+                                .font(.system(size: 34, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white)
+                                .frame(width: 70)
+                        }
+                    }
+                }
+                .padding(.horizontal, 160)
+            }
+        }
     }
 }

@@ -88,14 +88,25 @@ def _best_hand(cards):
 
 
 class PokerEngine(TurnBasedEngine):
+    """Texas Hold'em over several hands.
+
+    The table plays up to ``MAX_HANDS`` hands (dealer button rotating) or
+    until one player holds every chip; final ranking is by chip count. Each
+    hand ends on a short "showdown" pause so the TV can show who took the
+    pot before the next deal.
+    """
+
     game_id = "poker"
     min_players = 2
     max_players = 8
+    turn_seconds = 45
 
     STARTING_CHIPS = 1000
     SMALL_BLIND = 10
     BIG_BLIND = 20
     STREETS = ["preflop", "flop", "turn", "river", "showdown"]
+    MAX_HANDS = 10
+    HAND_PAUSE_SECONDS = 6
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -111,22 +122,105 @@ class PokerEngine(TurnBasedEngine):
         self.acted: set[str] = set()
         self.phase = "preflop"
         self.showdown: list[dict] = []
+        self.hand_number = 0
+        self.next_hand_at = 0.0
+        self.game_over_pending = False
+        self.last_hand: dict | None = None
 
     def setup(self):
-        n = len(self.order)
-        self.deck = _make_deck()
         self.chips = {pid: self.STARTING_CHIPS for pid in self.order}
-        self.contrib = {pid: 0 for pid in self.order}
-        for pid in self.order:
-            self.hands[pid] = [self.deck.pop(), self.deck.pop()]
+        self._start_hand()
 
-        sb_pos = 1 % n
-        bb_pos = 2 % n
-        self._post(self.order[sb_pos], self.SMALL_BLIND)
-        self._post(self.order[bb_pos], self.BIG_BLIND)
-        self.current_bet = self.BIG_BLIND
-        self.turn_index = (bb_pos + 1) % n
-        self.reset_turn_clock()
+    # ---- hand lifecycle ------------------------------------------------
+
+    def _seated(self):
+        return [pid for pid in self.order if self.chips.get(pid, 0) > 0]
+
+    def _start_hand(self):
+        seated = self._seated()
+        if len(seated) < 2:
+            self._finish_game()
+            return
+        self.hand_number += 1
+        self.deck = _make_deck()
+        self.hands = {pid: [self.deck.pop(), self.deck.pop()] for pid in seated}
+        self.community = []
+        self.contrib = {pid: 0 for pid in self.order}
+        self.folded = {pid for pid in self.order if pid not in seated}
+        self.all_in = set()
+        self.acted = set()
+        self.phase = "preflop"
+        self.showdown = []
+        self.winner = None
+        self.next_hand_at = 0.0
+
+        n = len(seated)
+        dealer = (self.hand_number - 1) % n
+        if n == 2:
+            sb, bb = seated[dealer], seated[(dealer + 1) % n]   # heads-up: button posts SB
+        else:
+            sb, bb = seated[(dealer + 1) % n], seated[(dealer + 2) % n]
+        self._post(sb, self.SMALL_BLIND)
+        self._post(bb, self.BIG_BLIND)
+        self.current_bet = max(self.contrib.values())
+
+        self.turn_index = self.order.index(bb)
+        if len(self._actionable()) <= 1 and self._bets_settled():
+            self._run_out()
+            return
+        self.next_turn()
+
+    def _end_hand(self, winners, share):
+        self.pot = 0
+        self.phase = "showdown"
+        self.winner = winners[0] if len(winners) == 1 else None
+        self.last_hand = {
+            "handNumber": self.hand_number,
+            "winnerIDs": list(winners),
+            "winnerNames": [self.player_name(w) for w in winners],
+            "amount": share,
+        }
+        self._sync_scores()
+        self.deadline = 0.0
+        if len(self._seated()) < 2 or self.hand_number >= self.MAX_HANDS:
+            self.game_over_pending = True
+        self.next_hand_at = time.time() + self.HAND_PAUSE_SECONDS
+
+    def _finish_game(self):
+        self._sync_scores()
+        leader = max(self.order, key=lambda pid: self.chips.get(pid, 0)) if self.order else None
+        self.finish(winner=leader)
+
+    def tick(self, dt):
+        if self._finished:
+            return
+        if self.next_hand_at:
+            if time.time() >= self.next_hand_at:
+                self.next_hand_at = 0.0
+                if self.game_over_pending:
+                    self._finish_game()
+                else:
+                    self._start_hand()
+            return
+        super().tick(dt)
+
+    def on_turn_timeout(self):
+        # An idle phone checks when it can and folds when it would have to pay.
+        pid = self.current_player_id()
+        if pid is None:
+            return
+        to_call = self.current_bet - self.contrib.get(pid, 0)
+        self.handle_action(pid, "check" if to_call <= 0 else "fold", {})
+
+    def on_player_leave(self, player_id):
+        if (not self._finished and not self.next_hand_at
+                and player_id in self.hands and player_id not in self.folded
+                and self.is_my_turn(player_id)):
+            self.handle_action(player_id, "fold", {})
+            return
+        super().on_player_leave(player_id)
+
+    # ---- betting -------------------------------------------------------
 
     def _post(self, pid, amount):
         amount = min(amount, self.chips[pid])
@@ -139,31 +233,40 @@ class PokerEngine(TurnBasedEngine):
     def _live(self):
         return [pid for pid in self.order if pid not in self.folded]
 
+    def _actionable(self):
+        return [pid for pid in self.order if pid not in self.folded and pid not in self.all_in]
+
+    def _bets_settled(self):
+        return all(self.contrib[pid] >= self.current_bet for pid in self._actionable())
+
     def next_turn(self):
-        live = [pid for pid in self.order if pid not in self.folded and pid not in self.all_in]
+        live = self._actionable()
         if not live:
             return
         for _ in range(len(self.order)):
             self.turn_index = (self.turn_index + 1) % len(self.order)
             pid = self.order[self.turn_index]
-            if pid in live and self._is_live(pid):
+            if pid in live:
                 break
         self.reset_turn_clock()
 
     def _round_complete(self):
-        live = [pid for pid in self.order if pid not in self.folded and pid not in self.all_in]
+        live = self._actionable()
         if not live:
             return True
+        if len(live) == 1 and self.contrib[live[0]] >= self.current_bet:
+            return True       # everyone else is all-in or folded
         return all(pid in self.acted and self.contrib[pid] == self.current_bet for pid in live)
 
     def handle_action(self, player_id, action, data):
-        if self._finished or player_id in self.folded or not self.is_my_turn(player_id):
+        if (self._finished or self.next_hand_at or player_id in self.folded
+                or player_id in self.all_in or not self.is_my_turn(player_id)):
             return
 
         if action == "fold":
             self.folded.add(player_id)
             self.acted.add(player_id)
-        elif action == "check":
+        elif action in ("check", "call"):
             call_amount = min(self.current_bet - self.contrib[player_id], self.chips[player_id])
             if call_amount > 0:
                 self.chips[player_id] -= call_amount
@@ -174,7 +277,10 @@ class PokerEngine(TurnBasedEngine):
             self.acted.add(player_id)
         elif action == "bet":
             amount = data.get("amount")
-            if not isinstance(amount, int) or amount <= self.contrib[player_id]:
+            if not isinstance(amount, int):
+                return
+            amount = max(amount, self.current_bet)       # never less than a call
+            if amount <= self.contrib[player_id]:
                 return
             cost = min(amount - self.contrib[player_id], self.chips[player_id])
             self.chips[player_id] -= cost
@@ -204,22 +310,30 @@ class PokerEngine(TurnBasedEngine):
         self.contrib = {pid: 0 for pid in self.order}
         self.current_bet = 0
 
+        if self.phase == "river":
+            self._showdown()
+            return
         idx = self.STREETS.index(self.phase)
         if self.phase == "preflop":
             self.community += [self.deck.pop() for _ in range(3)]
-        elif self.phase in ("flop", "turn"):
+        else:
             self.community.append(self.deck.pop())
-        elif self.phase == "river":
-            self._showdown()
-            return
         self.phase = self.STREETS[idx + 1]
 
-        live = [pid for pid in self.order if pid not in self.folded and pid not in self.all_in]
-        if not live:
-            self._showdown()
+        live = self._actionable()
+        if len(live) <= 1:
+            self._run_out()                 # nobody left to bet against
             return
-        self.turn_index = self.order.index(live[0])
-        self.reset_turn_clock()
+        # First to act after the flop: the first live seat after the button.
+        self.turn_index = self.order.index(live[0]) - 1
+        self.next_turn()
+
+    def _run_out(self):
+        """Deal the rest of the board with no more betting, then show down."""
+        while len(self.community) < 5:
+            self.community.append(self.deck.pop())
+        self.phase = "river"
+        self._showdown()
 
     def _showdown(self):
         self.phase = "showdown"
@@ -232,18 +346,16 @@ class PokerEngine(TurnBasedEngine):
             {"playerID": pid, "name": self.player_name(pid), "cards": self.hands[pid]}
             for pid in live
         ]
-        share = self.pot // len(winners)
+        share, remainder = divmod(self.pot, len(winners))
         for pid in winners:
             self.chips[pid] += share
-        self.pot = 0
-        self.finish(winner=winners[0])
-        self._sync_scores()
+        self.chips[winners[0]] += remainder
+        self._end_hand(winners, share)
 
     def _award(self, winner):
+        amount = self.pot
         self.chips[winner] += self.pot
-        self.pot = 0
-        self.finish(winner=winner)
-        self._sync_scores()
+        self._end_hand([winner], amount)
 
     def _sync_scores(self):
         for pid in self.order:
@@ -273,17 +385,30 @@ class PokerEngine(TurnBasedEngine):
                 for pid in self.order
             ],
             "showdown": self.showdown,
+            "handNumber": self.hand_number,
+            "maxHands": self.MAX_HANDS,
+            "lastHand": self.last_hand,
         })
         return state
 
     def private_state(self, player_id):
         state = self.base_private(player_id)
         min_bet = self.current_bet + self.BIG_BLIND if self.current_bet else self.BIG_BLIND
+        to_call = max(0, min(self.current_bet - self.contrib.get(player_id, 0),
+                             self.chips.get(player_id, 0)))
         state.update({
             "hand": self.hands.get(player_id, []),
             "chips": self.chips.get(player_id, 0),
-            "minBet": min_bet,
+            "minBet": min(min_bet, self.chips.get(player_id, 0) + self.contrib.get(player_id, 0)),
+            "toCall": to_call,
             "folded": player_id in self.folded,
+            "allIn": player_id in self.all_in,
+            "isMyTurn": (self.is_my_turn(player_id) and not self.next_hand_at
+                         and player_id not in self.folded and player_id not in self.all_in),
+            "phase": self.phase,
+            "handNumber": self.hand_number,
+            "maxHands": self.MAX_HANDS,
+            "lastHand": self.last_hand,
         })
         return state
 
@@ -320,11 +445,25 @@ def _generate_ticket():
 
 
 class TambolaEngine(NativeGameEngine):
+    """Housie / Tambola with the classic prizes.
+
+    Numbers are called automatically; players tap them on their own ticket
+    and claim prizes from the phone. Each prize goes to the first valid
+    claim; the game ends at Full House (or when all 90 are called).
+    """
+
     game_id = "tambola"
     min_players = 2
     max_players = 20
 
-    CALL_INTERVAL_SECONDS = 3.0
+    CALL_INTERVAL_SECONDS = 4.0
+    PRIZES = [
+        ("early_five", "Early Five", 100),
+        ("top_line", "Top Line", 150),
+        ("middle_line", "Middle Line", 150),
+        ("bottom_line", "Bottom Line", 150),
+        ("full_house", "Full House", 400),
+    ]
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -333,6 +472,8 @@ class TambolaEngine(NativeGameEngine):
         self.called: list[int] = []
         self.available: set = set()
         self.claims: list[str] = []
+        self.prize_winners: dict[str, str] = {}
+        self.scores: dict[str, int] = {}
         self.next_call_at = 0.0
         self.winner: str | None = None
         self._finished = False
@@ -341,11 +482,16 @@ class TambolaEngine(NativeGameEngine):
         for p in players:
             self.tickets[p.id] = _generate_ticket()
             self.marked[p.id] = set()
+            self.scores[p.id] = 0
         self.available = set(range(1, 91))
         self.next_call_at = time.time() + self.CALL_INTERVAL_SECONDS
 
     def _ticket_numbers(self, pid):
         return {n for row in self.tickets.get(pid, []) for n in row if n is not None}
+
+    def _row_numbers(self, pid, row):
+        rows = self.tickets.get(pid, [])
+        return {n for n in rows[row] if n is not None} if row < len(rows) else set()
 
     def tick(self, dt):
         if self._finished:
@@ -359,41 +505,78 @@ class TambolaEngine(NativeGameEngine):
             self.called.append(number)
             self.next_call_at = time.time() + self.CALL_INTERVAL_SECONDS
 
+    def _qualifies(self, pid, prize):
+        marked = self.marked.get(pid, set())
+        if prize == "early_five":
+            return len(marked) >= 5
+        if prize in ("top_line", "middle_line", "bottom_line"):
+            row = ("top_line", "middle_line", "bottom_line").index(prize)
+            numbers = self._row_numbers(pid, row)
+            return bool(numbers) and numbers <= marked
+        if prize == "full_house":
+            numbers = self._ticket_numbers(pid)
+            return bool(numbers) and numbers <= marked
+        return False
+
     def handle_action(self, player_id, action, data):
-        if self._finished:
+        if self._finished or player_id not in self.tickets:
             return
         if action == "mark":
             number = data.get("number")
             if (isinstance(number, int) and number in self.called
                     and number in self._ticket_numbers(player_id)):
                 self.marked.setdefault(player_id, set()).add(number)
+        elif action == "unmark":
+            number = data.get("number")
+            self.marked.setdefault(player_id, set()).discard(number)
         elif action == "claim":
-            claim_type = data.get("type", "full_house")
-            if claim_type != "full_house" or self.winner is not None:
+            prize = data.get("type", "full_house")
+            spec = next((p for p in self.PRIZES if p[0] == prize), None)
+            if spec is None or prize in self.prize_winners:
                 return
-            all_numbers = self._ticket_numbers(player_id)
-            marked = self.marked.get(player_id, set())
-            if all_numbers and all_numbers.issubset(marked):
+            if not self._qualifies(player_id, prize):
+                return
+            _, label, points = spec
+            self.prize_winners[prize] = player_id
+            self.scores[player_id] = self.scores.get(player_id, 0) + points
+            player = self.room.player(player_id)
+            if player is not None:
+                player.score = self.scores[player_id]
+            self.claims.append(f"{self.player_name(player_id)} won {label}!")
+            if prize == "full_house":
                 self.winner = player_id
-                self.claims.append(f"{self.player_name(player_id)} completed Full House!")
-                player = self.room.player(player_id)
-                if player is not None:
-                    player.score = 1000
                 self._finished = True
+
+    def _prizes(self):
+        return [
+            {"type": key, "label": label, "points": points,
+             "winnerID": self.prize_winners.get(key),
+             "winnerName": (self.player_name(self.prize_winners[key])
+                            if key in self.prize_winners else None)}
+            for key, label, points in self.PRIZES
+        ]
 
     def public_state(self):
         return {
             "called": list(self.called),
             "lastCalled": self.called[-1] if self.called else None,
             "claims": list(self.claims),
+            "prizes": self._prizes(),
             "finished": self._finished,
             "winner": self.winner,
         }
 
     def private_state(self, player_id):
+        mine = self._ticket_numbers(player_id)
         return {
             "ticket": self.tickets.get(player_id, []),
             "marked": sorted(self.marked.get(player_id, set())),
+            # Numbers on this ticket that have been called -- the phone
+            # rings them so nobody misses one while watching the TV.
+            "calledOnTicket": sorted(n for n in self.called if n in mine),
+            "lastCalled": self.called[-1] if self.called else None,
+            "prizes": self._prizes(),
+            "score": self.scores.get(player_id, 0),
             "finished": self._finished,
             "won": player_id == self.winner,
         }
@@ -402,7 +585,7 @@ class TambolaEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        return self.ranked_results({p.id: p.score for p in self.room.players})
+        return self.ranked_results(dict(self.scores))
 
 
 # ---------------------------------------------------------------------------
@@ -484,6 +667,10 @@ class RouletteEngine(NativeGameEngine):
     # window (see TVRouletteBoardView). Two seconds read as an instant
     # cut rather than a spin.
     SPIN_SECONDS = 6.0
+    # Once the first chip of a round goes down, everyone gets this long to
+    # bet. "spin" from a phone now means "I'm done betting": the wheel goes
+    # when every player still in is done, or when this runs out.
+    BET_SECONDS = 25.0
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -498,11 +685,33 @@ class RouletteEngine(NativeGameEngine):
         # on private_state (the phones), so nobody sees it early.
         self.pending_result: int | None = None
         self.round = 0
+        self.ready: set[str] = set()
+        self.bet_deadline = 0.0
         self._finished = False
 
     def start(self, players):
         self.chips = {p.id: self.STARTING_CHIPS for p in players}
         self.bets = {p.id: {} for p in players}
+
+    def _has_bets(self):
+        return any(self.bets.get(pid) for pid in self.bets)
+
+    def _still_in(self):
+        """Players who can still act this round: connected, with chips or bets."""
+        out = []
+        for pid in self.chips:
+            player = self.room.player(pid)
+            if player is None or not player.connected:
+                continue
+            if self.chips.get(pid, 0) > 0 or self.bets.get(pid):
+                out.append(pid)
+        return out
+
+    def _start_spin(self):
+        self.is_spinning = True
+        self.pending_result = random.randint(0, 36)
+        self.spin_deadline = time.time() + self.SPIN_SECONDS
+        self.bet_deadline = 0.0
 
     def handle_action(self, player_id, action, data):
         if self._finished or self.is_spinning or player_id not in self.chips:
@@ -518,18 +727,27 @@ class RouletteEngine(NativeGameEngine):
             self.chips[player_id] -= amount
             player_bets = self.bets.setdefault(player_id, {})
             player_bets[target] = player_bets.get(target, 0) + amount
+            self.ready.discard(player_id)
+            if not self.bet_deadline:
+                self.bet_deadline = time.time() + self.BET_SECONDS
         elif action == "clear_bets":
             refund = sum(self.bets.get(player_id, {}).values())
             self.chips[player_id] += refund
             self.bets[player_id] = {}
+            self.ready.discard(player_id)
         elif action == "spin":
-            if any(self.bets.get(pid) for pid in self.bets):
-                self.is_spinning = True
-                self.pending_result = random.randint(0, 36)
-                self.spin_deadline = time.time() + self.SPIN_SECONDS
+            if not self._has_bets():
+                return
+            self.ready.add(player_id)
+            if all(pid in self.ready for pid in self._still_in()):
+                self._start_spin()
 
     def tick(self, dt):
-        if self._finished or not self.is_spinning:
+        if self._finished:
+            return
+        if not self.is_spinning:
+            if self.bet_deadline and time.time() >= self.bet_deadline and self._has_bets():
+                self._start_spin()
             return
         if time.time() < self.spin_deadline:
             return
@@ -545,12 +763,13 @@ class RouletteEngine(NativeGameEngine):
         self.last_result = result
         self.pending_result = None
         self.is_spinning = False
+        self.ready = set()
         self.round += 1
         for pid in self.chips:
             player = self.room.player(pid)
             if player is not None:
                 player.score = self.chips[pid]
-        if self.round >= self.MAX_ROUNDS:
+        if self.round >= self.MAX_ROUNDS or not any(self.chips.values()):
             self._finished = True
 
     def public_state(self):
@@ -577,15 +796,29 @@ class RouletteEngine(NativeGameEngine):
             "chips": dict(self.chips),
             "round": self.round,
             "maxRounds": self.MAX_ROUNDS,
+            "readyPlayerIDs": sorted(self.ready),
+            "betSecondsLeft": self._bet_seconds_left(),
             "finished": self._finished,
         }
 
+    def _bet_seconds_left(self):
+        if not self.bet_deadline or self.is_spinning:
+            return 0
+        return max(0, int(round(self.bet_deadline - time.time())))
+
     def private_state(self, player_id):
+        still_in = self._still_in()
         return {
             "chips": self.chips.get(player_id, 0),
             "bets": dict(self.bets.get(player_id, {})),
             "isSpinning": self.is_spinning,
             "lastResult": self.last_result,
+            "isReady": player_id in self.ready,
+            "readyCount": sum(1 for pid in still_in if pid in self.ready),
+            "readyNeeded": len(still_in),
+            "betSecondsLeft": self._bet_seconds_left(),
+            "round": self.round,
+            "maxRounds": self.MAX_ROUNDS,
             "finished": self._finished,
         }
 
@@ -645,7 +878,9 @@ class DigitGuessEngine(NativeGameEngine):
             return
 
         bulls, cows = self._feedback(self.secret, code)
-        self.guesses[player_id].append({"guess": code, "bulls": bulls, "cows": cows})
+        # "guess" is what the phone reads, "code" what the TV board reads.
+        self.guesses[player_id].append({"guess": code, "code": code,
+                                        "bulls": bulls, "cows": cows})
         if bulls == 4:
             self.winner = player_id
             self._finished = True

@@ -43,6 +43,7 @@ class TestErrorHandlers:
     @patch('app.render_template')
     def test_500_error_handler(self, mock_render, app, client):
         """Test 500 error handler"""
+        app.config['PROPAGATE_EXCEPTIONS'] = False
         # Create a route that raises an exception
         @app.route('/cause-error')
         def cause_error():
@@ -54,6 +55,7 @@ class TestErrorHandlers:
     @patch('app.render_template')
     def test_500_template_exception(self, mock_render, app, client):
         """Test 500 handler when render_template raises exception"""
+        app.config['PROPAGATE_EXCEPTIONS'] = False
         mock_render.side_effect = Exception("Template error")
         
         @app.route('/trigger-500')

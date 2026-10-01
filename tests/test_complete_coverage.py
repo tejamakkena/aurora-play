@@ -108,6 +108,7 @@ class TestApp:
     @patch('app.render_template')
     def test_500_handler(self, mock_render, app, client):
         """Test 500 error handler"""
+        app.config['PROPAGATE_EXCEPTIONS'] = False
         @app.route('/error')
         def error_route():
             raise Exception("Test error")

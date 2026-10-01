@@ -18,7 +18,7 @@ struct Connect4ControllerView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("🟡 Connect 4").font(.headline).foregroundColor(.white)
+                Text("Connect 4").font(.headline).foregroundColor(.white)
                 Spacer()
                 Circle()
                     .fill(myColor == "red" ? Color.red : Color.yellow)
@@ -102,7 +102,7 @@ struct ChessControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("♟️ Chess").font(.headline).foregroundColor(.white)
+                Text("Chess").font(.headline).foregroundColor(.white)
                 Spacer()
                 Text(myColor.capitalized).font(.subheadline)
                     .foregroundColor(myColor == "white" ? .white : .black.opacity(0.8))
@@ -219,7 +219,7 @@ struct MemoryControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("🧩 Memory").font(.headline).foregroundColor(.white)
+                Text("Memory").font(.headline).foregroundColor(.white)
                 Spacer()
                 Text("Pairs: \(myScore)").font(.subheadline.bold()).foregroundColor(.cyan)
             }
@@ -332,7 +332,7 @@ struct RouletteControllerView: View {
     // `target` that is a key of ROULETTE_PAYOUTS, and an `amount` that is a
     // positive Int no larger than the player's chips.
     private let betTargets: [(String, String)] = [
-        ("red", "🔴 Red"), ("black", "⚫ Black"),
+        ("red", "Red"), ("black", "Black"),
         ("odd", "Odd"), ("even", "Even"),
         ("1-12", "1st 12"), ("13-24", "2nd 12"), ("25-36", "3rd 12"),
         ("low", "1–18"), ("high", "19–36"),
@@ -368,7 +368,7 @@ struct RouletteControllerView: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text("🎡 Roulette")
+            Text("Roulette")
                 .font(.title2.bold())
                 .foregroundColor(.white)
                 .lineLimit(1)
@@ -518,13 +518,29 @@ struct RouletteControllerView: View {
     /// Pinned outside the ScrollView so it is always visible and always above
     /// the home indicator, rather than being the ninth thing you have to
     /// scroll to on a small phone.
+    private var isReady: Bool { privateData["isReady"] as? Bool ?? false }
+    private var readyCount: Int { privateData["readyCount"] as? Int ?? 0 }
+    private var readyNeeded: Int { privateData["readyNeeded"] as? Int ?? 0 }
+    private var betSecondsLeft: Int { privateData["betSecondsLeft"] as? Int ?? 0 }
+
+    /// "Spin" is now "I'm done betting": the wheel goes once everyone still
+    /// in is done, or when the betting clock runs out.
+    private var spinLabel: String {
+        if isSpinning { return "Spinning…" }
+        if isReady {
+            let clock = betSecondsLeft > 0 ? " · \(betSecondsLeft)s" : ""
+            return "Waiting for others (\(readyCount)/\(readyNeeded))\(clock)"
+        }
+        return betSecondsLeft > 0 ? "Done betting · \(betSecondsLeft)s" : "Done betting - spin!"
+    }
+
     private var spinBar: some View {
-        let canSpin = !isSpinning && hasBets
+        let canSpin = !isSpinning && hasBets && !isReady
         return VStack(spacing: 0) {
             Divider().background(Color.white.opacity(0.08))
 
             Button(action: spin) {
-                Text(isSpinning ? "Spinning…" : "🎰 Spin!")
+                Text(spinLabel)
                     .font(.headline.bold())
                     .frame(maxWidth: .infinity, minHeight: 54)
                     .background(
@@ -668,6 +684,15 @@ struct MafiaControllerView: View {
     private var players: [[String: Any]] { privateData["players"] as? [[String: Any]] ?? [] }
     private var myVote: String? { privateData["myVote"] as? String }
     private var investigateResult: String? { privateData["investigateResult"] as? String }
+    private var investigateIsMafia: Bool {
+        // Text matching misread "X is not Mafia." as a hit; prefer the flag.
+        privateData["investigateIsMafia"] as? Bool
+            ?? (investigateResult.map { $0.hasSuffix("is Mafia!") } ?? false)
+    }
+    private var myNightTarget: String? { privateData["myNightTarget"] as? String }
+    private var mafiaTeam: [String] {
+        (privateData["mafiaTeam"] as? [Any] ?? []).compactMap { $0 as? String }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -690,23 +715,23 @@ struct MafiaControllerView: View {
     }
 
     private var roleCard: some View {
-        let (emoji, color, desc): (String, Color, String) = {
+        let (symbol, color, desc): (String, Color, String) = {
             switch role {
-            case "mafia":   return ("🔪", .red, "Eliminate town at night")
-            case "sheriff": return ("⭐", .yellow, "Investigate one player per night")
-            case "doctor":  return ("💉", .green, "Save one player per night")
-            default:        return ("👤", .white, "Vote out Mafia during the day")
+            case "mafia":   return ("moon.stars.fill", .red, "Eliminate town at night")
+            case "sheriff": return ("magnifyingglass", .yellow, "Investigate one player per night")
+            case "doctor":  return ("cross.fill", .green, "Save one player per night")
+            default:        return ("person.fill", .white, "Vote out Mafia during the day")
             }
         }()
 
         return HStack(spacing: 12) {
-            Text(emoji).font(.system(size: 36))
+            Image(systemName: symbol).font(.system(size: 30)).foregroundColor(color)
             VStack(alignment: .leading, spacing: 2) {
                 Text(role.capitalized).font(.headline).foregroundColor(color)
                 Text(desc).font(.caption).foregroundColor(.white.opacity(0.5))
             }
             Spacer()
-            Text(phase == "day" ? "☀️ Day" : "🌙 Night")
+            Text(phase == "day" ? "Day" : "Night")
                 .font(.caption.bold())
                 .foregroundColor(phase == "day" ? .yellow : .cyan)
         }
@@ -716,6 +741,16 @@ struct MafiaControllerView: View {
 
     private var dayPhaseView: some View {
         VStack(spacing: 16) {
+            // The night can now end the moment everyone has acted, so the
+            // Sheriff's finding has to stay visible into the day.
+            if role == "sheriff", let result = investigateResult {
+                Text("Last night: \(result)").font(.subheadline.bold())
+                    .foregroundColor(investigateIsMafia ? .red : .green)
+            }
+            if role == "mafia" && !mafiaTeam.isEmpty {
+                Text("Fellow Mafia: \(mafiaTeam.joined(separator: ", "))")
+                    .font(.caption).foregroundColor(.red.opacity(0.8))
+            }
             Text("Vote to eliminate").font(.headline).foregroundColor(.white.opacity(0.7))
             ForEach(alivePlayers, id: \.0) { id, name in
                 Button(action: { vote(for: id) }) {
@@ -743,10 +778,15 @@ struct MafiaControllerView: View {
             switch role {
             case "mafia":
                 Text("Choose your target").font(.headline).foregroundColor(.red)
+                if !mafiaTeam.isEmpty {
+                    Text("Your fellow Mafia: \(mafiaTeam.joined(separator: ", "))")
+                        .font(.caption).foregroundColor(.red.opacity(0.8))
+                }
                 ForEach(alivePlayers.filter { $0.0 != (privateData["myID"] as? String ?? "") }, id: \.0) { id, name in
                     Button(action: { nightAction(action: "eliminate", targetID: id) }) {
                         Text(name).foregroundColor(.white).frame(maxWidth: .infinity).padding(14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.1)))
+                            .background(RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.red.opacity(myNightTarget == id ? 0.45 : 0.1)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -757,7 +797,8 @@ struct MafiaControllerView: View {
                 ForEach(alivePlayers, id: \.0) { id, name in
                     Button(action: { nightAction(action: "save", targetID: id) }) {
                         Text(name).foregroundColor(.white).frame(maxWidth: .infinity).padding(14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.green.opacity(0.1)))
+                            .background(RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.green.opacity(myNightTarget == id ? 0.45 : 0.1)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -767,21 +808,26 @@ struct MafiaControllerView: View {
                 Text("Investigate a player").font(.headline).foregroundColor(.yellow)
                 if let result = investigateResult {
                     Text("Result: \(result)").font(.body.bold())
-                        .foregroundColor(result.lowercased().contains("mafia") ? .red : .green)
+                        .foregroundColor(investigateIsMafia ? .red : .green)
                         .padding(.horizontal, 24)
                 }
-                ForEach(alivePlayers.filter { $0.0 != (privateData["myID"] as? String ?? "") }, id: \.0) { id, name in
-                    Button(action: { nightAction(action: "investigate", targetID: id) }) {
-                        Text(name).foregroundColor(.white).frame(maxWidth: .infinity).padding(14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.yellow.opacity(0.08)))
+                if myNightTarget == nil {
+                    ForEach(alivePlayers.filter { $0.0 != (privateData["myID"] as? String ?? "") }, id: \.0) { id, name in
+                        Button(action: { nightAction(action: "investigate", targetID: id) }) {
+                            Text(name).foregroundColor(.white).frame(maxWidth: .infinity).padding(14)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.yellow.opacity(0.08)))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+                } else {
+                    Text("One investigation per night. Sleep now.")
+                        .font(.caption).foregroundColor(.white.opacity(0.5))
                 }
-                .padding(.horizontal, 24)
 
             default:
                 VStack(spacing: 12) {
-                    Text("🌙").font(.system(size: 56))
+                    Image(systemName: "moon.fill").font(.system(size: 52)).foregroundColor(.cyan.opacity(0.8))
                     Text("Sleep tight…\nMafia is choosing their target.").font(.body)
                         .foregroundColor(.white.opacity(0.5)).multilineTextAlignment(.center)
                 }
@@ -791,7 +837,7 @@ struct MafiaControllerView: View {
 
     private var eliminatedView: some View {
         VStack(spacing: 16) {
-            Text("💀").font(.system(size: 72))
+            Image(systemName: "skull").font(.system(size: 64)).foregroundColor(.white.opacity(0.7))
             Text("You were eliminated").font(.title2.bold()).foregroundColor(.red)
             Text("Watch the TV to see how the game ends.").font(.subheadline)
                 .foregroundColor(.white.opacity(0.5)).multilineTextAlignment(.center)
@@ -832,7 +878,7 @@ struct DigitGuessControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("🔢 Digit Guess").font(.headline).foregroundColor(.white)
+                Text("Digit Guess").font(.headline).foregroundColor(.white)
                 Spacer()
                 Text("Guesses: \(myGuesses.count)").font(.subheadline).foregroundColor(.white.opacity(0.5))
             }
@@ -842,7 +888,7 @@ struct DigitGuessControllerView: View {
 
             if won {
                 VStack(spacing: 12) {
-                    Text("🎉").font(.system(size: 60))
+                    Image(systemName: "party.popper.fill").font(.system(size: 56)).foregroundColor(.green)
                     Text("You cracked it!").font(.title2.bold()).foregroundColor(.green)
                     Text("in \(myGuesses.count) guesses").foregroundColor(.white.opacity(0.5))
                 }
@@ -890,7 +936,7 @@ struct DigitGuessControllerView: View {
                                     Text(g["guess"] as? String ?? "????")
                                         .font(.system(.body, design: .monospaced).bold()).foregroundColor(.white)
                                     Spacer()
-                                    Text("🐂\(g["bulls"] as? Int ?? 0)  🐄\(g["cows"] as? Int ?? 0)")
+                                    Text("Bulls \(g["bulls"] as? Int ?? 0) · Cows \(g["cows"] as? Int ?? 0)")
                                         .font(.caption).foregroundColor(.white.opacity(0.6))
                                 }
                                 .padding(.horizontal, 16).padding(.vertical, 8)
@@ -934,7 +980,7 @@ struct RajaMantriControllerView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("👑 Raja Mantri").font(.headline).foregroundColor(.white)
+                Text("Raja Mantri").font(.headline).foregroundColor(.white)
                 Spacer()
                 Text("Score: \(myScore)").font(.subheadline.bold()).foregroundColor(.cyan)
             }
@@ -987,7 +1033,7 @@ struct RajaMantriControllerView: View {
     }
 
     private func roleEmoji(_ r: String) -> String {
-        switch r { case "Raja": return "👑"; case "Mantri": return "🎩"; case "Chor": return "🦹"; default: return "⚔️" }
+        switch r { case "Raja": return "R"; case "Mantri": return "M"; case "Chor": return "C"; default: return "?" }
     }
     private func roleColor(_ r: String) -> Color {
         switch r { case "Raja": return .yellow; case "Mantri": return .purple; case "Chor": return .red; default: return .cyan }

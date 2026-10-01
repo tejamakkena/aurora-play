@@ -16,6 +16,21 @@ struct TVLobbyView: View {
     let isSolo: Bool
     let onStart: () -> Void
 
+    @EnvironmentObject private var vm: TVRootViewModel
+    // Start Game keeps the initial focus even though the lobby options
+    // above it are focusable too.
+    @Namespace private var lobbyFocus
+
+    private var joinLinkText: String {
+        let url = AppConstants.serverURL
+        let port = url.port.map { ":\($0)" } ?? ""
+        return "\(url.host ?? "")\(port)/join/\(room.code)"
+    }
+
+    private var canAddBot: Bool {
+        (room.botsAllowed ?? false) && room.players.count < room.gameID.maxPlayers
+    }
+
     var body: some View {
         HStack(spacing: 80) {
             // Left — room code + QR
@@ -32,12 +47,16 @@ struct TVLobbyView: View {
                         )
                         .kerning(12)
 
-                    Text("aurora.app  •  Enter code above")
+                    Text("Open Aurora Play and enter the code")
                         .font(.body)
+                        .foregroundColor(.white.opacity(0.4))
+
+                    Text("or scan to join")
+                        .font(.caption)
                         .foregroundColor(.white.opacity(0.4))
                 }
 
-                // Animated pulse ring around code
+                // Scannable QR for zero-typing join, served by /native/qr/<code>.
                 ZStack {
                     Circle()
                         .stroke(Color.purple.opacity(0.2), lineWidth: 2)
@@ -48,9 +67,27 @@ struct TVLobbyView: View {
                         .scaleEffect(1.05)
                         .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: true)
 
-                    Text(room.gameID.emoji)
-                        .font(.system(size: 80))
+                    AsyncImage(url: AppConstants.serverURL
+                        .appendingPathComponent("native/qr/\(room.code)")) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image.resizable().scaledToFit()
+                        default:
+                            Image(systemName: "qrcode")
+                                .font(.system(size: 80))
+                                .foregroundColor(.white.opacity(0.4))
+                        }
+                    }
+                    .frame(width: 170, height: 170)
+                    .background(Color.white)
+                    .cornerRadius(16)
                 }
+
+                // The same link the QR encodes, for anyone who'd rather type
+                // it into a browser (or when hosting on a LAN address).
+                Text(joinLinkText)
+                    .font(.system(.callout, design: .monospaced))
+                    .foregroundColor(.white.opacity(0.55))
             }
             .frame(maxWidth: 520)
 
@@ -88,6 +125,8 @@ struct TVLobbyView: View {
                     }
                 }
 
+                lobbyOptions
+
                 Spacer()
 
                 // A solo room has one synthetic player and no phones to wait for.
@@ -106,10 +145,47 @@ struct TVLobbyView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!canStart)
+                .prefersDefaultFocus(true, in: lobbyFocus)
             }
             .frame(maxWidth: 520)
         }
         .padding(80)
+        .focusScope(lobbyFocus)
+    }
+
+    /// Question language (Trivia/KBC) and bot seat-fillers. Focusable with
+    /// the Siri Remote, so the host can set these up without a phone.
+    @ViewBuilder
+    private var lobbyOptions: some View {
+        if room.usesContentPack ?? false {
+            // One button that cycles English -> Telugu -> Hindi: three side
+            // by side do not fit this column at tvOS button sizes.
+            let current = ContentPack(rawValue: room.contentPack ?? "en") ?? .en
+            Button {
+                vm.setContentPack(current.next)
+            } label: {
+                Label("Questions: \(current.label)", systemImage: "character.bubble.fill")
+            }
+            .font(.callout.bold())
+        }
+        if room.botsAllowed ?? false {
+            HStack(spacing: 14) {
+                Button {
+                    vm.addBot()
+                } label: {
+                    Label("Add Bot", systemImage: "cpu")
+                }
+                .disabled(!canAddBot)
+                if let bot = room.players.last(where: { $0.isBot }) {
+                    Button {
+                        vm.removeBot(bot.id)
+                    } label: {
+                        Label("Remove Bot", systemImage: "minus.circle")
+                    }
+                }
+            }
+            .font(.callout.bold())
+        }
     }
 }
 
@@ -128,6 +204,14 @@ private struct PlayerRow: View {
                 .font(.body)
 
             if player.isHost { Text("HOST").font(.caption2).foregroundColor(.cyan) }
+            if player.isBot {
+                Text("BOT")
+                    .font(.caption2)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.orange.opacity(0.2)))
+            }
 
             Spacer()
 

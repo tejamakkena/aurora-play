@@ -226,7 +226,7 @@ struct TVNeonSnakeBoardView: View {
             .ignoresSafeArea()
 
             VStack {
-                SoloHUD(title: "🐍 Neon Snake", score: vm.state.score, subtitle: nil)
+                SoloHUD(title: "Neon Snake", score: vm.state.score, subtitle: nil)
                 Spacer()
                 RemoteHint(text: "Swipe or click the remote's edges to steer")
             }
@@ -524,7 +524,7 @@ struct TVTwenty48BoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SoloHUD(title: "2️⃣ 2048", score: vm.state.score,
+            SoloHUD(title: "2048", score: vm.state.score,
                     subtitle: "best tile \(vm.state.best)")
             Spacer()
             ZStack {
@@ -1199,7 +1199,7 @@ struct TVSimonSaysBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SoloHUD(title: "🟩 Simon Says", score: vm.state.round,
+            SoloHUD(title: "Simon Says", score: vm.state.round,
                     subtitle: vm.state.phase == "show" ? "watch…" : "your turn")
             Spacer()
             ZStack {
@@ -1282,7 +1282,7 @@ struct TVAtlasBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SoloHUD(title: "🌍 Atlas", score: vm.state.chainLength,
+            SoloHUD(title: "Atlas", score: vm.state.chainLength,
                     subtitle: vm.state.currentName.isEmpty ? nil : "\(vm.state.currentName)'s turn")
             Spacer()
             VStack(spacing: 34) {

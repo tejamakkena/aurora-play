@@ -125,7 +125,7 @@ struct TVSnakeLadderBoardView: View {
             .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                TVRoundHeader(emoji: "\u{1F40D}", title: "Snake & Ladder", round: 0, totalRounds: 0,
+                TVRoundHeader(symbol: "arrow.up.right", title: "Snake & Ladder", round: 0, totalRounds: 0,
                               secondsLeft: vm.state.secondsLeft,
                               phaseLabel: vm.state.winner != nil ? "game over" : "\(currentName)'s turn")
 

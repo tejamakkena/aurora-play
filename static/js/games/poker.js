@@ -245,7 +245,7 @@ function initializeSocketEvents() {
         updatePhase(data.phase);
         
         if (gameState.myPosition === gameState.currentTurn) {
-            showMessage("🎯 It's your turn!", 'success');
+            showMessage("It's your turn!", 'success');
             console.log("🎯 ENABLING BUTTONS - IT'S YOUR TURN");
         } else {
             const currentPlayerName = gameState.players[gameState.currentTurn]?.name || 'Unknown';
@@ -266,15 +266,7 @@ function initializeSocketEvents() {
         
         renderGame();
         
-        const actionEmoji = {
-            'fold': '🚫',
-            'check': '✓',
-            'call': '📞',
-            'raise': '📈',
-            'allin': '🔥'
-        };
-        
-        showMessage(`${actionEmoji[data.action] || ''} ${data.player} ${data.action}${data.amount ? ' $' + data.amount : ''}`, 'info');
+        showMessage(`${data.player} ${data.action}${data.amount ? ' $' + data.amount : ''}`, 'info');
     });
     
     cleanup.addSocketListener(socket, 'next_turn', (data) => {
@@ -286,7 +278,7 @@ function initializeSocketEvents() {
         renderGame();
         
         if (gameState.myPosition === gameState.currentTurn) {
-            showMessage("🎯 It's your turn!", 'success');
+            showMessage("It's your turn!", 'success');
             console.log("🎯 IT'S MY TURN NOW");
         } else {
             const currentPlayerName = gameState.players[gameState.currentTurn]?.name || 'Unknown';
@@ -311,7 +303,7 @@ function initializeSocketEvents() {
         
         const myPlayerIndex = gameState.players.findIndex(p => p.id === gameState.playerId);
         if (myPlayerIndex === gameState.currentTurn) {
-            showMessage("🎯 It's your turn!", 'success');
+            showMessage("It's your turn!", 'success');
         }
     });
     
@@ -331,7 +323,7 @@ function initializeSocketEvents() {
         gameState.players = data.players;
         
         renderGame();
-        showMessage(`🏆 ${data.winner} wins $${data.pot}!`, 'success');
+        showMessage(`${data.winner} wins $${data.pot}!`, 'success');
         
         document.getElementById('new-hand-btn').classList.remove('hidden');
         disableActionButtons();
@@ -393,9 +385,9 @@ function copyRoomCode() {
     const code = document.getElementById('display-room-code').textContent;
     navigator.clipboard.writeText(code);
     const btn = document.getElementById('copy-code-btn');
-    btn.textContent = '✅ Copied!';
+    btn.textContent = 'Copied!';
     setTimeout(() => {
-        btn.textContent = '📋 Copy Code';
+        btn.textContent = 'Copy Code';
     }, 2000);
 }
 
@@ -405,8 +397,8 @@ function updatePlayersList(players) {
         <div class="player-item ${player.is_host ? 'host' : ''}">
             <div class="player-number">${index + 1}</div>
             <span class="player-name">${player.name}</span>
-            ${player.is_host ? '<span class="host-badge">👑 Host</span>' : ''}
-            <span class="player-chips">💰 ${player.chips}</span>
+            ${player.is_host ? '<span class="host-badge">Host</span>' : ''}
+            <span class="player-chips">${player.chips}</span>
         </div>
     `).join('');
 }
@@ -500,10 +492,10 @@ function renderPlayerSeats() {
         
         if (player.folded) {
             statusClass = 'status-folded';
-            statusText = '❌ Folded';
+            statusText = 'Folded';
         } else if (isActive) {
             statusClass = 'status-betting';
-            statusText = '🎯 Thinking...';
+            statusText = 'Thinking...';
         } else if (player.bet > 0) {
             statusClass = 'status-betting';
             statusText = `Bet: $${player.bet}`;
@@ -525,7 +517,7 @@ function renderPlayerSeats() {
             seatDiv.innerHTML = `
                 <div class="player-name-tag"></div>
                 <div class="player-chips-display">
-                    <span class="chip-label">💰 Chips:</span>
+                    <span class="chip-label">Chips:</span>
                     <span class="chip-amount"></span>
                 </div>
                 <div class="player-cards-container"></div>
@@ -599,11 +591,11 @@ function updateDisplay() {
 
 function updatePhase(phase) {
     const phaseNames = {
-        'preflop': '🎴 Pre-Flop',
-        'flop': '🃏 Flop',
-        'turn': '🎯 Turn',
-        'river': '🌊 River',
-        'showdown': '🏆 Showdown'
+        'preflop': 'Pre-Flop',
+        'flop': 'Flop',
+        'turn': 'Turn',
+        'river': 'River',
+        'showdown': 'Showdown'
     };
     const phaseEl = document.getElementById('phase-indicator');
     if (phaseEl) {
@@ -790,7 +782,7 @@ function showWinner(winner, pot, hands) {
     `;
     
     announcement.innerHTML = `
-        <h2 style="color: #FFD700; font-size: 2.5em; margin-bottom: 20px;">🏆 ${winner} Wins!</h2>
+        <h2 style="color: #FFD700; font-size: 2.5em; margin-bottom: 20px;">${winner} Wins!</h2>
         <p style="font-size: 2em; color: #00ff00;">Won $${pot}</p>
         <div style="margin-top: 30px; text-align: left;">
             <h3 style="color: #00f5ff; margin-bottom: 15px;">Final Hands:</h3>

@@ -47,6 +47,7 @@ ACTIONS = {
     "npat": [("submit", {"name": "Amit", "place": "Agra",
                          "animal": "Ant", "thing": "Axe"})],
     "antakshari": [("submit_song", {"song": "Anything"})],
+    "most_likely_to": [("vote", {"targetID": "p1"})],
     "cipher_grid": [("give_clue", {"word": "animal", "count": 2}),
                     ("guess", {"index": 0}), ("end_turn", {})],
     "odd_one_out": [("call_vote", {}), ("vote", {"targetID": "p1"})],

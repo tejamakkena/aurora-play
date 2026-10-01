@@ -65,7 +65,7 @@ struct TVHeistBoardView: View {
     private var headerBar: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("🏦 Heist")
+                Text("Heist")
                     .font(.system(size: 36, weight: .bold))
                     .foregroundColor(.white)
                 Text("Round \(vm.state.round) of \(HeistConstants.maxRounds)")
@@ -147,7 +147,7 @@ private struct HeistPlayerRow: View {
                 .fill(status.role == .guard ? Color.red.opacity(0.3) : status.color.opacity(0.3))
                 .frame(width: 36, height: 36)
                 .overlay(
-                    Text(status.role == .guard ? "🛡" : "🥷")
+                    Text(status.role == .guard ? "GUARD" : "THIEF").font(.caption.bold())
                         .font(.system(size: 18))
                 )
 
@@ -179,7 +179,7 @@ private struct WinnerBanner: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Text(winner == .guard ? "🛡 Guard Wins!" : "🥷 Thieves Win!")
+            Text(winner == .guard ? "Guard Wins!" : "Thieves Win!")
                 .font(.title3.bold())
                 .foregroundColor(winner == .guard ? .red : .green)
             Text(winner == .guard ? "All thieves caught." : "A thief escaped!")

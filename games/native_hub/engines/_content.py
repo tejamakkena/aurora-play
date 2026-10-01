@@ -167,3 +167,108 @@ ATLAS_PLACES = {
     "oman", "oslo", "ottawa", "osaka",
     "lebanon", "libya", "laos", "london", "lucknow", "lisbon",
 }
+
+# ---- Most Likely To: secret-ballot party voting -----------------------------
+MOST_LIKELY_PROMPTS = [
+    "Most likely to fall asleep during a family movie night.",
+    "Most likely to take charge of the music at a party.",
+    "Most likely to be late to a wedding.",
+    "Most likely to eat the most at a buffet.",
+    "Most likely to win an argument with mom.",
+    "Most likely to forget where they parked the car.",
+    "Most likely to take a hundred photos and post none.",
+    "Most likely to start dancing first at a sangeet.",
+    "Most likely to know all the cricket scores by heart.",
+    "Most likely to order extra dessert.",
+    "Most likely to lose their phone inside their own house.",
+    "Most likely to give the best wedding speech.",
+    "Most likely to call the family group chat instead of texting.",
+    "Most likely to finish everyone else's leftovers.",
+    "Most likely to plan the next family trip.",
+    "Most likely to binge a whole series in one night.",
+    "Most likely to be the peacemaker in a family debate.",
+    "Most likely to bring the best homemade dish to a potluck.",
+    "Most likely to get lost but refuse to ask for directions.",
+    "Most likely to remember everyone's birthday.",
+    "Most likely to fall for a WhatsApp forward.",
+    "Most likely to be the first one ready for an outing.",
+    "Most likely to steal the blanket at night.",
+    "Most likely to host the next Diwali party.",
+    "Most likely to sing in the car like nobody is listening.",
+]
+
+
+# ---------------------------------------------------------------------------
+# Extra content so a full game night doesn't recycle the same prompts.
+# Appended (de-duplicated) rather than interleaved so the lists above stay
+# easy to review on their own.
+# ---------------------------------------------------------------------------
+
+def _extend(target, extra):
+    seen = {item if isinstance(item, str) else item[0] for item in target}
+    for item in extra:
+        key = item if isinstance(item, str) else item[0]
+        if key not in seen:
+            target.append(item)
+            seen.add(key)
+
+
+_extend(BLUFF_FACTS, [
+    ("A group of crows is called a ____.", "murder"),
+    ("A group of owls is called a ____.", "parliament"),
+    ("The ____ is the only mammal capable of true flight.", "bat"),
+    ("An octopus has ____ hearts.", "three"),
+    ("A baby kangaroo is called a ____.", "joey"),
+    ("Botanically, bananas are classified as ____.", "berries"),
+    ("The dot over a lowercase i is called a ____.", "tittle"),
+    ("India's national aquatic animal is the Ganges river ____.", "dolphin"),
+    ("India's first talkie film, released in 1931, was called ____.", "Alam Ara"),
+    ("Wombat droppings are shaped like ____.", "cubes"),
+])
+
+_extend(CHARADES_TITLES, [
+    "RRR", "Pushpa", "Magadheera", "Eega", "Arjun Reddy", "Pokiri", "Athadu",
+    "Ala Vaikunthapurramuloo", "Rangasthalam", "Jersey", "Mahanati",
+    "Bommarillu", "Happy Days", "Kalki 2898 AD", "Devdas", "Jab We Met",
+    "Taare Zameen Par", "PK", "Bajrangi Bhaijaan", "Kal Ho Naa Ho",
+    "Kuch Kuch Hota Hai", "Dhoom", "Krrish", "Jawan", "Pathaan", "Stree",
+    "Andhadhun", "Drishyam", "Bhool Bhulaiyaa", "Welcome", "Don",
+])
+
+_extend(EMOJI_TITLES, [
+    "Avatar", "Star Wars", "The Avengers", "Shrek", "Kung Fu Panda",
+    "RRR", "Pushpa", "Eega", "Jab We Met", "Taare Zameen Par", "Ghostbusters",
+    "Batman", "Pirates of the Caribbean", "Ice Age", "Minions",
+])
+
+_extend(HERD_PROMPTS, [
+    "Name a festival.", "Name a cricketer.", "Name a fruit.", "Name an Indian sweet.",
+    "Name a Telugu film star.", "Name a city in India.", "Name a vegetable.",
+    "Name a pet animal.", "Name something you pack for a trip.", "Name a famous singer.",
+    "Name a superhero.", "Name a chutney.", "Name a tea-time snack.", "Name a car brand.",
+    "Name a wedding ritual.", "Name a social media app.", "Name something yellow.",
+    "Name a dance form.", "Name a street food.", "Name a board game.",
+])
+
+_extend(MOST_LIKELY_PROMPTS, [
+    "Most likely to forward a fake news message on WhatsApp.",
+    "Most likely to cry during a movie.",
+    "Most likely to start dancing first at a wedding.",
+    "Most likely to forget a friend's birthday.",
+    "Most likely to bargain hard with a shopkeeper.",
+    "Most likely to become famous.",
+    "Most likely to get lost even with Google Maps.",
+    "Most likely to order dessert first.",
+    "Most likely to reply to messages after three days.",
+    "Most likely to survive a zombie apocalypse.",
+    "Most likely to sing loudly in the shower.",
+    "Most likely to have 100 browser tabs open.",
+    "Most likely to plan the next family trip.",
+    "Most likely to fall for an online sale.",
+    "Most likely to bring home food from a party.",
+    "Most likely to win a dance-off.",
+    "Most likely to binge a whole series in one night.",
+    "Most likely to argue about cricket.",
+    "Most likely to oversleep and miss a flight.",
+    "Most likely to adopt five dogs.",
+])

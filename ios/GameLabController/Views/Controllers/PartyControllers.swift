@@ -28,7 +28,7 @@ struct BluffItControllerView: View {
     @State private var trackedRound = -1
 
     var body: some View {
-        ControllerShell(title: "🎭 Bluff It",
+        ControllerShell(title: "Bluff It",
                         subtitle: phase == "write" ? "Invent a convincing lie" : "Find the truth",
                         secondsLeft: seconds) {
             VStack(spacing: 18) {
@@ -40,7 +40,7 @@ struct BluffItControllerView: View {
                 switch phase {
                 case "write":
                     if hasSubmitted {
-                        WaitingState(icon: "✍️", text: "Lie submitted",
+                        WaitingState(systemIcon: "pencil", text: "Lie submitted",
                                      detail: "Waiting for everyone else…")
                     } else {
                         Spacer()
@@ -67,7 +67,7 @@ struct BluffItControllerView: View {
                         .padding(.horizontal, 20)
                     }
                 default:
-                    WaitingState(icon: "🎉", text: "Scores are on the TV")
+                    WaitingState(systemIcon: "party.popper.fill", text: "Scores are on the TV")
                 }
                 Spacer(minLength: 0)
             }
@@ -94,13 +94,13 @@ struct LastTapControllerView: View {
     @State private var pulse = false
 
     var body: some View {
-        ControllerShell(title: "⚡ Last Tap Standing",
+        ControllerShell(title: "Last Tap Standing",
                         subtitle: isAlive ? "Round \(privateData.int("round"))" : "Eliminated") {
             if !isAlive {
-                WaitingState(icon: "💀", text: "You're out",
+                WaitingState(systemIcon: "skull", text: "You're out",
                              detail: "Watch the rest fight it out on the TV")
             } else if let ms = myMs {
-                WaitingState(icon: falseStart ? "🚫" : "⏱",
+                WaitingState(systemIcon: falseStart ? "nosign" : "stopwatch.fill",
                              text: falseStart ? "Too early!" : "\(ms) ms",
                              detail: falseStart ? "You tapped before GO"
                                                 : "Waiting for the others…")
@@ -141,7 +141,7 @@ struct HerdControllerView: View {
     @State private var trackedRound = -1
 
     var body: some View {
-        ControllerShell(title: "🐑 Herd",
+        ControllerShell(title: "Herd",
                         subtitle: "Answer like the crowd would",
                         secondsLeft: seconds) {
             VStack(spacing: 18) {
@@ -150,10 +150,10 @@ struct HerdControllerView: View {
                     .padding(.horizontal, 24).padding(.top, 24)
 
                 if phase != "answer" {
-                    WaitingState(icon: "📊", text: "Results are on the TV",
+                    WaitingState(systemIcon: "chart.bar.fill", text: "Results are on the TV",
                                  detail: myAnswer.map { "You said “\($0)”" })
                 } else if hasSubmitted {
-                    WaitingState(icon: "✅", text: "Answer locked in",
+                    WaitingState(systemIcon: "checkmark.circle.fill", text: "Answer locked in",
                                  detail: myAnswer.map { "“\($0)”" })
                 } else {
                     Spacer()
@@ -198,7 +198,7 @@ struct EmojiMovieControllerView: View {
                            "⚔️","🏰","🎬","🎵","💀","👻","🧙","🕵️","🚗","✈️","🌍","⭐️"]
 
     var body: some View {
-        ControllerShell(title: "🎬 Emoji Movie",
+        ControllerShell(title: "Emoji Movie",
                         subtitle: phase == "compose" ? "Describe it in emoji" : "Guess the others",
                         secondsLeft: seconds) {
             if phase == "compose" {
@@ -211,7 +211,7 @@ struct EmojiMovieControllerView: View {
                     .padding(.top, 20)
 
                     if myEmoji != nil {
-                        WaitingState(icon: "✅", text: "Submitted",
+                        WaitingState(systemIcon: "checkmark.circle.fill", text: "Submitted",
                                      detail: myEmoji)
                     } else {
                         Text(composed.isEmpty ? "tap emoji below" : composed)
@@ -281,7 +281,7 @@ struct EmojiMovieControllerView: View {
                     .padding(20)
                 }
             } else {
-                WaitingState(icon: "🎉", text: "Reveal is on the TV")
+                WaitingState(systemIcon: "party.popper.fill", text: "Reveal is on the TV")
             }
         }
     }
@@ -307,13 +307,13 @@ struct NPATControllerView: View {
                           ("thing", "Thing", "cube")]
 
     var body: some View {
-        ControllerShell(title: "🅰️ Name Place Animal Thing",
+        ControllerShell(title: "Name Place Animal Thing",
                         subtitle: "Everything starts with \(letter)",
                         secondsLeft: seconds) {
             if phase != "fill" {
-                WaitingState(icon: "📋", text: "Scoring on the TV")
+                WaitingState(systemIcon: "clipboard.fill", text: "Scoring on the TV")
             } else if hasSubmitted {
-                WaitingState(icon: "✅", text: "Submitted",
+                WaitingState(systemIcon: "checkmark.circle.fill", text: "Submitted",
                              detail: "Waiting for the round to end…")
             } else {
                 ScrollView {
@@ -376,7 +376,7 @@ struct AntakshariControllerView: View {
     }
 
     var body: some View {
-        ControllerShell(title: "🎵 Antakshari",
+        ControllerShell(title: "Antakshari",
                         subtitle: "Team \(myTeam == 0 ? "A" : "B")",
                         secondsLeft: seconds) {
             VStack(spacing: 16) {
@@ -390,7 +390,7 @@ struct AntakshariControllerView: View {
                 .padding(.top, 20)
 
                 if phase != "sing" {
-                    WaitingState(icon: "🎤", text: "Round over",
+                    WaitingState(systemIcon: "mic.fill", text: "Round over",
                                  detail: mySong.map { "You sang “\($0)”" })
                 } else {
                     AnswerField(placeholder: "Song name", text: $song)
@@ -408,6 +408,64 @@ struct AntakshariControllerView: View {
             }
             .onChange(of: privateData.int("round")) { newRound in
                 if newRound != trackedRound { trackedRound = newRound; song = "" }
+            }
+        }
+    }
+}
+
+// MARK: - Most Likely To
+
+struct MostLikelyToControllerView: View {
+    let privateData: [String: Any]
+    let onAction: (String, [String: Any]) -> Void
+
+    private var phase: String { privateData.str("phase", "vote") }
+    private var prompt: String { privateData.str("prompt") }
+    private var seconds: Int { privateData.int("secondsLeft") }
+    private var hasVoted: Bool { privateData.bool("hasVoted") }
+    private var myPlayerID: String { privateData.str("myPlayerID") }
+    private var players: [(id: String, name: String)] {
+        (privateData["players"] as? [[String: Any]] ?? []).compactMap {
+            guard let id = $0["id"] as? String, id != myPlayerID,
+                  let name = $0["name"] as? String else { return nil }
+            return (id, name)
+        }
+    }
+
+    var body: some View {
+        ControllerShell(title: "Most Likely To",
+                        subtitle: phase == "vote" ? "Vote for who fits best" : "See who got the votes",
+                        secondsLeft: seconds) {
+            VStack(spacing: 20) {
+                Text(prompt)
+                    .font(.title3.bold()).foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                if phase == "vote" {
+                    if hasVoted {
+                        Label("Vote counted", systemImage: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                    } else {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                            ForEach(players, id: \.id) { player in
+                                Button {
+                                    onAction("vote", ["targetID": player.id])
+                                } label: {
+                                    Text(player.name)
+                                        .font(.headline).foregroundColor(.white)
+                                        .frame(maxWidth: .infinity, minHeight: 56)
+                                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.1)))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                } else {
+                    Text("Votes are in — check the TV for the reveal")
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                Spacer(minLength: 0)
             }
         }
     }

@@ -397,15 +397,15 @@
 
     <!-- Mode Selection -->
     <div id="mode-selection" class="game-section">
-        <h1>🔢 Digit Guess</h1>
+        <h1>Digit Guess</h1>
         <p>Crack your opponent's 4-digit code!</p>
         <div class="mode-buttons">
             <button class="mode-btn" id="create-room-btn">
-                <div class="icon">🎮</div>
+                <div class="icon"></div>
                 <div>Create New Room</div>
             </button>
             <button class="mode-btn" id="join-room-btn-start">
-                <div class="icon">🔗</div>
+                <div class="icon"></div>
                 <div>Join Existing Room</div>
             </button>
         </div>
@@ -427,7 +427,7 @@
         <div class="room-info">
             <div>Room Code:</div>
             <div class="room-code" id="display-room-code">------</div>
-            <button class="btn btn-secondary" id="copy-code-btn">📋 Copy Code</button>
+            <button class="btn btn-secondary" id="copy-code-btn">Copy Code</button>
         </div>
         <div class="players-list">
             <h3 style="color: white; margin-bottom: 15px;">Players</h3>
@@ -450,7 +450,7 @@
                 <button class="btn btn-primary" id="submit-secret-btn">Confirm Number</button>
             </div>
             <p id="waiting-opponent-msg" style="display: none; color: #00f5ff; font-size: 1.1em;">
-                ⏳ Waiting for opponent to set their number...
+                 Waiting for opponent to set their number...
             </p>
         </div>
     </div>
@@ -483,7 +483,7 @@
     <div id="game-over-section" class="game-section hidden">
         <div class="game-over-screen">
             <h1 id="game-over-title">Game Over!</h1>
-            <div class="winner-announcement" id="winner-announcement">🎉</div>
+            <div class="winner-announcement" id="winner-announcement"><svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg></div>
             <div class="secret-reveal">
                 <h3 style="color: white;">Secret Numbers Revealed:</h3>
                 <div id="secrets-container"></div>

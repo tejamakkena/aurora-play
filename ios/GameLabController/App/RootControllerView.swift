@@ -16,7 +16,7 @@ struct RootControllerView: View {
 
             switch vm.screen {
             case .join:
-                JoinRoomView(onJoin: vm.joinRoom)
+                JoinRoomView(onJoin: vm.joinRoom, initialCode: vm.pendingJoinCode)
 
             case .loading:
                 LoadingJoinView()
@@ -52,6 +52,8 @@ struct RootControllerView: View {
             }
         }
         .environmentObject(vm)
+        // auroraplay://join/<CODE> from the TV lobby's QR landing page.
+        .onOpenURL { vm.handleOpenURL($0) }
         .animation(.easeInOut(duration: 0.3), value: vm.screen.id)
         .confirmationDialog(
             "Leave this game?",
@@ -138,20 +140,58 @@ struct ErrorJoinView: View {
 @MainActor
 final class ControllerRootViewModel: ObservableObject {
     @Published var screen: ControllerScreen = .join
+    /// Room code handed over by a deep link, pre-filled on the join screen.
+    @Published var pendingJoinCode: String? = nil
 
     private let socket = GameSocketManager.shared
-    private let playerID = AppConstants.deviceID
+    let playerID = AppConstants.deviceID
+
+    private static let nameKey = "aurora_player_name"
+    /// The name used for the last join, so a reconnect can re-send it.
+    private var playerName: String {
+        get { UserDefaults.standard.string(forKey: Self.nameKey) ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: Self.nameKey) }
+    }
+
+    /// The room this phone is seated in, whatever screen it is on.
+    var currentRoom: Room? {
+        switch screen {
+        case .waiting(let r), .playing(let r, _), .results(let r): return r
+        default: return nil
+        }
+    }
+
+    var isHost: Bool {
+        currentRoom?.players.first(where: { $0.id == playerID })?.isHost ?? false
+    }
 
     /// See joinRoom(code:name:)'s own comment: a bounded fallback for a join
     /// that never gets any response back at all.
     private var joinTimeoutTask: Task<Void, Never>?
 
     init() {
-        // Server confirms the join — transition to lobby
+        // Server confirms the join (or a reconnect re-seat) -- route by the
+        // room's state so a phone that rejoins mid-game stays on its
+        // controller instead of flashing back to the lobby.
         socket.on(.roomJoined) { [weak self] (response: RoomJoinedResponse) in
             guard let self else { return }
             self.joinTimeoutTask?.cancel()
-            self.screen = .waiting(response.room)
+            self.pendingJoinCode = nil
+            let room = response.room
+            switch (room.state, self.screen) {
+            case (.playing, .playing(_, let data)):
+                self.screen = .playing(room, data)
+            case (.results, _):
+                self.screen = .results(room)
+            default:
+                self.screen = .waiting(room)
+            }
+        }
+
+        // Every reconnect gets a fresh socket id that is in no room; re-send
+        // join_room so the server re-attaches this playerID to its seat.
+        socket.onConnected("controller") { [weak self] in
+            self?.rejoinIfSeated()
         }
 
         // Room state changes (more players join, game ends, etc.)
@@ -190,6 +230,7 @@ final class ControllerRootViewModel: ObservableObject {
     }
 
     func joinRoom(code: String, name: String) {
+        playerName = name
         screen = .loading
         socket.emit(.joinRoom, payload: JoinRoomPayload(
             roomCode: code.uppercased(),
@@ -242,5 +283,45 @@ final class ControllerRootViewModel: ObservableObject {
 
     func returnToJoin() {
         screen = .join
+    }
+
+    private func rejoinIfSeated() {
+        guard let room = currentRoom else { return }
+        socket.emit(.joinRoom, payload: JoinRoomPayload(
+            roomCode: room.code,
+            playerName: playerName.isEmpty ? "Player" : playerName,
+            playerID: playerID,
+            isTV: false
+        ))
+    }
+
+    func handleOpenURL(_ url: URL) {
+        // auroraplay://join/ABC234  (host "join", code as the path)
+        guard url.scheme?.lowercased() == "auroraplay" else { return }
+        let parts = ([url.host ?? ""] + url.pathComponents).filter { $0 != "/" && !$0.isEmpty }
+        guard let code = parts.last?.uppercased(), code.count == 6 else { return }
+        if case .join = screen {
+            pendingJoinCode = code
+        } else if currentRoom?.code != code {
+            leaveRoom()
+            pendingJoinCode = code
+        }
+    }
+
+    // MARK: Host lobby controls
+
+    func addBot() {
+        guard let room = currentRoom else { return }
+        socket.emit(.addBot, payload: ["roomCode": room.code])
+    }
+
+    func removeBot(_ botID: String) {
+        guard let room = currentRoom else { return }
+        socket.emit(.removeBot, payload: ["roomCode": room.code, "botID": botID])
+    }
+
+    func setContentPack(_ pack: ContentPack) {
+        guard let room = currentRoom else { return }
+        socket.emit(.setContentPack, payload: ["roomCode": room.code, "contentPack": pack.rawValue])
     }
 }

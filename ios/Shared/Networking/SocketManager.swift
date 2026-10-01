@@ -34,6 +34,18 @@ final class GameSocketManager: ObservableObject {
     /// socket exists, and identically on every reconnect.
     private var handlers: [String: ([Any]) -> Void] = [:]
 
+    /// Run on every successful connect, including each automatic reconnect.
+    /// The server gives a reconnected socket a new sid that is in no room,
+    /// so a view model that was mid-game uses this to re-send join_room
+    /// (the server re-attaches the same playerID to its seat). Without it a
+    /// phone that locked its screen came back deaf: no private_state, and
+    /// every action rejected as "Not in this room".
+    private var connectHooks: [String: () -> Void] = [:]
+
+    func onConnected(_ key: String, _ hook: @escaping () -> Void) {
+        connectHooks[key] = hook
+    }
+
     private init() {}
 
     // MARK: - Connection
@@ -49,7 +61,11 @@ final class GameSocketManager: ObservableObject {
         socket = manager?.socket(forNamespace: AppConstants.socketNamespace)
 
         socket?.on(clientEvent: .connect) { [weak self] _, _ in
-            DispatchQueue.main.async { self?.isConnected = true }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.isConnected = true
+                for hook in self.connectHooks.values { hook() }
+            }
         }
         socket?.on(clientEvent: .disconnect) { [weak self] _, _ in
             DispatchQueue.main.async { self?.isConnected = false }

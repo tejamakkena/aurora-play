@@ -178,7 +178,7 @@ function addCalledBadge(number) {
 
 function handleWinAnnounced(data) {
     const label = data.win_type.replace(/_/g, ' ').toUpperCase();
-    showStatus('🎉 ' + data.player_id + ' won ' + label + '!', 'success');
+    showStatus(data.player_id + ' won ' + label + '!', 'success');
 
     // Disable the claim button for this prize for everyone
     const btn = document.getElementById('btn-' + data.win_type);
@@ -194,11 +194,11 @@ function handleWinAnnounced(data) {
 
 function handleWinRejected(data) {
     const label = data.win_type.replace(/_/g, ' ').toUpperCase();
-    showStatus('❌ Invalid claim for ' + label + ': ' + data.message, 'error');
+    showStatus('Invalid claim for ' + label + ': ' + data.message, 'error');
 }
 
 function handleGameOver(data) {
-    showStatus('🎮 ' + data.message, 'success');
+    showStatus(data.message, 'success');
     document.getElementById('callNumber').disabled = true;
 
     let summary = 'Game Over!\n\nWinners:\n';
@@ -209,7 +209,7 @@ function handleGameOver(data) {
 }
 
 function handleError(data) {
-    showStatus('❌ ' + data.message, 'error');
+    showStatus(data.message, 'error');
 }
 
 function showStatus(message, type = 'info') {

@@ -88,45 +88,41 @@ class TestModels:
         """Test TicTacToe Player model"""
         from games.tictactoe.models import Player
         player = Player('session123', 'TestPlayer')
-        assert player.session_id == 'session123'
-        assert player.name == 'TestPlayer'
-        assert player.symbol is None
-        
+        assert player.id == 'session123'
+        assert player.username == 'TestPlayer'
+        assert player.symbol == ''
+        d = player.to_dict()
+        assert d['id'] == 'session123' and d['wins'] == 0
+
     def test_tictactoe_game_model(self):
-        """Test TicTacToe Game model"""
-        from games.tictactoe.models import Game, Player
+        """Test TicTacToe GameSession model"""
+        from games.tictactoe.models import GameSession, Player
         player1 = Player('s1', 'Alice')
         player2 = Player('s2', 'Bob')
-        game = Game('ROOM123', player1, player2)
+        game = GameSession('ROOM123', {'s1': player1, 's2': player2}, [])
         assert game.room_code == 'ROOM123'
-        assert game.player1 == player1
-        assert game.player2 == player2
-        assert len(game.board) == 9
-        
+        assert game.players['s1'] == player1
+        assert game.players['s2'] == player2
+        assert game.moves == []
+
     def test_tictactoe_game_is_full(self):
-        """Test Game.is_full() method"""
-        from games.tictactoe.models import Game, Player
-        player1 = Player('s1', 'Alice')
-        game = Game('ROOM123', player1)
-        assert not game.is_full()
-        
-        player2 = Player('s2', 'Bob')
-        game.player2 = player2
-        assert game.is_full()
-        
+        """Test RoomInfo.is_full property"""
+        from games.tictactoe.models import RoomInfo
+        from datetime import datetime
+        room = RoomInfo('ROOM123', 1, 2, 'WAITING', datetime.now())
+        assert not room.is_full
+        full = RoomInfo('ROOM123', 2, 2, 'PLAYING', datetime.now())
+        assert full.is_full
+
     def test_tictactoe_game_get_current_player(self):
-        """Test Game.get_current_player() method"""
-        from games.tictactoe.models import Game, Player
-        player1 = Player('s1', 'Alice')
-        player1.symbol = 'X'
-        player2 = Player('s2', 'Bob')
-        player2.symbol = 'O'
-        
-        game = Game('ROOM123', player1, player2)
-        game.current_turn = 'X'
-        
-        current = game.get_current_player()
-        assert current == player1
+        """Test TicTacToeGame turn tracking"""
+        from games.tictactoe.game_logic import TicTacToeGame
+        game = TicTacToeGame('ROOM123')
+        game.add_player('s1')
+        game.add_player('s2')
+        assert game.current_turn == '⭕'
+        assert game.players['s1'] == '⭕'
+        assert game.players['s2'] == '❌'
 
 
 class TestAppErrorHandling:

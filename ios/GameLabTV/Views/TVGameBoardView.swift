@@ -27,7 +27,7 @@ struct TVGameBoardView: View {
         case .rajaMantri:    TVRajaMantriBoard(room: room)
 
         // Strategy / Board
-        case .chess:         TVWebGameBoardView(room: room)   // web canvas via WKWebView
+        case .chess:         TVChessBoardView(room: room)
         case .connectFour:   TVConnect4BoardView(room: room)
         case .memory:        TVMemoryBoardView(room: room)
         case .snakeLadder:   TVSnakeLadderBoardView(room: room)
@@ -42,6 +42,7 @@ struct TVGameBoardView: View {
         case .emojiMovie:    TVEmojiMovieBoardView(room: room)
         case .npat:          TVNPATBoardView(room: room)
         case .antakshari:    TVAntakshariBoardView(room: room)
+        case .mostLikelyTo:  TVMostLikelyToBoardView(room: room)
 
         // Mid group
         case .cipherGrid:    TVCipherGridBoardView(room: room)

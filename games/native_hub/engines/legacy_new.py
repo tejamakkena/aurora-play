@@ -442,7 +442,12 @@ class MindMeldEngine(NativeGameEngine):
     def private_state(self, player_id):
         return {
             "category": self.category,
+            "round": self.round,
+            "totalRounds": self.TOTAL_ROUNDS,
+            "showReveal": self.show_reveal,
+            "secondsLeft": max(0, int(round(self.deadline - time.time()))),
             "hasSubmitted": player_id in self.submissions,
+            "myWord": self.submissions.get(player_id),
             "score": self.scores.get(player_id, 0),
         }
 
@@ -459,16 +464,22 @@ class MindMeldEngine(NativeGameEngine):
 
 
 class HotGridEngine(TurnBasedEngine):
+    """Take turns flipping tiles: coins score, traps burn points, teleports
+    give a small bonus. Highest score when the grid is cleared wins."""
+
     game_id = "hot_grid"
     min_players = 2
     max_players = 8
+    turn_seconds = 30           # an idle phone loses its turn, not the table's time
 
     SIZE = 5
+    TRAP_PENALTY = 25
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
         self.cells: list[dict] = []
         self.revealed: set[int] = set()
+        self.last_pick: dict | None = None
 
     def setup(self):
         n = self.SIZE * self.SIZE
@@ -490,11 +501,13 @@ class HotGridEngine(TurnBasedEngine):
             return
         self.revealed.add(idx)
         cell = self.cells[idx]
-        if cell["type"] in ("coin", "teleport"):
-            self.scores[player_id] = self.scores.get(player_id, 0) + cell["value"]
-            player = self.room.player(player_id)
-            if player is not None:
-                player.score = self.scores[player_id]
+        delta = cell["value"] if cell["type"] in ("coin", "teleport") else -self.TRAP_PENALTY
+        self.scores[player_id] = max(0, self.scores.get(player_id, 0) + delta)
+        player = self.room.player(player_id)
+        if player is not None:
+            player.score = self.scores[player_id]
+        self.last_pick = {"playerID": player_id, "name": self.player_name(player_id),
+                          "index": idx, "tile": self._tile_display(idx), "delta": delta}
         if len(self.revealed) >= len(self.cells):
             self.finish()
             return
@@ -515,11 +528,16 @@ class HotGridEngine(TurnBasedEngine):
             "currentPlayerID": current or "",
             "currentPlayerName": self.player_name(current) if current else "",
             "tiles": [self._tile_display(i) for i in range(len(self.cells))],
+            "lastPick": self.last_pick,
         })
         return state
 
     def private_state(self, player_id):
-        return self.base_private(player_id)
+        state = self.base_private(player_id)
+        # The phone needs the board too, so it only offers tiles still hidden.
+        state["tiles"] = [self._tile_display(i) for i in range(len(self.cells))]
+        state["lastPick"] = self.last_pick
+        return state
 
 
 # ---------------------------------------------------------------------------
@@ -566,15 +584,51 @@ class SpeedSculptorEngine(NativeGameEngine):
         if self._finished:
             return
         if action == "drawing" and not self.voting_phase:
-            lines = data.get("lines")
             self.drawings[player_id] = {
                 "playerName": self.player_name(player_id),
-                "lines": lines if isinstance(lines, list) else [],
+                "lines": self._normalise_lines(data.get("lines"),
+                                               data.get("width"), data.get("height")),
             }
         elif action == "vote" and self.voting_phase:
             target = data.get("targetID")
-            if target and target != player_id:
+            if target and target != player_id and target in self.drawings:
                 self.votes[player_id] = target
+
+    MAX_POINTS = 1500
+
+    @staticmethod
+    def _normalise_lines(lines, width, height):
+        """Lines as ``[[[x, y], ...], ...]`` with x/y in 0..1 -- what the TV draws.
+
+        Accepts ``[x, y]`` pairs or ``{"x", "y"}`` points; points in canvas
+        units are scaled by the phone-reported canvas size.
+        """
+        if not isinstance(lines, list):
+            return []
+        w = float(width) if isinstance(width, (int, float)) and width > 0 else None
+        h = float(height) if isinstance(height, (int, float)) and height > 0 else None
+        out, budget = [], SpeedSculptorEngine.MAX_POINTS
+        for line in lines:
+            if not isinstance(line, list) or budget <= 0:
+                continue
+            pts = []
+            for p in line[:budget]:
+                if isinstance(p, dict):
+                    x, y = p.get("x"), p.get("y")
+                elif isinstance(p, list) and len(p) >= 2:
+                    x, y = p[0], p[1]
+                else:
+                    continue
+                if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
+                    continue
+                if w and h:
+                    x, y = x / w, y / h
+                pts.append([round(min(1.0, max(0.0, float(x))), 3),
+                            round(min(1.0, max(0.0, float(y))), 3)])
+            budget -= len(pts)
+            if pts:
+                out.append(pts)
+        return out
 
     def tick(self, dt):
         if self._finished:
@@ -588,7 +642,9 @@ class SpeedSculptorEngine(NativeGameEngine):
                 self.deadline = now + self.VOTE_SECONDS
             return
 
-        if now >= self.deadline:
+        voters = [p for p in active if any(pid != p.id for pid in self.drawings)]
+        everyone_voted = bool(voters) and all(p.id in self.votes for p in voters)
+        if now >= self.deadline or everyone_voted:
             counts: dict[str, int] = {}
             for target in self.votes.values():
                 counts[target] = counts.get(target, 0) + 1
@@ -622,8 +678,17 @@ class SpeedSculptorEngine(NativeGameEngine):
     def private_state(self, player_id):
         return {
             "prompt": self.prompt,
+            "round": self.round,
+            "secondsLeft": max(0, int(round(self.deadline - time.time()))),
+            "votingPhase": self.voting_phase,
             "hasSubmitted": player_id in self.drawings,
             "score": self.scores.get(player_id, 0),
+            # Who you can vote for: everyone else who actually drew.
+            "candidates": [
+                {"id": pid, "playerName": d["playerName"]}
+                for pid, d in self.drawings.items() if pid != player_id
+            ] if self.voting_phase else [],
+            "myVote": self.votes.get(player_id),
         }
 
     def is_over(self):

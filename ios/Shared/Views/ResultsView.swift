@@ -13,7 +13,7 @@ struct TVResultsView: View {
     var body: some View {
         VStack(spacing: 40) {
             VStack(spacing: 8) {
-                Text("🏆 Final Results").font(.system(size: 56, weight: .black)).foregroundColor(.white)
+                Text("Final Results").font(.system(size: 56, weight: .black)).foregroundColor(.white)
                 Text(room.gameID.displayName).font(.title3).foregroundColor(.white.opacity(0.4))
             }
 
@@ -21,7 +21,7 @@ struct TVResultsView: View {
             VStack(spacing: 16) {
                 ForEach(Array(sorted.enumerated()), id: \.element.id) { rank, player in
                     HStack(spacing: 24) {
-                        Text(rank == 0 ? "🥇" : rank == 1 ? "🥈" : rank == 2 ? "🥉" : "\(rank+1).")
+                        Text(rank == 0 ? "1st" : rank == 1 ? "2nd" : rank == 2 ? "3rd" : "\(rank+1)th")
                             .font(.system(size: 40)).frame(width: 60)
                         Text(player.name).font(.title2.bold()).foregroundColor(.white)
                         Spacer()

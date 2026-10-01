@@ -46,13 +46,13 @@ async function loadRooms() {
                     <div class="room-info">
                         <div class="room-code">${room.room_code}</div>
                         <div class="room-status ${statusClass}">
-                            👥 ${room.player_count}/${room.max_players} • ${statusText}
+                            ${room.player_count}/${room.max_players} • ${statusText}
                         </div>
                     </div>
                     <button class="join-room-btn btn" 
                             onclick="joinGameByCode('${room.room_code}')" 
                             ${room.is_full ? 'disabled' : ''}>
-                        ${room.is_full ? '🔒 Full' : '▶️ Join'}
+                        ${room.is_full ? 'Full' : 'Join'}
                     </button>
                 </div>
             `;
@@ -235,8 +235,7 @@ function updateGameState(gameState) {
     });
     
     if (gameState.winner) {
-        const winnerEmoji = gameState.winner === '⭕' ? '🔵' : '❌';
-        document.getElementById('game-status').textContent = `${winnerEmoji} ${gameState.winner} wins! 🎉`;
+        document.getElementById('game-status').textContent = `${gameState.winner} wins!`;
         stopGamePolling();
         
         // Get symbol from storage if lost
@@ -246,14 +245,13 @@ function updateGameState(gameState) {
         
         showGameEndModal(gameState.winner, false);
     } else if (gameState.is_draw) {
-        document.getElementById('game-status').textContent = "It's a draw! 🤝";
+        document.getElementById('game-status').textContent = "It's a draw!";
         stopGamePolling();
         showGameEndModal(null, true);
     } else if (gameState.state === 'PLAYING') {
         const isMyTurn = gameState.players[playerId] === gameState.current_turn;
-        const turnEmoji = gameState.current_turn === '⭕' ? '🔵' : '❌';
         document.getElementById('game-status').textContent = 
-            isMyTurn ? `Your turn ${turnEmoji} ⏰` : `Opponent's turn ${turnEmoji} ⏳`;
+            isMyTurn ? `Your turn (${gameState.current_turn})` : `Opponent's turn (${gameState.current_turn})`;
     }
 }
 
@@ -273,14 +271,14 @@ function showGameEndModal(winner, isDraw) {
     playerSymbolEl.textContent = playerSymbol || 'N/A';
     
     if (isDraw) {
-        modalIcon.textContent = '🤝';
+        modalIcon.textContent = '';
         modalTitle.textContent = "It's a Draw!";
         modalMessage.textContent = "Well played! Both players showed great skill.";
         gameResultEl.textContent = 'DRAW';
         gameResultEl.className = 'stat-value draw';
     } else if (!playerSymbol) {
         // Fallback if symbol still not found
-        modalIcon.textContent = '❓';
+        modalIcon.textContent = '?';
         modalTitle.textContent = "Game Over";
         modalMessage.textContent = "The game has ended.";
         gameResultEl.textContent = 'FINISHED';
@@ -291,13 +289,13 @@ function showGameEndModal(winner, isDraw) {
         const normalizedPlayerSymbol = String(playerSymbol).trim();
         
         if (normalizedWinner === normalizedPlayerSymbol) {
-            modalIcon.textContent = '🏆';
+            modalIcon.textContent = '';
             modalTitle.textContent = "Victory!";
             modalMessage.textContent = "Congratulations! You won the game!";
             gameResultEl.textContent = 'WIN';
             gameResultEl.className = 'stat-value win';
         } else {
-            modalIcon.textContent = '😔';
+            modalIcon.textContent = '';
             modalTitle.textContent = "Defeat";
             modalMessage.textContent = "Better luck next time!";
             gameResultEl.textContent = 'LOSS';
