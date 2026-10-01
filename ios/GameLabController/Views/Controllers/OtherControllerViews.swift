@@ -792,49 +792,102 @@ struct TambolaControllerView: View {
     let privateData: [String: Any]
     let onAction: (String, [String: Any]) -> Void
 
-    private var ticket: [[Int?]] { (privateData["ticket"] as? [[Int?]]) ?? [] }
+    /// Parsed element by element: the ticket's blanks arrive as JSON null
+    /// (NSNull), which a blanket `as? [[Int?]]` cast cannot be relied on to
+    /// accept -- it would leave the whole ticket empty.
+    private var ticket: [[Int?]] {
+        (privateData["ticket"] as? [Any] ?? []).map { row in
+            (row as? [Any] ?? []).map { $0 as? Int }
+        }
+    }
     private var markedNumbers: Set<Int> {
-        Set((privateData["marked"] as? [Int]) ?? [])
+        Set((privateData["marked"] as? [Any] ?? []).compactMap { $0 as? Int })
+    }
+    private var calledOnTicket: Set<Int> {
+        Set((privateData["calledOnTicket"] as? [Any] ?? []).compactMap { $0 as? Int })
+    }
+    private var lastCalled: Int? { privateData["lastCalled"] as? Int }
+    private var score: Int { privateData["score"] as? Int ?? 0 }
+    private var prizes: [(type: String, label: String, winner: String?)] {
+        (privateData["prizes"] as? [Any] ?? []).compactMap {
+            guard let d = $0 as? [String: Any], let type = d["type"] as? String else { return nil }
+            return (type, d["label"] as? String ?? type, d["winnerName"] as? String)
+        }
     }
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Tambola").font(.title.bold()).foregroundColor(.white)
-            Text("Your Ticket").font(.subheadline).foregroundColor(.white.opacity(0.4))
+        VStack(spacing: 14) {
+            HStack {
+                Text("Tambola").font(.title.bold()).foregroundColor(.white)
+                Spacer()
+                Text("Score \(score)").font(.headline).foregroundColor(.cyan)
+            }
+            .padding(.horizontal, 20)
 
-            VStack(spacing: 6) {
+            if let lastCalled {
+                VStack(spacing: 2) {
+                    Text("LAST CALLED").font(.caption2.bold()).tracking(2)
+                        .foregroundColor(.white.opacity(0.4))
+                    Text("\(lastCalled)")
+                        .font(.system(size: 54, weight: .heavy, design: .rounded))
+                        .foregroundColor(.yellow)
+                }
+            }
+
+            Text("Tap called numbers on your ticket")
+                .font(.caption).foregroundColor(.white.opacity(0.4))
+
+            VStack(spacing: 5) {
                 ForEach(Array(ticket.enumerated()), id: \.offset) { _, row in
-                    HStack(spacing: 6) {
+                    HStack(spacing: 5) {
                         ForEach(Array(row.enumerated()), id: \.offset) { _, num in
                             if let n = num {
-                                Button(action: { onAction("mark", ["number": n]) }) {
+                                let marked = markedNumbers.contains(n)
+                                let called = calledOnTicket.contains(n)
+                                Button(action: { onAction(marked ? "unmark" : "mark", ["number": n]) }) {
                                     Text("\(n)").font(.system(.body, design: .monospaced).bold())
-                                        .frame(width: 40, height: 40)
-                                        .background(RoundedRectangle(cornerRadius: 8)
-                                            .fill(markedNumbers.contains(n) ? Color.green.opacity(0.4) : Color.white.opacity(0.1)))
+                                        .frame(width: 36, height: 40)
+                                        .background(RoundedRectangle(cornerRadius: 7)
+                                            .fill(marked ? Color.green.opacity(0.55) : Color.white.opacity(0.1)))
+                                        .overlay(RoundedRectangle(cornerRadius: 7)
+                                            .strokeBorder(called && !marked ? Color.yellow : Color.clear,
+                                                          lineWidth: 2))
                                         .foregroundColor(.white)
                                 }
                                 .buttonStyle(.plain)
                             } else {
-                                RoundedRectangle(cornerRadius: 8)
+                                RoundedRectangle(cornerRadius: 7)
                                     .fill(Color.white.opacity(0.03))
-                                    .frame(width: 40, height: 40)
+                                    .frame(width: 36, height: 40)
                             }
                         }
                     }
                 }
             }
 
-            Button(action: { onAction("claim", ["type": "full_house"]) }) {
-                Text("Claim Full House!").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.yellow.opacity(0.85)))
-                    .foregroundColor(.black)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(prizes, id: \.type) { prize in
+                    Button(action: { onAction("claim", ["type": prize.type]) }) {
+                        VStack(spacing: 2) {
+                            Text(prize.label).font(.subheadline.bold())
+                            if let winner = prize.winner {
+                                Text("won by \(winner)").font(.caption2)
+                            }
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                        .background(RoundedRectangle(cornerRadius: 12)
+                            .fill(prize.winner == nil ? Color.yellow.opacity(0.85) : Color.white.opacity(0.08)))
+                        .foregroundColor(prize.winner == nil ? .black : .white.opacity(0.4))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(prize.winner != nil)
+                }
             }
-            .buttonStyle(.plain).padding(.horizontal, 24)
+            .padding(.horizontal, 20)
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.top, 40)
+        .padding(.top, 30)
         .background(Color(hex: "0a0a14").ignoresSafeArea())
     }
 }

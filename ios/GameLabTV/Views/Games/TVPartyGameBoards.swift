@@ -620,7 +620,8 @@ struct TVMostLikelyToBoardView: View {
                           phaseLabel: isReveal ? "the room has spoken" : "secret ballot")
             Spacer()
             VStack(spacing: 40) {
-                Text("Who is most likely to…")
+                // Prompts already read "Most likely to ...".
+                Text("Who is…")
                     .font(.title2.bold()).foregroundColor(.white.opacity(0.5))
                 Text(vm.state.prompt)
                     .font(.system(size: 54, weight: .heavy))

@@ -43,11 +43,30 @@ def _phase_key(engine) -> str:
 
 
 def _policy_trivia(engine, bot_id):
-    state = engine.public_state()
-    options = state.get("options") or state.get("choices") or []
-    if not options:
+    # TriviaEngine wants choiceIndex + questionID and only while answering;
+    # a bare "index" was silently ignored, so bots never answered.
+    if getattr(engine, "phase", "") != "answering":
         return None
-    return ("answer", {"index": random.randrange(len(options))})
+    question = getattr(engine, "question", None)
+    if not question:
+        return None
+    choices = question[2]
+    return ("answer", {"choiceIndex": random.randrange(len(choices)),
+                       "questionID": engine.question_id})
+
+
+def _policy_kbc(engine, bot_id):
+    phase = getattr(engine, "phase", "")
+    choices = getattr(engine, "choices", []) or []
+    if not choices:
+        return None
+    if phase == "poll":
+        return ("poll_vote", {"index": random.randrange(len(choices))})
+    if phase == "answer" and getattr(engine, "hot_seat", None) == bot_id:
+        hidden = set(getattr(engine, "hidden", []) or [])
+        options = [i for i in range(len(choices)) if i not in hidden] or list(range(len(choices)))
+        return ("answer", {"index": random.choice(options)})
+    return None
 
 
 def _policy_bluff_it(engine, bot_id):
@@ -102,7 +121,7 @@ def _policy_most_likely_to(engine, bot_id):
 #: players' own emoji submissions are user-generated and remain allowed.
 POLICIES = {
     "trivia": _policy_trivia,
-    "kbc": _policy_trivia,
+    "kbc": _policy_kbc,
     "bluff_it": _policy_bluff_it,
     "antakshari": _policy_antakshari,
     "most_likely_to": _policy_most_likely_to,

@@ -1156,9 +1156,26 @@ struct TVTambolaBoardView: View {
 
                 Spacer()
 
-                // Claims
-                ForEach(vm.state.claims, id: \.self) { claim in
-                    Text("\(claim)").font(.headline).foregroundColor(.green)
+                // Prize board: every prize and who took it.
+                if vm.state.prizes.isEmpty {
+                    ForEach(vm.state.claims, id: \.self) { claim in
+                        Text("\(claim)").font(.headline).foregroundColor(.green)
+                    }
+                } else {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(vm.state.prizes, id: \.label) { prize in
+                            HStack(spacing: 10) {
+                                Image(systemName: prize.winner == nil ? "circle" : "checkmark.seal.fill")
+                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : .green)
+                                Text(prize.label).font(.headline)
+                                    .foregroundColor(prize.winner == nil ? .white : .white.opacity(0.5))
+                                Spacer()
+                                Text(prize.winner ?? "open").font(.headline)
+                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : .green)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
                 }
             }
             .frame(width: 320)
@@ -1187,8 +1204,13 @@ struct TambolaBoardState {
     var calledNumbers: Set<Int> = []
     var lastCalled: Int? = nil
     var claims: [String] = []
+    var prizes: [(label: String, winner: String?)] = []
 
     mutating func update(from data: [String: AnyCodable]) {
+        prizes = (data["prizes"]?.value as? [Any] ?? []).compactMap {
+            guard let d = $0 as? [String: Any], let label = d["label"] as? String else { return nil }
+            return (label, d["winnerName"] as? String)
+        }
         if let v = data["called"]?.value as? [Int]       { calledNumbers = Set(v) }
         if let v = data["lastCalled"]?.value as? Int      { lastCalled = v }
         if let v = data["claims"]?.value as? [String]     { claims = v }

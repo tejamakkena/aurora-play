@@ -445,11 +445,25 @@ def _generate_ticket():
 
 
 class TambolaEngine(NativeGameEngine):
+    """Housie / Tambola with the classic prizes.
+
+    Numbers are called automatically; players tap them on their own ticket
+    and claim prizes from the phone. Each prize goes to the first valid
+    claim; the game ends at Full House (or when all 90 are called).
+    """
+
     game_id = "tambola"
     min_players = 2
     max_players = 20
 
-    CALL_INTERVAL_SECONDS = 3.0
+    CALL_INTERVAL_SECONDS = 4.0
+    PRIZES = [
+        ("early_five", "Early Five", 100),
+        ("top_line", "Top Line", 150),
+        ("middle_line", "Middle Line", 150),
+        ("bottom_line", "Bottom Line", 150),
+        ("full_house", "Full House", 400),
+    ]
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -458,6 +472,8 @@ class TambolaEngine(NativeGameEngine):
         self.called: list[int] = []
         self.available: set = set()
         self.claims: list[str] = []
+        self.prize_winners: dict[str, str] = {}
+        self.scores: dict[str, int] = {}
         self.next_call_at = 0.0
         self.winner: str | None = None
         self._finished = False
@@ -466,11 +482,16 @@ class TambolaEngine(NativeGameEngine):
         for p in players:
             self.tickets[p.id] = _generate_ticket()
             self.marked[p.id] = set()
+            self.scores[p.id] = 0
         self.available = set(range(1, 91))
         self.next_call_at = time.time() + self.CALL_INTERVAL_SECONDS
 
     def _ticket_numbers(self, pid):
         return {n for row in self.tickets.get(pid, []) for n in row if n is not None}
+
+    def _row_numbers(self, pid, row):
+        rows = self.tickets.get(pid, [])
+        return {n for n in rows[row] if n is not None} if row < len(rows) else set()
 
     def tick(self, dt):
         if self._finished:
@@ -484,41 +505,78 @@ class TambolaEngine(NativeGameEngine):
             self.called.append(number)
             self.next_call_at = time.time() + self.CALL_INTERVAL_SECONDS
 
+    def _qualifies(self, pid, prize):
+        marked = self.marked.get(pid, set())
+        if prize == "early_five":
+            return len(marked) >= 5
+        if prize in ("top_line", "middle_line", "bottom_line"):
+            row = ("top_line", "middle_line", "bottom_line").index(prize)
+            numbers = self._row_numbers(pid, row)
+            return bool(numbers) and numbers <= marked
+        if prize == "full_house":
+            numbers = self._ticket_numbers(pid)
+            return bool(numbers) and numbers <= marked
+        return False
+
     def handle_action(self, player_id, action, data):
-        if self._finished:
+        if self._finished or player_id not in self.tickets:
             return
         if action == "mark":
             number = data.get("number")
             if (isinstance(number, int) and number in self.called
                     and number in self._ticket_numbers(player_id)):
                 self.marked.setdefault(player_id, set()).add(number)
+        elif action == "unmark":
+            number = data.get("number")
+            self.marked.setdefault(player_id, set()).discard(number)
         elif action == "claim":
-            claim_type = data.get("type", "full_house")
-            if claim_type != "full_house" or self.winner is not None:
+            prize = data.get("type", "full_house")
+            spec = next((p for p in self.PRIZES if p[0] == prize), None)
+            if spec is None or prize in self.prize_winners:
                 return
-            all_numbers = self._ticket_numbers(player_id)
-            marked = self.marked.get(player_id, set())
-            if all_numbers and all_numbers.issubset(marked):
+            if not self._qualifies(player_id, prize):
+                return
+            _, label, points = spec
+            self.prize_winners[prize] = player_id
+            self.scores[player_id] = self.scores.get(player_id, 0) + points
+            player = self.room.player(player_id)
+            if player is not None:
+                player.score = self.scores[player_id]
+            self.claims.append(f"{self.player_name(player_id)} won {label}!")
+            if prize == "full_house":
                 self.winner = player_id
-                self.claims.append(f"{self.player_name(player_id)} completed Full House!")
-                player = self.room.player(player_id)
-                if player is not None:
-                    player.score = 1000
                 self._finished = True
+
+    def _prizes(self):
+        return [
+            {"type": key, "label": label, "points": points,
+             "winnerID": self.prize_winners.get(key),
+             "winnerName": (self.player_name(self.prize_winners[key])
+                            if key in self.prize_winners else None)}
+            for key, label, points in self.PRIZES
+        ]
 
     def public_state(self):
         return {
             "called": list(self.called),
             "lastCalled": self.called[-1] if self.called else None,
             "claims": list(self.claims),
+            "prizes": self._prizes(),
             "finished": self._finished,
             "winner": self.winner,
         }
 
     def private_state(self, player_id):
+        mine = self._ticket_numbers(player_id)
         return {
             "ticket": self.tickets.get(player_id, []),
             "marked": sorted(self.marked.get(player_id, set())),
+            # Numbers on this ticket that have been called -- the phone
+            # rings them so nobody misses one while watching the TV.
+            "calledOnTicket": sorted(n for n in self.called if n in mine),
+            "lastCalled": self.called[-1] if self.called else None,
+            "prizes": self._prizes(),
+            "score": self.scores.get(player_id, 0),
             "finished": self._finished,
             "won": player_id == self.winner,
         }
@@ -527,7 +585,7 @@ class TambolaEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        return self.ranked_results({p.id: p.score for p in self.room.players})
+        return self.ranked_results(dict(self.scores))
 
 
 # ---------------------------------------------------------------------------
@@ -609,6 +667,10 @@ class RouletteEngine(NativeGameEngine):
     # window (see TVRouletteBoardView). Two seconds read as an instant
     # cut rather than a spin.
     SPIN_SECONDS = 6.0
+    # Once the first chip of a round goes down, everyone gets this long to
+    # bet. "spin" from a phone now means "I'm done betting": the wheel goes
+    # when every player still in is done, or when this runs out.
+    BET_SECONDS = 25.0
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -623,11 +685,33 @@ class RouletteEngine(NativeGameEngine):
         # on private_state (the phones), so nobody sees it early.
         self.pending_result: int | None = None
         self.round = 0
+        self.ready: set[str] = set()
+        self.bet_deadline = 0.0
         self._finished = False
 
     def start(self, players):
         self.chips = {p.id: self.STARTING_CHIPS for p in players}
         self.bets = {p.id: {} for p in players}
+
+    def _has_bets(self):
+        return any(self.bets.get(pid) for pid in self.bets)
+
+    def _still_in(self):
+        """Players who can still act this round: connected, with chips or bets."""
+        out = []
+        for pid in self.chips:
+            player = self.room.player(pid)
+            if player is None or not player.connected:
+                continue
+            if self.chips.get(pid, 0) > 0 or self.bets.get(pid):
+                out.append(pid)
+        return out
+
+    def _start_spin(self):
+        self.is_spinning = True
+        self.pending_result = random.randint(0, 36)
+        self.spin_deadline = time.time() + self.SPIN_SECONDS
+        self.bet_deadline = 0.0
 
     def handle_action(self, player_id, action, data):
         if self._finished or self.is_spinning or player_id not in self.chips:
@@ -643,18 +727,27 @@ class RouletteEngine(NativeGameEngine):
             self.chips[player_id] -= amount
             player_bets = self.bets.setdefault(player_id, {})
             player_bets[target] = player_bets.get(target, 0) + amount
+            self.ready.discard(player_id)
+            if not self.bet_deadline:
+                self.bet_deadline = time.time() + self.BET_SECONDS
         elif action == "clear_bets":
             refund = sum(self.bets.get(player_id, {}).values())
             self.chips[player_id] += refund
             self.bets[player_id] = {}
+            self.ready.discard(player_id)
         elif action == "spin":
-            if any(self.bets.get(pid) for pid in self.bets):
-                self.is_spinning = True
-                self.pending_result = random.randint(0, 36)
-                self.spin_deadline = time.time() + self.SPIN_SECONDS
+            if not self._has_bets():
+                return
+            self.ready.add(player_id)
+            if all(pid in self.ready for pid in self._still_in()):
+                self._start_spin()
 
     def tick(self, dt):
-        if self._finished or not self.is_spinning:
+        if self._finished:
+            return
+        if not self.is_spinning:
+            if self.bet_deadline and time.time() >= self.bet_deadline and self._has_bets():
+                self._start_spin()
             return
         if time.time() < self.spin_deadline:
             return
@@ -670,12 +763,13 @@ class RouletteEngine(NativeGameEngine):
         self.last_result = result
         self.pending_result = None
         self.is_spinning = False
+        self.ready = set()
         self.round += 1
         for pid in self.chips:
             player = self.room.player(pid)
             if player is not None:
                 player.score = self.chips[pid]
-        if self.round >= self.MAX_ROUNDS:
+        if self.round >= self.MAX_ROUNDS or not any(self.chips.values()):
             self._finished = True
 
     def public_state(self):
@@ -702,15 +796,29 @@ class RouletteEngine(NativeGameEngine):
             "chips": dict(self.chips),
             "round": self.round,
             "maxRounds": self.MAX_ROUNDS,
+            "readyPlayerIDs": sorted(self.ready),
+            "betSecondsLeft": self._bet_seconds_left(),
             "finished": self._finished,
         }
 
+    def _bet_seconds_left(self):
+        if not self.bet_deadline or self.is_spinning:
+            return 0
+        return max(0, int(round(self.bet_deadline - time.time())))
+
     def private_state(self, player_id):
+        still_in = self._still_in()
         return {
             "chips": self.chips.get(player_id, 0),
             "bets": dict(self.bets.get(player_id, {})),
             "isSpinning": self.is_spinning,
             "lastResult": self.last_result,
+            "isReady": player_id in self.ready,
+            "readyCount": sum(1 for pid in still_in if pid in self.ready),
+            "readyNeeded": len(still_in),
+            "betSecondsLeft": self._bet_seconds_left(),
+            "round": self.round,
+            "maxRounds": self.MAX_ROUNDS,
             "finished": self._finished,
         }
 

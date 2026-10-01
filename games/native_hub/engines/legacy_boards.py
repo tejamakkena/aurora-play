@@ -129,6 +129,7 @@ class MemoryEngine(TurnBasedEngine):
     game_id = "memory"
     min_players = 2
     max_players = 4
+    turn_seconds = 30           # an idle phone passes its turn
 
     SYMBOLS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼',
                '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔']
@@ -193,6 +194,10 @@ class MemoryEngine(TurnBasedEngine):
             self.next_turn()
             return
         super().tick(dt)
+
+    def on_turn_timeout(self):
+        self.flipped = []
+        super().on_turn_timeout()
 
     def public_state(self):
         state = self.base_public()

@@ -518,13 +518,29 @@ struct RouletteControllerView: View {
     /// Pinned outside the ScrollView so it is always visible and always above
     /// the home indicator, rather than being the ninth thing you have to
     /// scroll to on a small phone.
+    private var isReady: Bool { privateData["isReady"] as? Bool ?? false }
+    private var readyCount: Int { privateData["readyCount"] as? Int ?? 0 }
+    private var readyNeeded: Int { privateData["readyNeeded"] as? Int ?? 0 }
+    private var betSecondsLeft: Int { privateData["betSecondsLeft"] as? Int ?? 0 }
+
+    /// "Spin" is now "I'm done betting": the wheel goes once everyone still
+    /// in is done, or when the betting clock runs out.
+    private var spinLabel: String {
+        if isSpinning { return "Spinning…" }
+        if isReady {
+            let clock = betSecondsLeft > 0 ? " · \(betSecondsLeft)s" : ""
+            return "Waiting for others (\(readyCount)/\(readyNeeded))\(clock)"
+        }
+        return betSecondsLeft > 0 ? "Done betting · \(betSecondsLeft)s" : "Done betting - spin!"
+    }
+
     private var spinBar: some View {
-        let canSpin = !isSpinning && hasBets
+        let canSpin = !isSpinning && hasBets && !isReady
         return VStack(spacing: 0) {
             Divider().background(Color.white.opacity(0.08))
 
             Button(action: spin) {
-                Text(isSpinning ? "Spinning…" : "Spin!")
+                Text(spinLabel)
                     .font(.headline.bold())
                     .frame(maxWidth: .infinity, minHeight: 54)
                     .background(
@@ -668,6 +684,15 @@ struct MafiaControllerView: View {
     private var players: [[String: Any]] { privateData["players"] as? [[String: Any]] ?? [] }
     private var myVote: String? { privateData["myVote"] as? String }
     private var investigateResult: String? { privateData["investigateResult"] as? String }
+    private var investigateIsMafia: Bool {
+        // Text matching misread "X is not Mafia." as a hit; prefer the flag.
+        privateData["investigateIsMafia"] as? Bool
+            ?? (investigateResult.map { $0.hasSuffix("is Mafia!") } ?? false)
+    }
+    private var myNightTarget: String? { privateData["myNightTarget"] as? String }
+    private var mafiaTeam: [String] {
+        (privateData["mafiaTeam"] as? [Any] ?? []).compactMap { $0 as? String }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -716,6 +741,16 @@ struct MafiaControllerView: View {
 
     private var dayPhaseView: some View {
         VStack(spacing: 16) {
+            // The night can now end the moment everyone has acted, so the
+            // Sheriff's finding has to stay visible into the day.
+            if role == "sheriff", let result = investigateResult {
+                Text("Last night: \(result)").font(.subheadline.bold())
+                    .foregroundColor(investigateIsMafia ? .red : .green)
+            }
+            if role == "mafia" && !mafiaTeam.isEmpty {
+                Text("Fellow Mafia: \(mafiaTeam.joined(separator: ", "))")
+                    .font(.caption).foregroundColor(.red.opacity(0.8))
+            }
             Text("Vote to eliminate").font(.headline).foregroundColor(.white.opacity(0.7))
             ForEach(alivePlayers, id: \.0) { id, name in
                 Button(action: { vote(for: id) }) {
@@ -743,10 +778,15 @@ struct MafiaControllerView: View {
             switch role {
             case "mafia":
                 Text("Choose your target").font(.headline).foregroundColor(.red)
+                if !mafiaTeam.isEmpty {
+                    Text("Your fellow Mafia: \(mafiaTeam.joined(separator: ", "))")
+                        .font(.caption).foregroundColor(.red.opacity(0.8))
+                }
                 ForEach(alivePlayers.filter { $0.0 != (privateData["myID"] as? String ?? "") }, id: \.0) { id, name in
                     Button(action: { nightAction(action: "eliminate", targetID: id) }) {
                         Text(name).foregroundColor(.white).frame(maxWidth: .infinity).padding(14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.1)))
+                            .background(RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.red.opacity(myNightTarget == id ? 0.45 : 0.1)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -757,7 +797,8 @@ struct MafiaControllerView: View {
                 ForEach(alivePlayers, id: \.0) { id, name in
                     Button(action: { nightAction(action: "save", targetID: id) }) {
                         Text(name).foregroundColor(.white).frame(maxWidth: .infinity).padding(14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.green.opacity(0.1)))
+                            .background(RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.green.opacity(myNightTarget == id ? 0.45 : 0.1)))
                     }
                     .buttonStyle(.plain)
                 }
@@ -767,17 +808,22 @@ struct MafiaControllerView: View {
                 Text("Investigate a player").font(.headline).foregroundColor(.yellow)
                 if let result = investigateResult {
                     Text("Result: \(result)").font(.body.bold())
-                        .foregroundColor(result.lowercased().contains("mafia") ? .red : .green)
+                        .foregroundColor(investigateIsMafia ? .red : .green)
                         .padding(.horizontal, 24)
                 }
-                ForEach(alivePlayers.filter { $0.0 != (privateData["myID"] as? String ?? "") }, id: \.0) { id, name in
-                    Button(action: { nightAction(action: "investigate", targetID: id) }) {
-                        Text(name).foregroundColor(.white).frame(maxWidth: .infinity).padding(14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.yellow.opacity(0.08)))
+                if myNightTarget == nil {
+                    ForEach(alivePlayers.filter { $0.0 != (privateData["myID"] as? String ?? "") }, id: \.0) { id, name in
+                        Button(action: { nightAction(action: "investigate", targetID: id) }) {
+                            Text(name).foregroundColor(.white).frame(maxWidth: .infinity).padding(14)
+                                .background(RoundedRectangle(cornerRadius: 12).fill(Color.yellow.opacity(0.08)))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+                } else {
+                    Text("One investigation per night. Sleep now.")
+                        .font(.caption).foregroundColor(.white.opacity(0.5))
                 }
-                .padding(.horizontal, 24)
 
             default:
                 VStack(spacing: 12) {

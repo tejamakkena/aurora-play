@@ -44,7 +44,9 @@ class MafiaEngine(NativeGameEngine):
         self.night_actions: dict[str, dict] = {}
         self.day_votes: dict[str, str] = {}
         self.investigate_results: dict[str, str] = {}
+        self.investigate_is_mafia: dict[str, bool] = {}
         self.last_eliminated: str | None = None
+        self.last_day_tie = False
         self.winner: str | None = None
         self._finished = False
 
@@ -80,14 +82,30 @@ class MafiaEngine(NativeGameEngine):
             elif action == "save" and role == "doctor" and target in self.alive and self.alive[target]:
                 self.night_actions[player_id] = {"action": "save", "target": target}
             elif action == "investigate" and role == "sheriff" and target in self.alive and self.alive[target]:
+                if player_id in self.night_actions:
+                    return                      # one investigation per night
                 self.night_actions[player_id] = {"action": "investigate", "target": target}
-                target_role = self.roles.get(target)
+                is_mafia = self.roles.get(target) == "mafia"
                 name = self.player_name(target)
                 self.investigate_results[player_id] = (
-                    f"{name} is Mafia!" if target_role == "mafia" else f"{name} is not Mafia.")
+                    f"{name} is Mafia!" if is_mafia else f"{name} is not Mafia.")
+                self.investigate_is_mafia[player_id] = is_mafia
+            if self._night_done():
+                self._resolve_phase()
         elif self.phase == "day":
             if action == "vote" and target in self.alive and self.alive[target]:
                 self.day_votes[player_id] = target
+                if all(pid in self.day_votes for pid in self._alive_ids()):
+                    self._resolve_phase()       # everyone has voted
+
+    def _night_done(self):
+        """Every living special role has acted -- no need to wait the clock out."""
+        for pid in self._alive_ids():
+            if self.roles[pid] in ("mafia", "doctor", "sheriff") and pid not in self.night_actions:
+                player = self.room.player(pid)
+                if player is not None and player.connected and not player.is_bot:
+                    return False
+        return True
 
     def tick(self, dt):
         if self._finished:
@@ -129,11 +147,17 @@ class MafiaEngine(NativeGameEngine):
 
     def _resolve_day(self):
         self.last_eliminated = None
+        self.last_day_tie = False
         if self.day_votes:
             counts: dict[str, int] = {}
             for target in self.day_votes.values():
                 counts[target] = counts.get(target, 0) + 1
-            eliminated = max(counts, key=counts.get)
+            top = max(counts.values())
+            leaders = [t for t, c in counts.items() if c == top]
+            if len(leaders) > 1:
+                self.last_day_tie = True        # a tied vote spares everyone
+                return
+            eliminated = leaders[0]
             self.alive[eliminated] = False
             self.last_eliminated = self.player_name(eliminated)
 
@@ -167,6 +191,7 @@ class MafiaEngine(NativeGameEngine):
             "round": self.round,
             "secondsLeft": self.seconds_left(),
             "lastEliminated": self.last_eliminated,
+            "lastDayTie": self.last_day_tie,
             "votes": self._vote_tally_by_name(),
             "players": [
                 {"id": p.id, "name": p.name, "isAlive": self.alive.get(p.id, True),
@@ -188,7 +213,13 @@ class MafiaEngine(NativeGameEngine):
                 for p in self.room.players
             ],
             "myVote": self.day_votes.get(player_id),
+            "myNightTarget": (self.night_actions.get(player_id) or {}).get("target"),
             "investigateResult": self.investigate_results.get(player_id),
+            "investigateIsMafia": self.investigate_is_mafia.get(player_id),
+            # Mafia members know each other; nobody else sees this.
+            "mafiaTeam": ([self.player_name(pid) for pid, r in self.roles.items()
+                           if r == "mafia" and pid != player_id]
+                          if self.roles.get(player_id) == "mafia" else []),
         }
 
     def is_over(self):
@@ -211,6 +242,7 @@ class RajaMantriEngine(NativeGameEngine):
 
     TOTAL_ROUNDS = 4
     REVEAL_SECONDS = 6
+    GUESS_SECONDS = 45          # an idle Sipahi lets the Chor escape
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -240,6 +272,7 @@ class RajaMantriEngine(NativeGameEngine):
         self.accused_id = None
         self.round_result = None
         self.phase = "guess"
+        self.guess_deadline = time.time() + self.GUESS_SECONDS
 
     def handle_action(self, player_id, action, data):
         if self._finished or action != "accuse" or self.phase != "guess":
@@ -247,9 +280,11 @@ class RajaMantriEngine(NativeGameEngine):
         if player_id != self.sipahi_id:
             return
         target = data.get("targetID")
-        if target not in self.roles:
+        if target not in self.roles or target == player_id:
             return
+        self._resolve_accusation(target)
 
+    def _resolve_accusation(self, target):
         self.accused_id = target
         is_correct = target == self.chor_id
         awards = {
@@ -268,14 +303,23 @@ class RajaMantriEngine(NativeGameEngine):
 
         chor_name = self.player_name(self.chor_id)
         sipahi_name = self.player_name(self.sipahi_id)
-        self.round_result = (
-            f"{sipahi_name} correctly caught {chor_name}!" if is_correct
-            else f"{sipahi_name} guessed wrong! {chor_name} got away!")
+        if target is None:
+            self.round_result = f"{sipahi_name} ran out of time! {chor_name} got away!"
+        else:
+            self.round_result = (
+                f"{sipahi_name} correctly caught {chor_name}!" if is_correct
+                else f"{sipahi_name} guessed wrong! {chor_name} got away!")
         self.phase = "reveal"
         self.reveal_until = time.time() + self.REVEAL_SECONDS
 
     def tick(self, dt):
-        if self._finished or self.phase != "reveal" or time.time() < self.reveal_until:
+        if self._finished:
+            return
+        if self.phase == "guess":
+            if time.time() >= getattr(self, "guess_deadline", float("inf")):
+                self._resolve_accusation(None)      # time up: nobody caught
+            return
+        if self.phase != "reveal" or time.time() < self.reveal_until:
             return
         if self.round >= self.TOTAL_ROUNDS:
             self._finished = True
@@ -389,12 +433,16 @@ class TriviaEngine(NativeGameEngine):
         # "answers are getting revealed way before the questions."
         self.phase = "answering"
         self.reveal_until = 0.0
+        self.total_rounds = self.TOTAL_ROUNDS
         self._finished = False
 
     def start(self, players):
         self.scores = {p.id: 0 for p in players}
         pool = questions_for(getattr(self.room, "content_pack", "en"), "trivia")
         self.pool = random.sample(pool, min(self.TOTAL_ROUNDS, len(pool)))
+        # A smaller language pack (Telugu/Hindi) plays each question once
+        # rather than wrapping round and repeating.
+        self.total_rounds = len(self.pool)
         self.round = 0
         self._next_question()
 
@@ -414,6 +462,8 @@ class TriviaEngine(NativeGameEngine):
     def handle_action(self, player_id, action, data):
         if self._finished or action != "answer" or player_id in self.answered:
             return
+        if self.phase != "answering":
+            return          # the TV is already showing the correct answer
         if data.get("questionID") != self.question_id:
             return
         idx = data.get("choiceIndex")
@@ -438,7 +488,7 @@ class TriviaEngine(NativeGameEngine):
             # every answer comes in, is what actually gives the reveal beat
             # above a duration to be seen for.
             if now >= self.reveal_until:
-                if self.round >= self.TOTAL_ROUNDS:
+                if self.round >= self.total_rounds:
                     self._finished = True
                 else:
                     self._next_question()

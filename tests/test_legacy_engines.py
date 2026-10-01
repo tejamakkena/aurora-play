@@ -201,7 +201,11 @@ class TestRoulette:
         act(socketio, phones[0], code, "dev-0", "place_bet", {"target": "red", "amount": 10})
         after = latest(phones[0], "private_state")["privateData"]
         assert after["bets"].get("red") == 10
+        # "spin" means "done betting": the wheel waits for every player.
         act(socketio, phones[0], code, "dev-0", "spin", {})
+        waiting = latest(phones[0], "private_state")["privateData"]
+        assert waiting["isSpinning"] is False and waiting["isReady"] is True
+        act(socketio, phones[1], code, "dev-1", "spin", {})
         socketio.sleep(1.0)
         board = latest(tv, "game_state")["boardState"]
         assert board["lastResult"] is not None

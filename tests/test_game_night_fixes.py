@@ -246,3 +246,149 @@ class TestLudo:
         assert engine.tokens[pid].count(0) == 1
         assert engine.die == 6 and engine.rolled is False
         assert engine.current_player_id() == pid          # a six rolls again
+
+
+class TestTambola:
+    def _call_all(self, engine, pid, numbers):
+        for n in numbers:
+            if n not in engine.called:
+                engine.called.append(n)
+            engine.handle_action(pid, "mark", {"number": n})
+
+    def test_line_and_early_five_prizes(self):
+        engine, roster = make("tambola", players=2)
+        pid = roster[0].id
+        top = sorted(engine._row_numbers(pid, 0))
+        self._call_all(engine, pid, top)
+        engine.handle_action(pid, "claim", {"type": "top_line"})
+        engine.handle_action(pid, "claim", {"type": "early_five"})
+        engine.handle_action(pid, "claim", {"type": "middle_line"})   # not complete
+        winners = {p["type"]: p["winnerID"] for p in engine.public_state()["prizes"]}
+        assert winners["top_line"] == pid and winners["early_five"] == pid
+        assert winners["middle_line"] is None
+        assert engine.scores[pid] == 250 and not engine.is_over()
+
+    def test_prize_goes_to_first_claim_only(self):
+        engine, roster = make("tambola", players=2)
+        for p in roster:
+            self._call_all(engine, p.id, sorted(engine._ticket_numbers(p.id))[:5])
+        engine.handle_action(roster[1].id, "claim", {"type": "early_five"})
+        engine.handle_action(roster[0].id, "claim", {"type": "early_five"})
+        assert engine.prize_winners["early_five"] == roster[1].id
+
+    def test_full_house_ends_the_game(self):
+        engine, roster = make("tambola", players=2)
+        pid = roster[0].id
+        self._call_all(engine, pid, sorted(engine._ticket_numbers(pid)))
+        engine.handle_action(pid, "claim", {"type": "full_house"})
+        assert engine.is_over() and engine.results()[0]["playerID"] == pid
+
+    def test_cannot_mark_uncalled_number(self):
+        engine, roster = make("tambola", players=2)
+        pid = roster[0].id
+        n = sorted(engine._ticket_numbers(pid))[0]
+        engine.handle_action(pid, "mark", {"number": n})
+        assert engine.private_state(pid)["marked"] == []
+
+
+class TestMafia:
+    def _by_role(self, engine, role):
+        return [pid for pid, r in engine.roles.items() if r == role]
+
+    def test_tied_day_vote_spares_everyone(self):
+        engine, roster = make("mafia", players=6)
+        engine.phase = "day"
+        alive = engine._alive_ids()
+        a, b = alive[0], alive[1]
+        engine.day_votes = {alive[2]: a, alive[3]: b}
+        engine._resolve_day()
+        assert engine.alive[a] and engine.alive[b] and engine.last_day_tie
+
+    def test_sheriff_gets_one_investigation_per_night(self):
+        engine, roster = make("mafia", players=6)
+        sheriff = self._by_role(engine, "sheriff")[0]
+        others = [pid for pid in engine._alive_ids() if pid != sheriff]
+        engine.handle_action(sheriff, "investigate", {"targetID": others[0]})
+        first = engine.investigate_results[sheriff]
+        engine.handle_action(sheriff, "investigate", {"targetID": others[1]})
+        assert engine.investigate_results[sheriff] == first
+
+    def test_night_ends_once_every_role_has_acted(self):
+        engine, roster = make("mafia", players=6)
+        town = [pid for pid in engine._alive_ids() if engine.roles[pid] == "villager"]
+        for m in self._by_role(engine, "mafia"):
+            engine.handle_action(m, "eliminate", {"targetID": town[0]})
+        engine.handle_action(self._by_role(engine, "doctor")[0], "save", {"targetID": town[1]})
+        engine.handle_action(self._by_role(engine, "sheriff")[0], "investigate",
+                             {"targetID": town[1]})
+        assert engine.phase == "day"
+        assert not engine.alive[town[0]]
+
+    def test_mafia_know_their_team_and_flag_is_exact(self):
+        engine, roster = make("mafia", players=8)       # two mafia
+        m1, m2 = self._by_role(engine, "mafia")[:2]
+        assert engine.private_state(m1)["mafiaTeam"] == [engine.player_name(m2)]
+        sheriff = self._by_role(engine, "sheriff")[0]
+        villager = self._by_role(engine, "villager")[0]
+        engine.handle_action(sheriff, "investigate", {"targetID": villager})
+        assert engine.private_state(sheriff)["investigateIsMafia"] is False
+        assert engine.private_state(villager)["mafiaTeam"] == []
+
+
+class TestTrivia:
+    def test_no_scoring_after_the_reveal(self):
+        engine, roster = make("trivia", players=2)
+        engine.phase = "reveal"
+        correct = engine.question[3]
+        engine.handle_action(roster[0].id, "answer",
+                             {"choiceIndex": correct, "questionID": engine.question_id})
+        assert engine.scores[roster[0].id] == 0
+
+    def test_small_pack_does_not_repeat(self):
+        engine, roster = make("trivia", players=2)
+        engine.room.content_pack = "te"
+        engine.start(roster)
+        assert engine.total_rounds == len(engine.pool)
+        assert len({q[1] for q in engine.pool}) == engine.total_rounds
+
+
+class TestBotPolicies:
+    def test_trivia_bot_sends_a_valid_answer(self):
+        from games.native_hub import bots
+        engine, roster = make("trivia", players=2)
+        verb, data = bots._policy_trivia(engine, "bot-x")
+        assert verb == "answer"
+        assert data["questionID"] == engine.question_id
+        assert 0 <= data["choiceIndex"] < len(engine.question[2])
+
+    def test_trivia_bot_answer_is_accepted(self):
+        from games.native_hub import bots
+        engine, roster = make("trivia", players=2)
+        bot = engine.room.add_bot()
+        engine.scores[bot.id] = 0
+        verb, data = bots._policy_trivia(engine, bot.id)
+        engine.handle_action(bot.id, verb, data)
+        assert bot.id in engine.answered
+
+
+class TestRajaMantri:
+    def test_idle_sipahi_times_out_and_cannot_accuse_self(self, monkeypatch):
+        clock = _Clock(monkeypatch)
+        engine, roster = make("raja_mantri", players=4)
+        engine.handle_action(engine.sipahi_id, "accuse", {"targetID": engine.sipahi_id})
+        assert engine.phase == "guess"
+        clock.advance(engine.GUESS_SECONDS + 1)
+        engine.tick(1.0)
+        assert engine.phase == "reveal" and "ran out of time" in engine.round_result
+
+
+class TestRoulette:
+    def test_betting_clock_spins_without_everyone_ready(self, monkeypatch):
+        clock = _Clock(monkeypatch)
+        engine, roster = make("roulette", players=3)
+        engine.handle_action(roster[0].id, "place_bet", {"target": "red", "amount": 10})
+        engine.handle_action(roster[0].id, "spin", {})
+        assert not engine.is_spinning
+        clock.advance(engine.BET_SECONDS + 1)
+        engine.tick(0.25)
+        assert engine.is_spinning
