@@ -133,6 +133,8 @@ struct TVCipherGridBoardView: View {
 
 struct OddOneOutState {
     var phase = "question"
+    var round = 0
+    var totalRounds = 0
     var secondsLeft = 0
     var voted: Set<String> = []
     var tally: [(name: String, votes: Int)] = []
@@ -143,6 +145,8 @@ struct OddOneOutState {
 
     mutating func update(from d: [String: AnyCodable]) {
         if let v = d["phase"]?.value as? String { phase = v }
+        if let v = d["round"]?.value as? Int { round = v }
+        if let v = d["totalRounds"]?.value as? Int { totalRounds = v }
         if let v = d["secondsLeft"]?.value as? Int { secondsLeft = v }
         if let v = d["votedPlayerIDs"]?.value as? [Any] {
             voted = Set(v.compactMap { $0 as? String })
@@ -165,8 +169,10 @@ struct TVOddOneOutBoardView: View {
     var body: some View {
         VStack(spacing: 0) {
             TVRoundHeader(symbol: "eyeglasses", title: "Odd One Out",
-                          round: 0, totalRounds: 0, secondsLeft: vm.state.secondsLeft,
-                          phaseLabel: vm.state.phase == "question" ? "ask questions" : "vote")
+                          round: vm.state.round, totalRounds: vm.state.totalRounds,
+                          secondsLeft: vm.state.secondsLeft,
+                          phaseLabel: vm.state.phase == "question" ? "ask questions"
+                                    : vm.state.phase == "vote" ? "vote" : "reveal")
             Spacer()
             if let location = vm.state.location {
                 // Revealed only once the round is over.
@@ -403,8 +409,12 @@ struct KBCState {
     var answerIndex: Int? = nil
     var hotSeatName = ""
     var lifelines: [String: Bool] = [:]
+    var seat = 0
+    var totalSeats = 0
 
     mutating func update(from d: [String: AnyCodable]) {
+        if let v = d["seat"]?.value as? Int { seat = v }
+        if let v = d["totalSeats"]?.value as? Int { totalSeats = v }
         if let v = d["phase"]?.value as? String { phase = v }
         if let v = d["rung"]?.value as? Int { rung = v }
         if let v = d["ladder"]?.value as? [Any] { ladder = v.compactMap { $0 as? Int } }
@@ -459,8 +469,10 @@ struct TVKBCBoardView: View {
             .frame(width: 260).padding(.vertical, 50).padding(.leading, 40)
 
             VStack(spacing: 0) {
+                // Each player gets a turn in the hot seat; a "round" is one seat.
                 TVRoundHeader(symbol: "trophy.fill", title: "KBC Hot Seat",
-                              round: 0, totalRounds: 0, secondsLeft: vm.state.secondsLeft,
+                              round: vm.state.seat, totalRounds: vm.state.totalSeats,
+                              secondsLeft: vm.state.secondsLeft,
                               phaseLabel: "\(vm.state.hotSeatName) in the hot seat")
                 Spacer()
                 VStack(spacing: 28) {

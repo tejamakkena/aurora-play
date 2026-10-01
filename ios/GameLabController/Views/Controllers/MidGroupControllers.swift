@@ -143,7 +143,10 @@ struct OddOneOutControllerView: View {
                         .padding(.top, 20)
                     }
 
-                    if phase == "question" {
+                    if phase == "reveal" {
+                        Label("Round over - look at the TV", systemImage: "tv")
+                            .font(.headline).foregroundColor(.white.opacity(0.7))
+                    } else if phase == "question" {
                         BigButton(title: "Call a Vote", systemImage: "hand.raised.fill",
                                   tint: .orange) {
                             onAction("call_vote", [:])
@@ -160,7 +163,7 @@ struct OddOneOutControllerView: View {
                         .padding(.horizontal, 20)
                     }
 
-                    if isSpy {
+                    if isSpy && phase != "reveal" {
                         Button(action: { showGuess.toggle() }) {
                             Text(showGuess ? "Hide locations" : "Guess the location")
                                 .font(.subheadline.bold()).foregroundColor(.yellow)

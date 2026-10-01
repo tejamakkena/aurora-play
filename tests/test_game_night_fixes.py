@@ -392,3 +392,98 @@ class TestRoulette:
         clock.advance(engine.BET_SECONDS + 1)
         engine.tick(0.25)
         assert engine.is_spinning
+
+
+class TestOddOneOut:
+    def test_three_rounds_with_scoring(self, monkeypatch):
+        clock = _Clock(monkeypatch)
+        engine, roster = make("odd_one_out", players=4)
+        spies = set()
+        for round_no in range(1, engine.TOTAL_ROUNDS + 1):
+            assert engine.round == round_no and engine.phase == "question"
+            spies.add(engine.spy)
+            engine.handle_action(roster[0].id, "call_vote", {})
+            for p in roster:
+                target = engine.spy if p.id != engine.spy else \
+                    next(r.id for r in roster if r.id != p.id)
+                engine.handle_action(p.id, "vote", {"targetID": target})
+            assert engine.phase == "reveal" and engine.winner == "players"
+            assert engine.public_state()["location"]
+            clock.advance(engine.REVEAL_SECONDS + 1)
+            engine.tick(1.0)
+        assert engine.is_over()
+        assert len(spies) == engine.TOTAL_ROUNDS            # a new spy each round
+
+    def test_tied_vote_lets_the_spy_escape(self):
+        engine, roster = make("odd_one_out", players=4)
+        engine.handle_action(roster[0].id, "call_vote", {})
+        others = [p.id for p in roster if p.id != engine.spy]
+        engine.votes = {others[0]: others[1], others[1]: engine.spy}
+        engine._resolve_vote()
+        assert engine.winner == "spy" and engine.scores[engine.spy] == 2
+
+
+class TestGuessMatching:
+    def test_charades_accepts_initials_and_typos(self):
+        engine, roster = make("bollywood_charades", players=3)
+        engine.title = "Dilwale Dulhania Le Jayenge"
+        guesser = next(p.id for p in roster if p.id != engine.actor)
+        engine.handle_action(guesser, "guess", {"text": "DDLJ"})
+        assert guesser in engine.correct_ids
+
+
+class TestKBC:
+    def test_hot_seat_rotates_after_a_wrong_answer(self, monkeypatch):
+        clock = _Clock(monkeypatch)
+        engine, roster = make("kbc", players=3)
+        first = engine.hot_seat
+        wrong = next(i for i in range(len(engine.choices)) if i != engine.correct)
+        engine.handle_action(first, "answer", {"index": wrong})
+        assert engine.phase == "reveal" and not engine.is_over()   # reveal is shown
+        clock.advance(engine.REVEAL_SECONDS + 1)
+        engine.tick(1.0)
+        assert engine.hot_seat != first and engine.rung == 0
+        assert engine.lifelines == {"fifty": True, "poll": True, "skip": True}
+
+    def test_skip_flips_the_question_without_climbing(self):
+        engine, roster = make("kbc", players=2)
+        before = engine.question
+        engine.handle_action(engine.hot_seat, "lifeline_skip", {})
+        assert engine.rung == 0 and engine.question != before
+
+    def test_game_ends_after_every_seat_and_ranks_banked(self, monkeypatch):
+        clock = _Clock(monkeypatch)
+        engine, roster = make("kbc", players=2)
+        engine.handle_action(engine.hot_seat, "answer", {"index": engine.correct})
+        clock.advance(engine.REVEAL_SECONDS + 1)
+        engine.tick(1.0)
+        first = roster[0].id if engine.banked_by[roster[0].id] else roster[1].id
+        for _ in range(2):
+            engine.handle_action(engine.hot_seat, "walk_away", {})
+            clock.advance(engine.REVEAL_SECONDS + 1)
+            engine.tick(1.0)
+        assert engine.is_over()
+        assert engine.results()[0]["playerID"] == first
+
+
+class TestHerd:
+    def test_spelling_variants_herd_together_and_loners_score_nothing(self):
+        engine, roster = make("herd", players=4)
+        a, b, c, d = (p.id for p in roster)
+        engine.submissions = {a: "Idli", b: "idly", c: "Idlis", d: "Dosa"}
+        engine._cluster_and_score()
+        assert engine.clusters[0]["size"] == 3
+        assert engine.scores[a] == engine.scores[b] == engine.scores[c] > 0
+        assert engine.scores[d] == 0
+
+
+class TestAntakshari:
+    def test_first_valid_song_closes_the_round_and_repeats_are_refused(self):
+        engine, roster = make("antakshari", players=2)
+        engine.letter = "T"
+        engine.handle_action(roster[0].id, "submit_song", {"song": "Tum Hi Ho"})
+        assert engine.phase == "reveal" and engine.round_winner == roster[0].id
+        engine.round, engine.phase, engine.letter = 2, "sing", "T"
+        engine.submissions = {}
+        engine.handle_action(roster[1].id, "submit_song", {"song": "tum hi ho"})
+        assert engine.phase == "sing"

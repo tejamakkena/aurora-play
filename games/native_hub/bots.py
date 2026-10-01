@@ -87,6 +87,10 @@ def _policy_bluff_it(engine, bot_id):
 def _policy_antakshari(engine, bot_id):
     if engine.phase != "sing":
         return None
+    # The first valid song takes the round, and a bot "types" in seconds;
+    # sitting out about half the rounds leaves the humans something to win.
+    if random.random() < 0.5:
+        return None
     letter = (getattr(engine, "letter", "") or "").upper()
     songs = getattr(engine, "songs", None) or _ANTAKSHARI_SONGS
     fitting = [s for s in songs if s.upper().startswith(letter)] if letter else []

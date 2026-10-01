@@ -8,6 +8,7 @@ import random
 import time
 
 from games.native_hub.engines import _content as C
+from games.native_hub.engines._matching import guess_matches
 from games.native_hub.engines._bases import RoundBasedEngine
 from games.native_hub.engines.content_packs import questions_for
 from games.native_hub.engine import NativeGameEngine
@@ -197,14 +198,21 @@ class CipherGridEngine(NativeGameEngine):
 
 
 class OddOneOutEngine(NativeGameEngine):
-    """Everyone shares a secret location -- except the Spy, who must bluff."""
+    """Everyone shares a secret location -- except the Spy, who must bluff.
+
+    Three rounds, a new spy and location each time. The spy scores 2 for
+    escaping (or naming the location); everyone else scores 1 for catching
+    them. A tied vote has no consensus, so the spy escapes.
+    """
 
     game_id = "odd_one_out"
     min_players = 4
     max_players = 10
 
-    ROUND_SECONDS = 300
+    TOTAL_ROUNDS = 3
+    ROUND_SECONDS = 240
     VOTE_SECONDS = 60
+    REVEAL_SECONDS = 10
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -215,35 +223,52 @@ class OddOneOutEngine(NativeGameEngine):
         self.votes: dict[str, str] = {}
         self.winner: str | None = None
         self.spy_guess: str | None = None
+        self.round = 0
+        self.scores: dict[str, int] = {}
+        self.used_locations: set[str] = set()
+        self.past_spies: list[str] = []
         self._finished = False
 
     def start(self, players):
-        self.location = random.choice(C.SPY_LOCATIONS)
-        self.spy = random.choice(players).id
+        self.scores = {p.id: 0 for p in players}
+        self._new_round()
+
+    def _new_round(self):
+        self.round += 1
+        pool = [loc for loc in C.SPY_LOCATIONS if loc not in self.used_locations] \
+            or list(C.SPY_LOCATIONS)
+        self.location = random.choice(pool)
+        self.used_locations.add(self.location)
+        people = [p.id for p in self.room.connected_players()] or list(self.scores)
+        fresh = [pid for pid in people if pid not in self.past_spies] or people
+        self.spy = random.choice(fresh)
+        self.past_spies.append(self.spy)
         self.phase = "question"
+        self.votes = {}
+        self.winner = None
+        self.spy_guess = None
         self.deadline = time.time() + self.ROUND_SECONDS
 
     def seconds_left(self):
         return max(0, int(round(self.deadline - time.time()))) if self.deadline else 0
 
     def handle_action(self, player_id, action, data):
-        if self._finished:
+        if self._finished or self.phase == "reveal":
             return
         if action == "call_vote" and self.phase == "question":
             self.phase = "vote"
             self.deadline = time.time() + self.VOTE_SECONDS
         elif action == "vote" and self.phase == "vote":
             target = data.get("targetID")
-            if isinstance(target, str) and self.room.player(target):
+            if isinstance(target, str) and target != player_id and self.room.player(target):
                 self.votes[player_id] = target
                 if len(self.votes) >= len(self.room.connected_players()):
                     self._resolve_vote()
         elif action == "spy_guess" and player_id == self.spy:
             guess = str(data.get("location", ""))[:40]
             self.spy_guess = guess
-            # The spy guessing correctly wins outright, at any point.
-            self.winner = "spy" if _norm(guess) == _norm(self.location) else "players"
-            self._finished = True
+            # The spy naming the location wins the round outright.
+            self._end_round("spy" if _norm(guess) == _norm(self.location) else "players")
 
     def tick(self, dt):
         if self._finished or not self.deadline:
@@ -252,38 +277,67 @@ class OddOneOutEngine(NativeGameEngine):
             if self.phase == "question":
                 self.phase = "vote"
                 self.deadline = time.time() + self.VOTE_SECONDS
-            else:
+            elif self.phase == "vote":
                 self._resolve_vote()
+            elif self.phase == "reveal":
+                if self.round >= self.TOTAL_ROUNDS:
+                    self._finished = True
+                    self.deadline = 0.0
+                else:
+                    self._new_round()
 
     def _resolve_vote(self):
         tally: dict[str, int] = {}
         for target in self.votes.values():
             tally[target] = tally.get(target, 0) + 1
-        accused = max(tally, key=tally.get) if tally else None
-        self.winner = "players" if accused == self.spy else "spy"
-        self._finished = True
+        accused = None
+        if tally:
+            top = max(tally.values())
+            leaders = [t for t, n in tally.items() if n == top]
+            accused = leaders[0] if len(leaders) == 1 else None   # tie: no consensus
+        self._end_round("players" if accused == self.spy else "spy")
+
+    def _end_round(self, winner):
+        self.winner = winner
+        if winner == "spy" and self.spy:
+            self._award(self.spy, 2)
+        else:
+            for pid in self.scores:
+                if pid != self.spy:
+                    self._award(pid, 1)
         self.phase = "reveal"
+        self.deadline = time.time() + self.REVEAL_SECONDS
+
+    def _award(self, pid, points):
+        self.scores[pid] = self.scores.get(pid, 0) + points
+        player = self.room.player(pid)
+        if player is not None:
+            player.score = self.scores[pid]
 
     def public_state(self):
         tally: dict[str, int] = {}
         for target in self.votes.values():
             tally[target] = tally.get(target, 0) + 1
+        revealed = self.phase == "reveal" or self._finished
         return {
             "phase": self.phase,
+            "round": self.round,
+            "totalRounds": self.TOTAL_ROUNDS,
             "secondsLeft": self.seconds_left(),
             "votedPlayerIDs": list(self.votes.keys()),
             "tally": [
                 {"playerID": pid, "name": self.player_name(pid), "votes": n}
                 for pid, n in sorted(tally.items(), key=lambda kv: -kv[1])
             ],
-            # Never revealed until the game is over.
-            "location": self.location if self._finished else None,
-            "spyID": self.spy if self._finished else None,
-            "spyName": self.player_name(self.spy) if self._finished and self.spy else None,
+            # Never revealed until the round is over.
+            "location": self.location if revealed else None,
+            "spyID": self.spy if revealed else None,
+            "spyName": self.player_name(self.spy) if revealed and self.spy else None,
             "spyGuess": self.spy_guess,
             "winner": self.winner,
             "players": [
-                {"id": p.id, "name": p.name, "hasVoted": p.id in self.votes}
+                {"id": p.id, "name": p.name, "score": self.scores.get(p.id, 0),
+                 "hasVoted": p.id in self.votes}
                 for p in self.room.players
             ],
         }
@@ -292,6 +346,7 @@ class OddOneOutEngine(NativeGameEngine):
         is_spy = player_id == self.spy
         return {
             "phase": self.phase,
+            "round": self.round,
             "isSpy": is_spy,
             # The spy is simply never told the location -- that is the game.
             "location": None if is_spy else self.location,
@@ -299,6 +354,7 @@ class OddOneOutEngine(NativeGameEngine):
             "canVote": self.phase == "vote" and player_id not in self.votes,
             "myVote": self.votes.get(player_id),
             "allLocations": C.SPY_LOCATIONS if is_spy else [],
+            "score": self.scores.get(player_id, 0),
             "players": [
                 {"id": p.id, "name": p.name}
                 for p in self.room.players if p.id != player_id
@@ -309,12 +365,7 @@ class OddOneOutEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        scores = {}
-        for p in self.room.players:
-            is_spy = p.id == self.spy
-            won = (self.winner == "spy") if is_spy else (self.winner == "players")
-            scores[p.id] = 1 if won else 0
-        return self.ranked_results(scores)
+        return self.ranked_results(dict(self.scores))
 
 
 class SealedAuctionEngine(RoundBasedEngine):
@@ -528,7 +579,10 @@ class WavelengthEngine(RoundBasedEngine):
 class KBCEngine(NativeGameEngine):
     """Prize-ladder quiz. The Audience Poll lifeline polls the actual room.
 
-    That lifeline is only possible because everyone is already holding a phone.
+    The hot seat rotates: each player (up to ``MAX_SEATS``) gets their own
+    run up the ladder with fresh lifelines, and the final ranking is what
+    each of them banked. That lifeline is only possible because everyone is
+    already holding a phone.
     """
 
     game_id = "kbc"
@@ -538,13 +592,18 @@ class KBCEngine(NativeGameEngine):
     ANSWER_SECONDS = 45
     POLL_SECONDS = 20
     REVEAL_SECONDS = 8
+    MAX_SEATS = 6
+    SAFE_RUNG = 4                   # answering this rung locks in a milestone
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
         self.order: list[str] = []
+        self.seat_index = 0
         self.hot_seat: str | None = None
         self.rung = 0
-        self.questions: list[tuple] = []
+        self.pool: list[tuple] = []
+        self.used: set[str] = set()
+        self.question: tuple = ("", [], 0)
         self.phase = "answer"
         self.deadline = 0.0
         self.choices: list[str] = []
@@ -553,19 +612,46 @@ class KBCEngine(NativeGameEngine):
         self.poll_votes: dict[str, int] = {}
         self.answer: int | None = None
         self.correct: int | None = None
+        self.outcome: str | None = None        # correct / wrong / walked / won
+        self.seat_over = False
+        self.banked_by: dict[str, int] = {}
         self._finished = False
         self.banked = 0
 
     def start(self, players):
-        self.order = [p.id for p in players]
-        self.hot_seat = self.order[0] if self.order else None
-        pool = questions_for(getattr(self.room, "content_pack", "en"), "kbc")
-        self.questions = random.sample(pool,
-                                       min(len(C.KBC_LADDER), len(pool)))
+        self.order = [p.id for p in players][: self.MAX_SEATS]
+        self.banked_by = {p.id: 0 for p in players}
+        pack = getattr(self.room, "content_pack", "en")
+        pool = [tuple(q) for q in questions_for(pack, "kbc")]
+        # Trivia questions widen the pool so later seats don't replay the
+        # questions everyone just watched.
+        for q in questions_for(pack, "trivia"):
+            if len(q) == 4:
+                pool.append((q[1], list(q[2]), q[3]))
+        self.pool = pool
+        self.seat_index = 0
+        self._start_seat()
+
+    def _start_seat(self):
+        self.hot_seat = self.order[self.seat_index] if self.order else None
+        self.rung = 0
+        self.banked = 0
+        self.lifelines = {"fifty": True, "poll": True, "skip": True}
+        self.seat_over = False
         self._load_question()
 
+    def _draw_question(self):
+        fresh = [q for q in self.pool if q[0] not in self.used]
+        if not fresh:
+            self.used.clear()
+            fresh = list(self.pool)
+        q = random.choice(fresh)
+        self.used.add(q[0])
+        return q
+
     def _load_question(self):
-        text, choices, correct = self.questions[self.rung]
+        self.question = self._draw_question()
+        text, choices, correct = self.question
         # Shuffle so the answer is not always at index 0 in the content table.
         pairs = list(enumerate(choices))
         random.shuffle(pairs)
@@ -574,6 +660,7 @@ class KBCEngine(NativeGameEngine):
         self.hidden = []
         self.poll_votes = {}
         self.answer = None
+        self.outcome = None
         self.phase = "answer"
         self.deadline = time.time() + self.ANSWER_SECONDS
 
@@ -595,7 +682,7 @@ class KBCEngine(NativeGameEngine):
 
         if action == "answer" and self.phase == "answer":
             idx = data.get("index")
-            if isinstance(idx, int) and 0 <= idx < len(self.choices):
+            if isinstance(idx, int) and 0 <= idx < len(self.choices) and idx not in self.hidden:
                 self.answer = idx
                 self._resolve()
         elif action == "lifeline_fifty" and self.lifelines["fifty"] and self.phase == "answer":
@@ -608,36 +695,40 @@ class KBCEngine(NativeGameEngine):
             self.phase = "poll"
             self.deadline = time.time() + self.POLL_SECONDS
         elif action == "lifeline_skip" and self.lifelines["skip"] and self.phase == "answer":
+            # Flip the question: a new one at the same rung, not a free climb.
             self.lifelines["skip"] = False
-            self._next_question()
-        elif action == "walk_away":
-            self.banked = C.KBC_LADDER[self.rung - 1] if self.rung else 0
-            self._finished = True
+            self._load_question()
+        elif action == "walk_away" and self.phase in ("answer", "poll"):
+            self.outcome = "walked"
+            self._end_seat()
+
+    def _set_banked(self, amount):
+        self.banked = amount
+        if self.hot_seat:
+            self.banked_by[self.hot_seat] = amount
+            player = self.room.player(self.hot_seat)
+            if player is not None:
+                player.score = amount
 
     def _resolve(self):
-        player = self.room.player(self.hot_seat) if self.hot_seat else None
         if self.answer == self.correct:
-            self.banked = C.KBC_LADDER[self.rung]
-            if player is not None:
-                player.score = self.banked
-            self.phase = "reveal"
-            self.deadline = time.time() + self.REVEAL_SECONDS
+            self._set_banked(C.KBC_LADDER[self.rung])
+            self.outcome = "correct"
+            if self.rung + 1 >= len(C.KBC_LADDER):
+                self.outcome = "won"
+                self.seat_over = True
         else:
             # Wrong answer drops to the last guaranteed milestone.
-            self.banked = C.KBC_LADDER[4] if self.rung > 4 else 0
-            if player is not None:
-                player.score = self.banked
-            self.phase = "reveal"
-            self.deadline = time.time() + self.REVEAL_SECONDS
-            self._finished = True
+            self._set_banked(C.KBC_LADDER[self.SAFE_RUNG] if self.rung > self.SAFE_RUNG else 0)
+            self.outcome = "wrong"
+            self.seat_over = True
+        self.phase = "reveal"
+        self.deadline = time.time() + self.REVEAL_SECONDS
 
-    def _next_question(self):
-        self.rung += 1
-        if self.rung >= len(self.questions) or self.rung >= len(C.KBC_LADDER):
-            self._finished = True
-            self.phase = "final"
-        else:
-            self._load_question()
+    def _end_seat(self):
+        self.seat_over = True
+        self.phase = "reveal"
+        self.deadline = time.time() + self.REVEAL_SECONDS
 
     def tick(self, dt):
         if self._finished or not self.deadline:
@@ -651,7 +742,22 @@ class KBCEngine(NativeGameEngine):
             self.answer = -1              # timed out counts as wrong
             self._resolve()
         elif self.phase == "reveal":
-            self._next_question()
+            if self.seat_over:
+                self.seat_index += 1
+                if self.seat_index >= len(self.order):
+                    self._finished = True
+                    self.phase = "final"
+                    self.deadline = 0.0
+                else:
+                    self._start_seat()
+            else:
+                self.rung += 1
+                self._load_question()
+
+    def on_player_leave(self, player_id):
+        if player_id == self.hot_seat and self.phase in ("answer", "poll"):
+            self.outcome = "walked"
+            self._end_seat()
 
     def _poll_tally(self):
         counts = [0] * len(self.choices)
@@ -661,15 +767,20 @@ class KBCEngine(NativeGameEngine):
         total = sum(counts) or 1
         return [round(100 * c / total) for c in counts]
 
+    def _standings(self):
+        return [
+            {"playerID": pid, "name": self.player_name(pid), "banked": amt}
+            for pid, amt in sorted(self.banked_by.items(), key=lambda kv: -kv[1])
+        ]
+
     def public_state(self):
-        text = self.questions[self.rung][0] if self.rung < len(self.questions) else ""
         return {
             "phase": self.phase,
             "rung": self.rung,
             "ladder": C.KBC_LADDER,
             "prize": C.KBC_LADDER[self.rung] if self.rung < len(C.KBC_LADDER) else 0,
             "banked": self.banked,
-            "question": text,
+            "question": self.question[0],
             "choices": [
                 {"index": i, "text": c, "hidden": i in self.hidden}
                 for i, c in enumerate(self.choices)
@@ -682,8 +793,12 @@ class KBCEngine(NativeGameEngine):
             # moment the key is present, so sending it early spoils the answer.
             "correctIndex": self.correct if self.phase == "reveal" else None,
             "answerIndex": self.answer if self.phase == "reveal" else None,
+            "outcome": self.outcome if self.phase == "reveal" else None,
             "hotSeatID": self.hot_seat,
             "hotSeatName": self.player_name(self.hot_seat) if self.hot_seat else "",
+            "seat": self.seat_index + 1,
+            "totalSeats": len(self.order),
+            "standings": self._standings(),
         }
 
     def private_state(self, player_id):
@@ -691,7 +806,8 @@ class KBCEngine(NativeGameEngine):
         return {
             "phase": self.phase,
             "isHotSeat": is_hot,
-            "question": self.questions[self.rung][0] if self.rung < len(self.questions) else "",
+            "hotSeatName": self.player_name(self.hot_seat) if self.hot_seat else "",
+            "question": self.question[0],
             "choices": [
                 {"index": i, "text": c, "hidden": i in self.hidden}
                 for i, c in enumerate(self.choices)
@@ -702,13 +818,14 @@ class KBCEngine(NativeGameEngine):
             "canPoll": not is_hot and self.phase == "poll" and player_id not in self.poll_votes,
             "myPollVote": self.poll_votes.get(player_id),
             "prize": C.KBC_LADDER[self.rung] if self.rung < len(C.KBC_LADDER) else 0,
+            "banked": self.banked_by.get(player_id, 0),
         }
 
     def is_over(self):
         return self._finished
 
     def results(self):
-        return self.ranked_results({p.id: p.score for p in self.room.players})
+        return self.ranked_results(dict(self.banked_by))
 
 
 class BollywoodCharadesEngine(RoundBasedEngine):
@@ -753,7 +870,7 @@ class BollywoodCharadesEngine(RoundBasedEngine):
         if player_id in self.correct_ids:
             return
         guess = str(data.get("text", ""))[:60]
-        if _norm(guess) == _norm(self.title):
+        if guess_matches(guess, self.title):
             elapsed = time.time() - self.started_at
             # Decays from 500 to 100 across the 90-second round.
             points = max(100, int(500 - elapsed * 4))

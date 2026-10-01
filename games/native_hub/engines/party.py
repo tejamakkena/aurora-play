@@ -8,6 +8,7 @@ import random
 import time
 
 from games.native_hub.engines import _content as C
+from games.native_hub.engines._matching import guess_matches
 from games.native_hub.engines._bases import RoundBasedEngine
 from games.native_hub.engine import NativeGameEngine
 from utils.room_manager import Player
@@ -16,6 +17,26 @@ from utils.room_manager import Player
 def _norm(text) -> str:
     """Loose normalisation so 'Idli ' and 'idli' count as the same answer."""
     return " ".join(str(text).strip().lower().split()) if text else ""
+
+
+def _within_one_edit(a: str, b: str) -> bool:
+    if a == b:
+        return True
+    if len(a) > len(b):
+        a, b = b, a
+    i = j = edits = 0
+    while i < len(a) and j < len(b):
+        if a[i] != b[j]:
+            edits += 1
+            if edits > 1:
+                return False
+            if len(a) == len(b):
+                i += 1
+            j += 1
+        else:
+            i += 1
+            j += 1
+    return edits + (len(b) - j) <= 1
 
 
 class BluffItEngine(RoundBasedEngine):
@@ -31,6 +52,7 @@ class BluffItEngine(RoundBasedEngine):
     total_rounds = 5
     first_phase = "write"
     phase_seconds = {"write": 45, "pick": 30, "reveal": 8}
+    early_phases = ("pick",)         # reveal as soon as everyone has picked
 
     POINTS_FOR_TRUTH = 1000
     POINTS_PER_FOOL = 500
@@ -154,6 +176,10 @@ class LastTapEngine(NativeGameEngine):
     game_id = "last_tap"
     min_players = 2
     max_players = 20
+    # GO has to reach the phones the moment it happens: at the 1 Hz baseline
+    # pump it landed up to a second late and that lag was counted in
+    # everyone's reaction time.
+    tick_hz = 10.0
 
     ARM_MIN, ARM_MAX = 2.0, 6.0
     REVEAL_SECONDS = 5.0
@@ -163,6 +189,7 @@ class LastTapEngine(NativeGameEngine):
         super().__init__(room, broadcaster)
         self.phase = "arming"
         self.go_at = 0.0
+        self.go_shown_at = 0.0
         self.phase_until = 0.0
         self.alive: list[str] = []
         self.times: dict[str, float] = {}
@@ -193,7 +220,7 @@ class LastTapEngine(NativeGameEngine):
             # player still sees a result instead of silence.
             self.times[player_id] = self.FALSE_START_PENALTY
         elif self.phase == "go":
-            self.times[player_id] = max(0.0, now - self.go_at)
+            self.times[player_id] = max(0.0, now - self.go_shown_at)
 
     def tick(self, dt):
         if self._finished:
@@ -201,6 +228,8 @@ class LastTapEngine(NativeGameEngine):
         now = time.time()
         if self.phase == "arming" and now >= self.go_at:
             self.phase = "go"
+            # Timed from when GO is actually published, not when it was due.
+            self.go_shown_at = now
         elif self.phase == "go":
             everyone_in = all(pid in self.times for pid in self.alive)
             if everyone_in or now - self.go_at > 5.0:
@@ -316,11 +345,22 @@ class HerdEngine(RoundBasedEngine):
             return "reveal"
         return None
 
+    @staticmethod
+    def _same_answer(a, b):
+        """'Idli', 'idly' and 'idlis' are one herd, not three."""
+        na, nb = _norm(a).rstrip("s"), _norm(b).rstrip("s")
+        if na == nb or guess_matches(a, b, threshold=0.8):
+            return True
+        # One-letter spelling variants of short words ("idly"/"idli").
+        if min(len(na), len(nb)) >= 4 and abs(len(na) - len(nb)) <= 1:
+            return _within_one_edit(na, nb)
+        return False
+
     def _cluster_and_score(self):
         groups: dict[str, list[str]] = {}
         labels: dict[str, str] = {}
         for pid, text in self.submissions.items():
-            key = _norm(text)
+            key = next((k for k in groups if self._same_answer(text, labels[k])), _norm(text))
             groups.setdefault(key, []).append(pid)
             labels.setdefault(key, str(text))
 
@@ -333,6 +373,8 @@ class HerdEngine(RoundBasedEngine):
             return
         top = self.clusters[0]["size"]
         for cluster in self.clusters:
+            if cluster["size"] < 2:
+                continue            # nobody matched you: you're not in a herd
             # Everyone in a matching group scores; the biggest herd scores most.
             points = 100 * cluster["size"] + (50 if cluster["size"] == top else 0)
             for pid in cluster["playerIDs"]:
@@ -424,7 +466,7 @@ class EmojiMovieEngine(RoundBasedEngine):
                 if idx >= len(self.entries):
                     continue
                 entry = self.entries[idx]
-                if _norm(text) == _norm(entry["title"]):
+                if guess_matches(text, entry["title"]):
                     self.award(guesser, 300)
                     self.award(entry["ownerID"], 200)   # your clue worked
 
@@ -593,7 +635,12 @@ class AntakshariEngine(RoundBasedEngine):
             return
         if not song.upper().startswith(self.letter):
             return                       # wrong starting letter
+        if any(_norm(a["song"]) == _norm(song) for a in self.accepted):
+            return                       # already sung this game
         self.submissions[player_id] = song
+        # It's a race: the first valid song takes the round, so close it now
+        # instead of making the room sit out the rest of the clock.
+        self.advance()
 
     def resolve_phase(self, phase):
         if phase == "sing":

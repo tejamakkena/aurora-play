@@ -41,7 +41,8 @@ class DefuseEngine(NativeGameEngine):
         self.log: list[str] = []
 
     def start(self, players):
-        self.defuser = players[0].id if players else None
+        # Random, so "Play Again" hands the bomb to someone new.
+        self.defuser = random.choice(players).id if players else None
         self.deadline = time.time() + self.FUSE_SECONDS
         self.modules = [self._wires(), self._button(), self._symbols(), self._wires()]
         self.module_index = 0
@@ -244,7 +245,8 @@ class BattleshipEngine(TurnBasedEngine):
             if self._all_sunk(target, player_id):
                 self.finish(winner=player_id)
                 return
-            return          # a hit earns another shot
+            self.reset_turn_clock()
+            return          # a hit earns another shot (with a fresh clock)
         self.next_turn()
 
     def _all_sunk(self, owner, shooter):

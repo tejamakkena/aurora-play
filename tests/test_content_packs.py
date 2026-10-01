@@ -164,15 +164,18 @@ def test_hindi_pack_uses_devanagari_script():
 
 def test_kbc_engine_defaults_to_english_pool():
     engine, _ = _make("kbc")
-    assert len(engine.questions) == min(12, len(C.KBC_QUESTIONS))
-    assert all(q in C.KBC_QUESTIONS for q in engine.questions)
+    kbc = [tuple(q) for q in C.KBC_QUESTIONS]
+    assert all(q in engine.pool for q in kbc)
+    assert engine.question in engine.pool
 
 
 def test_kbc_engine_uses_telugu_pack_when_configured():
     engine, _ = _make("kbc", pack="te")
-    pool = questions_for("te", "kbc")
-    assert len(engine.questions) == min(12, len(pool))
-    assert all(q in pool for q in engine.questions)
+    te_kbc = [tuple(q) for q in questions_for("te", "kbc")]
+    assert all(q in engine.pool for q in te_kbc)
+    english = {tuple(q)[0] for q in C.KBC_QUESTIONS}
+    assert not any(q[0] in english for q in engine.pool)
+    assert engine.question in engine.pool
 
 
 def test_trivia_engine_defaults_to_english_pool():

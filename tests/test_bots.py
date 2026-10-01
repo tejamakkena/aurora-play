@@ -105,7 +105,10 @@ def test_bluff_it_bot_submits_lie_then_picks():
     assert act[0] == "pick"
 
 
-def test_antakshari_bot_matches_letter():
+def test_antakshari_bot_matches_letter(monkeypatch):
+    import games.native_hub.bots as bots_module
+    # The bot sits out about half the rounds; force a round it plays.
+    monkeypatch.setattr(bots_module.random, "random", lambda: 0.9)
     room, _, bots_ = make_room("antakshari", n_humans=2, n_bots=1)
     engine = start_engine(room)
     bot = bots_[0]
