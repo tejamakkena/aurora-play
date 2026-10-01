@@ -22,7 +22,11 @@ struct Player: Codable, Equatable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case id, name, isReady, score, isHost, isBot
     }
+}
 
+// Custom decoding lives in an extension so Player keeps its synthesized
+// memberwise initializer (TV boards build Player values directly).
+extension Player {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
