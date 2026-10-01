@@ -6,6 +6,7 @@ struct WaitingView: View {
     let onLeave: () -> Void
 
     @State private var isReady = false
+    @EnvironmentObject private var vm: ControllerRootViewModel
 
     var body: some View {
         VStack(spacing: 36) {
@@ -58,8 +59,17 @@ struct WaitingView: View {
                             .foregroundColor(.white)
 
                         if player.isHost { Text("HOST").font(.caption2).foregroundColor(.cyan) }
+                        if player.isBot { Text("BOT").font(.caption2).foregroundColor(.orange) }
 
                         Spacer()
+
+                        if player.isBot && vm.isHost {
+                            Button { vm.removeBot(player.id) } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundColor(.red.opacity(0.8))
+                            }
+                            .buttonStyle(.plain)
+                        }
 
                         Image(systemName: player.isReady ? "checkmark.circle.fill" : "circle")
                             .foregroundColor(player.isReady ? .green : .white.opacity(0.2))
@@ -70,6 +80,11 @@ struct WaitingView: View {
                 }
             }
             .padding(.horizontal, 24)
+
+            if vm.isHost {
+                HostLobbyControls(room: room)
+                    .padding(.horizontal, 24)
+            }
 
             // Private info note
             if room.gameID.hasPrivateInfo {
@@ -106,6 +121,51 @@ struct WaitingView: View {
             .disabled(isReady)
             .padding(.horizontal, 32)
             .padding(.bottom, 40)
+        }
+    }
+}
+
+/// Bot seat-fillers and question language -- shown to the host only.
+private struct HostLobbyControls: View {
+    let room: Room
+    @EnvironmentObject private var vm: ControllerRootViewModel
+
+    private var canAddBot: Bool {
+        (room.botsAllowed ?? false) && room.players.count < room.gameID.maxPlayers
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            if room.usesContentPack ?? false {
+                HStack(spacing: 8) {
+                    Image(systemName: "character.bubble.fill")
+                        .foregroundColor(.white.opacity(0.5))
+                    ForEach(ContentPack.allCases) { pack in
+                        let selected = (room.contentPack ?? "en") == pack.rawValue
+                        Button { vm.setContentPack(pack) } label: {
+                            Text(pack.label)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(selected ? .black : .white.opacity(0.7))
+                                .padding(.horizontal, 14).padding(.vertical, 8)
+                                .background(Capsule().fill(selected ? Color.cyan : Color.white.opacity(0.08)))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            if room.botsAllowed ?? false {
+                Button { vm.addBot() } label: {
+                    Label("Add a bot player", systemImage: "cpu")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(canAddBot ? .orange : .white.opacity(0.3))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(Color.orange.opacity(canAddBot ? 0.6 : 0.2), lineWidth: 1.5))
+                }
+                .buttonStyle(.plain)
+                .disabled(!canAddBot)
+            }
         }
     }
 }

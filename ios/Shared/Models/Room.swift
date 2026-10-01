@@ -5,8 +5,30 @@ struct Room: Codable, Equatable {
     let gameID: GameID
     var players: [Player]
     var state: RoomState
+    // Lobby options. Optional so older servers that omit them still decode.
+    var contentPack: String? = nil
+    var botsAllowed: Bool? = nil
+    var usesContentPack: Bool? = nil
 
     var hostPlayerID: String { players.first?.id ?? "" }
+}
+
+/// Question languages the server ships (games/native_hub/engines/content_packs.py).
+enum ContentPack: String, CaseIterable, Identifiable {
+    case en, te, hi
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .en: return "English"
+        case .te: return "Telugu"
+        case .hi: return "Hindi"
+        }
+    }
+    var next: ContentPack {
+        let all = Self.allCases
+        let i = all.firstIndex(of: self) ?? 0
+        return all[(i + 1) % all.count]
+    }
 }
 
 struct Player: Codable, Equatable, Identifiable {

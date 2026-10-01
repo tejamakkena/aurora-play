@@ -53,3 +53,45 @@ class TestCorsConfig:
 
     def test_star_passthrough(self):
         assert self._make_origins("*") == "*"
+
+
+class TestOriginChecker:
+    """The real checker app.py hands to engine.io."""
+
+    def _check(self, raw=""):
+        from app import make_origin_checker
+        return make_origin_checker(raw)
+
+    def test_no_origin_header_is_allowed(self):
+        assert self._check()(None, {"HTTP_HOST": "game.example"}) is True
+
+    def test_same_host_allowed_even_behind_tls_proxy(self):
+        env = {"HTTP_HOST": "game.example", "wsgi.url_scheme": "http",
+               "HTTP_X_FORWARDED_PROTO": "https"}
+        assert self._check()("https://game.example", env) is True
+        assert self._check()("https://game.example:443", env) is True
+
+    def test_lan_host_with_port_allowed(self):
+        env = {"HTTP_HOST": "192.168.1.20:5000"}
+        assert self._check()("http://192.168.1.20:5000", env) is True
+
+    def test_foreign_origin_rejected(self):
+        env = {"HTTP_HOST": "game.example"}
+        assert self._check()("https://evil.example", env) is False
+
+    def test_allowlisted_origin_accepted(self):
+        env = {"HTTP_HOST": "game.example"}
+        check = self._check("https://partner.example, https://b.example")
+        assert check("https://partner.example", env) is True
+        assert check("https://b.example/", env) is True
+
+    def test_browser_socket_handshake_with_same_origin(self):
+        from app import create_app
+        app, _ = create_app()
+        client = app.test_client()
+        resp = client.get("/socket.io/?EIO=4&transport=polling",
+                          headers={"Origin": "http://localhost", "Host": "localhost"})
+        assert resp.status_code == 200
+        bad = client.get("/socket.io/?EIO=4&transport=polling",
+                         headers={"Origin": "https://evil.example", "Host": "localhost"})
+        assert bad.status_code == 400

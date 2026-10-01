@@ -19,6 +19,7 @@ from flask_socketio import join_room as socket_join_room
 from flask_socketio import leave_room as socket_leave_room
 
 from games.native_hub import NAMESPACE
+from games.native_hub.bots import POLICIES as BOT_POLICIES
 from games.native_hub.broadcast import (
     Broadcaster, broadcast_state, finish_game, push_error, push_room,
     start_pump, start_reaper,
@@ -205,6 +206,12 @@ def register_native_events(socketio):
                 push_error(socketio, sid, "Bots can only join the lobby",
                            "GAME_IN_PROGRESS")
                 return
+            if room.game_id not in BOT_POLICIES:
+                # A bot with no policy never acts: it would stall a turn-based
+                # game on its turn and make every round wait out the clock.
+                push_error(socketio, sid, "Bots can't play this game yet",
+                           "BOTS_UNSUPPORTED")
+                return
             if len(room.players) >= engine_for(room.game_id).max_players:
                 push_error(socketio, sid, "Room is full", "ROOM_FULL")
                 return
@@ -234,6 +241,31 @@ def register_native_events(socketio):
                 return
         push_room(socketio, room)
         logger.info("room %s bot %s removed", code, bot_id)
+
+    # ---- set_content_pack ----------------------------------------------
+    # The TV (or the host's phone) picks the question language in the lobby.
+    @socketio.on("set_content_pack", namespace=NAMESPACE)
+    def handle_set_content_pack(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if sid not in room.tv_sids:
+                actor = room.player_by_sid(sid)
+                if actor is None or not actor.is_host:
+                    push_error(socketio, sid, "Only the host can change the language",
+                               "NOT_HOST")
+                    return
+            if room.state is RoomState.PLAYING:
+                return
+            room.content_pack = _valid_pack(data.get("contentPack"))
+            room.touch()
+        push_room(socketio, room)
 
     # ---- player_ready --------------------------------------------------
     @socketio.on("player_ready", namespace=NAMESPACE)

@@ -21,6 +21,10 @@ from games.native_hub.engines import _content as _C
 
 SUPPORTED_PACKS = [("en", "English"), ("te", "Telugu"), ("hi", "Hindi")]
 
+#: Games whose questions come from a content pack (the lobby shows a
+#: language picker only for these).
+PACK_GAMES = {"trivia", "kbc"}
+
 
 def _english_trivia_pool():
     from games.native_hub.engines.legacy_social import TRIVIA_QUESTIONS

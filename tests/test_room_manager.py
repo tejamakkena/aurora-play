@@ -53,7 +53,8 @@ class TestJSONShape:
         room = registry.create("trivia")
         room.add_player("dev-1", "Teja", "sid-1")
         payload = room.to_json()
-        assert set(payload) == {"code", "gameID", "players", "state"}
+        assert set(payload) == {"code", "gameID", "players", "state",
+                               "contentPack", "botsAllowed", "usesContentPack"}
         assert payload["gameID"] == "trivia"
         assert payload["state"] == "lobby"
 

@@ -15,11 +15,6 @@ struct PlaceholderBoardView: View {
     }
 }
 
-struct TVWebGameBoardView: View {
-    let room: Room
-    var body: some View { PlaceholderBoardView(game: room.gameID) }
-}
-
 // Shared score header used by multiple board views
 private struct TVScoreHeader: View {
     let players: [Player]

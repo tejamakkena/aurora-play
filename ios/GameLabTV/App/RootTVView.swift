@@ -127,6 +127,45 @@ final class TVRootViewModel: ObservableObject {
             case .results: self.screen = .results(response)
             }
         }
+
+        // After a dropped connection (Wi-Fi blip, Render waking up) the TV
+        // comes back on a new socket that is in no room: no game_state, and
+        // a solo game's remote input is rejected. Re-attach as the board.
+        socket.onConnected("tv") { [weak self] in
+            self?.rejoinAsBoard()
+        }
+    }
+
+    private var currentRoomCode: String? {
+        switch screen {
+        case .lobby(let room), .playing(let room), .results(let room): return room.code
+        case .gameSelection: return nil
+        }
+    }
+
+    private func rejoinAsBoard() {
+        guard let code = currentRoomCode else { return }
+        socket.emit(.joinRoom, payload: JoinRoomPayload(
+            roomCode: code, playerName: "TV",
+            playerID: AppConstants.deviceID, isTV: true
+        ))
+    }
+
+    // MARK: Lobby options
+
+    func addBot() {
+        guard let code = currentRoomCode else { return }
+        socket.emit(.addBot, payload: ["roomCode": code])
+    }
+
+    func removeBot(_ botID: String) {
+        guard let code = currentRoomCode else { return }
+        socket.emit(.removeBot, payload: ["roomCode": code, "botID": botID])
+    }
+
+    func setContentPack(_ pack: ContentPack) {
+        guard let code = currentRoomCode else { return }
+        socket.emit(.setContentPack, payload: ["roomCode": code, "contentPack": pack.rawValue])
     }
 
     func createRoom(game: GameID) {

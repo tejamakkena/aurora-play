@@ -137,12 +137,18 @@ class Room:
             p.connected and not p.is_bot for p in self.players)
 
     def to_json(self) -> dict:
-        """Exactly the Swift ``Room`` struct."""
+        """Exactly the Swift ``Room`` struct. ``contentPack``/``botsAllowed``/
+        ``usesContentPack`` are additive optionals on the Swift side."""
+        from games.native_hub.bots import POLICIES
+        from games.native_hub.engines.content_packs import PACK_GAMES
         return {
             "code": self.code,
             "gameID": self.game_id,
             "players": [p.to_json() for p in self.players],
             "state": self.state.value,
+            "contentPack": self.content_pack,
+            "botsAllowed": self.game_id in POLICIES,
+            "usesContentPack": self.game_id in PACK_GAMES,
         }
 
     # ---- mutations (callers hold self.lock) --------------------------------

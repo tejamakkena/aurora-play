@@ -573,3 +573,122 @@ struct TVAntakshariBoardView: View {
         .background(RoundedRectangle(cornerRadius: 18).fill(color.opacity(0.15)))
     }
 }
+
+// MARK: - Most Likely To
+
+struct MostLikelyResult: Identifiable {
+    let id: String
+    let name: String
+    let votes: Int
+    let topVoted: Bool
+}
+
+struct MostLikelyState {
+    var base = RoundBoardState()
+    var prompt = ""
+    var votesSoFar = 0
+    var results: [MostLikelyResult] = []
+
+    mutating func update(from d: [String: AnyCodable]) {
+        base.updateBase(from: d)
+        if let v = d["prompt"]?.value as? String { prompt = v }
+        if let v = d["votesSoFar"]?.value as? Int { votesSoFar = v }
+        let raw = d["roundResults"]?.value as? [Any] ?? []
+        results = raw.compactMap { item -> MostLikelyResult? in
+            guard let r = item as? [String: Any],
+                  let id = r["playerID"] as? String else { return nil }
+            return MostLikelyResult(id: id,
+                                    name: r["name"] as? String ?? "Player",
+                                    votes: r["votes"] as? Int ?? 0,
+                                    topVoted: r["topVoted"] as? Bool ?? false)
+        }
+    }
+}
+
+struct TVMostLikelyToBoardView: View {
+    let room: Room
+    @StateObject private var vm = TVBoardModel(initial: MostLikelyState()) { $0.update(from: $1) }
+
+    private var isReveal: Bool { vm.state.base.phase == "reveal" }
+    private var maxVotes: Int { max(1, vm.state.results.map(\.votes).max() ?? 1) }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TVRoundHeader(symbol: "hand.thumbsup.fill", title: "Most Likely To",
+                          round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
+                          secondsLeft: vm.state.base.secondsLeft,
+                          phaseLabel: isReveal ? "the room has spoken" : "secret ballot")
+            Spacer()
+            VStack(spacing: 40) {
+                Text("Who is most likely to…")
+                    .font(.title2.bold()).foregroundColor(.white.opacity(0.5))
+                Text(vm.state.prompt)
+                    .font(.system(size: 54, weight: .heavy))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 120)
+
+                if isReveal {
+                    revealBars
+                } else {
+                    ballotProgress
+                }
+            }
+            Spacer()
+            TVScoreStrip(players: vm.state.base.players, highlight: vm.state.base.submitted)
+        }
+        .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    private var ballotProgress: some View {
+        let total = vm.state.base.players.count
+        return VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                ForEach(vm.state.base.players) { p in
+                    let voted = vm.state.base.submitted.contains(p.id)
+                    Image(systemName: voted ? "checkmark.seal.fill" : "hourglass")
+                        .font(.system(size: 30))
+                        .foregroundColor(voted ? .green : .white.opacity(0.25))
+                }
+            }
+            Text("\(vm.state.votesSoFar) of \(total) votes in. Vote on your phone.")
+                .font(.title3).foregroundColor(.white.opacity(0.5))
+        }
+    }
+
+    private var revealBars: some View {
+        Group {
+            if vm.state.results.isEmpty {
+                Text("Nobody voted this round")
+                    .font(.title2).foregroundColor(.white.opacity(0.5))
+            } else {
+                VStack(spacing: 14) {
+                    ForEach(vm.state.results.prefix(6)) { r in
+                        HStack(spacing: 20) {
+                            Image(systemName: r.topVoted ? "crown.fill" : "person.fill")
+                                .font(.title2)
+                                .foregroundColor(r.topVoted ? .yellow : .white.opacity(0.4))
+                                .frame(width: 44)
+                            Text(r.name)
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(r.topVoted ? .yellow : .white)
+                                .frame(width: 280, alignment: .leading)
+                            GeometryReader { geo in
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(r.topVoted ? Color.yellow : Color.cyan.opacity(0.55))
+                                    .frame(width: geo.size.width * CGFloat(r.votes) / CGFloat(maxVotes))
+                                    .animation(.spring(response: 0.6), value: r.votes)
+                            }
+                            .frame(height: 40)
+                            Text("\(r.votes)")
+                                .font(.system(size: 34, weight: .heavy, design: .rounded))
+                                .foregroundColor(.white)
+                                .frame(width: 70)
+                        }
+                    }
+                }
+                .padding(.horizontal, 160)
+            }
+        }
+    }
+}

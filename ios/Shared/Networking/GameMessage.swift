@@ -11,6 +11,9 @@ enum ClientEvent: String {
     case gameAction     = "game_action"    // generic per-game payload
     case startGame      = "start_game"
     case leaveRoom      = "leave_room"
+    case addBot         = "add_bot"          // TV or host, lobby only
+    case removeBot      = "remove_bot"
+    case setContentPack = "set_content_pack" // question language (Trivia/KBC)
 }
 
 // MARK: - Inbound (server → client)

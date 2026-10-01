@@ -2,6 +2,11 @@ import SwiftUI
 
 struct JoinRoomView: View {
     let onJoin: (String, String) -> Void
+    /// Pre-filled from an auroraplay://join/<CODE> deep link.
+    var initialCode: String? = nil
+
+    /// Remembered between games so guests only type their name once.
+    @AppStorage("aurora_player_name") private var savedName = ""
 
     @State private var code = ""
     @State private var name = ""
@@ -140,6 +145,13 @@ struct JoinRoomView: View {
             }
         }
         .onTapGesture { focusedField = nil }
+        .onAppear {
+            if let initialCode, code.isEmpty { code = initialCode }
+            if name.isEmpty { name = savedName }
+        }
+        .onChange(of: initialCode) { newCode in
+            if let newCode { code = newCode }
+        }
     }
 
     private var canJoin: Bool { code.count == 6 && !name.trimmingCharacters(in: .whitespaces).isEmpty }

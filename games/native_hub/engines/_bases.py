@@ -246,7 +246,15 @@ class TurnBasedEngine(NativeGameEngine):
         return self._finished
 
     def results(self) -> list[dict]:
-        return self.ranked_results(self.scores)
+        # Many board games only record a winner (no running score), so a
+        # plain score sort would leave every player tied at 0 and could rank
+        # the loser first. The winner always tops the table.
+        ranked = self.ranked_results(self.scores)
+        if self.winner:
+            ranked.sort(key=lambda r: r["playerID"] != self.winner)
+            for rank, row in enumerate(ranked, start=1):
+                row["rank"] = rank
+        return ranked
 
     def on_player_leave(self, player_id: str) -> None:
         if self.current_player_id() == player_id:
