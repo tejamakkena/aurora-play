@@ -78,6 +78,35 @@ struct ControllerGameView: View {
         // Co-op arcade
         case .blastRunners:
             BlastRunnersControllerView(privateData: privateData, onAction: onAction)
+
+        // Travel Mode — hosted on the phone itself, not through a TV room.
+        case .storyChain:
+            TravelModeNoticeControllerView(gameID: .storyChain)
+        case .twentyQuestions:
+            TravelModeNoticeControllerView(gameID: .twentyQuestions)
+        case .hotTakes:
+            TravelModeNoticeControllerView(gameID: .hotTakes)
         }
+    }
+}
+
+/// Travel Mode games run phone-hosted; if one is ever picked in a TV room,
+/// the controller just points the player at Travel Mode.
+private struct TravelModeNoticeControllerView: View {
+    let gameID: GameID
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: gameID.sfSymbol)
+                .font(.system(size: 60))
+                .foregroundColor(.white.opacity(0.7))
+            Text(gameID.displayName)
+                .font(.title2.bold())
+                .foregroundColor(.white)
+            Text("Play this game in Travel Mode on your phone.")
+                .foregroundColor(.white.opacity(0.5))
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
     }
 }

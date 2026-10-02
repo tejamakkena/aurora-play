@@ -286,6 +286,40 @@ RULES: dict[str, dict] = {
         ],
         "controls": "Tap a player on your phone to vote.",
     },
+    # ---- Travel Mode (voice-first, one phone, car speakers) ------------
+    "story_chain": {
+        "title": "Story Chain",
+        "objective": "Build the funniest story one sentence at a time.",
+        "rules": [
+            "Players take turns adding one spoken sentence to the story.",
+            "The story so far is read aloud before every turn.",
+            "Each player adds two sentences, then the story ends.",
+            "Everyone votes for the funniest contributor; the top pick wins bonus points.",
+        ],
+        "controls": "Type each spoken sentence on the host phone; tap to vote.",
+    },
+    "twenty_questions": {
+        "title": "Twenty Questions",
+        "objective": "Guess the secret thing in 20 yes or no questions.",
+        "rules": [
+            "The engine picks a secret thing; one player sees it and answers.",
+            "Everyone else asks yes or no questions out loud.",
+            "The host records each answer as yes or no.",
+            "Guess correctly for points -- fewer questions means more points. Give up to reveal.",
+        ],
+        "controls": "Tap yes or no on the host phone; guess on your phone.",
+    },
+    "hot_takes": {
+        "title": "Hot Takes",
+        "objective": "Win the debate with the most convincing argument.",
+        "rules": [
+            "A debate prompt is read aloud each round.",
+            "Argue your side out loud for 90 seconds.",
+            "When time is up, the host awards points to the most convincing arguer.",
+            "Five rounds; the highest score wins.",
+        ],
+        "controls": "Argue by voice; the host taps the winner.",
+    },
     # ---- Mid group -----------------------------------------------------
     "cipher_grid": {
         "title": "Cipher Grid",

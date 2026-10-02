@@ -70,6 +70,11 @@ struct TVGameBoardView: View {
 
         // Co-op arcade
         case .blastRunners:  TVBlastRunnersBoardView(room: room)
+
+        // Travel Mode — phone-hosted games; the TV has no board for them.
+        case .storyChain:     PlaceholderBoardView(game: .storyChain)
+        case .twentyQuestions: PlaceholderBoardView(game: .twentyQuestions)
+        case .hotTakes:       PlaceholderBoardView(game: .hotTakes)
         }
     }
 }

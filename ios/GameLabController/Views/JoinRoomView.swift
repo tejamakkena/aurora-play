@@ -2,6 +2,8 @@ import SwiftUI
 
 struct JoinRoomView: View {
     let onJoin: (String, String) -> Void
+    /// Opens Travel Mode (one phone hosts in the car).
+    let onTravel: () -> Void
     /// Pre-filled from an auroraplay://join/<CODE> deep link.
     var initialCode: String? = nil
 
@@ -145,6 +147,38 @@ struct JoinRoomView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!canJoin)
+                .padding(.horizontal, 32)
+
+                // Travel Mode — one phone hosts voice-first games in the car.
+                Button(action: onTravel) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "car.fill")
+                            .font(.system(size: 30))
+                            .foregroundColor(.green)
+                            .frame(width: 44)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Travel Mode")
+                                .font(.headline.bold())
+                                .foregroundColor(.white)
+                            Text(TravelCopy.entrySubtitle)
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.white.opacity(0.35))
+                    }
+                    .padding(18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.white.opacity(0.06))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .strokeBorder(Color.green.opacity(0.35), lineWidth: 1.5)
+                            )
+                    )
+                }
+                .buttonStyle(.plain)
                 .padding(.horizontal, 32)
 
                 serverSettings

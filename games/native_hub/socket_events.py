@@ -63,6 +63,36 @@ def _valid_pack(raw) -> str:
     return pack if pack in allowed else "en"
 
 
+def _valid_seed_questions(raw) -> list:
+    """Sanitize client-supplied seed questions from create_room.
+
+    The iOS client fetches questions itself (GET /api/travel/questions,
+    falling back to legacy POST /trivia/generate) and injects them here.
+    Every item must pass the same validation as live generations
+    (exactly 4 options, one correct answer, TTS-clean, no emoji);
+    invalid items are dropped, and the list is capped.
+    """
+    from games import topic_gen
+    if not isinstance(raw, list):
+        return []
+    valid = []
+    for item in raw[:50]:
+        if not isinstance(item, dict):
+            continue
+        correct = item.get("correct_answer")
+        if correct is None:
+            correct = item.get("correctAnswer")  # legacy camelCase tolerated
+        q = {
+            "question": str(item.get("question", "")).strip(),
+            "options": [str(o).strip() for o in (item.get("options") or [])],
+            "correct_answer": correct,
+        }
+        ok, _ = topic_gen.validate_question(q)
+        if ok:
+            valid.append(q)
+    return valid
+
+
 def register_native_events(socketio):
     """Attach every ``/native`` handler and start the room reaper."""
 
@@ -84,6 +114,10 @@ def register_native_events(socketio):
         solo = bool(data.get("solo"))
         room = rooms.create(gid, solo=solo)
         room.content_pack = _valid_pack(data.get("contentPack"))
+        # Travel Mode: the client may send a free-text topic and/or
+        # pre-fetched questions; both are honored, both are sanitized.
+        room.topic = str(data.get("topic", "") or "").strip()[:80]
+        room.seed_questions = _valid_seed_questions(data.get("seedQuestions"))
         socket_join_room(room.code, namespace=NAMESPACE)
         rooms.bind_sid(sid, room.code)
 
@@ -289,6 +323,33 @@ def register_native_events(socketio):
             if room.state is RoomState.PLAYING:
                 return
             room.content_pack = _valid_pack(data.get("contentPack"))
+            room.touch()
+        push_room(socketio, room)
+
+    # ---- set_topic ----------------------------------------------------
+    # Travel Mode: the passenger types a free-text topic in the lobby and the
+    # server generates fresh questions on it (see games/topic_gen.py).
+    @socketio.on("set_topic", namespace=NAMESPACE)
+    def handle_set_topic(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if sid not in room.tv_sids:
+                actor = room.player_by_sid(sid)
+                if actor is None or not actor.is_host:
+                    push_error(socketio, sid, "Only the host can set the topic",
+                               "NOT_HOST")
+                    return
+            if room.state is RoomState.PLAYING:
+                return
+            topic = str(data.get("topic", "")).strip()[:80]
+            room.topic = topic
             room.touch()
         push_room(socketio, room)
 

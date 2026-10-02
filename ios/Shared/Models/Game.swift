@@ -79,6 +79,11 @@ enum GameID: String, Codable, CaseIterable {
     // MARK: Co-op arcade
     case blastRunners = "blast_runners"
 
+    // MARK: Travel Mode — voice-first car games, one phone hosts
+    case storyChain     = "story_chain"
+    case twentyQuestions = "twenty_questions"
+    case hotTakes       = "hot_takes"
+
     var meta: GameMeta {
         switch self {
 
@@ -290,6 +295,23 @@ enum GameID: String, Codable, CaseIterable {
             return .init(displayName: "Blast Runners", sfSymbol: "figure.run", category: .coop,
                          minPlayers: 1, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .dpadPlusAction, supportsRemote: false, soloPlayable: false)
+
+        // ---- Travel Mode ------------------------------------------------
+        // Voice-first car games: one phone hosts (passenger operates),
+        // driver plays by voice only. Engine ids must stay in sync with
+        // utils/validators.py GAME_IDS.
+        case .storyChain:
+            return .init(displayName: "Story Chain", sfSymbol: "text.book.closed.fill", category: .creative,
+                         minPlayers: 2, maxPlayers: 8, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .twentyQuestions:
+            return .init(displayName: "Twenty Questions", sfSymbol: "questionmark.circle.fill", category: .knowledge,
+                         minPlayers: 2, maxPlayers: 8, hasPrivateInfo: true,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .hotTakes:
+            return .init(displayName: "Hot Takes", sfSymbol: "flame.fill", category: .social,
+                         minPlayers: 2, maxPlayers: 8, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         }
     }
 

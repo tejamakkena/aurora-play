@@ -115,6 +115,10 @@ def create_app(config_name='default'):
     app.register_blueprint(stickfight_bp, url_prefix='/stickfight')
     app.register_blueprint(roadfighter_bp, url_prefix='/roadfighter')
 
+    # Travel Mode: live topic-based question generation for the iOS client.
+    from games.topic_gen import topic_bp
+    app.register_blueprint(topic_bp, url_prefix='/api/travel')
+
     # Apply rate limiting to all game blueprints (configurable via RATE_LIMIT env var, default: 100/hour)
     game_rate_limit = app.config.get('RATELIMIT_DEFAULT', '100 per hour')
     limiter.limit(game_rate_limit)(tictactoe_bp)
