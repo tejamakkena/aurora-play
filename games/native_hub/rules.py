@@ -403,6 +403,7 @@ RULES: dict[str, dict] = {
             "Roll the dice on your turn to move.",
             "A six gets a token out of base and earns another roll.",
             "Land on an opponent to send their token back home.",
+            "Start squares and star squares are safe: tokens there can never be captured.",
             "First to bring all four tokens home wins.",
         ],
         "controls": "Shake to roll, tap a token to move.",

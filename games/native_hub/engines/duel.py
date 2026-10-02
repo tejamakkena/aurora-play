@@ -578,6 +578,11 @@ class LudoEngine(TurnBasedEngine):
     HOME_RUN = 6
     TOKENS = 4
     START_OFFSET = 13           # each colour enters the track 13 cells apart
+    #: Absolute track cells that are always safe: every seat's start square
+    #: plus the four star squares. A token on a safe square can never be
+    #: captured; tokens landing there simply coexist. Matches the TV board's
+    #: startAbs/starAbs markers exactly.
+    SAFE_ABS = frozenset({0, 13, 26, 39, 8, 21, 34, 47})
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -689,16 +694,19 @@ class LudoEngine(TurnBasedEngine):
                 return False
             self.tokens[player_id][idx] = new_value
 
-        # Capture: any opposing token on the same board square goes home.
+        # Capture: any opposing token on the same board square goes home --
+        # unless the square is safe (start squares and star squares), in
+        # which case the tokens coexist and nobody is captured.
         landed = self._abs_pos(player_id, self.tokens[player_id][idx])
         captured = False
-        for other, toks in self.tokens.items():
-            if other == player_id:
-                continue
-            for j, v in enumerate(toks):
-                if v >= 0 and v < 100 and self._abs_pos(other, v) == landed:
-                    toks[j] = -1
-                    captured = True
+        if landed not in self.SAFE_ABS:
+            for other, toks in self.tokens.items():
+                if other == player_id:
+                    continue
+                for j, v in enumerate(toks):
+                    if v >= 0 and v < 100 and self._abs_pos(other, v) == landed:
+                        toks[j] = -1
+                        captured = True
         if captured:
             self.scores[player_id] = self.scores.get(player_id, 0) + 1
         return captured
@@ -727,6 +735,9 @@ class LudoEngine(TurnBasedEngine):
             "rolled": self.rolled,
             "track": self.TRACK,
             "homeRun": self.HOME_RUN,
+            # Absolute track cells that are safe (start squares + star
+            # squares) -- mirrors LudoEngine.SAFE_ABS for clients.
+            "safe": sorted(self.SAFE_ABS),
             # Legal moves for the current player, with destinations, so the TV
             # can highlight exactly where each token may land. destAbs is the
             # shared 0..51 track cell; None means a home-run (colour) column.
