@@ -10,7 +10,11 @@ import time
 from games.native_hub.engines import _content as C
 from games.native_hub.engines._matching import guess_matches
 from games.native_hub.engines._bases import RoundBasedEngine
-from games.native_hub.engines.content_packs import questions_for
+from games.native_hub.engines.content_packs import (
+    questions_for,
+    fresh_questions,
+    record_questions,
+)
 from games.native_hub.engine import NativeGameEngine
 
 
@@ -622,13 +626,19 @@ class KBCEngine(NativeGameEngine):
         self.order = [p.id for p in players][: self.MAX_SEATS]
         self.banked_by = {p.id: 0 for p in players}
         pack = getattr(self.room, "content_pack", "en")
+        self._pack = pack
         pool = [tuple(q) for q in questions_for(pack, "kbc")]
         # Trivia questions widen the pool so later seats don't replay the
-        # questions everyone just watched.
+        # questions everyone just watched. Skip any whose text is already in
+        # the KBC pool -- a few questions exist in both banks.
+        have = {q[0] for q in pool}
         for q in questions_for(pack, "trivia"):
-            if len(q) == 4:
+            if len(q) == 4 and q[1] not in have:
+                have.add(q[1])
                 pool.append((q[1], list(q[2]), q[3]))
-        self.pool = pool
+        # Skip what this room asked recently; the `used` set in
+        # _draw_question already prevents repeats within a session.
+        self.pool = fresh_questions(self.room, pack, "kbc", pool=pool)
         self.seat_index = 0
         self._start_seat()
 
@@ -647,6 +657,9 @@ class KBCEngine(NativeGameEngine):
             fresh = list(self.pool)
         q = random.choice(fresh)
         self.used.add(q[0])
+        # Remember the question in the room's rolling history so the next
+        # session in this room skips it.
+        record_questions(self.room, self._pack, "kbc", [q])
         return q
 
     def _load_question(self):

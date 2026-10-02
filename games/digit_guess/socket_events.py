@@ -167,7 +167,7 @@ def register_digit_guess_events(socketio):
     def handle_set_secret_number(data):
         """Player sets their secret number"""
         room_code = data.get('room_code', '').upper()
-        secret_number = data.get('secret_number', '').strip()
+        secret_number = str(data.get('secret_number') or '').strip()
         player_id = request.sid
 
         print(f"\n{'=' * 40}")
@@ -180,6 +180,10 @@ def register_digit_guess_events(socketio):
             return
 
         room = digit_guess_rooms[room_code]
+
+        if room['status'] != 'setting_numbers':
+            emit('error', {'message': 'Numbers are not being set right now'})
+            return
 
         # Validate number
         is_valid, error_msg = validate_number(secret_number)
@@ -231,7 +235,7 @@ def register_digit_guess_events(socketio):
     def handle_make_guess(data):
         """Player makes a guess at opponent's number"""
         room_code = data.get('room_code', '').upper()
-        guess = data.get('guess', '').strip()
+        guess = str(data.get('guess') or '').strip()
         player_id = request.sid
 
         print(f"\n{'=' * 40}")
@@ -244,6 +248,12 @@ def register_digit_guess_events(socketio):
             return
 
         room = digit_guess_rooms[room_code]
+
+        # Ignore guesses outside the guessing phase (e.g. a late or double
+        # guess after the game already ended).
+        if room['status'] != 'playing':
+            emit('error', {'message': 'Game is not in the guessing phase'})
+            return
 
         # Check if it's player's turn
         if room['current_turn'] != player_id:

@@ -25,6 +25,7 @@ from games.native_hub.broadcast import (
     start_pump, start_reaper,
 )
 from games.native_hub.registry import engine_for
+from games.native_hub.rules import rules_for
 from utils import validators as v
 from utils.player_manager import sanitize_name
 from utils.room_manager import RoomState, rooms
@@ -350,8 +351,12 @@ def register_native_events(socketio):
                 push_error(socketio, sid, "Could not start game", "ENGINE_ERROR")
                 return
 
+        # The rules interstitial (TV + phone) is driven by this one event: the
+        # backend is the single source of truth for how-to-play text, so it
+        # rides along on the broadcast both clients already receive.
         socketio.emit("game_started",
-                      {"roomCode": code, "gameID": room.game_id},
+                      {"roomCode": code, "gameID": room.game_id,
+                       "rules": rules_for(room.game_id)},
                       to=code, namespace=NAMESPACE)
         push_room(socketio, room)
         start_pump(socketio, room)

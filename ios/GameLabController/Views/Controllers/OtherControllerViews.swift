@@ -1,5 +1,6 @@
 import SwiftUI
 import CoreMotion
+import UIKit
 
 // MARK: - Poker Controller (private hand on phone)
 
@@ -117,6 +118,14 @@ private struct FlippableHoleCard: View {
         ZStack {
             if showFace {
                 PokerCardFace(card: card)
+                    // The container rests at 180 degrees around Y once the
+                    // flip finishes, so it shows the card plane's back side
+                    // to the viewer -- which mirrors every glyph (the corner
+                    // rank indices read backwards, e.g. a flipped "5"). The
+                    // face content is counter-rotated by the same 180
+                    // degrees, netting to zero, so a revealed card reads
+                    // correctly.
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
             } else {
                 PokerCardBack()
             }
@@ -256,7 +265,20 @@ struct ShakeToRollControllerView: View {
     @State private var lastRoll: Int? = nil
     @State private var diceScale: CGFloat = 1.0
     @State private var diceRotation: Double = 0
+    /// Seq of the last slide event this phone already buzzed for -- the
+    /// engine keeps `lastSlide` in private state until the player's next
+    /// move, so without this every re-broadcast would buzz again.
+    @State private var lastBuzzedSlideSeq: Int? = nil
     private var isMyTurn: Bool { (privateData["isMyTurn"] as? Bool) ?? false }
+
+    /// This player's own latest slide event, if their last roll landed on
+    /// a snake head or ladder bottom (`SnakeLadderEngine.private_state`).
+    private var slideEvent: (kind: String, seq: Int)? {
+        guard let slide = privateData["lastSlide"] as? [String: Any],
+              let kind = slide["kind"] as? String,
+              let seq = slide["seq"] as? Int else { return nil }
+        return (kind, seq)
+    }
 
     var body: some View {
         VStack(spacing: 40) {
@@ -296,6 +318,26 @@ struct ShakeToRollControllerView: View {
             Spacer()
         }
         .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .onChange(of: slideEvent?.seq ?? -1) { seq in
+            // A fresh slide event for this player: buzz once. A snake bite
+            // is an error-style jolt, a ladder climb a success-style tap.
+            guard seq >= 0, seq != lastBuzzedSlideSeq else { return }
+            lastBuzzedSlideSeq = seq
+            playSlideHaptic(kind: slideEvent?.kind)
+        }
+    }
+
+    /// Optional, safe haptic. `UINotificationFeedbackGenerator` no-ops on
+    /// devices without a haptic engine, so this is purely additive -- no
+    /// capability check or fallback needed.
+    private func playSlideHaptic(kind: String?) {
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        switch kind {
+        case "snake": generator.notificationOccurred(.error)
+        case "ladder": generator.notificationOccurred(.success)
+        default: break
+        }
     }
 
     private func roll() {

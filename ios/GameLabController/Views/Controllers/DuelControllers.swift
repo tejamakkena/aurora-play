@@ -382,23 +382,46 @@ struct LudoControllerView: View {
     private var legalMoves: [Int] {
         (privateData["legalMoves"] as? [Any] ?? []).compactMap { $0 as? Int }
     }
+    /// Same shape as the TV's "legal": where tapping a token would send it.
+    private var legalDests: [(token: Int, dest: Int, destAbs: Int?)] {
+        (privateData["legalDests"] as? [Any] ?? []).compactMap {
+            guard let m = $0 as? [String: Any],
+                  let t = m["token"] as? Int, let d = m["dest"] as? Int else { return nil }
+            return (t, d, m["destAbs"] as? Int)
+        }
+    }
     private var seat: Int { privateData.int("seat") }
+    private var currentPlayerName: String { privateData["currentPlayerName"] as? String ?? "" }
 
     private let seatColors: [Color] = [.red, .green, .yellow, .blue]
 
-    private func label(_ value: Int) -> String {
+    /// Where a token sits right now, numbered exactly like the TV board.
+    private func positionLabel(_ value: Int) -> String {
         if value < 0 { return "Yard" }
-        if value >= 100 { return "Home \(value - 100 + 1)" }
-        return "Step \(value)"
+        if value >= 105 { return "Home" }
+        if value >= 100 { return "Home \(value - 100 + 1) of 5" }
+        return "Tile \((seat * 13 + value) % 52 + 1)"
+    }
+
+    /// Where tapping this token would send it -- matches the TV highlight.
+    private func destLabel(token: Int) -> String? {
+        guard let m = legalDests.first(where: { $0.token == token }) else { return nil }
+        if let a = m.destAbs { return "moves to tile \(a + 1)" }
+        if m.dest >= 105 { return "moves home" }
+        return "moves to home \(m.dest - 100 + 1) of 5"
     }
 
     var body: some View {
         ControllerShell(title: "Ludo",
                         subtitle: isMyTurn ? (canRoll ? "Roll the dice" : "Pick a token")
-                                           : "Waiting for your turn") {
+                                           : (currentPlayerName.isEmpty ? "Waiting for your turn"
+                                                                        : "\(currentPlayerName)'s turn")) {
             VStack(spacing: 20) {
                 if !isMyTurn {
-                    WaitingState(systemIcon: "hourglass", text: "Not your turn yet")
+                    WaitingState(systemIcon: "hourglass",
+                                 text: currentPlayerName.isEmpty ? "Not your turn yet"
+                                                                  : "Waiting for \(currentPlayerName)",
+                                 detail: "Watch the board")
                 } else {
                     Button(action: { if canRoll { onAction("roll", [:]) } }) {
                         VStack(spacing: 6) {
@@ -419,7 +442,9 @@ struct LudoControllerView: View {
                         VStack(spacing: 10) {
                             ForEach(Array(tokens.enumerated()), id: \.offset) { i, value in
                                 let legal = legalMoves.contains(i)
-                                ChoiceRow(text: "Token \(i + 1)", detail: label(value),
+                                ChoiceRow(text: "Token \(i + 1)",
+                                          detail: legal ? (destLabel(token: i) ?? positionLabel(value))
+                                                        : positionLabel(value),
                                           disabled: !legal) {
                                     onAction("move", ["token": i])
                                 }

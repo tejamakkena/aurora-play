@@ -16,6 +16,14 @@ struct TriviaControllerView: View {
         privateData["questionID"] as? String ?? ""
     }
 
+    private var questionText: String {
+        privateData["questionText"] as? String ?? ""
+    }
+
+    private var category: String {
+        privateData["category"] as? String ?? ""
+    }
+
     private var hasAnswered: Bool { selectedIndex != nil }
 
     var body: some View {
@@ -34,6 +42,31 @@ struct TriviaControllerView: View {
             }
             .padding(20)
             .background(Color.white.opacity(0.04))
+
+            // The question itself — always visible, above the answers.
+            // private_state carries it as questionText/category (see
+            // TriviaEngine.private_state); without this the controller showed
+            // answer buttons with no prompt at all.
+            VStack(spacing: 8) {
+                if !category.isEmpty {
+                    Text(category.uppercased())
+                        .font(.caption.bold())
+                        .foregroundColor(.cyan.opacity(0.9))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 5)
+                        .background(Color.cyan.opacity(0.12))
+                        .cornerRadius(8)
+                }
+                if !questionText.isEmpty {
+                    Text(questionText)
+                        .font(.title3.bold())
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
 
             Spacer()
 

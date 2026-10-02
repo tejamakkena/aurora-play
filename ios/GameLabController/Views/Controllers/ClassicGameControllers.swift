@@ -96,7 +96,14 @@ struct ChessControllerView: View {
     @State private var selectedSquare: [Int]? = nil
 
     private var validMoveSet: Set<String> {
-        Set(validMoves.map { "\($0[0]),\($0[1])" })
+        // Defensive: the server should always send [row, col] pairs, but a
+        // malformed entry used to crash on $0[0]/$0[1].
+        Set(validMoves.compactMap { $0.count >= 2 ? "\($0[0]),\($0[1])" : nil })
+    }
+
+    private func pieceAt(row: Int, col: Int) -> String {
+        guard row < board.count, col < board[row].count else { return "" }
+        return board[row][col]
     }
 
     var body: some View {
@@ -124,7 +131,7 @@ struct ChessControllerView: View {
                 ForEach(0..<8, id: \.self) { row in
                     HStack(spacing: 1) {
                         ForEach(0..<8, id: \.self) { col in
-                            let piece = board[row][col]
+                            let piece = pieceAt(row: row, col: col)
                             let isSelected = selectedSquare == [row, col]
                             let isValidTarget = validMoveSet.contains("\(row),\(col)")
                             let isLight = (row + col) % 2 == 0
@@ -171,7 +178,7 @@ struct ChessControllerView: View {
 
     private func tapSquare(row: Int, col: Int) {
         guard isMyTurn else { return }
-        let piece = board[row][col]
+        let piece = pieceAt(row: row, col: col)
         if let sel = selectedSquare {
             if validMoveSet.contains("\(row),\(col)") {
                 onAction("move", ["from": sel, "to": [row, col]])
@@ -253,7 +260,8 @@ struct MemoryControllerView: View {
                                 )
 
                             if revealed {
-                                Text(cardValues[idx]).font(.system(size: 28))
+                                Text(idx < cardValues.count ? cardValues[idx] : "?")
+                                    .font(.system(size: 28))
                             } else {
                                 Image(systemName: "questionmark").font(.title2)
                                     .foregroundColor(.white.opacity(0.3))

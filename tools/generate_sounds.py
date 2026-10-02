@@ -134,6 +134,111 @@ def main() -> None:
     write_wav("roulette_spin.wav", spin_loop())
     write_wav("win_fanfare.wav", win_fanfare())
     write_wav("connect4_drop.wav", coin_drop())
+    write_wav("snake_bite.wav", snake_bite())
+    write_wav("snake_doom_sting.wav", snake_doom_sting())
+    write_wav("ladder_climb.wav", ladder_climb())
+
+
+def snake_bite() -> list[float]:
+    """A snake strike, for the Snakes & Ladders TV board: a sharp snapping
+    transient at the lunge, then a descending warning hiss as the token is
+    dragged down. The falling pitch reads as danger, not reward."""
+    random.seed(11)          # local seed: deterministic whatever main() does
+    duration = 0.75
+    n = int(SAMPLE_RATE * duration)
+    out = [0.0] * n
+    hiss_lp = 0.0            # one-pole low-pass state for the hiss bed
+    for i in range(n):
+        t = i / SAMPLE_RATE
+        # Snap: bright noise burst plus a low thud, both dying fast.
+        snap_env = math.exp(-t * 60)
+        v = (random.random() * 2 - 1) * snap_env * 0.55
+        v += math.sin(2 * math.pi * 110 * t) * snap_env * 0.5
+        # Hiss: noise through a low-pass whose cutoff falls with the pitch
+        # sweep, so the whole texture darkens as the snake settles.
+        k = t / duration
+        cutoff = 0.55 - 0.38 * k
+        noise = random.random() * 2 - 1
+        hiss_lp += (noise - hiss_lp) * cutoff
+        hiss_env = math.exp(-t * 4.5) * min(1.0, t * 40)
+        v += hiss_lp * hiss_env * 1.1
+        # Descending whistle 900 -> 300 Hz with a little vibrato.
+        sweep = 900 - 600 * k
+        vibrato = 1 + 0.06 * math.sin(2 * math.pi * 28 * t)
+        v += math.sin(2 * math.pi * sweep * vibrato * t) * hiss_env * 0.28
+        out[i] = v * 0.5
+    return out
+
+
+def ladder_climb() -> list[float]:
+    """A pleasant ascending chime for the Snakes & Ladders TV board: five
+    bell-like notes climbing a major arpeggio. Shorter and brighter than
+    win_fanfare so a ladder never reads as the game being over."""
+    notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]
+    duration = 1.3
+    n = int(SAMPLE_RATE * duration)
+    out = [0.0] * n
+    for idx, freq in enumerate(notes):
+        offset = int(SAMPLE_RATE * idx * 0.11)
+        for i in range(offset, n):
+            t = (i - offset) / SAMPLE_RATE
+            env = math.exp(-t * 4.2) * (1 - math.exp(-t * 320))
+            v = math.sin(2 * math.pi * freq * t) * 0.5
+            v += math.sin(2 * math.pi * freq * 2 * t) * 0.16 * math.exp(-t * 7)
+            v += math.sin(2 * math.pi * freq * 3.01 * t) * 0.06 * math.exp(-t * 10)
+            out[i] += v * env * 0.34
+    return out
+
+
+def snake_doom_sting() -> list[float]:
+    """A dramatic doom sting for a snake bite on the Snakes & Ladders TV
+    board: low percussive hits under a descending minor motif, dark and
+    cinematic. Layered with (not replacing) ``snake_bite``'s snap and hiss
+    when the bite cinematic fires -- the bite is the strike, this is the
+    dread that follows the token down the body."""
+    random.seed(7)           # local seed: deterministic whatever main() does
+    duration = 2.6
+    n = int(SAMPLE_RATE * duration)
+    out = [0.0] * n
+
+    def add_note(start: float, freq: float, length: float, level: float) -> None:
+        offset = int(SAMPLE_RATE * start)
+        count = int(SAMPLE_RATE * length)
+        for i in range(offset, min(n, offset + count)):
+            t = (i - offset) / SAMPLE_RATE
+            attack = 1 - math.exp(-t * 18)
+            env = attack * math.exp(-t * 1.6)
+            # Slightly detuned pair for a dark chorus width.
+            v = math.sin(2 * math.pi * freq * t) * 0.55
+            v += math.sin(2 * math.pi * freq * 1.005 * t) * 0.30
+            v += math.sin(2 * math.pi * freq * 2 * t) * 0.14 * math.exp(-t * 3)
+            out[i] += v * env * level
+
+    def add_hit(start: float, level: float) -> None:
+        offset = int(SAMPLE_RATE * start)
+        count = int(SAMPLE_RATE * 0.5)
+        for i in range(offset, min(n, offset + count)):
+            t = (i - offset) / SAMPLE_RATE
+            env = math.exp(-t * 22)
+            thud = math.sin(2 * math.pi * 55 * t) * 0.8
+            thud += math.sin(2 * math.pi * 82.5 * t) * 0.3
+            noise = (random.random() * 2 - 1) * 0.25
+            out[i] += (thud + noise) * env * level
+
+    # Descending minor tetrachord -- A2, G2, F2, E2 -- the "doom" motif.
+    motif = [(0.00, 110.00), (0.55, 98.00), (1.10, 87.31), (1.65, 82.41)]
+    for start, freq in motif:
+        add_note(start, freq, 1.1, 0.5)
+    # Percussive hits under beats 1 and 3, plus a final punctuation hit.
+    add_hit(0.0, 0.9)
+    add_hit(1.1, 0.7)
+    add_hit(2.2, 1.0)
+    # Low 55 Hz drone swelling under the whole sting.
+    for i in range(n):
+        t = i / SAMPLE_RATE
+        swell = min(1.0, t * 2.5) * math.exp(-max(0.0, t - 1.8) * 2.5)
+        out[i] += math.sin(2 * math.pi * 55 * t) * swell * 0.18
+    return [v * 0.55 for v in out]
 
 
 if __name__ == "__main__":

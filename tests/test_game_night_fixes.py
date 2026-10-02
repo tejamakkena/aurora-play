@@ -248,6 +248,58 @@ class TestLudo:
         assert engine.current_player_id() == pid          # a six rolls again
 
 
+class TestLudoDestinations:
+    def _rolled(self, engine, pid, die, tokens):
+        engine.tokens[pid] = list(tokens)
+        engine.die = die
+        engine.rolled = True
+
+    def test_public_legal_lists_destinations_with_abs_cells(self):
+        engine, roster = make("ludo", players=2)
+        pid = engine.current_player_id()
+        self._rolled(engine, pid, 3, [10, -1, -1, -1])
+        legal = engine.public_state()["legal"]
+        assert legal == [{"token": 0, "dest": 13, "destAbs": 13}]
+
+    def test_track_wrap_lands_in_home_run_with_no_abs_cell(self):
+        engine, roster = make("ludo", players=2)
+        pid = engine.current_player_id()
+        self._rolled(engine, pid, 4, [50, -1, -1, -1])
+        legal = engine.public_state()["legal"]
+        assert legal == [{"token": 0, "dest": 102, "destAbs": None}]
+
+    def test_yard_entry_needs_a_six(self):
+        engine, roster = make("ludo", players=2)
+        pid = engine.current_player_id()
+        self._rolled(engine, pid, 6, [-1, 20, -1, -1])
+        by_token = {m["token"]: m for m in engine.public_state()["legal"]}
+        assert by_token[0] == {"token": 0, "dest": 0, "destAbs": 0}
+        assert by_token[1]["dest"] == 26 and by_token[1]["destAbs"] == 26
+        self._rolled(engine, pid, 5, [-1, 20, -1, -1])
+        assert [m["token"] for m in engine.public_state()["legal"]] == [1]
+
+    def test_private_legal_dests_only_for_current_player(self):
+        engine, roster = make("ludo", players=2)
+        pid = engine.current_player_id()
+        other = roster[1].id if roster[0].id == pid else roster[0].id
+        self._rolled(engine, pid, 3, [10, -1, -1, -1])
+        mine = engine.private_state(pid)
+        assert mine["legalDests"] == [{"token": 0, "dest": 13, "destAbs": 13}]
+        assert mine["currentPlayerName"] == engine.player_name(pid)
+        assert engine.private_state(other)["legalDests"] == []
+
+    def test_no_legal_before_roll_or_after_finish(self):
+        engine, roster = make("ludo", players=2)
+        pid = engine.current_player_id()
+        assert engine.public_state()["legal"] == []
+        engine.tokens[pid] = [105, 105, 105, 105]
+        engine.die = 6
+        engine.rolled = True
+        assert engine._has_won(pid)
+        engine.finish(winner=pid)
+        assert engine.public_state()["legal"] == []
+
+
 class TestTambola:
     def _call_all(self, engine, pid, numbers):
         for n in numbers:

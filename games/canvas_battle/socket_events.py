@@ -54,7 +54,8 @@ def register_canvas_battle_events(socketio):
             'round': 0,
             'max_rounds': 3,
             'theme': None,
-            'round_start_time': None
+            'round_start_time': None,
+            'voters': set()  # player ids that already voted this round
         }
 
         join_room(room_code)
@@ -194,6 +195,7 @@ def register_canvas_battle_events(socketio):
         room['round'] += 1
         room['status'] = 'drawing'
         room['round_start_time'] = time.time()
+        room['voters'] = set()
 
         # Generate random theme
         themes = [
@@ -328,32 +330,53 @@ def register_canvas_battle_events(socketio):
 
         room = canvas_rooms[room_code]
 
+        if room['status'] != 'voting':
+            emit('canvas_error', {'message': 'Voting is not open right now'})
+            return
+
         # Can't vote for yourself
         if voted_for_id == voter_id:
             emit('canvas_error', {'message': 'Cannot vote for yourself!'})
             return
 
+        # One vote per player per round
+        if voter_id in room['voters']:
+            emit('canvas_error', {'message': 'You already voted!'})
+            return
+
+        # Voter must be in the room
+        if not any(p['id'] == voter_id for p in room['players']):
+            emit('canvas_error', {'message': 'You are not in this game'})
+            return
+
         # Add vote
+        voted = False
         for player in room['players']:
             if player['id'] == voted_for_id:
                 player['votes'] += 1
+                voted = True
                 print(f"✅ Vote recorded for {player['name']}")
                 break
 
-        # Check if all players voted
-        # (assuming each player votes once)
-        socketio.emit('vote_recorded', {
-            'voter_id': voter_id
-        }, room=room_code)
-
-    @socketio.on('end_voting')
-    def handle_end_voting(data):
-        """End voting and show results"""
-        room_code = data.get('room_code', '').upper()
-
-        if room_code not in canvas_rooms:
+        if not voted:
+            emit('canvas_error', {'message': 'Invalid vote target'})
             return
 
+        room['voters'].add(voter_id)
+
+        # Check if all players voted
+        socketio.emit('vote_recorded', {
+            'voter_id': voter_id,
+            'votes_cast': len(room['voters']),
+            'total_players': len(room['players'])
+        }, room=room_code)
+
+        # Auto-end voting once everyone has voted
+        if len(room['voters']) >= len(room['players']):
+            finish_voting_round(room_code, socketio)
+
+    def finish_voting_round(room_code, socketio):
+        """Tally votes, show results, and advance or finish the game."""
         room = canvas_rooms[room_code]
 
         # Calculate scores
@@ -386,6 +409,29 @@ def register_canvas_battle_events(socketio):
         else:
             room['status'] = 'waiting'
 
+    @socketio.on('end_voting')
+    def handle_end_voting(data):
+        """End voting and show results (host only)"""
+        room_code = data.get('room_code', '').upper()
+
+        if room_code not in canvas_rooms:
+            return
+
+        room = canvas_rooms[room_code]
+
+        if request.sid != room['host']:
+            emit('canvas_error', {'message': 'Only the host can end voting'})
+            return
+
+        # Silently ignore a stale end-voting (e.g. the host client's
+        # auto-timer firing after the server already ended voting on its
+        # own): erroring here would pop a spurious alert on the host's
+        # screen after results are already showing.
+        if room['status'] != 'voting':
+            return
+
+        finish_voting_round(room_code, socketio)
+
     @socketio.on('next_round')
     def handle_next_round(data):
         """Start next round"""
@@ -397,6 +443,11 @@ def register_canvas_battle_events(socketio):
         room = canvas_rooms[room_code]
 
         if request.sid != room['host']:
+            return
+
+        # Game is over; a finished game cannot start another round
+        if room['status'] == 'finished':
+            emit('canvas_error', {'message': 'Game is already finished'})
             return
 
         start_drawing_round(room_code, socketio)

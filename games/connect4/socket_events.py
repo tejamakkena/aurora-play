@@ -188,9 +188,16 @@ def register_connect4_events(socketio):
             emit('error', {'message': 'Need 2 players to start!'})
             return
 
+        if room['status'] == 'playing':
+            emit('error', {'message': 'Game already in progress!'})
+            return
+
         room['status'] = 'playing'
         room['game_started'] = True
         room['current_turn'] = 'red'
+        # Reset the board: play-again returns to the waiting room and calls
+        # start again, so a stale board would desync the second game.
+        room['board'] = [[None for _ in range(7)] for _ in range(6)]
 
         print(f"✅ Game started")
         print(f"{'=' * 60}\n")
@@ -206,6 +213,10 @@ def register_connect4_events(socketio):
         room_code = data.get('room_code', '').upper()
         column = data.get('column')
         player_id = request.sid
+
+        if not isinstance(column, int) or isinstance(column, bool) or not 0 <= column <= 6:
+            emit('error', {'message': 'Invalid column!'})
+            return
 
         print(f"\n{'=' * 40}")
         print(f"🎯 MAKE MOVE")

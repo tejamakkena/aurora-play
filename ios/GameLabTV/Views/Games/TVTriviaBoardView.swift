@@ -94,7 +94,10 @@ private struct ChoiceTile: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            Text(letters[index])
+            // A question could carry more choices than the four letter
+            // badges we draw; fall back to a numbered badge instead of
+            // crashing on letters[index].
+            Text(index < letters.count ? letters[index] : "\(index + 1)")
                 .font(.headline.bold())
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(badgeColor))

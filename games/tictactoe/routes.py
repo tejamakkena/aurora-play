@@ -102,13 +102,13 @@ def make_move(room_code):
         return jsonify({'success': False, 'error': 'Game not found'}), 404
 
     game = active_games[room_code]
-    data = request.json
+    data = request.json or {}
     player_id = session.get('player_id')
 
     if not player_id:
         return jsonify({'success': False, 'error': 'Player not found'}), 400
 
-    result = game.make_move(player_id, data['position'])
+    result = game.make_move(player_id, data.get('position'))
     return jsonify(result)
 
 

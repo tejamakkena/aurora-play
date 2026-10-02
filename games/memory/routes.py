@@ -112,15 +112,16 @@ def flip_card(room_code):
         return jsonify({'success': False, 'error': 'Game not found'}), 404
 
     game = active_games[room_code]
-    data = request.json
+    data = request.json or {}
     player_id = session.get('player_id')
 
     if not player_id:
         return jsonify({'success': False, 'error': 'Player not found'}), 400
 
     card_index = data.get('card_index')
-    if card_index is None:
-        return jsonify({'success': False, 'error': 'Card index required'}), 400
+    if (not isinstance(card_index, int) or isinstance(card_index, bool)
+            or not 0 <= card_index < len(game.cards)):
+        return jsonify({'success': False, 'error': 'Invalid card index'}), 400
 
     result = game.flip_card(player_id, card_index)
     return jsonify(result)
@@ -169,11 +170,8 @@ def leave_game(room_code):
 
     game = active_games[room_code]
     
-    # Remove player
-    if player_id in game.players:
-        del game.players[player_id]
-        if player_id in game.player_order:
-            game.player_order.remove(player_id)
+    # Remove player (also fixes the turn pointer for the players left behind)
+    game.remove_player(player_id)
     
     # If no players left, delete room
     if len(game.players) == 0:

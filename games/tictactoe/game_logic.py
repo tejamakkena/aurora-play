@@ -35,6 +35,12 @@ class TicTacToeGame:
         if self.players.get(player_id) != self.current_turn:
             return {'success': False, 'error': 'Not your turn'}
 
+        # Reject missing, non-integer, or out-of-range positions before
+        # touching the board (negative indexes would wrap around in Python).
+        if (not isinstance(position, int) or isinstance(position, bool)
+                or not 0 <= position <= 8):
+            return {'success': False, 'error': 'Invalid position'}
+
         if self.board[position] != '':
             return {'success': False, 'error': 'Position already taken'}
 

@@ -296,7 +296,12 @@ def register_pictionary_events(socketio):
             return
 
         room = pictionary_rooms[room_code]
-        
+
+        # Ignore guesses when there is no live turn (between rounds, or a
+        # late guess for a turn that already ended).
+        if room['status'] != 'playing' or not room['current_word']:
+            return
+
         # Can't guess if you're the drawer
         if room['current_drawer'] == player_id:
             return
@@ -381,6 +386,9 @@ def register_pictionary_events(socketio):
             'guessed_count': len(room['guessed_players'])
         }, room=room_code)
 
+        # No live word anymore, so guesses between turns are ignored
+        room['current_word'] = None
+
         # Check if game is over
         if room['round'] >= room['max_rounds'] * len(room['players']):
             end_game(room_code, socketio)
@@ -397,6 +405,11 @@ def register_pictionary_events(socketio):
 
         # Only host can start next turn
         if request.sid != room['host']:
+            return
+
+        # Game is over; only a fresh start can revive it
+        if room['status'] != 'playing':
+            emit('pictionary_error', {'message': 'Game is over'})
             return
 
         start_turn(room_code, socketio)

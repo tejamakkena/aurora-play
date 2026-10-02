@@ -32,6 +32,18 @@ private struct SnakeLadderPlayerPosition: Identifiable {
     let position: Int   // 0 = not yet on the board, 1...100 = a real square
 }
 
+/// One snake bite or ladder climb, straight from
+/// `SnakeLadderEngine.handle_action`'s `lastSlide` event. The TV drives its
+/// bite/climb cinematics off this instead of re-inferring the slide from
+/// positions + the last roll, which breaks when state updates coalesce.
+private struct SnakeLadderSlide {
+    let playerID: String
+    let kind: String      // "snake" | "ladder"
+    let from: Int         // head square (snake) or bottom square (ladder)
+    let to: Int           // tail square (snake) or top square (ladder)
+    let seq: Int          // monotonic per game; dedupes re-broadcasts
+}
+
 private struct SnakeLadderBoardState {
     var currentPlayerID: String?
     var secondsLeft = 0
@@ -44,6 +56,10 @@ private struct SnakeLadderBoardState {
     var snakes: [Int: Int] = [:]
     /// bottom square -> top square, straight from `LADDERS`.
     var ladders: [Int: Int] = [:]
+    /// playerID -> the latest slide event for that player, straight from
+    /// the engine's `lastSlide`. Empty for a player whose last move was a
+    /// plain hop (or who hasn't moved yet).
+    var lastSlide: [String: SnakeLadderSlide] = [:]
 
     mutating func update(from data: [String: AnyCodable]) {
         currentPlayerID = data["currentPlayerID"]?.value as? String
@@ -72,6 +88,16 @@ private struct SnakeLadderBoardState {
             ladders = Dictionary(uniqueKeysWithValues: raw.compactMap { entry -> (Int, Int)? in
                 guard let bottom = Int(entry.key), let top = entry.value as? Int else { return nil }
                 return (bottom, top)
+            })
+        }
+        if let raw = data["lastSlide"]?.value as? [String: Any] {
+            lastSlide = Dictionary(uniqueKeysWithValues: raw.compactMap { entry -> (String, SnakeLadderSlide)? in
+                guard let d = entry.value as? [String: Any],
+                      let kind = d["kind"] as? String,
+                      let from = d["from"] as? Int,
+                      let to = d["to"] as? Int,
+                      let seq = d["seq"] as? Int else { return nil }
+                return (entry.key, SnakeLadderSlide(playerID: entry.key, kind: kind, from: from, to: to, seq: seq))
             })
         }
     }
@@ -152,10 +178,19 @@ struct TVSnakeLadderBoardView: View {
                 Spacer()
 
                 if let winnerName {
-                    Text("\u{1F3C6} \(winnerName) wins!")
-                        .font(.system(size: 42, weight: .bold))
-                        .foregroundColor(.yellow)
-                        .padding(.bottom, 24)
+                    // SF symbol, never an emoji (no-emoji gate). The name
+                    // truncates with an ellipsis rather than wrapping
+                    // mid-word on a long name.
+                    Label {
+                        Text("\(winnerName) wins!")
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    } icon: {
+                        Image(systemName: "trophy.fill")
+                    }
+                    .font(.system(size: 42, weight: .bold))
+                    .foregroundColor(.yellow)
+                    .padding(.bottom, 24)
                 }
             }
         }
@@ -172,7 +207,12 @@ private struct SnakeLadderPositionRow: View {
             Circle()
                 .fill(isCurrent ? Color.yellow : Color.white.opacity(0.2))
                 .frame(width: 10, height: 10)
+            // A long name must truncate with an ellipsis, never wrap
+            // mid-word ("Gand"/"hi" on two lines). The fixed-width parent
+            // below gives the truncation a bound to work against.
             Text(entry.name).font(.headline)
+                .lineLimit(1)
+                .truncationMode(.tail)
                 .foregroundColor(isCurrent ? .white : .white.opacity(0.6))
             Spacer()
             Text(entry.position == 0 ? "start" : "\(entry.position)")
@@ -228,12 +268,18 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
 
         private var tokenNodes: [String: SCNNode] = [:]
         private var lastPositions: [String: Int] = [:]
+        /// One glowing ring per player, marking the tile their token
+        /// stands on in that player's color -- positioned in `apply`
+        /// alongside the token itself.
+        private var playerRings: [String: SCNNode] = [:]
         private var boardBuilt = false
         private var snakeNodes: [Int: SnakeNode] = [:]
         private var ladderNodes: [Int: LadderNode] = [:]
-        private var snakesMap: [Int: Int] = [:]
-        private var laddersMap: [Int: Int] = [:]
         private var lastAnnouncedWinner: String?
+        /// Slide-event seqs already played, per player -- `lastSlide`
+        /// survives in the engine state until that player's next move, so
+        /// without this every re-broadcast would replay the cinematic.
+        private var seenSlideSeq: [String: Int] = [:]
 
         init() {
             // A wide, angled 3/4 overhead shot -- the whole board, the dice
@@ -286,8 +332,6 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         private func ensureBoardDressing(state: SnakeLadderBoardState) {
             guard !boardBuilt, !state.snakes.isEmpty else { return }
             boardBuilt = true
-            snakesMap = state.snakes
-            laddersMap = state.ladders
 
             let boardImage = Coordinator.boardTexture(snakes: state.snakes, ladders: state.ladders)
             let sideMaterial = SCNMaterial()
@@ -307,8 +351,9 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             scene.rootNode.addChildNode(SCNNode(geometry: slab))
 
             for (head, tail) in state.snakes {
-                let color = Coordinator.snakeColors[snakeNodes.count % Coordinator.snakeColors.count]
-                let snake = SnakeNode(headSquare: head, tailSquare: tail, squareToPoint: squareToPoint, color: color)
+                let (color, band) = Coordinator.snakeColors[snakeNodes.count % Coordinator.snakeColors.count]
+                let snake = SnakeNode(headSquare: head, tailSquare: tail, squareToPoint: squareToPoint,
+                                      color: color, bandColor: band)
                 scene.rootNode.addChildNode(snake.rootNode)
                 snakeNodes[head] = snake
             }
@@ -319,10 +364,23 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             }
         }
 
-        private static let snakeColors: [UIColor] = [
-            UIColor(red: 0.10, green: 0.55, blue: 0.25, alpha: 1),
-            UIColor(red: 0.55, green: 0.10, blue: 0.55, alpha: 1),
-            UIColor(red: 0.15, green: 0.30, blue: 0.65, alpha: 1),
+        /// (body color, band color). One distinct pair per snake, assigned
+        /// by snake index, so each snake has its own identity at TV
+        /// distance -- and every one is unmistakably not a ladder, which
+        /// is bright gold and straight-edged.
+        private static let snakeColors: [(UIColor, UIColor)] = [
+            (UIColor(red: 0.82, green: 0.16, blue: 0.12, alpha: 1),
+             UIColor(red: 1.00, green: 0.55, blue: 0.30, alpha: 1)),
+            (UIColor(red: 0.14, green: 0.60, blue: 0.26, alpha: 1),
+             UIColor(red: 0.62, green: 1.00, blue: 0.52, alpha: 1)),
+            (UIColor(red: 0.16, green: 0.38, blue: 0.85, alpha: 1),
+             UIColor(red: 0.45, green: 0.80, blue: 1.00, alpha: 1)),
+            (UIColor(red: 0.95, green: 0.72, blue: 0.12, alpha: 1),
+             UIColor(red: 1.00, green: 0.90, blue: 0.45, alpha: 1)),
+            (UIColor(red: 0.42, green: 0.18, blue: 0.78, alpha: 1),
+             UIColor(red: 0.74, green: 0.54, blue: 1.00, alpha: 1)),
+            (UIColor(red: 0.90, green: 0.35, blue: 0.10, alpha: 1),
+             UIColor(red: 1.00, green: 0.75, blue: 0.35, alpha: 1)),
         ]
 
         private static let tokenPalette: [UIColor] = [
@@ -338,8 +396,20 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             for entry in players where tokenNodes[entry.playerID] == nil {
                 let color = Coordinator.tokenPalette[tokenNodes.count % Coordinator.tokenPalette.count]
                 let token = Coordinator.makeTokenNode(color: color)
+                // Floating name plate, billboarded so it always faces the
+                // camera; it rides the token, so it follows automatically.
+                let plate = Coordinator.makeNamePlate(name: entry.name, color: color)
+                plate.position = SCNVector3(0, 0.62, 0)
+                token.addChildNode(plate)
                 scene.rootNode.addChildNode(token)
                 tokenNodes[entry.playerID] = token
+
+                // Glowing ring on the tile under the token, in the
+                // player's color -- positioned in `apply` alongside the
+                // token so it tracks every move.
+                let ring = Coordinator.makePlayerRing(color: color)
+                scene.rootNode.addChildNode(ring)
+                playerRings[entry.playerID] = ring
             }
         }
 
@@ -366,11 +436,76 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             return root
         }
 
+        /// A flat glowing ring marking the tile the token stands on, in
+        /// the player's color, with a gentle pulse. Positioned in `apply`
+        /// next to its token so it tracks every move.
+        private static func makePlayerRing(color: UIColor) -> SCNNode {
+            let ring = SCNTorus(ringRadius: 0.34, pipeRadius: 0.035)
+            let material = SCNMaterial()
+            material.lightingModel = .physicallyBased
+            material.diffuse.contents = color
+            material.emission.contents = color
+            material.emission.intensity = 0.9
+            ring.materials = [material]
+            let node = SCNNode(geometry: ring)
+            // SCNTorus lies in the XY plane; lay it flat on the board.
+            node.eulerAngles = SCNVector3(Float.pi / 2, 0, 0)
+            let pulse = SCNAction.scale(by: 1.08, duration: 0.8)
+            pulse.timingMode = .easeInEaseOut
+            node.runAction(.repeatForever(.sequence([pulse, pulse.reversed()])), forKey: "ringPulse")
+            return node
+        }
+
+        /// A billboarded name plate floating above the token: a dark pill
+        /// with the player's name, edged in the player's color. The name
+        /// truncates with an ellipsis rather than wrapping. The billboard
+        /// constraint keeps it facing the camera from the cinematic rig's
+        /// angles, and `.constant` lighting keeps it legible instead of
+        /// shaded dark by the scene lights.
+        private static func makeNamePlate(name: String, color: UIColor) -> SCNNode {
+            let label = name.count > 12 ? String(name.prefix(11)) + "\u{2026}" : name
+            let size = CGSize(width: 256, height: 64)
+            let image = UIGraphicsImageRenderer(size: size).image { _ in
+                let pill = UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 32)
+                UIColor(white: 0.05, alpha: 0.78).setFill()
+                pill.fill()
+                color.withAlphaComponent(0.9).setStroke()
+                pill.lineWidth = 4
+                pill.stroke()
+                let paragraph = NSMutableParagraphStyle()
+                paragraph.alignment = .center
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: UIFont.boldSystemFont(ofSize: 30),
+                    .foregroundColor: UIColor.white,
+                    .paragraphStyle: paragraph,
+                ]
+                (label as NSString).draw(in: CGRect(x: 8, y: 12, width: size.width - 16, height: 44),
+                                        withAttributes: attrs)
+            }
+            let material = SCNMaterial()
+            material.lightingModel = .constant
+            material.diffuse.contents = image
+            material.isDoubleSided = true
+            let plane = SCNPlane(width: 1.1, height: 0.28)
+            plane.materials = [material]
+            let node = SCNNode(geometry: plane)
+            node.constraints = [SCNBillboardConstraint()]
+            return node
+        }
+
         // MARK: - Live state -> scene
 
         func apply(_ state: SnakeLadderBoardState, animated: Bool) {
             ensureBoardDressing(state: state)
             rebuildTokensIfNeeded(players: state.positions)
+
+            if !animated {
+                // First paint (or a full rebind): adopt the board as-is.
+                // Any slide event the engine is still holding -- e.g. after
+                // a rejoin mid-game -- is history, not a cue: record its
+                // seq so it is never replayed as a cinematic.
+                for (pid, slide) in state.lastSlide { seenSlideSeq[pid] = slide.seq }
+            }
 
             var bySquare: [Int: [String]] = [:]
             for entry in state.positions { bySquare[entry.position, default: []].append(entry.playerID) }
@@ -384,11 +519,25 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
 
                 if !animated || previous == entry.position {
                     token.position = anchor
+                } else if let slide = state.lastSlide[entry.playerID],
+                          slide.seq != seenSlideSeq[entry.playerID],
+                          slide.to == entry.position {
+                    // Authoritative slide event from the engine: play the
+                    // full bite/climb cinematic (with its sound) instead of
+                    // a plain hop. The seq check dedupes re-broadcasts.
+                    seenSlideSeq[entry.playerID] = slide.seq
+                    playSlideEvent(kind: slide.kind, from: slide.from, token: token,
+                                   previous: previous, finalAnchor: anchor,
+                                   diceValue: state.lastRoll[entry.playerID])
                 } else {
                     let diceValue = state.lastRoll[entry.playerID] ?? max(entry.position - previous, 1)
                     animateMove(token: token, from: previous, to: entry.position, diceValue: diceValue, finalAnchor: anchor)
                 }
                 lastPositions[entry.playerID] = entry.position
+                // The player's color ring tracks the token's tile.
+                if let ring = playerRings[entry.playerID] {
+                    ring.position = SCNVector3(anchor.x, boardTopY + 0.02, anchor.z)
+                }
             }
 
             if let winnerID = state.winner, winnerID != lastAnnouncedWinner {
@@ -399,11 +548,11 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             }
         }
 
-        /// Detects (purely from this one move's numbers) whether the roll
-        /// that produced `newPos` crossed a snake or a ladder, and plays
-        /// the matching animation -- comparing `oldPos + diceValue` (where
-        /// the token would have landed on the raw roll) against the
-        /// `snakes`/`ladders` maps tells us exactly which, if either, fired.
+        /// Plain hop-to-hop token movement. Snake bites and ladder climbs
+        /// never come through here -- the engine broadcasts an explicit
+        /// `lastSlide` event for those and `apply` routes it to
+        /// `playSlideEvent`, which is the only place the bite/climb
+        /// cinematics (and their sounds) live.
         private func animateMove(token: SCNNode, from oldPos: Int, to newPos: Int, diceValue: Int, finalAnchor: SCNVector3) {
             dice.roll(to: max(1, min(6, diceValue)))
 
@@ -414,27 +563,53 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
                 return
             }
 
-            let rawSum = oldPos + diceValue
-            if let tail = snakesMap[rawSum], newPos == tail, let snake = snakeNodes[rawSum] {
-                let hopSeconds = runHopSequence(token: token, from: oldPos, to: rawSum, finalAnchor: tokenAnchor(square: rawSum))
-                DispatchQueue.main.asyncAfter(deadline: .now() + hopSeconds) { [weak self] in
-                    guard let self else { return }
+            runHopSequence(token: token, from: oldPos, to: newPos, finalAnchor: finalAnchor)
+        }
+
+        /// The authoritative slide cinematic, driven by the engine's
+        /// `lastSlide` event. The token hops to the head/bottom square if
+        /// it isn't there yet, then -- for a snake -- the head lunges
+        /// (`playEat`), the bite sound fires, and the token rides the
+        /// snake's body down; for a ladder the chime fires and the token
+        /// climbs rung by rung.
+        private func playSlideEvent(kind: String, from slideFrom: Int, token: SCNNode,
+                                    previous: Int, finalAnchor: SCNVector3, diceValue: Int?) {
+            dice.roll(to: max(1, min(6, diceValue ?? 1)))
+            let headAnchor = tokenAnchor(square: slideFrom)
+            let hopSeconds: TimeInterval
+            if previous > 0, abs(slideFrom - previous) <= 8 {
+                hopSeconds = runHopSequence(token: token, from: previous, to: slideFrom, finalAnchor: headAnchor)
+            } else {
+                // The TV missed the hops that led here (backgrounded, or a
+                // rejoin landing on a live event): snap to the head/bottom
+                // square so the cinematic still starts from the right place.
+                token.position = headAnchor
+                hopSeconds = 0.25
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + hopSeconds) { [weak self] in
+                guard let self else { return }
+                if kind == "snake", let snake = self.snakeNodes[slideFrom] {
                     snake.playEat()
+                    SoundPlayer.shared.play(.snakeBite)
+                    // The doom sting swells in just behind the bite snap
+                    // and carries the whole slide down the body.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        SoundPlayer.shared.play(.snakeDoomSting, volume: 0.9)
+                    }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         self.runSlide(token: token, along: snake.pathPoints, finalAnchor: finalAnchor)
                     }
+                } else if kind == "ladder", let ladder = self.ladderNodes[slideFrom] {
+                    SoundPlayer.shared.play(.ladderClimb)
+                    self.runClimb(token: token, ladder: ladder, finalAnchor: finalAnchor)
+                } else {
+                    // The event names a square this client has no model for
+                    // (both come from the same engine maps, so this
+                    // shouldn't happen): fall back to a plain hop.
+                    token.runAction(Coordinator.hopAction(from: token.position, to: finalAnchor,
+                                                         duration: 0.3, arcHeight: 0.3))
                 }
-                return
             }
-            if let top = laddersMap[rawSum], newPos == top, let ladder = ladderNodes[rawSum] {
-                let hopSeconds = runHopSequence(token: token, from: oldPos, to: rawSum, finalAnchor: tokenAnchor(square: rawSum))
-                DispatchQueue.main.asyncAfter(deadline: .now() + hopSeconds) { [weak self] in
-                    self?.runClimb(token: token, ladder: ladder, finalAnchor: finalAnchor)
-                }
-                return
-            }
-
-            runHopSequence(token: token, from: oldPos, to: newPos, finalAnchor: finalAnchor)
         }
 
         @discardableResult
@@ -568,36 +743,73 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         /// as 100 individual `SCNText` nodes) and applied to the board
         /// slab's top face -- cheap, and guarantees every number is
         /// legible at TV distance regardless of camera angle.
+        ///
+        /// The classic vibrant look: tiles cycle through red, yellow,
+        /// green, blue and white like the physical board game. Numbers
+        /// stay big and centered; the text color is picked per tile (black
+        /// or white) for contrast. Snake-head and ladder-bottom tiles
+        /// can't rely on a full-tile tint anymore (it would vanish into
+        /// the colorful tiles), so they get a thick white outline plus a
+        /// small corner marker instead.
         private static func boardTexture(snakes: [Int: Int], ladders: [Int: Int]) -> UIImage {
             let cells = 10
             let cellPx: CGFloat = 96
             let size = CGSize(width: cellPx * CGFloat(cells), height: cellPx * CGFloat(cells))
             let snakeHeads = Set(snakes.keys)
             let ladderBottoms = Set(ladders.keys)
+            // Classic board-game palette, cycling in tile order, with the
+            // text color that reads best on each.
+            let palette: [(tile: UIColor, text: UIColor)] = [
+                (UIColor(red: 0.85, green: 0.17, blue: 0.14, alpha: 1), .white),  // red
+                (UIColor(red: 0.98, green: 0.79, blue: 0.10, alpha: 1), .black),  // yellow
+                (UIColor(red: 0.11, green: 0.55, blue: 0.24, alpha: 1), .white),  // green
+                (UIColor(red: 0.13, green: 0.36, blue: 0.84, alpha: 1), .white),  // blue
+                (UIColor(white: 0.96, alpha: 1), .black),                          // white
+            ]
             let renderer = UIGraphicsImageRenderer(size: size)
             return renderer.image { _ in
                 for n in 1...100 {
                     let (row, col) = Coordinator.squareRowCol(n)
                     let rect = CGRect(x: CGFloat(col) * cellPx, y: CGFloat(cells - 1 - row) * cellPx,
                                        width: cellPx, height: cellPx)
-                    let base: UIColor
-                    if snakeHeads.contains(n) {
-                        base = UIColor(red: 0.55, green: 0.10, blue: 0.10, alpha: 1)
-                    } else if ladderBottoms.contains(n) {
-                        base = UIColor(red: 0.10, green: 0.42, blue: 0.20, alpha: 1)
-                    } else {
-                        base = (row + col).isMultiple(of: 2) ? UIColor(white: 0.90, alpha: 1) : UIColor(white: 0.80, alpha: 1)
-                    }
+                    let (base, textColor) = palette[(n - 1) % palette.count]
                     base.setFill()
                     UIBezierPath(rect: rect).fill()
-                    UIColor(white: 0, alpha: 0.18).setStroke()
+                    UIColor(white: 0, alpha: 0.15).setStroke()
                     UIBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5)).stroke()
 
+                    // Special-tile marker: a thick white outline plus a
+                    // corner tab, so snake heads and ladder bases stay
+                    // findable on the now-colorful board. Top-left tab for
+                    // a snake head, bottom-right tab for a ladder base.
+                    if snakeHeads.contains(n) || ladderBottoms.contains(n) {
+                        UIColor.white.setStroke()
+                        let outline = UIBezierPath(rect: rect.insetBy(dx: 3, dy: 3))
+                        outline.lineWidth = 5
+                        outline.stroke()
+                        let tabSize: CGFloat = 22
+                        let tab: CGRect
+                        if snakeHeads.contains(n) {
+                            tab = CGRect(x: rect.minX + 4, y: rect.minY + 4,
+                                         width: tabSize, height: tabSize)
+                        } else {
+                            tab = CGRect(x: rect.maxX - 4 - tabSize, y: rect.maxY - 4 - tabSize,
+                                         width: tabSize, height: tabSize)
+                        }
+                        UIColor.white.setFill()
+                        UIBezierPath(ovalIn: tab).fill()
+                    }
+
+                    let paragraph = NSMutableParagraphStyle()
+                    paragraph.alignment = .center
                     let attrs: [NSAttributedString.Key: Any] = [
-                        .font: UIFont.boldSystemFont(ofSize: 26),
-                        .foregroundColor: UIColor(white: 0, alpha: 0.6),
+                        .font: UIFont.boldSystemFont(ofSize: 44),
+                        .foregroundColor: textColor,
+                        .paragraphStyle: paragraph,
                     ]
-                    ("\(n)" as NSString).draw(at: CGPoint(x: rect.minX + 6, y: rect.minY + 4), withAttributes: attrs)
+                    // Vertically centered: 44pt bold runs ~52pt tall.
+                    let textRect = rect.insetBy(dx: 4, dy: (cellPx - 52) / 2)
+                    ("\(n)" as NSString).draw(in: textRect, withAttributes: attrs)
                 }
             }
         }
@@ -622,7 +834,7 @@ private final class SnakeNode {
 
     private let headNode: SCNNode
 
-    init(headSquare: Int, tailSquare: Int, squareToPoint: (Int) -> SCNVector3, color: UIColor) {
+    init(headSquare: Int, tailSquare: Int, squareToPoint: (Int) -> SCNVector3, color: UIColor, bandColor: UIColor) {
         let head3D = squareToPoint(headSquare)
         let tail3D = squareToPoint(tailSquare)
 
@@ -637,10 +849,10 @@ private final class SnakeNode {
         var points: [SCNVector3] = []
         for i in 0...segments {
             let t = Float(i) / Float(segments)
-            let wiggle = sin(t * Float.pi * 2.4) * 0.32
+            let wiggle = sin(t * Float.pi * 2.4) * 0.38
             points.append(SCNVector3(
                 head3D.x + dx * t + perp.x * wiggle,
-                head3D.y + 0.05,
+                head3D.y + 0.10,
                 head3D.z + dz * t + perp.z * wiggle
             ))
         }
@@ -650,14 +862,29 @@ private final class SnakeNode {
         bodyMaterial.lightingModel = .physicallyBased
         bodyMaterial.diffuse.contents = color
         bodyMaterial.roughness.contents = 0.45
+        let bandMaterial = SCNMaterial()
+        bandMaterial.lightingModel = .physicallyBased
+        bandMaterial.diffuse.contents = bandColor
+        bandMaterial.roughness.contents = 0.45
 
-        for i in 0..<(points.count - 1) {
-            let segment = SnakeNode.capsuleSegment(from: points[i], to: points[i + 1], radius: 0.09, material: bodyMaterial)
+        // Tapered, banded body: segments shrink from head to tail so the
+        // snake reads as a creature, not a tube. Alternating bands keep
+        // it unmistakable at TV distance.
+        let segmentCount = points.count - 1
+        for i in 0..<segmentCount {
+            let t = Float(i) / Float(segmentCount)   // 0 at head, 1 at tail
+            let radius = CGFloat(0.20 * (1 - t) + 0.07 * t)
+            let material = i.isMultiple(of: 2) ? bodyMaterial : bandMaterial
+            let segment = SnakeNode.capsuleSegment(from: points[i], to: points[i + 1], radius: radius, material: material)
             rootNode.addChildNode(segment)
         }
 
-        let head = SCNNode(geometry: SCNSphere(radius: 0.16))
+        // A distinct head: a larger sphere with a flattened, elongated
+        // snout, two eyes, and an open jaw -- the part that lunges in
+        // `playEat`.
+        let head = SCNNode(geometry: SCNSphere(radius: 0.32))
         head.geometry?.materials = [bodyMaterial]
+        head.scale = SCNVector3(1.0, 0.82, 1.28)   // flattened, elongated snout
         head.position = points[0]
         rootNode.addChildNode(head)
         headNode = head
@@ -665,18 +892,18 @@ private final class SnakeNode {
         let jawMaterial = SCNMaterial()
         jawMaterial.lightingModel = .physicallyBased
         jawMaterial.diffuse.contents = UIColor(red: 0.55, green: 0.08, blue: 0.10, alpha: 1)
-        let jaw = SCNNode(geometry: SCNCone(topRadius: 0.02, bottomRadius: 0.10, height: 0.14))
+        let jaw = SCNNode(geometry: SCNCone(topRadius: 0.03, bottomRadius: 0.16, height: 0.22))
         jaw.geometry?.materials = [jawMaterial]
         jaw.eulerAngles = SCNVector3(Float.pi / 2, 0, 0)
-        jaw.position = SCNVector3(0, -0.03, 0.10)
+        jaw.position = SCNVector3(0, -0.05, 0.16)
         head.addChildNode(jaw)
 
         let eyeMaterial = SCNMaterial()
         eyeMaterial.diffuse.contents = UIColor.yellow
         for xSign: Float in [-1, 1] {
-            let eye = SCNNode(geometry: SCNSphere(radius: 0.028))
+            let eye = SCNNode(geometry: SCNSphere(radius: 0.045))
             eye.geometry?.materials = [eyeMaterial]
-            eye.position = SCNVector3(xSign * 0.08, 0.06, 0.09)
+            eye.position = SCNVector3(xSign * 0.13, 0.10, 0.14)
             head.addChildNode(eye)
         }
 
@@ -741,28 +968,33 @@ private final class LadderNode {
     init(bottomSquare: Int, topSquare: Int, squareToPoint: (Int) -> SCNVector3) {
         let a = squareToPoint(bottomSquare)
         let b = squareToPoint(topSquare)
-        bottomWorldPosition = SCNVector3(a.x, a.y + 0.04, a.z)
-        topWorldPosition = SCNVector3(b.x, b.y + 0.04, b.z)
+        bottomWorldPosition = SCNVector3(a.x, a.y + 0.10, a.z)
+        topWorldPosition = SCNVector3(b.x, b.y + 0.10, b.z)
 
         let dx = topWorldPosition.x - bottomWorldPosition.x
         let dz = topWorldPosition.z - bottomWorldPosition.z
         let length = sqrt(dx * dx + dz * dz)
         let perpLength = length > 0.0001 ? length : 1
         let perp = SCNVector3(-dz / perpLength, 0, dx / perpLength)
-        let railOffset: Float = 0.16
+        let railOffset: Float = 0.24
 
+        // Warm wood-gold and straight-edged -- the visual opposite of the
+        // thick, winding, banded snakes, so the two never read as the same
+        // kind of thing at a glance. The wooden tone echoes the classic
+        // board game's ladders; the low metalness keeps it matte like
+        // varnished wood rather than metal.
         let railMaterial = SCNMaterial()
         railMaterial.lightingModel = .physicallyBased
-        railMaterial.diffuse.contents = UIColor(red: 0.68, green: 0.47, blue: 0.18, alpha: 1)
-        railMaterial.metalness.contents = 0.25
-        railMaterial.roughness.contents = 0.5
+        railMaterial.diffuse.contents = UIColor(red: 0.82, green: 0.55, blue: 0.18, alpha: 1)
+        railMaterial.metalness.contents = 0.08
+        railMaterial.roughness.contents = 0.6
 
         for sign: Float in [-1, 1] {
             let railA = SCNVector3(bottomWorldPosition.x + perp.x * railOffset * sign, bottomWorldPosition.y,
                                     bottomWorldPosition.z + perp.z * railOffset * sign)
             let railB = SCNVector3(topWorldPosition.x + perp.x * railOffset * sign, topWorldPosition.y,
                                     topWorldPosition.z + perp.z * railOffset * sign)
-            rootNode.addChildNode(LadderNode.beam(from: railA, to: railB, thickness: 0.05, material: railMaterial))
+            rootNode.addChildNode(LadderNode.beam(from: railA, to: railB, thickness: 0.10, material: railMaterial))
         }
 
         let rungCount = max(4, Int(length / 0.55))
@@ -773,7 +1005,7 @@ private final class LadderNode {
             let cz = bottomWorldPosition.z + dz * t
             let rungA = SCNVector3(cx - perp.x * railOffset, cy, cz - perp.z * railOffset)
             let rungB = SCNVector3(cx + perp.x * railOffset, cy, cz + perp.z * railOffset)
-            rootNode.addChildNode(LadderNode.beam(from: rungA, to: rungB, thickness: 0.035, material: railMaterial))
+            rootNode.addChildNode(LadderNode.beam(from: rungA, to: rungB, thickness: 0.06, material: railMaterial))
         }
     }
 

@@ -214,6 +214,23 @@ class TestStartGame:
                     if latest(p, "private_state")["privateData"].get("key")]
         assert len(with_key) == 2
 
+    def test_game_started_carries_the_rules_payload(self, server, tv):
+        # The how-to-play interstitial on the TV and the phones is driven by
+        # this one broadcast; the backend is the single source of truth for
+        # the rules text (see games/native_hub/rules.py).
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "trivia", players=2)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        payload = latest(tv, "game_started")
+        assert set(payload) == {"roomCode", "gameID", "rules"}
+        assert payload["gameID"] == "trivia"
+        rules = payload["rules"]
+        assert set(rules) == {"gameID", "title", "objective", "rules", "controls"}
+        assert rules["title"] == "Trivia"
+        assert 3 <= len(rules["rules"]) <= 6
+        # Phones get the same event, so the controller card shows the same text.
+        assert latest(phones[0], "game_started")["rules"] == rules
+
     def test_rematch_restarts_a_finished_room_and_resets_scores(self, server, tv):
         # "Play Again" (TVRootViewModel.playAgain) sends exactly this same
         # start_game event against a room already sitting in RESULTS --

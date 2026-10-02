@@ -644,6 +644,36 @@ class LudoEngine(TurnBasedEngine):
                     moves.append(i)
         return moves
 
+    def _dest_after_roll(self, value):
+        """Token value after the current die is applied.
+
+        Mirrors ``_apply_move`` exactly (yard -> 0, track overflow wraps into
+        the 100+ home run) so the TV and phones can preview destinations
+        without duplicating the movement rules.
+        """
+        if value == -1:
+            return 0
+        if value >= 100:
+            return value + self.die
+        new_value = value + self.die
+        if new_value >= self.TRACK:
+            return 100 + (new_value - self.TRACK)
+        return new_value
+
+    def _legal_destinations(self, player_id):
+        """``[(token_index, dest_value)]`` for every legal move right now."""
+        return [(i, self._dest_after_roll(self.tokens[player_id][i]))
+                for i in self._legal_moves(player_id)]
+
+    def _current_legal(self):
+        """Public-shape legal moves for whoever's turn it is, or []."""
+        pid = self.current_player_id()
+        if self._finished or not self.rolled or pid is None:
+            return []
+        return [{"token": i, "dest": dest,
+                 "destAbs": self._abs_pos(pid, dest) if dest < 100 else None}
+                for i, dest in self._legal_destinations(pid)]
+
     def _apply_move(self, player_id, idx):
         value = self.tokens[player_id][idx]
         if value == -1:
@@ -697,6 +727,10 @@ class LudoEngine(TurnBasedEngine):
             "rolled": self.rolled,
             "track": self.TRACK,
             "homeRun": self.HOME_RUN,
+            # Legal moves for the current player, with destinations, so the TV
+            # can highlight exactly where each token may land. destAbs is the
+            # shared 0..51 track cell; None means a home-run (colour) column.
+            "legal": self._current_legal(),
             "seats": [
                 {"playerID": pid, "seat": seat, "name": self.player_name(pid),
                  "tokens": self.tokens.get(pid, []),
@@ -708,6 +742,7 @@ class LudoEngine(TurnBasedEngine):
 
     def private_state(self, player_id):
         state = self.base_private(player_id)
+        pid = self.current_player_id()
         state.update({
             "die": self.die,
             "rolled": self.rolled,
@@ -715,6 +750,8 @@ class LudoEngine(TurnBasedEngine):
             "myTokens": self.tokens.get(player_id, []),
             "legalMoves": self._legal_moves(player_id) if (
                 self.is_my_turn(player_id) and self.rolled) else [],
+            "legalDests": self._current_legal() if self.is_my_turn(player_id) else [],
+            "currentPlayerName": self.player_name(pid) if pid else "",
             "seat": self.seats.get(player_id, 0),
         })
         return state

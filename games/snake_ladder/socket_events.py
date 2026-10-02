@@ -161,7 +161,20 @@ def register_snake_events(socketio):
         player_name = player['name'] if player else 'Unknown'
 
         # Remove player
+        removed_index = next(
+            (i for i, p in enumerate(room['players']) if p['id'] == player_id),
+            None)
         room['players'] = [p for p in room['players'] if p['id'] != player_id]
+
+        # Keep the turn pointer valid after a mid-game leave
+        if removed_index is not None and room['players']:
+            if removed_index < room['current_player']:
+                room['current_player'] -= 1
+            elif removed_index == room['current_player']:
+                # The player whose turn it was left; the next player in line
+                # (now sitting at this index) keeps the turn.
+                pass
+            room['current_player'] %= len(room['players'])
 
         # Leave socket room
         leave_room(room_code)
@@ -261,6 +274,15 @@ def register_snake_events(socketio):
             return
 
         room = snake_rooms[room_code]
+
+        if not isinstance(roll, int) or isinstance(roll, bool) or not 1 <= roll <= 6:
+            emit('snake_error', {'message': 'Invalid dice roll'})
+            return
+
+        if not room['players'] or room['current_player'] >= len(room['players']):
+            emit('snake_error', {'message': 'Game is not in a playable state'})
+            return
+
         current_player = room['players'][room['current_player']]
 
         # Verify it's the player's turn

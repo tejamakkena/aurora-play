@@ -67,7 +67,8 @@ class MemoryGame:
             return {'success': False, 'error': 'Not your turn'}
         
         # Validate card index
-        if card_index < 0 or card_index >= len(self.cards):
+        if (not isinstance(card_index, int) or isinstance(card_index, bool)
+                or card_index < 0 or card_index >= len(self.cards)):
             return {'success': False, 'error': 'Invalid card index'}
         
         # Check if card already matched
@@ -115,6 +116,9 @@ class MemoryGame:
         if card1['symbol'] == card2['symbol']:
             # Match found!
             current_player_id = self.get_current_player_id()
+            if current_player_id is None or current_player_id not in self.players:
+                self.flipped_cards = []
+                return {'matched': False, 'error': 'Current player left the game'}
             self.players[current_player_id]['score'] += 1
             self.matched_cards.extend([idx1, idx2])
             
@@ -146,6 +150,37 @@ class MemoryGame:
         
         self.flipped_cards = []
         return {'success': True}
+
+    def remove_player(self, player_id):
+        """Remove a player and keep the turn pointer valid."""
+        if player_id not in self.players:
+            return False
+
+        removed_index = (self.player_order.index(player_id)
+                         if player_id in self.player_order else None)
+        was_current = (removed_index is not None
+                       and removed_index == self.current_player_idx)
+
+        del self.players[player_id]
+        if player_id in self.player_order:
+            self.player_order.remove(player_id)
+
+        if not self.player_order:
+            self.current_player_idx = 0
+            self.flipped_cards = []
+            return True
+
+        if removed_index is not None:
+            if removed_index < self.current_player_idx:
+                self.current_player_idx -= 1
+            # removed_index == current: the next player slides into this
+            # slot, so the index stays as-is (modulo the new length).
+            self.current_player_idx %= len(self.player_order)
+
+        # A mid-turn leave drops the abandoned flipped cards
+        if was_current:
+            self.flipped_cards = []
+        return True
 
     def next_turn(self):
         """Move to next player's turn"""

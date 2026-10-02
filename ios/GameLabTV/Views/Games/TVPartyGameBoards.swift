@@ -23,6 +23,10 @@ struct TVRoundHeader: View {
                     Text(phaseLabel.uppercased())
                         .font(.caption.bold()).tracking(3)
                         .foregroundColor(.cyan.opacity(0.8))
+                        // A long player name in "X's turn" must truncate,
+                        // never wrap mid-word.
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
                 HStack(spacing: 12) {
                         Image(systemName: symbol).foregroundColor(.white.opacity(0.85))

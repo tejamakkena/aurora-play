@@ -58,14 +58,19 @@ struct PokerCinematicBoardSceneView: UIViewRepresentable {
 
             let faceDown = SCNMaterial()
             faceDown.lightingModel = .physicallyBased
-            faceDown.diffuse.contents = UIColor(red: 0.10, green: 0.05, blue: 0.18, alpha: 1)
-            faceDown.roughness.contents = 0.6
+            // A felt-dark inset marker: these slots used to be chunky raised
+            // slabs that competed with the SwiftUI card row floating above
+            // them (and, as the camera moved, could visually collide with the
+            // "Community Cards" label). They are now flush with the felt and
+            // read as table insets, not cards.
+            faceDown.diffuse.contents = UIColor(red: 0.05, green: 0.22, blue: 0.14, alpha: 1)
+            faceDown.roughness.contents = 0.9
             faceDownMaterial = faceDown
 
             let faceUp = SCNMaterial()
             faceUp.lightingModel = .physicallyBased
-            faceUp.diffuse.contents = UIColor(white: 0.92, alpha: 1)
-            faceUp.roughness.contents = 0.3
+            faceUp.diffuse.contents = UIColor(red: 0.55, green: 0.85, blue: 0.62, alpha: 1)
+            faceUp.roughness.contents = 0.6
             faceUpMaterial = faceUp
 
             // `tableRadius` is a stored property, so reading it here (even
@@ -78,9 +83,11 @@ struct PokerCinematicBoardSceneView: UIViewRepresentable {
             // instead of self.
             let radius = tableRadius
             communitySlotNodes = (0..<5).map { i -> SCNNode in
-                let slot = SCNNode(geometry: SCNBox(width: 0.34, height: 0.02, length: 0.46, chamferRadius: 0.03))
+                // Flush with the felt (table top sits at y = 0.04) so the
+                // markers read as inlaid card guides, never as raised slabs.
+                let slot = SCNNode(geometry: SCNBox(width: 0.34, height: 0.01, length: 0.46, chamferRadius: 0.005))
                 slot.geometry?.materials = [faceDown]
-                slot.position = SCNVector3(Float(i - 2) * 0.42, 0.045, -radius * 0.4)
+                slot.position = SCNVector3(Float(i - 2) * 0.42, 0.042, -radius * 0.4)
                 return slot
             }
 
@@ -257,30 +264,40 @@ struct PokerCinematicBoardSceneView: UIViewRepresentable {
         private static func shot(for phase: TablePhase, tableRadius: Float) -> CameraShot {
             switch phase {
             case .dealing:
-                // Wide establishing shot -- whole table and the dealer both in frame.
+                // Wide establishing shot -- whole table and the dealer both
+                // in frame. The look-at point sits up and toward the dealer
+                // (head ~1.75 at z = -(r + 0.55)) so the dealer is framed
+                // fully instead of being cropped to legs at the top edge.
                 return CameraShot(
                     position: SCNVector3(0, tableRadius * 1.5, tableRadius * 1.8),
-                    lookAt: SCNVector3(0, 0.05, -tableRadius * 0.2),
-                    fieldOfView: 55,
+                    lookAt: SCNVector3(0, tableRadius * 0.15, -tableRadius * 0.28),
+                    fieldOfView: 58,
                     focusDistance: CGFloat(tableRadius * 1.9)
                 )
             case .betting:
-                // Closer, slightly lower -- the everyday "hand in progress" shot.
+                // The everyday "hand in progress" shot (flop/turn/river).
+                // Framed to keep the dealer fully visible above the table --
+                // the previous lower look-at left only the dealer's legs at
+                // the top edge of frame in flop/turn screenshots.
                 return CameraShot(
-                    position: SCNVector3(tableRadius * 0.35, tableRadius * 0.85, tableRadius * 1.15),
-                    lookAt: SCNVector3(0, 0.03, 0),
-                    fieldOfView: 42,
+                    position: SCNVector3(0, tableRadius * 1.15, tableRadius * 1.7),
+                    lookAt: SCNVector3(0, tableRadius * 0.24, -tableRadius * 0.58),
+                    fieldOfView: 47,
                     focusDistance: CGFloat(tableRadius * 1.2)
                 )
             case .reveal:
                 return revealShot(tableRadius: tableRadius)
             case .results:
-                // Pull back from the other side so the dealer's reaction and
-                // every seat are visible at once.
+                // Shot from the players' side (front of the dealer, who
+                // faces +z) rather than from behind the dealer -- the old
+                // shot sat on the dealer's axis behind them, so the dealer's
+                // body filled the frame and blocked the table. Pulled back
+                // and high so the dealer's showdown reaction, the card row,
+                // and every seat are visible at once.
                 return CameraShot(
-                    position: SCNVector3(0, tableRadius * 1.55, -tableRadius * 1.7),
-                    lookAt: SCNVector3(0, 0.06, -tableRadius * 0.1),
-                    fieldOfView: 56,
+                    position: SCNVector3(0, tableRadius * 1.7, tableRadius * 1.6),
+                    lookAt: SCNVector3(0, tableRadius * 0.2, -tableRadius * 0.9),
+                    fieldOfView: 52,
                     focusDistance: CGFloat(tableRadius * 1.8)
                 )
             }
