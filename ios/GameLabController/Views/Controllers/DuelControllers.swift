@@ -395,18 +395,27 @@ struct LudoControllerView: View {
 
     private let seatColors: [Color] = [.red, .green, .yellow, .blue]
 
+    /// Absolute track cells that are safe: every seat's start square plus the
+    /// star squares. Matches LudoEngine.SAFE_ABS and the TV board markers.
+    private let safeAbs: Set<Int> = [0, 13, 26, 39, 8, 21, 34, 47]
+
     /// Where a token sits right now, numbered exactly like the TV board.
     private func positionLabel(_ value: Int) -> String {
         if value < 0 { return "Yard" }
         if value >= 105 { return "Home" }
         if value >= 100 { return "Home \(value - 100 + 1) of 5" }
-        return "Tile \((seat * 13 + value) % 52 + 1)"
+        let abs = (seat * 13 + value) % 52
+        let safe = safeAbs.contains(abs) ? " · safe" : ""
+        return "Tile \(abs + 1)\(safe)"
     }
 
     /// Where tapping this token would send it -- matches the TV highlight.
     private func destLabel(token: Int) -> String? {
         guard let m = legalDests.first(where: { $0.token == token }) else { return nil }
-        if let a = m.destAbs { return "moves to tile \(a + 1)" }
+        if let a = m.destAbs {
+            let safe = safeAbs.contains(a) ? " · safe" : ""
+            return "moves to tile \(a + 1)\(safe)"
+        }
         if m.dest >= 105 { return "moves home" }
         return "moves to home \(m.dest - 100 + 1) of 5"
     }

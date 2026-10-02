@@ -163,7 +163,7 @@ Then on your devices:
 cd ios
 brew install xcodegen               # one-time
 xcodegen generate                   # creates GameLab.xcodeproj
-open GameLab.xcworkspace            # open in Xcode
+open GameLab.xcodeproj                # open in Xcode
 ```
 
 Then in Xcode:
@@ -173,6 +173,33 @@ Then in Xcode:
 For Apple TV wireless debugging:
 1. Apple TV: **Settings → Remotes and Devices → Remote App and Devices**
 2. Xcode: **Window → Devices and Simulators** → it should appear on the same WiFi
+
+---
+
+## Build stamp — knowing which commit is on your devices
+
+Every build stamps the git commit it came from into the app, so you can
+tell at a glance whether your Apple TV / iPhone is really running the
+latest code:
+
+- **Apple TV:** the game-selection sidebar shows "Build ced5a5d · Oct 2, 2026" under the connection dot.
+- **iPhone:** the join screen shows the same line at the bottom.
+
+How it works: `ios/build-stamp.sh` (run automatically as an XcodeGen
+pre-build script phase — see `preBuildScripts` in `ios/project.yml`)
+writes the current git short SHA and UTC commit date into
+`ios/Shared/Resources/BuildStamp.json`, which XcodeGen bundles into both
+apps as a resource. `ios/Shared/BuildStamp.swift` reads it and exposes
+`BuildStamp.displayString`; when the file is absent (an older build) it
+degrades gracefully to "dev build".
+
+Notes:
+
+- The JSON is generated at build time — don't commit it; it's listed in `.gitignore`.
+- If you build from Xcode the phase runs on every build, so the stamp is
+  always fresh. To refresh it manually: `cd ios && ./build-stamp.sh`.
+- If git is unavailable the script still exits 0 and the stamp reads
+  "dev build", so it never breaks a build.
 
 ---
 

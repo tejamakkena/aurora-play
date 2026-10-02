@@ -150,6 +150,12 @@ struct TVSnakeLadderBoardView: View {
             .ignoresSafeArea()
             .allowsHitTesting(false)
 
+            if winnerName != nil {
+                // The win banner (trophy + name) had no celebration
+                // motion of its own -- confetti falls over it once per win.
+                WinConfettiOverlay()
+            }
+
             VStack(spacing: 0) {
                 TVRoundHeader(symbol: "arrow.up.right", title: "Snake & Ladder", round: 0, totalRounds: 0,
                               secondsLeft: vm.state.secondsLeft,
@@ -195,6 +201,54 @@ struct TVSnakeLadderBoardView: View {
             }
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+}
+
+/// Falling confetti shown over the win banner. Pure SwiftUI, no textures:
+/// a fixed set of colored shapes that drift down once when the win state
+/// appears and settle below the fold. The no-emoji gate means celebration
+/// is drawn shapes, never emoji glyphs.
+private struct WinConfettiOverlay: View {
+    struct Piece: Identifiable {
+        let id = UUID()
+        let x: CGFloat        // fraction of the screen width
+        let delay: Double     // seconds before this piece starts falling
+        let duration: Double  // fall time in seconds
+        let color: Color
+        let size: CGFloat
+        let spin: Double      // total rotation in degrees
+    }
+
+    private let pieces: [Piece]
+    @State private var falling = false
+
+    init(count: Int = 44) {
+        let colors: [Color] = [.red, .yellow, .green, .cyan, .pink, .orange, .white]
+        pieces = (0..<count).map { _ in
+            Piece(x: CGFloat.random(in: 0...1),
+                  delay: Double.random(in: 0...0.9),
+                  duration: Double.random(in: 1.6...2.6),
+                  color: colors.randomElement()!,
+                  size: CGFloat.random(in: 8...16),
+                  spin: Double.random(in: -540...540))
+        }
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            ForEach(pieces) { piece in
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(piece.color)
+                    .frame(width: piece.size, height: piece.size * 0.6)
+                    .rotationEffect(.degrees(falling ? piece.spin : 0))
+                    .position(x: piece.x * geo.size.width,
+                              y: falling ? geo.size.height + 40 : -40)
+                    .animation(.easeIn(duration: piece.duration).delay(piece.delay),
+                               value: falling)
+            }
+        }
+        .allowsHitTesting(false)
+        .onAppear { falling = true }
     }
 }
 
@@ -543,6 +597,9 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             if let winnerID = state.winner, winnerID != lastAnnouncedWinner {
                 lastAnnouncedWinner = winnerID
                 cameraRig.transition(to: Coordinator.winnerShot(), duration: 1.6)
+                // Game over: the big fanfare. The ladder climb deliberately
+                // uses its own lighter chime so only this reads as a win.
+                SoundPlayer.shared.play(.winFanfare)
             } else if state.winner == nil {
                 lastAnnouncedWinner = nil
             }
@@ -591,6 +648,10 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
                 if kind == "snake", let snake = self.snakeNodes[slideFrom] {
                     snake.playEat()
                     SoundPlayer.shared.play(.snakeBite)
+                    // A short, subtle camera rumble sells the strike --
+                    // well below the idle orbit's own amplitude so it reads
+                    // as impact, not vertigo.
+                    self.cameraRig.shake(intensity: 0.12, duration: 0.4)
                     // The doom sting swells in just behind the bite snap
                     // and carries the whole slide down the body.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {

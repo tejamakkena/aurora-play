@@ -8,9 +8,11 @@ import SwiftUI
 /// backend is the single source of truth and neither app keeps its own
 /// copy of the text.
 ///
-/// Tapping the primary button dismisses the interstitial locally on that
-/// device only. The room is already PLAYING server-side at this point, so
-/// the gate only changes what each client shows, never the room state.
+/// The primary action begins the game for real: the server holds the engine
+/// (no clocks, nothing dealt) until the host taps it. Pass a non-nil
+/// `onPrimary` for the host's Begin button; pass nil for everyone else and
+/// the interstitial shows a "waiting for host" indicator instead. The room
+/// lifts the gate on `game_begun`, which is when both clients dismiss this.
 struct RulesInterstitialView: View {
     enum Layout {
         case tv
@@ -20,7 +22,7 @@ struct RulesInterstitialView: View {
     let rules: GameRules
     let layout: Layout
     let primaryTitle: String
-    let onPrimary: () -> Void
+    let onPrimary: (() -> Void)?
 
     @FocusState private var startFocused: Bool
 
@@ -75,21 +77,33 @@ struct RulesInterstitialView: View {
                             .foregroundColor(.white.opacity(0.75))
                     }
 
-                    Button(action: onPrimary) {
-                        Text(primaryTitle)
-                            .font(.title.bold())
-                            .frame(maxWidth: 420)
-                            .padding(.vertical, 20)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18)
-                                    .fill(startFocused ? Color.white : Color.cyan)
-                            )
-                            .foregroundColor(.black)
-                            .scaleEffect(startFocused ? 1.06 : 1.0)
+                    if let onPrimary {
+                        Button(action: onPrimary) {
+                            Text(primaryTitle)
+                                .font(.title.bold())
+                                .frame(maxWidth: 420)
+                                .padding(.vertical, 20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18)
+                                        .fill(startFocused ? Color.white : Color.cyan)
+                                )
+                                .foregroundColor(.black)
+                                .scaleEffect(startFocused ? 1.06 : 1.0)
+                        }
+                        .buttonStyle(.plain)
+                        .focused($startFocused)
+                        .padding(.top, 8)
+                    } else {
+                        HStack(spacing: 16) {
+                            ProgressView()
+                                .tint(.cyan)
+                                .scaleEffect(1.4)
+                            Text("Waiting for host to begin…")
+                                .font(.title2)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.top, 8)
                     }
-                    .buttonStyle(.plain)
-                    .focused($startFocused)
-                    .padding(.top, 8)
                 }
                 .padding(72)
                 .frame(maxWidth: 1200, alignment: .leading)
@@ -138,15 +152,27 @@ struct RulesInterstitialView: View {
                         .foregroundColor(.white.opacity(0.75))
                 }
 
-                Button(action: onPrimary) {
-                    Text(primaryTitle)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.cyan))
-                        .foregroundColor(.black)
+                if let onPrimary {
+                    Button(action: onPrimary) {
+                        Text(primaryTitle)
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.cyan))
+                            .foregroundColor(.black)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                            .tint(.cyan)
+                        Text("Waiting for host to begin…")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                 }
-                .buttonStyle(.plain)
             }
             .padding(24)
             .background(RoundedRectangle(cornerRadius: 20).fill(Color(hex: "14141f")))

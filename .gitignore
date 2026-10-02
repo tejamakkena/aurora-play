@@ -39,3 +39,7 @@ Thumbs.db
 
 Launch.json
 Settings.json
+
+# Generated at build time by ios/build-stamp.sh (pre-build script phase);
+# never commit it — a stale stamp would lie about which commit is installed.
+ios/Shared/Resources/BuildStamp.json

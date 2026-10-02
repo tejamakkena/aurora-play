@@ -733,7 +733,17 @@ private struct TVMemoryCard: View {
                 .frame(width: 112, height: 112)
 
             if card.state != .hidden {
+                // Counter-rotation for the flip below: the tile container
+                // rests at 180 degrees around Y once revealed, which shows
+                // the card plane's back side to the viewer and mirrors every
+                // glyph (e.g. words or asymmetric emoji read backwards).
+                // Counter-rotating the revealed face by the same 180
+                // degrees nets to zero, so revealed tiles read correctly.
                 Text(card.value).font(.system(size: 48))
+                    .rotation3DEffect(
+                        .degrees(180),
+                        axis: (x: 0, y: 1, z: 0)
+                    )
             } else {
                 Image(systemName: "questionmark").font(.system(size: 32))
                     .foregroundColor(.white.opacity(0.2))

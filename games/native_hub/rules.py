@@ -47,11 +47,11 @@ RULES: dict[str, dict] = {
     },
     "tambola": {
         "title": "Tambola",
-        "objective": "Claim the rows and the full house before anyone else.",
+        "objective": "Claim prizes before anyone else.",
         "rules": [
             "Your ticket is on your phone; numbers are called on the TV.",
             "Tap a number on your ticket the moment it is called.",
-            "Rows, two rows, and the full house each pay a prize.",
+            "Early Five, the three lines, and the full house each pay a prize.",
             "Call your claim quickly -- ties go to the first claim.",
         ],
         "controls": "Tap numbers on your ticket.",
@@ -105,8 +105,8 @@ RULES: dict[str, dict] = {
         "objective": "Grab coins, dodge traps, and finish with the most points.",
         "rules": [
             "Take turns flipping tiles on the shared grid.",
-            "Coins score points, traps burn points, teleports move you.",
-            "The grid reshuffles as tiles are claimed.",
+            "Coins score points, traps burn points, teleports award bonus points.",
+            "Revealed tiles stay revealed until the grid is cleared.",
             "The most points when the grid is cleared wins.",
         ],
         "controls": "Tap grid cells on your phone.",
@@ -144,11 +144,12 @@ RULES: dict[str, dict] = {
     },
     "chess": {
         "title": "Chess",
-        "objective": "Checkmate the opponent's king.",
+        "objective": "Capture the opponent's king.",
         "rules": [
-            "Standard chess rules on the shared board.",
+            "Simplified chess on the shared board -- no castling or en passant.",
             "Tap a piece, then tap its destination square.",
-            "Checkmate wins; stalemate is a draw.",
+            "Capturing the king wins; pawns auto-promote to queen.",
+            "If a side has no legal moves, the game is a draw.",
         ],
         "controls": "Tap pieces and squares on your phone.",
     },
@@ -180,7 +181,7 @@ RULES: dict[str, dict] = {
         "rules": [
             "Four roles: Raja, Mantri, Sipahi, and Chor.",
             "The Chor tries to steal the pot without being named.",
-            "The Raja guesses who the Chor is each round.",
+            "The Sipahi accuses who the Chor is each round.",
             "Catch the Chor to win; escape with the pot to win as the Chor.",
         ],
         "controls": "Tap on your phone to accuse or act.",
@@ -437,6 +438,7 @@ RULES: dict[str, dict] = {
             "Roll the dice on your turn to move.",
             "A six gets a token out of base and earns another roll.",
             "Land on an opponent to send their token back home.",
+            "Start squares and star squares are safe: tokens there can never be captured.",
             "First to bring all four tokens home wins.",
         ],
         "controls": "Shake to roll, tap a token to move.",

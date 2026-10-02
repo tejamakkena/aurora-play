@@ -53,6 +53,12 @@ def open_room(app, socketio, tv, game_id="cipher_grid", players=4):
     return room["code"], phones
 
 
+def begin_game(tv, code):
+    # Since the rules gate landed, start_game alone leaves the engine held:
+    # the TV (always authorized, mirroring start_game) lifts the gate here.
+    tv.emit("begin_game", {"roomCode": code}, namespace=NS)
+
+
 class TestNamespaceIsolation:
     def test_default_namespace_no_longer_answers_create_room(self, server):
         # Five browser games (connect4, digit_guess, pong, stickfight,
@@ -87,7 +93,7 @@ class TestCreateRoom:
         tv.emit("create_room", {"gameID": "trivia", "hostName": "TV", "hostID": "tv-1"},
                 namespace=NS)
         room = latest(tv, "room_updated")
-        assert set(room) == {"code", "gameID", "players", "state",
+        assert set(room) == {"code", "gameID", "players", "state", "phase",
                                "contentPack", "topic", "botsAllowed",
                                "usesContentPack"}
         assert room["gameID"] == "trivia" and room["state"] == "lobby"
@@ -170,7 +176,10 @@ class TestStartGame:
         app, socketio = server
         code, _ = open_room(app, socketio, tv, "cipher_grid", players=4)
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
-        assert latest(tv, "room_updated")["state"] == "playing"
+        room = latest(tv, "room_updated")
+        assert room["state"] == "playing"
+        # The engine is held until the host taps Begin (the rules gate).
+        assert room["phase"] == "rules"
 
     def test_rejects_too_few_players(self, server, tv):
         app, socketio = server
@@ -190,6 +199,7 @@ class TestStartGame:
         app, socketio = server
         code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        begin_game(tv, code)
         socketio.sleep(1.2)
         for i, phone in enumerate(phones):
             payload = latest(phone, "private_state")
@@ -200,6 +210,7 @@ class TestStartGame:
         app, socketio = server
         code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        begin_game(tv, code)
         socketio.sleep(1.2)
         board = latest(tv, "game_state")
         assert set(board) == {"roomCode", "boardState"}
@@ -210,6 +221,7 @@ class TestStartGame:
         app, socketio = server
         code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        begin_game(tv, code)
         socketio.sleep(1.2)
         with_key = [i for i, p in enumerate(phones)
                     if latest(p, "private_state")["privateData"].get("key")]
@@ -256,10 +268,130 @@ class TestStartGame:
         app, socketio = server
         code, _ = open_room(app, socketio, tv, "cipher_grid", players=4)
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        begin_game(tv, code)
         socketio.sleep(1.2)
         tv.get_received(NS)
         socketio.sleep(1.4)
         assert received(tv, "game_state")
+
+
+class TestBeginGame:
+    """The host-gated rules phase: start_game holds the engine, begin_game
+    starts it. Regression cover for the clock-already-running flaw (the
+    engine used to start server-side the moment Start Game was pressed,
+    while the rules interstitial was still up on every screen)."""
+
+    def test_start_game_holds_the_engine_until_begin(self, server, tv):
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        socketio.sleep(1.2)
+        assert received(tv, "game_state") == []
+        for phone in phones:
+            assert received(phone, "private_state") == []
+        # received() drains the client's queue, so read the phase off the room.
+        assert rooms.get(code).phase == "rules"
+
+    def test_begin_game_emits_game_begun_and_starts_the_pump(self, server, tv):
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        tv.emit("begin_game", {"roomCode": code}, namespace=NS)
+        begun = latest(tv, "game_begun")
+        assert set(begun) == {"roomCode", "gameID"}
+        assert begun["gameID"] == "cipher_grid"
+        # latest() drains the client's queue, so read the phase off the room.
+        assert rooms.get(code).phase == "play"
+        socketio.sleep(1.2)
+        assert received(tv, "game_state")
+        for phone in phones:
+            assert received(phone, "private_state")
+
+    def test_a_non_host_phone_cannot_begin(self, server, tv):
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        phones[2].emit("begin_game", {"roomCode": code}, namespace=NS)
+        assert latest(phones[2], "error")["code"] == "NOT_HOST"
+        # Still gated: nothing began (phase read off the room because
+        # latest() drains the client's queue).
+        assert rooms.get(code).phase == "rules"
+        assert received(tv, "game_begun") == []
+
+    def test_the_host_phone_can_begin(self, server, tv):
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        phones[0].emit("begin_game", {"roomCode": code, "playerID": "dev-0"},
+                       namespace=NS)
+        assert latest(tv, "game_begun")["roomCode"] == code
+
+    def test_begin_game_is_idempotent(self, server, tv):
+        app, socketio = server
+        code, _ = open_room(app, socketio, tv, "cipher_grid", players=4)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        tv.emit("begin_game", {"roomCode": code}, namespace=NS)
+        tv.emit("begin_game", {"roomCode": code}, namespace=NS)
+        assert len(received(tv, "game_begun")) == 1
+
+    def test_host_leaving_mid_rules_promotes_the_oldest_remaining_player(self, server, tv):
+        # dev-0 joined first, so it holds the host flag; when it leaves
+        # mid-rules, reassign_host promotes dev-1 and the gate survives.
+        # trivia (min 2) so the room still has enough players to begin.
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "trivia", players=3)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        hosts = [p for p in latest(tv, "room_updated")["players"] if p["isHost"]]
+        assert [p["id"] for p in hosts] == ["dev-0"]
+        phones[0].emit("leave_room", {"roomCode": code, "playerID": "dev-0"},
+                       namespace=NS)
+        hosts = [p for p in latest(tv, "room_updated")["players"] if p["isHost"]]
+        assert [p["id"] for p in hosts] == ["dev-1"]
+        phones[1].emit("begin_game", {"roomCode": code, "playerID": "dev-1"},
+                       namespace=NS)
+        assert latest(tv, "game_begun")["roomCode"] == code
+
+    def test_a_player_joining_mid_rules_gets_the_rules_screen(self, server, tv):
+        # The gate is still open, so the join is allowed; the joiner gets
+        # the rules payload re-sent to it directly and room_updated reports
+        # the rules phase.
+        app, socketio = server
+        code, _ = open_room(app, socketio, tv, "trivia", players=2)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        late = socketio.test_client(app, namespace=NS)
+        late.emit("join_room", {"roomCode": code, "playerName": "Late",
+                                "playerID": "dev-late", "isTV": False},
+                  namespace=NS)
+        # get_received drains the queue, so read every event from one batch.
+        batch = {e["name"]: e["args"][0] for e in late.get_received(NS)}
+        assert batch["room_joined"]["room"]["state"] == "playing"
+        assert batch["room_joined"]["room"]["phase"] == "rules"
+        assert batch["game_started"]["rules"]["title"] == "Trivia"
+
+    def test_begin_with_too_few_players_stays_gated(self, server, tv):
+        # Everyone left while the rules were up: refusing to begin beats
+        # starting a game nobody can play.
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        for i, phone in enumerate(phones):
+            phone.emit("leave_room", {"roomCode": code, "playerID": f"dev-{i}"},
+                       namespace=NS)
+        tv.emit("begin_game", {"roomCode": code}, namespace=NS)
+        # Phase read off the room: latest() below drains the client's queue.
+        assert rooms.get(code).phase == "rules"
+        assert latest(tv, "error")["code"] == "NOT_ENOUGH_PLAYERS"
+
+    def test_actions_during_the_rules_phase_are_ignored(self, server, tv):
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
+        tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        phones[0].emit("game_action", {"roomCode": code, "playerID": "dev-0",
+                                       "action": "guess", "data": {"index": 0}},
+                       namespace=NS)
+        socketio.sleep(0.5)
+        assert received(tv, "game_state") == []
+        assert received(phones[0], "error") == []
 
 
 class TestGameAction:
@@ -269,6 +401,7 @@ class TestGameAction:
         app, socketio = server
         code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        begin_game(tv, code)
         socketio.sleep(1.2)
         phones[1].get_received(NS)
         phones[1].emit("game_action", {"roomCode": code, "playerID": "dev-0",
@@ -332,6 +465,7 @@ class TestSoloRoom:
                                 "hostID": "tv-solo", "solo": True}, namespace=NS)
         code = latest(tv, "room_updated")["code"]
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        begin_game(tv, code)
         tv.emit("game_action", {"roomCode": code, "playerID": "tv-solo",
                                 "action": "turn", "data": {"direction": "down"}},
                 namespace=NS)
@@ -360,6 +494,7 @@ class TestLeaveAndReconnect:
         app, socketio = server
         code, phones = open_room(app, socketio, tv, "cipher_grid", players=4)
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        begin_game(tv, code)
         socketio.sleep(1.2)
         phones[1].disconnect(namespace=NS)
 
@@ -373,9 +508,13 @@ class TestLeaveAndReconnect:
         assert batch["private_state"]["playerID"] == "dev-1"
 
     def test_a_new_player_cannot_join_a_game_in_progress(self, server, tv):
+        # Past the rules gate, the room is closed to newcomers; while the
+        # gate is still up (phase "rules") a late joiner is seated instead
+        # (see TestBeginGame).
         app, socketio = server
         code, _ = open_room(app, socketio, tv, "cipher_grid", players=4)
         tv.emit("start_game", {"roomCode": code}, namespace=NS)
+        begin_game(tv, code)
         latecomer = socketio.test_client(app, namespace=NS)
         latecomer.emit("join_room", {"roomCode": code, "playerName": "Late",
                                      "playerID": "dev-late", "isTV": False},

@@ -91,6 +91,11 @@ class Room:
     code: str
     game_id: str
     state: RoomState = RoomState.LOBBY
+    #: Sub-phase within PLAYING. "rules" while the room waits for the host to
+    #: tap Begin after Start Game -- the engine is constructed but not
+    #: started, so no clocks run and nothing is dealt. "play" once the host
+    #: begins (or for any room that never passed through the gate).
+    phase: str = "play"
     players: list[Player] = field(default_factory=list)   # phones only
     tv_sids: set[str] = field(default_factory=set)        # TV / board sockets
     solo: bool = False
@@ -156,7 +161,7 @@ class Room:
 
     def to_json(self) -> dict:
         """Exactly the Swift ``Room`` struct. ``contentPack``/``botsAllowed``/
-        ``usesContentPack`` are additive optionals on the Swift side."""
+        ``usesContentPack``/``phase`` are additive optionals on the Swift side."""
         from games.native_hub.bots import POLICIES
         from games.native_hub.engines.content_packs import PACK_GAMES
         return {
@@ -164,6 +169,7 @@ class Room:
             "gameID": self.game_id,
             "players": [p.to_json() for p in self.players],
             "state": self.state.value,
+            "phase": self.phase,
             "contentPack": self.content_pack,
             "topic": self.topic,
             "botsAllowed": self.game_id in POLICIES,

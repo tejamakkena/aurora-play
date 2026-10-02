@@ -539,3 +539,65 @@ class TestAntakshari:
         engine.submissions = {}
         engine.handle_action(roster[1].id, "submit_song", {"song": "tum hi ho"})
         assert engine.phase == "sing"
+
+
+class TestLudoSafeSquares:
+    """Start squares and star squares must block captures (classic rules)."""
+
+    def _ids(self, engine, roster):
+        pid = engine.current_player_id()
+        other = roster[1].id if roster[0].id == pid else roster[0].id
+        return pid, other
+
+    def test_capture_on_normal_square_works(self):
+        engine, roster = make("ludo", players=2)
+        pid, other = self._ids(engine, roster)
+        engine.tokens[pid] = [10, -1, -1, -1]      # abs 10
+        engine.tokens[other] = [49, -1, -1, -1]    # abs (13+49)%52 = 10
+        engine.die = 0
+        assert engine._apply_move(pid, 0) is True
+        assert engine.tokens[other][0] == -1       # sent back to the yard
+
+    def test_no_capture_on_start_square(self):
+        engine, roster = make("ludo", players=2)
+        pid, other = self._ids(engine, roster)
+        engine.tokens[pid] = [0, -1, -1, -1]       # abs 0, a start square
+        engine.tokens[other] = [39, -1, -1, -1]    # abs (13+39)%52 = 0
+        engine.die = 0
+        assert engine._apply_move(pid, 0) is False
+        assert engine.tokens[other][0] == 39        # coexists, not captured
+        assert engine.tokens[pid][0] == 0
+
+    def test_no_capture_on_star_square(self):
+        engine, roster = make("ludo", players=2)
+        pid, other = self._ids(engine, roster)
+        engine.tokens[pid] = [8, -1, -1, -1]       # abs 8, a star square
+        engine.tokens[other] = [47, -1, -1, -1]    # abs (13+47)%52 = 8
+        engine.die = 0
+        assert engine._apply_move(pid, 0) is False
+        assert engine.tokens[other][0] == 47
+        assert engine.tokens[pid][0] == 8
+
+    def test_yard_exit_onto_occupied_start_is_safe(self):
+        engine, roster = make("ludo", players=2)
+        pid, other = self._ids(engine, roster)
+        engine.tokens[pid] = [-1, -1, -1, -1]
+        engine.tokens[other] = [39, -1, -1, -1]    # sitting on abs 0
+        engine.die = 6
+        assert engine._apply_move(pid, 0) is False
+        assert engine.tokens[pid][0] == 0          # entered the track
+        assert engine.tokens[other][0] == 39       # not captured
+
+    def test_home_run_tokens_cannot_be_captured(self):
+        engine, roster = make("ludo", players=2)
+        pid, other = self._ids(engine, roster)
+        engine.tokens[pid] = [102, -1, -1, -1]     # deep in the home stretch
+        engine.tokens[other] = [100, -1, -1, -1]   # opponent also home
+        engine.die = 0
+        assert engine._apply_move(pid, 0) is False
+        assert engine.tokens[pid][0] == 102
+        assert engine.tokens[other][0] == 100
+
+    def test_public_state_exposes_safe_squares(self):
+        engine, _ = make("ludo", players=2)
+        assert engine.public_state()["safe"] == [0, 8, 13, 21, 26, 34, 39, 47]

@@ -183,6 +183,11 @@ struct JoinRoomView: View {
 
                 serverSettings
                     .padding(.horizontal, 32)
+
+                // Build stamp — which commit this build came from.
+                Text(BuildStamp.displayString)
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.25))
                     .padding(.bottom, 40)
             }
         }
