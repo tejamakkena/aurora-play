@@ -74,7 +74,7 @@ struct RootControllerView: View {
                 }
 
             case .results(let room):
-                ResultsControllerView(room: room, onPlayAgain: vm.playAgain, onLeave: vm.leaveRoom)
+                ResultsControllerView(room: room, onLeave: vm.leaveRoom, onPlayAgain: vm.playAgain)
             }
         }
         .environmentObject(vm)
