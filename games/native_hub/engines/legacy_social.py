@@ -839,6 +839,16 @@ class TriviaEngine(NativeGameEngine):
 
     def start(self, players):
         self.scores = {p.id: 0 for p in players}
+        # Externally injected questions (create_room "seedQuestions"): the
+        # client fetched these itself, so they win over everything else.
+        if self._start_from_seeds():
+            return
+        # Travel Mode topic: the passenger typed a free-text topic in the
+        # lobby, so generate fresh questions on demand instead of dealing
+        # from a fixed pack. Falls back to the packs below when empty.
+        topic = (getattr(self.room, "topic", "") or "").strip()
+        if topic and self._start_from_topic(topic):
+            return
         pack = getattr(self.room, "content_pack", "en")
         self._pack = pack
         # Random sampling means no question repeats within a session;
@@ -850,6 +860,62 @@ class TriviaEngine(NativeGameEngine):
         self.total_rounds = len(self.pool)
         self.round = 0
         self._next_question()
+
+    def _start_from_seeds(self) -> bool:
+        """Seed the pool from externally injected questions
+        (room.seed_questions, set from create_room "seedQuestions").
+
+        Already validated at room creation; recorded into the rolling
+        history by _next_question exactly like the pack path. Returns
+        False when there are no seeds so start() falls through.
+        """
+        seeds = list(getattr(self.room, "seed_questions", None) or [])
+        if not seeds:
+            return False
+        try:
+            from games import topic_gen
+            topic = (getattr(self.room, "topic", "") or "").strip() or "Seeded"
+            self._pack = "seeded"
+            self.pool = [topic_gen.question_dict_to_tuple(topic, q) for q in seeds]
+        except Exception:
+            return False
+        if not self.pool:
+            return False
+        self.total_rounds = len(self.pool)
+        self.round = 0
+        self._next_question()
+        return True
+
+    def _start_from_topic(self, topic: str) -> bool:
+        """Seed the pool from live topic generation (games/topic_gen.py).
+
+        Returns False when the service yields nothing usable, so start()
+        falls back to the fixed content packs. Already-asked questions are
+        skipped via the room's rolling history, and each asked question is
+        recorded by _next_question exactly like the pack path.
+        """
+        try:
+            from games import topic_gen
+            key = topic_gen.norm_topic(topic)
+            pack_key = f"topic:{key}"
+            history = getattr(self.room, "question_history", {}).get((pack_key, "trivia"), [])
+            items, source = topic_gen._fetch(
+                "questions", topic, min(self.TOTAL_ROUNDS, 20),
+                session_history=history)
+            if source == "bundled":
+                # Offline or the API failed: play the room's fixed pack
+                # instead (content_packs.py), honoring its language.
+                return False
+        except Exception:
+            return False
+        if not items:
+            return False
+        self._pack = pack_key
+        self.pool = [topic_gen.question_dict_to_tuple(topic, q) for q in items]
+        self.total_rounds = len(self.pool)
+        self.round = 0
+        self._next_question()
+        return True
 
     def _next_question(self):
         self.round += 1

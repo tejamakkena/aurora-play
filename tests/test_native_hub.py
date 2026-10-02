@@ -88,7 +88,8 @@ class TestCreateRoom:
                 namespace=NS)
         room = latest(tv, "room_updated")
         assert set(room) == {"code", "gameID", "players", "state",
-                               "contentPack", "botsAllowed", "usesContentPack"}
+                               "contentPack", "topic", "botsAllowed",
+                               "usesContentPack"}
         assert room["gameID"] == "trivia" and room["state"] == "lobby"
         assert len(room["code"]) == 6
 
@@ -392,6 +393,47 @@ class TestLobbyOptions:
         assert room["botsAllowed"] is True
         assert room["usesContentPack"] is True
         assert room["contentPack"] == "en"
+
+    def test_create_room_honors_topic(self, tv):
+        tv.emit("create_room", {"gameID": "trivia", "hostName": "TV",
+                                "hostID": "tv-1", "topic": "Tollywood movies"},
+                namespace=NS)
+        room = latest(tv, "room_updated")
+        assert room["topic"] == "Tollywood movies"
+        assert rooms.get(room["code"]).topic == "Tollywood movies"
+
+    def test_create_room_topic_defaults_empty(self, tv):
+        tv.emit("create_room", {"gameID": "trivia", "hostName": "TV",
+                                "hostID": "tv-1"},
+                namespace=NS)
+        room = latest(tv, "room_updated")
+        assert room["topic"] == ""
+
+    def test_create_room_validates_seed_questions(self, tv):
+        seeds = [
+            {"question": "Good one?", "options": ["A", "B", "C", "D"],
+             "correct_answer": 1},
+            {"question": "Bad: only three", "options": ["A", "B", "C"],
+             "correct_answer": 0},
+            "not a dict",
+            {"question": "Emoji \U0001F600 no", "options": ["A", "B", "C", "D"],
+             "correct_answer": 0},
+        ]
+        tv.emit("create_room", {"gameID": "trivia", "hostName": "TV",
+                                "hostID": "tv-1", "seedQuestions": seeds},
+                namespace=NS)
+        room = latest(tv, "room_updated")
+        stored = rooms.get(room["code"]).seed_questions
+        assert len(stored) == 1
+        assert stored[0]["question"] == "Good one?"
+        assert stored[0]["correct_answer"] == 1
+
+    def test_create_room_seed_questions_default_empty(self, tv):
+        tv.emit("create_room", {"gameID": "trivia", "hostName": "TV",
+                                "hostID": "tv-1"},
+                namespace=NS)
+        room = latest(tv, "room_updated")
+        assert rooms.get(room["code"]).seed_questions == []
 
     def test_tv_can_switch_content_pack(self, tv):
         tv.emit("create_room", {"gameID": "kbc", "hostName": "TV", "hostID": "tv-1"},

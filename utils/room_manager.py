@@ -97,6 +97,18 @@ class Room:
     #: Content-pack id ("en", "te", "hi", ...) chosen at room creation.
     #: Engines read it via ``getattr(room, "content_pack", "en")``.
     content_pack: str = "en"
+    #: Free-text Travel Mode topic ("Tollywood movies", "cricket", ...),
+    #: set by the host/passenger in the lobby. Quiz engines read it via
+    #: ``getattr(room, "topic", "")``; when non-empty they generate fresh
+    #: questions from games/topic_gen.py instead of the fixed packs.
+    topic: str = ""
+    #: Externally fetched questions injected at room creation: the iOS
+    #: client calls GET /api/travel/questions (or legacy POST
+    #: /trivia/generate) and passes the result as "seedQuestions" in
+    #: create_room. TriviaEngine prefers these over topic generation and
+    #: the content packs. Each item is {"question", "options"[4],
+    #: "correct_answer" 0-3}, validated on the way in.
+    seed_questions: list = field(default_factory=list)
     # The solo placeholder's identity, held here rather than added to
     # `players` immediately at create_room time -- deferred until start_game
     # actually fires, and only materialized then if nobody real has joined by
@@ -153,6 +165,7 @@ class Room:
             "players": [p.to_json() for p in self.players],
             "state": self.state.value,
             "contentPack": self.content_pack,
+            "topic": self.topic,
             "botsAllowed": self.game_id in POLICIES,
             "usesContentPack": self.game_id in PACK_GAMES,
         }
