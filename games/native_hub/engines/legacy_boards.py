@@ -486,9 +486,19 @@ class SnakeLadderEngine(TurnBasedEngine):
         super().__init__(room, broadcaster)
         self.positions: dict[str, int] = {}
         self.last_roll: dict[str, int] = {}
+        # The most recent slide per player: {"kind": "snake"|"ladder",
+        # "from": <head/bottom square>, "to": <tail/top square>,
+        # "seq": <monotonic counter>}. The TV board drives its bite/climb
+        # cinematics (and the controller its haptics) off this event rather
+        # than re-inferring the slide from positions + the last roll, which
+        # breaks when state updates coalesce or arrive out of order.
+        self.last_slide: dict[str, dict] = {}
+        self.slide_seq = 0
 
     def setup(self):
         self.positions = {pid: 0 for pid in self.order}
+        self.last_slide = {}
+        self.slide_seq = 0
 
     def handle_action(self, player_id, action, data):
         if self._finished or action != "roll" or not self.is_my_turn(player_id):
@@ -499,12 +509,23 @@ class SnakeLadderEngine(TurnBasedEngine):
         self.last_roll[player_id] = value
 
         new_pos = self.positions.get(player_id, 0) + value
+        slide = None
         if new_pos > 100:
             new_pos = self.positions.get(player_id, 0)   # overshoot -- stay put
         elif new_pos in SNAKES:
+            slide = {"kind": "snake", "from": new_pos, "to": SNAKES[new_pos]}
             new_pos = SNAKES[new_pos]
         elif new_pos in LADDERS:
+            slide = {"kind": "ladder", "from": new_pos, "to": LADDERS[new_pos]}
             new_pos = LADDERS[new_pos]
+        if slide is not None:
+            self.slide_seq += 1
+            slide["seq"] = self.slide_seq
+            self.last_slide[player_id] = slide
+        else:
+            # A plain move supersedes any earlier slide event for this
+            # player, so a late-joining client never replays a stale one.
+            self.last_slide.pop(player_id, None)
         self.positions[player_id] = new_pos
 
         if new_pos == 100:
@@ -526,6 +547,10 @@ class SnakeLadderEngine(TurnBasedEngine):
             # that could silently drift from SNAKES/LADDERS above.
             "snakes": {str(head): tail for head, tail in SNAKES.items()},
             "ladders": {str(bottom): top for bottom, top in LADDERS.items()},
+            # The latest slide per player (see handle_action). The TV uses
+            # `seq` to play each cinematic exactly once; keys are player
+            # ids, values are {"kind", "from", "to", "seq"} dicts.
+            "lastSlide": {pid: dict(slide) for pid, slide in self.last_slide.items()},
         })
         return state
 
@@ -534,6 +559,9 @@ class SnakeLadderEngine(TurnBasedEngine):
         state.update({
             "position": self.positions.get(player_id, 0),
             "lastRoll": self.last_roll.get(player_id, 0),
+            # This player's own latest slide (drives the controller
+            # haptic); absent/None when their last move was a plain hop.
+            "lastSlide": dict(self.last_slide[player_id]) if player_id in self.last_slide else None,
         })
         return state
 

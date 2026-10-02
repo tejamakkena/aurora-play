@@ -978,26 +978,175 @@ struct TVHeistEscapeBoardView: View {
 
 // MARK: - Ludo
 
+/// Board geometry for a classic 15x15 Ludo cross board, in cell units.
+/// Seat order matches the engine: 0 red (top-left), 1 green (top-right),
+/// 2 yellow (bottom-right), 3 blue (bottom-left).
+private enum LudoGeometry {
+    /// The 52 shared track cells in path order, starting at red's start.
+    /// Each entry is a (col, row) cell on the 15x15 grid.
+    static let track: [(col: Int, row: Int)] = [
+        (1,6),(2,6),(3,6),(4,6),(5,6),
+        (6,5),(6,4),(6,3),(6,2),(6,1),(6,0),
+        (7,0),(8,0),
+        (8,1),(8,2),(8,3),(8,4),(8,5),
+        (9,6),(10,6),(11,6),(12,6),(13,6),(14,6),
+        (14,7),(14,8),
+        (13,8),(12,8),(11,8),(10,8),(9,8),
+        (8,9),(8,10),(8,11),(8,12),(8,13),(8,14),
+        (7,14),(6,14),
+        (6,13),(6,12),(6,11),(6,10),(6,9),
+        (5,8),(4,8),(3,8),(2,8),(1,8),(0,8),
+        (0,7),(0,6),
+    ]
+    /// Per-seat five-cell home stretch columns (token values 100-104).
+    static let homeRun: [[(col: Int, row: Int)]] = [
+        [(1,7),(2,7),(3,7),(4,7),(5,7)],
+        [(7,1),(7,2),(7,3),(7,4),(7,5)],
+        [(13,7),(12,7),(11,7),(10,7),(9,7)],
+        [(7,13),(7,12),(7,11),(7,10),(7,9)],
+    ]
+    /// Top-left cell of each 6x6 home quadrant.
+    static let quadrant: [(col: Int, row: Int)] = [(0,0),(9,0),(9,9),(0,9)]
+    /// Token spots inside a quadrant, in quadrant-relative cell units.
+    static let yardSpots: [(x: Double, y: Double)] = [(2,2),(4,2),(2,4),(4,4)]
+    /// Absolute track indices of each seat's start cell.
+    static let startAbs = [0, 13, 26, 39]
+    /// Absolute track indices of the star (safe) cells; starts are safe too.
+    static let starAbs: Set<Int> = [8, 21, 34, 47]
+}
+
+/// A drawable token position: yard spot, shared track cell, colour home
+/// column cell, or the finished centre.
+private enum LudoPos: Hashable {
+    case yard(seat: Int, token: Int)
+    case track(abs: Int)
+    case homeRun(seat: Int, step: Int)
+    case center
+}
+
+/// Maps an engine token value onto a drawable position.
+/// Engine value space: -1 yard, 0-51 own track, 100-104 home column, 105 home.
+private func ludoPos(seat: Int, token: Int, raw: Int) -> LudoPos {
+    if raw < 0 { return .yard(seat: seat, token: token) }
+    if raw >= 105 { return .center }
+    if raw >= 100 { return .homeRun(seat: seat, step: raw - 100) }
+    return .track(abs: (seat * 13 + raw) % 52)
+}
+
+/// Centre of a drawable position, in cell units on the 15x15 grid.
+private func ludoPoint(_ pos: LudoPos) -> CGPoint {
+    switch pos {
+    case .yard(let seat, let token):
+        let q = LudoGeometry.quadrant[seat % 4]
+        let s = LudoGeometry.yardSpots[token % 4]
+        return CGPoint(x: Double(q.col) + s.x, y: Double(q.row) + s.y)
+    case .track(let abs):
+        let c = LudoGeometry.track[abs % 52]
+        return CGPoint(x: Double(c.col) + 0.5, y: Double(c.row) + 0.5)
+    case .homeRun(let seat, let step):
+        let c = LudoGeometry.homeRun[seat % 4][step % 5]
+        return CGPoint(x: Double(c.col) + 0.5, y: Double(c.row) + 0.5)
+    case .center:
+        return CGPoint(x: 7.5, y: 7.5)
+    }
+}
+
+/// Raw token values stepped through to animate one move hop-by-hop,
+/// in the engine's own value space.
+private func ludoHops(from: Int, to: Int) -> [Int] {
+    if from == to { return [] }
+    if to < 0 { return [to] }                  // captured: hop straight home
+    var path: [Int] = []
+    var cur = from
+    if cur < 0 { cur = 0; path.append(0) }     // leaving the yard lands on start
+    var safety = 0
+    while cur != to && safety < 70 {
+        safety += 1
+        if cur >= 100 { cur += 1 }
+        else { cur += 1; if cur >= 52 { cur = 100 } }
+        path.append(cur)
+    }
+    return path
+}
+
+/// Steps tokens through intermediate tiles instead of teleporting them.
+/// The server only broadcasts snapshots, so this keeps the last displayed
+/// raw value per token and expands each change into its hop path.
+@MainActor
+private final class LudoAnimator: ObservableObject {
+    @Published var shownRaw: [Int: Int] = [:]   // key seat*4+token -> raw value
+    private var pending: [Int: [Int]] = [:]
+    private var stepping = false
+
+    func ingest(seats: [(seat: Int, tokens: [Int])]) {
+        for s in seats {
+            for (i, raw) in s.tokens.enumerated() {
+                let k = s.seat * 4 + i
+                guard let cur = shownRaw[k] else {
+                    shownRaw[k] = raw      // first sight: place instantly
+                    continue
+                }
+                let start = pending[k]?.last ?? cur
+                if start != raw {
+                    pending[k] = ludoHops(from: start, to: raw)
+                }
+            }
+        }
+        pump()
+    }
+
+    private func pump() {
+        guard !stepping else { return }
+        guard pending.values.contains(where: { !$0.isEmpty }) else { return }
+        stepping = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            self?.step()
+        }
+    }
+
+    private func step() {
+        for k in pending.keys {
+            if let next = pending[k]?.first {
+                shownRaw[k] = next
+                pending[k]?.removeFirst()
+            }
+        }
+        stepping = false
+        pump()
+    }
+}
+
 struct LudoState {
     var die = 0
     var rolled = false
+    var secondsLeft = 0
     var currentPlayerID: String? = nil
-    var seats: [(name: String, seat: Int, tokens: [Int], absolute: [Int?])] = []
+    var seats: [(id: String, name: String, seat: Int, tokens: [Int])] = []
+    /// The current player's legal moves with destinations, from the server.
+    /// `destAbs` is the shared 0-51 track cell; nil means a home-run column.
+    var legal: [(token: Int, dest: Int, destAbs: Int?)] = []
     var winner: String? = nil
     var players: [BoardPlayer] = []
 
     mutating func update(from d: [String: AnyCodable]) {
         if let v = d["die"]?.value as? Int { die = v }
         if let v = d["rolled"]?.value as? Bool { rolled = v }
+        if let v = d["secondsLeft"]?.value as? Int { secondsLeft = v }
         currentPlayerID = d["currentPlayerID"]?.value as? String
         winner = d["winner"]?.value as? String
         players = BoardPlayer.list(from: d["players"]?.value)
         seats = (d["seats"]?.value as? [Any] ?? []).compactMap {
             guard let s = $0 as? [String: Any] else { return nil }
-            return (s["name"] as? String ?? "",
+            return (s["playerID"] as? String ?? "",
+                    s["name"] as? String ?? "",
                     s["seat"] as? Int ?? 0,
-                    (s["tokens"] as? [Any] ?? []).compactMap { $0 as? Int },
-                    (s["absolute"] as? [Any] ?? []).map { $0 as? Int })
+                    (s["tokens"] as? [Any] ?? []).compactMap { $0 as? Int })
+        }
+        legal = (d["legal"]?.value as? [Any] ?? []).compactMap {
+            guard let m = $0 as? [String: Any],
+                  let t = m["token"] as? Int,
+                  let dv = m["dest"] as? Int else { return nil }
+            return (t, dv, m["destAbs"] as? Int)
         }
     }
 }
@@ -1005,101 +1154,423 @@ struct LudoState {
 struct TVLudoBoardView: View {
     let room: Room
     @StateObject private var vm = TVBoardModel(initial: LudoState()) { $0.update(from: $1) }
+    @StateObject private var animator = LudoAnimator()
 
     private let seatColors: [Color] = [.red, .green, .yellow, .blue]
-    private let track = 52
-    private let radius: CGFloat = 300
+
+    /// Changes only when a raw token value changes; drives the hop animation.
+    private var tokenSignature: String {
+        vm.state.seats
+            .sorted { $0.seat < $1.seat }
+            .map { seat in "\(seat.seat):\(seat.tokens.map(String.init).joined(separator: ","))" }
+            .joined(separator: "|")
+    }
+
+    private var currentSeat: Int? {
+        vm.state.seats.first { $0.id == vm.state.currentPlayerID }?.seat
+    }
+
+    private var currentName: String {
+        vm.state.seats.first { $0.id == vm.state.currentPlayerID }?.name ?? ""
+    }
+
+    private var winnerName: String? {
+        guard let w = vm.state.winner, !w.isEmpty else { return nil }
+        return vm.state.seats.first { $0.id == w }?.name
+    }
+
+    private var phaseText: String {
+        guard !currentName.isEmpty else { return "waiting to start" }
+        if vm.state.winner != nil { return "game over" }
+        return vm.state.rolled ? "\(currentName)'s turn - pick a token"
+                               : "\(currentName)'s turn - roll the dice"
+    }
+
+    /// Animator keys (seat*4+token) the current player may move right now.
+    private var movableKeys: Set<Int> {
+        guard let cs = currentSeat else { return [] }
+        return Set(vm.state.legal.map { cs * 4 + $0.token })
+    }
+
+    private func startColor(abs: Int) -> Color? {
+        guard let seat = LudoGeometry.startAbs.firstIndex(of: abs) else { return nil }
+        return seatColors[seat % 4]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(symbol: "dice.fill", title: "Ludo", round: 0, totalRounds: 0, secondsLeft: 0,
-                          phaseLabel: vm.state.rolled ? "pick a token" : "roll the dice")
+            TVRoundHeader(symbol: "dice.fill", title: "Ludo", round: 0, totalRounds: 0,
+                          secondsLeft: vm.state.secondsLeft, phaseLabel: phaseText)
             Spacer()
-            HStack(spacing: 70) {
-                // Ring board: 52 squares laid out in a circle keeps every token
-                // visible at TV distance without a cramped cross layout.
-                ZStack {
-                    // Extracted into their own subviews (below) rather than inline
-                    // closures here: two nested ForEach loops combining trig,
-                    // conditional binding, and several chained modifiers in one
-                    // expression tree made the type-checker time out. Each subview
-                    // now type-checks independently.
-                    ForEach(0..<track, id: \.self) { i in
-                        LudoTrackDot(index: i, track: track, radius: radius)
-                    }
-                    ForEach(Array(vm.state.seats.enumerated()), id: \.offset) { _, seat in
-                        ForEach(Array(seat.absolute.enumerated()), id: \.offset) { _, abs in
-                            LudoTokenDot(position: abs, track: track, radius: radius,
-                                        color: seatColors[seat.seat % 4])
+            HStack(spacing: 48) {
+                GeometryReader { geo in
+                    let cell = min(geo.size.width, geo.size.height) / 15
+                    ZStack {
+                        LudoBoardBase(cell: cell, colors: seatColors)
+                        ForEach(0..<52, id: \.self) { abs in
+                            LudoTrackCell(abs: abs, cell: cell, startColor: startColor(abs: abs))
                         }
-                    }
-                    VStack(spacing: 6) {
-                        Image(systemName: "dice.fill").font(.system(size: 56)).foregroundColor(.white.opacity(0.8))
-                        Text(vm.state.die > 0 ? "\(vm.state.die)" : "—")
-                            .font(.system(size: 70, weight: .heavy)).foregroundColor(.white)
-                    }
-                }
-                .frame(width: radius * 2 + 60, height: radius * 2 + 60)
-
-                VStack(alignment: .leading, spacing: 18) {
-                    ForEach(Array(vm.state.seats.enumerated()), id: \.offset) { _, seat in
-                        let active = vm.state.players.first { $0.id == vm.state.currentPlayerID }?.name == seat.name
-                        HStack(spacing: 12) {
-                            Circle().fill(seatColors[seat.seat % 4]).frame(width: 22, height: 22)
-                            Text(seat.name).font(.title3.bold())
-                                .foregroundColor(active ? .white : .white.opacity(0.5))
-                            Spacer()
-                            Text("\(seat.tokens.filter { $0 >= 100 }.count)/4 home")
-                                .font(.callout).foregroundColor(.cyan)
+                        ForEach(0..<4, id: \.self) { seat in
+                            ForEach(0..<5, id: \.self) { step in
+                                LudoHomeRunCell(seat: seat, step: step, cell: cell,
+                                                color: seatColors[seat % 4])
+                            }
                         }
-                        .padding(.horizontal, 20).padding(.vertical, 12)
-                        .frame(width: 340)
-                        .background(RoundedRectangle(cornerRadius: 12)
-                            .fill(active ? .white.opacity(0.12) : .white.opacity(0.04)))
+                        if let cs = currentSeat {
+                            ForEach(Array(vm.state.legal.enumerated()), id: \.offset) { _, move in
+                                LudoDestinationRing(
+                                    pos: ludoPos(seat: cs, token: move.token, raw: move.dest),
+                                    cell: cell)
+                            }
+                        }
+                        LudoTokensLayer(shownRaw: animator.shownRaw,
+                                        movable: movableKeys,
+                                        colors: seatColors, cell: cell)
                     }
+                    .frame(width: cell * 15, height: cell * 15)
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
+                .aspectRatio(1, contentMode: .fit)
+                LudoSidePanel(state: vm.state, colors: seatColors, currentSeat: currentSeat)
+                    .frame(width: 380)
             }
+            .padding(.horizontal, 60)
             Spacer()
             TVScoreStrip(players: vm.state.players)
         }
         .onAppear { vm.bind(roomCode: room.code) }
+        .onChange(of: tokenSignature) { _ in
+            animator.ingest(seats: vm.state.seats.map { ($0.seat, $0.tokens) })
+        }
+        .overlay {
+            if let winnerName {
+                LudoWinnerBanner(name: winnerName)
+            }
+        }
     }
 }
 
-/// One background ring position on the Ludo track. Its own `body` gives the
-/// type-checker a small, isolated expression instead of one more closure
-/// nested inside TVLudoBoardView's already-heavy view tree.
-private struct LudoTrackDot: View {
-    let index: Int
-    let track: Int
-    let radius: CGFloat
+/// Board backdrop: dark pitch, four coloured home quadrants with white yard
+/// boxes, and the centre home triangle.
+private struct LudoBoardBase: View {
+    let cell: CGFloat
+    let colors: [Color]
 
     var body: some View {
-        let angle = Double(index) / Double(track) * 2 * .pi - .pi / 2
-        Circle()
-            .fill(.white.opacity(0.1))
-            .frame(width: 30, height: 30)
-            .offset(x: radius * cos(angle), y: radius * sin(angle))
+        ZStack {
+            RoundedRectangle(cornerRadius: cell * 0.6)
+                .fill(Color(hex: "0e1830"))
+                .frame(width: cell * 15, height: cell * 15)
+            ForEach(0..<4, id: \.self) { seat in
+                LudoQuadrant(seat: seat, cell: cell, color: colors[seat % 4])
+            }
+            LudoCenter(cell: cell, colors: colors)
+        }
     }
 }
 
-/// One player token on the Ludo track, or nothing if that token hasn't left
-/// the yard yet (`position == nil`).
-private struct LudoTokenDot: View {
-    let position: Int?
-    let track: Int
-    let radius: CGFloat
+/// One 6x6 coloured home quadrant with its white yard box and four spots.
+private struct LudoQuadrant: View {
+    let seat: Int
+    let cell: CGFloat
     let color: Color
 
     var body: some View {
-        if let pos = position {
-            let angle = Double(pos) / Double(track) * 2 * .pi - .pi / 2
+        let q = LudoGeometry.quadrant[seat % 4]
+        ZStack {
+            RoundedRectangle(cornerRadius: cell * 0.5)
+                .fill(color.opacity(0.88))
+                .frame(width: cell * 6, height: cell * 6)
+            RoundedRectangle(cornerRadius: cell * 0.35)
+                .fill(.white)
+                .frame(width: cell * 4.4, height: cell * 4.4)
+            ForEach(0..<4, id: \.self) { i in
+                let s = LudoGeometry.yardSpots[i]
+                Circle()
+                    .fill(color.opacity(0.25))
+                    .frame(width: cell * 0.9, height: cell * 0.9)
+                    .offset(x: CGFloat(s.x - 3) * cell, y: CGFloat(s.y - 3) * cell)
+            }
+        }
+        .position(x: (CGFloat(q.col) + 3) * cell, y: (CGFloat(q.row) + 3) * cell)
+    }
+}
+
+/// The 3x3 centre with four coloured home triangles.
+private struct LudoCenter: View {
+    let cell: CGFloat
+    let colors: [Color]
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cell * 0.3)
+                .fill(Color(hex: "1b2a4d"))
+                .frame(width: cell * 3, height: cell * 3)
+            ForEach(0..<4, id: \.self) { seat in
+                LudoHomeTriangle(seat: seat, cell: cell, color: colors[seat % 4])
+            }
+            RoundedRectangle(cornerRadius: cell * 0.3)
+                .stroke(.white.opacity(0.5), lineWidth: 2)
+                .frame(width: cell * 3, height: cell * 3)
+        }
+        .position(x: 7.5 * cell, y: 7.5 * cell)
+    }
+}
+
+private struct LudoHomeTriangle: View {
+    let seat: Int
+    let cell: CGFloat
+    let color: Color
+
+    /// Unit space over the 3x3 centre box; the apex is the board centre.
+    private var points: [CGPoint] {
+        switch seat % 4 {
+        case 0: return [CGPoint(x: 0, y: 0), CGPoint(x: 0, y: 3), CGPoint(x: 1.5, y: 1.5)]
+        case 1: return [CGPoint(x: 0, y: 0), CGPoint(x: 3, y: 0), CGPoint(x: 1.5, y: 1.5)]
+        case 2: return [CGPoint(x: 3, y: 0), CGPoint(x: 3, y: 3), CGPoint(x: 1.5, y: 1.5)]
+        default: return [CGPoint(x: 0, y: 3), CGPoint(x: 3, y: 3), CGPoint(x: 1.5, y: 1.5)]
+        }
+    }
+
+    var body: some View {
+        Path { path in
+            path.move(to: CGPoint(x: points[0].x * cell, y: points[0].y * cell))
+            path.addLine(to: CGPoint(x: points[1].x * cell, y: points[1].y * cell))
+            path.addLine(to: CGPoint(x: points[2].x * cell, y: points[2].y * cell))
+            path.closeSubpath()
+        }
+        .fill(color)
+        .frame(width: cell * 3, height: cell * 3)
+        .position(x: 7.5 * cell, y: 7.5 * cell)
+    }
+}
+
+/// One of the 52 numbered track cells: high-contrast number, star watermark
+/// on safe cells, seat-colour fill on start cells.
+private struct LudoTrackCell: View {
+    let abs: Int
+    let cell: CGFloat
+    let startColor: Color?
+
+    private var isStar: Bool { LudoGeometry.starAbs.contains(abs) }
+
+    var body: some View {
+        let c = LudoGeometry.track[abs]
+        ZStack {
+            RoundedRectangle(cornerRadius: cell * 0.18)
+                .fill(startColor ?? Color.white.opacity(0.94))
+            if isStar {
+                Image(systemName: "star.fill")
+                    .font(.system(size: cell * 0.6))
+                    .foregroundColor(Color(hex: "b8860b").opacity(0.4))
+            }
+            Text("\(abs + 1)")
+                .font(.system(size: cell * 0.32, weight: .bold))
+                .foregroundColor(startColor == nil ? Color(hex: "1a2340") : .white)
+        }
+        .frame(width: cell * 0.94, height: cell * 0.94)
+        .position(x: (CGFloat(c.col) + 0.5) * cell, y: (CGFloat(c.row) + 0.5) * cell)
+    }
+}
+
+/// One cell of a colour home-stretch column (token values 100-104).
+private struct LudoHomeRunCell: View {
+    let seat: Int
+    let step: Int
+    let cell: CGFloat
+    let color: Color
+
+    var body: some View {
+        let c = LudoGeometry.homeRun[seat % 4][step % 5]
+        ZStack {
+            RoundedRectangle(cornerRadius: cell * 0.18)
+                .fill(color.opacity(0.92))
+            Text("\(step + 1)")
+                .font(.system(size: cell * 0.3, weight: .bold))
+                .foregroundColor(.white)
+        }
+        .frame(width: cell * 0.94, height: cell * 0.94)
+        .position(x: (CGFloat(c.col) + 0.5) * cell, y: (CGFloat(c.row) + 0.5) * cell)
+    }
+}
+
+/// Pulsing highlight on a legal destination tile for the current player.
+private struct LudoDestinationRing: View {
+    let pos: LudoPos
+    let cell: CGFloat
+    @State private var pulse = false
+
+    var body: some View {
+        let p = ludoPoint(pos)
+        RoundedRectangle(cornerRadius: cell * 0.22)
+            .stroke(Color.white, lineWidth: 5)
+            .frame(width: cell * 1.02, height: cell * 1.02)
+            .scaleEffect(pulse ? 1.1 : 0.95)
+            .opacity(pulse ? 1.0 : 0.6)
+            .position(x: p.x * cell, y: p.y * cell)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                    pulse = true
+                }
+            }
+    }
+}
+
+private struct LudoToken: View {
+    let color: Color
+    let diameter: CGFloat
+    let movable: Bool
+
+    var body: some View {
+        ZStack {
+            if movable {
+                Circle()
+                    .fill(.white.opacity(0.9))
+                    .frame(width: diameter * 1.4, height: diameter * 1.4)
+            }
             Circle()
                 .fill(color)
-                .frame(width: 34, height: 34)
-                .overlay(Circle().stroke(.white, lineWidth: 2))
-                .offset(x: radius * cos(angle), y: radius * sin(angle))
+                .frame(width: diameter, height: diameter)
+                .overlay(Circle().stroke(.white, lineWidth: 3))
+                .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
         }
+    }
+}
+
+/// All tokens at their animated positions, stacked when sharing a cell.
+/// Tokens the current player may move get a bright selection halo.
+private struct LudoTokensLayer: View {
+    let shownRaw: [Int: Int]   // key seat*4+token -> raw engine value
+    let movable: Set<Int>
+    let colors: [Color]
+    let cell: CGFloat
+
+    private struct PlacedToken: Identifiable {
+        let id: Int
+        let pos: LudoPos
+        let color: Color
+        let movable: Bool
+    }
+
+    private var placed: [PlacedToken] {
+        var out: [PlacedToken] = []
+        for (key, raw) in shownRaw {
+            let seat = key / 4, token = key % 4
+            out.append(PlacedToken(id: key,
+                                  pos: ludoPos(seat: seat, token: token, raw: raw),
+                                  color: colors[seat % 4],
+                                  movable: movable.contains(key)))
+        }
+        return out.sorted { $0.id < $1.id }
+    }
+
+    private static func stackOffset(index: Int, count: Int) -> CGPoint {
+        guard count > 1 else { return .zero }
+        let d: CGFloat = 0.19
+        if count == 2 { return CGPoint(x: index == 0 ? -d : d, y: 0) }
+        let spots = [CGPoint(x: -d, y: -d), CGPoint(x: d, y: -d),
+                     CGPoint(x: -d, y: d), CGPoint(x: d, y: d)]
+        return spots[index % 4]
+    }
+
+    var body: some View {
+        ZStack {
+            ForEach(placed) { t in
+                let p = ludoPoint(t.pos)
+                let siblings = placed.filter { $0.pos == t.pos }
+                let idx = siblings.firstIndex { $0.id == t.id } ?? 0
+                let off = LudoTokensLayer.stackOffset(index: idx, count: siblings.count)
+                LudoToken(color: t.color, diameter: cell * 0.72, movable: t.movable)
+                    .position(x: (p.x + off.x) * cell, y: (p.y + off.y) * cell)
+                    .animation(.easeInOut(duration: 0.18), value: p)
+            }
+        }
+    }
+}
+
+/// Turn card plus per-player home progress on the side of the board.
+private struct LudoSidePanel: View {
+    let state: LudoState
+    let colors: [Color]
+    let currentSeat: Int?
+
+    private func finishedCount(_ tokens: [Int]) -> Int {
+        tokens.filter { $0 >= 105 }.count
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let cs = currentSeat,
+               let seat = state.seats.first(where: { $0.seat == cs }) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("TURN").font(.caption.bold()).tracking(3)
+                        .foregroundColor(.white.opacity(0.5))
+                    HStack(spacing: 12) {
+                        Circle().fill(colors[cs % 4]).frame(width: 26, height: 26)
+                        Text(seat.name).font(.title2.bold()).foregroundColor(.white)
+                        Spacer()
+                        Text(state.rolled ? "\(state.die)" : "-")
+                            .font(.system(size: 44, weight: .heavy, design: .rounded))
+                            .foregroundColor(.white)
+                    }
+                    Text(state.rolled ? "Pick a token - highlighted on the board"
+                                      : "Roll the dice on your phone")
+                        .font(.callout).foregroundColor(.white.opacity(0.6))
+                }
+                .padding(20)
+                .background(RoundedRectangle(cornerRadius: 16)
+                    .fill(colors[cs % 4].opacity(0.22))
+                    .overlay(RoundedRectangle(cornerRadius: 16)
+                        .stroke(colors[cs % 4], lineWidth: 3)))
+            }
+            ForEach(state.seats.sorted { $0.seat < $1.seat }, id: \.seat) { seat in
+                let active = seat.seat == currentSeat
+                let done = finishedCount(seat.tokens)
+                HStack(spacing: 12) {
+                    Circle().fill(colors[seat.seat % 4]).frame(width: 22, height: 22)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(seat.name).font(.headline)
+                            .foregroundColor(active ? .white : .white.opacity(0.55))
+                        HStack(spacing: 6) {
+                            ForEach(0..<4, id: \.self) { i in
+                                let v = i < seat.tokens.count ? seat.tokens[i] : -1
+                                Circle()
+                                    .fill(v >= 105 ? .white
+                                          : v >= 0 ? colors[seat.seat % 4] : .white.opacity(0.18))
+                                    .frame(width: 12, height: 12)
+                            }
+                        }
+                    }
+                    Spacer()
+                    Text("\(done)/4")
+                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .foregroundColor(active ? .white : .white.opacity(0.55))
+                    Text("HOME").font(.caption.bold()).tracking(2)
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                .padding(.horizontal, 20).padding(.vertical, 14)
+                .background(RoundedRectangle(cornerRadius: 14)
+                    .fill(active ? .white.opacity(0.12) : .white.opacity(0.04))
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(active ? colors[seat.seat % 4] : .clear, lineWidth: 2)))
+            }
+            Spacer()
+        }
+    }
+}
+
+private struct LudoWinnerBanner: View {
+    let name: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Text("WINNER").font(.caption.bold()).tracking(4)
+                .foregroundColor(.white.opacity(0.7))
+            Text(name).font(.system(size: 64, weight: .heavy)).foregroundColor(.white)
+        }
+        .padding(.horizontal, 70).padding(.vertical, 36)
+        .background(RoundedRectangle(cornerRadius: 24).fill(.black.opacity(0.78))
+            .overlay(RoundedRectangle(cornerRadius: 24).stroke(.yellow, lineWidth: 3)))
     }
 }
 

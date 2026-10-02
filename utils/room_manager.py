@@ -107,6 +107,12 @@ class Room:
     pending_host_id: str | None = None
     pending_host_name: str = "Player 1"
     engine: Any = None
+    # Rolling per-(pack, question-kind) history of recently asked question
+    # texts, maintained by content_packs.record_questions(). Quiz engines
+    # skip these when sampling a new session's pool so back-to-back games
+    # in the same room don't replay the same questions. Additive only --
+    # safe for any engine that never heard of it.
+    question_history: dict = field(default_factory=dict)
     # Bumped on start and on finish. A background pump captures the value it was
     # spawned with and exits as soon as it no longer matches, so a pump from a
     # previous round can never double-broadcast into the next one.

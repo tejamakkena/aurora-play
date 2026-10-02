@@ -96,14 +96,9 @@ def register_mafia_handlers(socketio):
         
         # Confirm action to player
         emit('mafia_action_confirmed', {'action': action_type})
-        
+
         # Check if all actions submitted
-        alive_with_actions = sum(
-            1 for p in game.players.values()
-            if p['alive'] and p['role'].value in ['mafia', 'doctor', 'detective']
-        )
-        
-        if len(game.night_actions) >= alive_with_actions:
+        if game.night_actions_complete():
             # Auto-resolve night
             game.resolve_night()
             
@@ -179,10 +174,17 @@ def register_mafia_handlers(socketio):
             # Optionally clean up empty games
             game = mafia_games[room_code]
             if player_id in game.players:
+                game.remove_player_actions(player_id)
                 del game.players[player_id]
             
             if not game.players:
                 del mafia_games[room_code]
+            else:
+                # A departed special role must not keep the night locked
+                if game.night_actions_complete():
+                    game.resolve_night()
+                for pid in game.players:
+                    socketio.emit('mafia_state', game.get_game_state(pid), room=pid)
 
     @socketio.on('disconnect')
     def handle_disconnect():
@@ -194,8 +196,13 @@ def register_mafia_handlers(socketio):
             if player_id in game.players:
                 player_name = game.players[player_id]['name']
                 game.log_event(f"{player_name} disconnected")
+                game.remove_player_actions(player_id)
                 del game.players[player_id]
                 
+                # A departed special role must not keep the night locked
+                if game.night_actions_complete():
+                    game.resolve_night()
+
                 # Notify room
                 emit('mafia_state', game.get_game_state(), room=room_code)
                 

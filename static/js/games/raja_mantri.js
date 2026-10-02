@@ -231,6 +231,13 @@ function initSocket() {
     cleanup.addSocketListener(socket, 'raja_error', data => {
         alert(data.message);
     });
+
+    // Server aborts the game when a player leaves mid-round; take everyone
+    // back to the network lobby instead of stranding them on a dead screen.
+    cleanup.addSocketListener(socket, 'raja_game_abort', data => {
+        alert(data.message || 'A player left the game');
+        location.reload();
+    });
 }
 
 function netCreateRoom() {

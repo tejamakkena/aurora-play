@@ -28,11 +28,22 @@ struct RootControllerView: View {
                 WaitingView(room: room, onReady: vm.markReady, onLeave: vm.leaveRoom)
 
             case .playing(let room, let privateData):
-                ControllerGameView(
-                    room: room,
-                    privateData: privateData,
-                    onAction: vm.sendAction
-                )
+                ZStack {
+                    ControllerGameView(
+                        room: room,
+                        privateData: privateData,
+                        onAction: vm.sendAction
+                    )
+                    // How-to-play card: same payload the TV shows, dismissed
+                    // locally with Start. The leave button in the top safe
+                    // area stays outside this ZStack, so it remains reachable
+                    // while the card is up.
+                    if let rules = vm.pendingRules {
+                        RulesInterstitialView(rules: rules, layout: .card, primaryTitle: "Start") {
+                            vm.pendingRules = nil
+                        }
+                    }
+                }
                 .safeAreaInset(edge: .top) {
                     HStack {
                         Button { showLeaveConfirm = true } label: {
@@ -143,6 +154,13 @@ final class ControllerRootViewModel: ObservableObject {
     /// Room code handed over by a deep link, pre-filled on the join screen.
     @Published var pendingJoinCode: String? = nil
 
+    /// Rules interstitial data from the last `game_started` broadcast. Set
+    /// on start; cleared when the player taps Start on the card, leaves the
+    /// room, or returns to the join screen. Kept in the view model, not the
+    /// view, because `private_state` rebuilds the `.playing` screen on every
+    /// state push.
+    @Published var pendingRules: GameRules?
+
     private let socket = GameSocketManager.shared
     let playerID = AppConstants.deviceID
 
@@ -207,11 +225,21 @@ final class ControllerRootViewModel: ObservableObject {
             }
         }
 
-        // Private screen update — also drives transition from waiting → playing
+        // The server carries the how-to-play payload on game_started (see
+        // games/native_hub/socket_events.py). The phone leaves its waiting
+        // screen on the first private_state, so the card arms here and shows
+        // on top of the controller once that transition happens.
+        socket.on(.gameStarted) { [weak self] (response: GameStartedResponse) in
+            self?.pendingRules = response.rules
+        }
+
+        // Private screen update — drives waiting → playing and results → playing
+        // (Play Again path: the TV rematches the same room and the pump pushes
+        // private_state again; a phone on its results screen needs this too).
         socket.on(.privateState) { [weak self] (r: PrivateStateResponse) in
             guard let self, r.playerID == self.playerID else { return }
             switch self.screen {
-            case .waiting(let room), .playing(let room, _):
+            case .waiting(let room), .playing(let room, _), .results(let room):
                 self.screen = .playing(room, r.privateData.mapValues(\.value))
             default:
                 break
@@ -231,6 +259,7 @@ final class ControllerRootViewModel: ObservableObject {
 
     func joinRoom(code: String, name: String) {
         playerName = name
+        pendingRules = nil
         screen = .loading
         socket.emit(.joinRoom, payload: JoinRoomPayload(
             roomCode: code.uppercased(),
@@ -278,10 +307,12 @@ final class ControllerRootViewModel: ObservableObject {
         default:
             break
         }
+        pendingRules = nil
         screen = .join
     }
 
     func returnToJoin() {
+        pendingRules = nil
         screen = .join
     }
 

@@ -1,4 +1,4 @@
-from flask_socketio import emit, join_room
+from flask_socketio import emit, join_room, leave_room
 from flask import request
 import random
 import string
@@ -48,6 +48,12 @@ def register_poker_events(socketio):
         """Deal a new hand"""
         room = poker_rooms[room_code]
 
+        # Drop players who left mid-hand; keep index-based pointers valid
+        left_ids = [p['id'] for p in room['players'] if p.get('left')]
+        if left_ids:
+            room['players'] = [p for p in room['players'] if not p.get('left')]
+            room['dealer'] %= max(1, len(room['players']))
+
         print(f"\n{'=' * 60}")
         print(f"🎴 DEALING NEW HAND - Room: {room_code}")
 
@@ -90,6 +96,7 @@ def register_poker_events(socketio):
 
         room['current_bet'] = room['big_blind']
         room['current_turn'] = (big_blind_pos + 1) % num_players
+        room['hand_in_progress'] = True
 
         print(f"Dealer: {room['dealer']}")
         print(
@@ -218,6 +225,7 @@ def register_poker_events(socketio):
         }, room=room_code)
 
         room['dealer'] = (room['dealer'] + 1) % len(room['players'])
+        room['hand_in_progress'] = False
 
     def advance_game(room_code):
         """Advance to next player or next phase"""
@@ -245,6 +253,7 @@ def register_poker_events(socketio):
             }, room=room_code)
 
             room['dealer'] = (room['dealer'] + 1) % len(room['players'])
+            room['hand_in_progress'] = False
             return
 
         # NEW LOGIC: Track who has acted this round
@@ -602,12 +611,72 @@ def register_poker_events(socketio):
 
     @socketio.on('deal_new_hand')
     def handle_deal_new_hand(data):
-        """Deal a new hand"""
+        """Deal a new hand (host only, between hands)"""
         room_code = data.get('room_code', '').upper()
 
         if room_code not in poker_rooms:
             return
 
+        room = poker_rooms[room_code]
+
+        if request.sid != room['host']:
+            emit('poker_error', {'message': 'Only the host can deal a new hand'})
+            return
+
+        if room.get('hand_in_progress'):
+            emit('poker_error', {'message': 'Hand already in progress!'})
+            return
+
+        if len(room['players']) < 2:
+            emit('poker_error', {'message': 'Need at least 2 players to deal!'})
+            return
+
         deal_new_hand(room_code)
+
+    @socketio.on('leave_poker_room')
+    def handle_leave_poker_room(data):
+        """Leave a poker room. The client emits this but no handler existed,
+        so departed players stayed in the room forever."""
+        room_code = data.get('room_code', '').upper()
+        player_id = request.sid
+
+        if room_code not in poker_rooms:
+            return
+
+        room = poker_rooms[room_code]
+        removed_index = next(
+            (i for i, p in enumerate(room['players']) if p['id'] == player_id),
+            None)
+        if removed_index is None:
+            return
+
+        leave_room(room_code)
+
+        if room['status'] == 'playing' and room.get('hand_in_progress'):
+            # Mid-hand: fold the player out but keep them in the seat list so
+            # index-based turn/dealer pointers stay valid; they are purged at
+            # the next deal.
+            player = room['players'][removed_index]
+            player['folded'] = True
+            player['left'] = True
+            if room['current_turn'] == removed_index:
+                advance_game(room_code)
+        else:
+            room['players'].pop(removed_index)
+            # Fix seat positions
+            for i, p in enumerate(room['players']):
+                p['position'] = i
+
+        # Reassign host if the host left
+        if room['players'] and player_id == room['host']:
+            room['host'] = room['players'][0]['id']
+            room['players'][0]['is_host'] = True
+
+        if not room['players']:
+            del poker_rooms[room_code]
+        else:
+            socketio.emit('poker_player_left', {
+                'players': get_public_player_data(room['players'])
+            }, room=room_code)
 
     print("✅ Poker socket events registered")

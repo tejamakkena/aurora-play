@@ -87,6 +87,10 @@ def register_hangman_events(socketio):
             emit('hangman_error', {'message': 'Only the host can start the game!'})
             return
 
+        if game.state != 'WAITING':
+            emit('hangman_error', {'message': 'Game already started!'})
+            return
+
         if len(game.players) < 2:
             emit('hangman_error', {'message': 'Need at least 2 players to start!'})
             return
@@ -113,6 +117,10 @@ def register_hangman_events(socketio):
 
         if player_id != game.host_id:
             emit('hangman_error', {'message': 'Only the host sets the word!'})
+            return
+
+        if game.state != 'SETTING_WORD':
+            emit('hangman_error', {'message': 'Not waiting for a word right now!'})
             return
 
         if not word or not any(c.isalpha() for c in word):
@@ -142,6 +150,10 @@ def register_hangman_events(socketio):
 
         if game.state != 'PLAYING':
             emit('hangman_error', {'message': 'Game is not in progress!'})
+            return
+
+        if player_id not in game.players:
+            emit('hangman_error', {'message': 'You are not in this game!'})
             return
 
         if player_id == game.host_id:

@@ -134,6 +134,59 @@ def main() -> None:
     write_wav("roulette_spin.wav", spin_loop())
     write_wav("win_fanfare.wav", win_fanfare())
     write_wav("connect4_drop.wav", coin_drop())
+    write_wav("snake_bite.wav", snake_bite())
+    write_wav("ladder_climb.wav", ladder_climb())
+
+
+def snake_bite() -> list[float]:
+    """A snake strike, for the Snakes & Ladders TV board: a sharp snapping
+    transient at the lunge, then a descending warning hiss as the token is
+    dragged down. The falling pitch reads as danger, not reward."""
+    random.seed(11)          # local seed: deterministic whatever main() does
+    duration = 0.75
+    n = int(SAMPLE_RATE * duration)
+    out = [0.0] * n
+    hiss_lp = 0.0            # one-pole low-pass state for the hiss bed
+    for i in range(n):
+        t = i / SAMPLE_RATE
+        # Snap: bright noise burst plus a low thud, both dying fast.
+        snap_env = math.exp(-t * 60)
+        v = (random.random() * 2 - 1) * snap_env * 0.55
+        v += math.sin(2 * math.pi * 110 * t) * snap_env * 0.5
+        # Hiss: noise through a low-pass whose cutoff falls with the pitch
+        # sweep, so the whole texture darkens as the snake settles.
+        k = t / duration
+        cutoff = 0.55 - 0.38 * k
+        noise = random.random() * 2 - 1
+        hiss_lp += (noise - hiss_lp) * cutoff
+        hiss_env = math.exp(-t * 4.5) * min(1.0, t * 40)
+        v += hiss_lp * hiss_env * 1.1
+        # Descending whistle 900 -> 300 Hz with a little vibrato.
+        sweep = 900 - 600 * k
+        vibrato = 1 + 0.06 * math.sin(2 * math.pi * 28 * t)
+        v += math.sin(2 * math.pi * sweep * vibrato * t) * hiss_env * 0.28
+        out[i] = v * 0.5
+    return out
+
+
+def ladder_climb() -> list[float]:
+    """A pleasant ascending chime for the Snakes & Ladders TV board: five
+    bell-like notes climbing a major arpeggio. Shorter and brighter than
+    win_fanfare so a ladder never reads as the game being over."""
+    notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]
+    duration = 1.3
+    n = int(SAMPLE_RATE * duration)
+    out = [0.0] * n
+    for idx, freq in enumerate(notes):
+        offset = int(SAMPLE_RATE * idx * 0.11)
+        for i in range(offset, n):
+            t = (i - offset) / SAMPLE_RATE
+            env = math.exp(-t * 4.2) * (1 - math.exp(-t * 320))
+            v = math.sin(2 * math.pi * freq * t) * 0.5
+            v += math.sin(2 * math.pi * freq * 2 * t) * 0.16 * math.exp(-t * 7)
+            v += math.sin(2 * math.pi * freq * 3.01 * t) * 0.06 * math.exp(-t * 10)
+            out[i] += v * env * 0.34
+    return out
 
 
 if __name__ == "__main__":

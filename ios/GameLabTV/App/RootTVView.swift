@@ -53,7 +53,19 @@ struct RootTVView: View {
                 TVLobbyView(room: room, isSolo: vm.isSolo, onStart: vm.startGame)
 
             case .playing(let room):
-                TVGameBoardView(room: room)
+                ZStack {
+                    TVGameBoardView(room: room)
+                    // How-to-play interstitial: the group has already
+                    // committed (Start Game was pressed), but nobody has
+                    // seen the rules yet. Dismissed locally with the Start
+                    // button -- the room is already PLAYING server-side, so
+                    // this gate only affects what the TV shows.
+                    if let rules = vm.pendingRules {
+                        RulesInterstitialView(rules: rules, layout: .tv, primaryTitle: "Start Playing") {
+                            vm.pendingRules = nil
+                        }
+                    }
+                }
 
             case .results(let room):
                 TVResultsView(room: room, onPlayAgain: vm.playAgain, onBackToGames: vm.quitToSelection)
@@ -99,12 +111,27 @@ enum TVScreen {
 final class TVRootViewModel: ObservableObject {
     @Published var screen: TVScreen = .gameSelection
 
+    /// Rules interstitial data from the last `game_started` broadcast.
+    /// Set on start and cleared when the viewer taps Start Playing (or
+    /// leaves the room). Kept in the view model, not the view, because
+    /// `room_updated` rebuilds the `.playing` screen repeatedly.
+    @Published var pendingRules: GameRules?
+
     /// True while a remote-only game is running with no phones connected.
     @Published private(set) var isSolo = false
 
     private let socket = GameSocketManager.shared
 
     init() {
+        // The server carries the how-to-play payload on game_started (see
+        // games/native_hub/socket_events.py) -- the single source of truth
+        // for the rules interstitial. It arrives just before the
+        // room_updated that flips the screen to .playing, so the overlay
+        // below is already armed when the board appears.
+        socket.on(.gameStarted) { [weak self] (response: GameStartedResponse) in
+            self?.pendingRules = response.rules
+        }
+
         socket.on(.roomUpdated) { [weak self] (response: Room) in
             guard let self else { return }
             switch response.state {
@@ -192,6 +219,7 @@ final class TVRootViewModel: ObservableObject {
 
     func startGame() {
         guard case .lobby(let room) = screen else { return }
+        pendingRules = nil   // replaced by the game_started payload, if the start succeeds
         socket.emit(.startGame, payload: ["roomCode": room.code])
     }
 
@@ -207,6 +235,7 @@ final class TVRootViewModel: ObservableObject {
     /// same way it does for a first-time start.
     func playAgain() {
         guard case .results(let room) = screen else { return }
+        pendingRules = nil   // replaced by the game_started payload, if the start succeeds
         socket.emit(.startGame, payload: ["roomCode": room.code])
     }
 
@@ -228,6 +257,7 @@ final class TVRootViewModel: ObservableObject {
 
     func returnToSelection() {
         isSolo = false
+        pendingRules = nil
         screen = .gameSelection
     }
 

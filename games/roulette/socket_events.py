@@ -140,7 +140,11 @@ def register_roulette_events(socketio):
         room_code = data.get('room_code', '').upper()
         player_id = request.sid
         bet_type = data.get('bet_type')
-        bet_amount = int(data.get('bet_amount', 0))
+        try:
+            bet_amount = int(data.get('bet_amount', 0))
+        except (TypeError, ValueError):
+            emit('roulette_error', {'message': 'Invalid bet amount'})
+            return
 
         if room_code not in roulette_rooms:
             return

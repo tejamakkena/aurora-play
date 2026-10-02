@@ -193,6 +193,17 @@ def register_raja_mantri_events(socketio):
 
         leave_room(room_code)
         room = raja_rooms[room_code]
+
+        # A mid-game leave breaks role bookkeeping (the Sipahi guess resolves
+        # player lookups that would no longer exist); abort the game instead
+        # of leaving the rest stuck or crashing on result.
+        if room['status'] == 'playing':
+            emit('raja_game_abort', {
+                'message': 'A player left the game'
+            }, room=room_code, include_self=True)
+            del raja_rooms[room_code]
+            return
+
         room['players'] = [p for p in room['players'] if p['id'] != player_id]
 
         if not room['players']:

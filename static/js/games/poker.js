@@ -216,6 +216,13 @@ function initializeSocketEvents() {
         showMessage(`${data.player_name} joined the game!`, 'info');
     });
     
+    cleanup.addSocketListener(socket, 'poker_player_left', (data) => {
+        console.log('Player left:', data);
+        gameState.players = data.players;
+        updatePlayersList(data.players);
+        showMessage('A player left the game', 'info');
+    });
+    
     cleanup.addSocketListener(socket, 'hand_dealt', (data) => {
         console.log('✅ Hand dealt:', data);
         

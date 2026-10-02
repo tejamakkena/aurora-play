@@ -1,5 +1,5 @@
 from flask_socketio import emit, join_room, leave_room
-from flask import session
+from flask import request
 import random
 import string
 
@@ -27,13 +27,14 @@ def register_trivia_events(socketio):
         trivia_rooms[room_code] = {
             'code': room_code,
             'host': player_name,
+            'host_sid': request.sid,
             'players': {
                 player_name: {
                     'name': player_name,
                     'score': 0,
                     'is_host': True,
                     'ready': False,
-                    'sid': session.sid if hasattr(session, 'sid') else None
+                    'sid': request.sid
                 }
             },
             'status': 'waiting',
@@ -81,7 +82,7 @@ def register_trivia_events(socketio):
             'score': 0,
             'is_host': False,
             'ready': False,
-            'sid': session.sid if hasattr(session, 'sid') else None
+            'sid': request.sid
         }
 
         join_room(room_code)
@@ -95,7 +96,7 @@ def register_trivia_events(socketio):
         # Notify all other players in the room
         emit('player_joined', {
             'players': list(room['players'].values())
-        }, room=room_code, skip_sid=session.sid if hasattr(session, 'sid') else None)
+        }, room=room_code, skip_sid=request.sid)
 
         print(f"✅ {player_name} joined room {room_code}")
 
@@ -112,10 +113,7 @@ def register_trivia_events(socketio):
         # Find and remove the player
         player_to_remove = None
         for player_name, player_data in room['players'].items():
-            if player_data.get('sid') == (
-                session.sid if hasattr(
-                    session,
-                    'sid') else None):
+            if player_data.get('sid') == request.sid:
                 player_to_remove = player_name
                 break
 
@@ -128,6 +126,7 @@ def register_trivia_events(socketio):
                 new_host = list(room['players'].keys())[0]
                 room['players'][new_host]['is_host'] = True
                 room['host'] = new_host
+                room['host_sid'] = room['players'][new_host].get('sid')
 
             leave_room(room_code)
 
@@ -153,6 +152,11 @@ def register_trivia_events(socketio):
             return
 
         room = trivia_rooms[room_code]
+
+        # Only the host can start the game
+        if request.sid != room.get('host_sid'):
+            emit('error', {'message': 'Only the host can start the game!'})
+            return
 
         # Update game settings
         room['settings'] = {
@@ -206,10 +210,7 @@ def register_trivia_events(socketio):
 
         # Update player score
         for player_name, player_data in room['players'].items():
-            if player_data.get('sid') == (
-                session.sid if hasattr(
-                    session,
-                    'sid') else None):
+            if player_data.get('sid') == request.sid:
                 room['players'][player_name]['score'] = score
                 break
 
@@ -258,10 +259,7 @@ def register_trivia_events(socketio):
         # Find and remove player from any room they're in
         for room_code, room in list(trivia_rooms.items()):
             for player_name, player_data in list(room['players'].items()):
-                if player_data.get('sid') == (
-                    session.sid if hasattr(
-                        session,
-                        'sid') else None):
+                if player_data.get('sid') == request.sid:
                     was_host = player_data['is_host']
                     del room['players'][player_name]
 
@@ -269,6 +267,7 @@ def register_trivia_events(socketio):
                         new_host = list(room['players'].keys())[0]
                         room['players'][new_host]['is_host'] = True
                         room['host'] = new_host
+                        room['host_sid'] = room['players'][new_host].get('sid')
 
                     if not room['players']:
                         del trivia_rooms[room_code]

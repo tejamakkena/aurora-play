@@ -91,6 +91,9 @@ class MafiaGame:
         """Submit a night action (kill, save, investigate)"""
         if self.phase != Phase.NIGHT:
             return {'success': False, 'error': 'Not night phase'}
+
+        if player_id not in self.players:
+            return {'success': False, 'error': 'You are not in this game'}
         
         if not self.players[player_id]['alive']:
             return {'success': False, 'error': 'You are dead'}
@@ -117,6 +120,26 @@ class MafiaGame:
         }
         
         return {'success': True}
+
+    def remove_player_actions(self, player_id):
+        """Drop any pending night actions / votes from a departed player."""
+        self.night_actions.pop(player_id, None)
+        self.day_votes.pop(player_id, None)
+        # Votes aimed at the departed player no longer count
+        self.day_votes = {
+            voter: target for voter, target in self.day_votes.items()
+            if target != player_id
+        }
+
+    def night_actions_complete(self):
+        """True when every living special role has submitted a night action."""
+        if self.phase != Phase.NIGHT:
+            return False
+        alive_with_actions = sum(
+            1 for p in self.players.values()
+            if p['alive'] and p['role'] and p['role'].value in ['mafia', 'doctor', 'detective']
+        )
+        return len(self.night_actions) >= alive_with_actions
 
     def resolve_night(self):
         """Resolve all night actions"""
@@ -178,6 +201,9 @@ class MafiaGame:
         """Submit a vote to eliminate a player"""
         if self.phase != Phase.VOTING:
             return {'success': False, 'error': 'Not voting phase'}
+
+        if voter_id not in self.players:
+            return {'success': False, 'error': 'You are not in this game'}
         
         if not self.players[voter_id]['alive']:
             return {'success': False, 'error': 'You are dead'}
@@ -267,7 +293,7 @@ class MafiaGame:
             }
             
             # Only show role to the player themselves
-            if player_id == pid:
+            if player_id == pid and pdata['role'] is not None:
                 player_info['role'] = pdata['role'].value
             
             state['players'].append(player_info)

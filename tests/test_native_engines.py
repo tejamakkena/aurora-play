@@ -626,6 +626,78 @@ class TestSnakeLadder:
         assert engine.is_over()
         assert engine.winner == pid
 
+    def test_snake_bite_records_last_slide_event(self):
+        # The TV drives its bite cinematic (and the controller its haptic)
+        # off this event rather than re-inferring the slide.
+        from games.native_hub.engines.legacy_boards import SNAKES
+        head = next(iter(SNAKES))
+        tail = SNAKES[head]
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = head - 4
+        engine.handle_action(pid, "roll", {"value": 4})
+        slide = engine.public_state()["lastSlide"][pid]
+        assert slide["kind"] == "snake"
+        assert slide["from"] == head
+        assert slide["to"] == tail
+        assert isinstance(slide["seq"], int) and slide["seq"] >= 1
+        # The rolling player's private state carries their own event; other
+        # players get it in public state only, never in private state.
+        assert engine.private_state(pid)["lastSlide"] == slide
+        other = next(p for p in engine.order if p != pid)
+        assert engine.private_state(other)["lastSlide"] is None
+        assert other not in engine.public_state()["lastSlide"]
+
+    def test_ladder_climb_records_last_slide_event(self):
+        from games.native_hub.engines.legacy_boards import LADDERS
+        assert LADDERS[28] == 84
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = 25
+        engine.handle_action(pid, "roll", {"value": 3})
+        slide = engine.public_state()["lastSlide"][pid]
+        assert slide["kind"] == "ladder"
+        assert slide["from"] == 28
+        assert slide["to"] == 84
+        assert isinstance(slide["seq"], int) and slide["seq"] >= 1
+
+    def test_slide_seq_increases_across_slides(self):
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+        assert SNAKES[89] == 53 and LADDERS[28] == 84
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = 85
+        engine.handle_action(pid, "roll", {"value": 4})
+        first = engine.public_state()["lastSlide"][pid]["seq"]
+        engine.turn_index = engine.order.index(pid)   # force the turn back
+        engine.positions[pid] = 25
+        engine.handle_action(pid, "roll", {"value": 3})
+        second = engine.public_state()["lastSlide"][pid]["seq"]
+        assert second > first
+
+    def test_plain_move_clears_stale_slide_event(self):
+        # A late joiner must never replay an old slide cinematic.
+        from games.native_hub.engines.legacy_boards import SNAKES
+        head = next(iter(SNAKES))
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = head - 4
+        engine.handle_action(pid, "roll", {"value": 4})
+        assert engine.public_state()["lastSlide"][pid]["kind"] == "snake"
+        engine.turn_index = engine.order.index(pid)   # force the turn back
+        engine.positions[pid] = 40                    # 41..46: no snake/ladder
+        engine.handle_action(pid, "roll", {"value": 1})
+        assert pid not in engine.public_state()["lastSlide"]
+        assert engine.private_state(pid)["lastSlide"] is None
+
+    def test_overshoot_records_no_slide_event(self):
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = 98
+        engine.handle_action(pid, "roll", {"value": 5})
+        assert engine.positions[pid] == 98
+        assert pid not in engine.public_state()["lastSlide"]
+
 
 class TestTrivia:
     def test_trivia_plays_through_the_whole_question_bank(self):
