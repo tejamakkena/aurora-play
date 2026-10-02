@@ -1,7 +1,8 @@
 """The 17 "legacy" GameIDs, driven through a real Socket.IO test client.
 
 Mirrors tests/test_native_hub.py's pattern: create_room -> join_room (per
-player) -> start_game -> game_action, asserting the exact public/private
+player) -> start_game -> begin_game (lifts the rules gate) -> game_action,
+asserting the exact public/private
 state keys the Swift boards and controllers decode with `try?` (a missing
 key means the screen silently never updates, not a crash).
 
@@ -58,6 +59,8 @@ def open_room(app, socketio, tv, game_id, players):
 
 def start_and_settle(socketio, tv, code):
     tv.emit("start_game", {"roomCode": code}, namespace=NS)
+    # The rules gate holds the engine until the host begins.
+    tv.emit("begin_game", {"roomCode": code}, namespace=NS)
     socketio.sleep(1.2)
 
 

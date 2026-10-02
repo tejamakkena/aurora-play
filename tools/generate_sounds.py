@@ -87,26 +87,56 @@ def spin_loop() -> list[float]:
 
 
 def win_fanfare() -> list[float]:
-    """Played when the winning number lands."""
-    notes = [(523.25, 0.00), (659.25, 0.10), (783.99, 0.20), (1046.50, 0.32)]
-    duration = 1.7
+    """The full game-win fanfare for the TV: a bright ascending major
+    arpeggio (C5 E5 G5 C6 E6) that lands on a triumphant held C-major
+    chord with a sparkle shimmer over the top, ~2.2 s. Bigger and longer
+    than ``ladder_climb`` so only this reads as the game being over.
+    Played via ``SoundPlayer.Effect.winFanfare`` wherever a TV game
+    announces a winner (Snakes & Ladders, Roulette, Classic games)."""
+    rng = random.Random(21)  # private instance: never disturbs the global
+                             # sequence other generators rely on
+    duration = 2.2
     n = int(SAMPLE_RATE * duration)
     out = [0.0] * n
-    for freq, start in notes:
+
+    def bell(start: float, freq: float, length: float, level: float) -> None:
+        offset = int(SAMPLE_RATE * start)
+        count = int(SAMPLE_RATE * length)
+        for i in range(offset, min(n, offset + count)):
+            t = (i - offset) / SAMPLE_RATE
+            env = math.exp(-t * 2.6) * (1 - math.exp(-t * 260))
+            # Bright bell: fundamental plus quicker-decaying upper partials.
+            v = math.sin(2 * math.pi * freq * t) * 0.50
+            v += math.sin(2 * math.pi * freq * 2 * t) * 0.20 * math.exp(-t * 4.5)
+            v += math.sin(2 * math.pi * freq * 2.76 * t) * 0.10 * math.exp(-t * 7)
+            v += math.sin(2 * math.pi * freq * 5.40 * t) * 0.05 * math.exp(-t * 10)
+            out[i] += v * env * level
+
+    # Ascending major arpeggio: C5 E5 G5 C6 E6, bells ringing over.
+    arpeggio = [523.25, 659.25, 783.99, 1046.50, 1318.51]
+    for idx, freq in enumerate(arpeggio):
+        bell(idx * 0.11, freq, 1.6, 0.40)
+
+    # The landing: a full C-major chord struck as the arpeggio tops out,
+    # held longer so the win feels resolved rather than trailing off.
+    chord = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99]
+    for freq in chord:
+        bell(0.55, freq, 1.65, 0.34)
+
+    # Celebratory burst at the chord hit: a short filtered noise pop.
+    pop_start = int(SAMPLE_RATE * 0.55)
+    for i in range(pop_start, min(n, pop_start + int(SAMPLE_RATE * 0.25))):
+        t = (i - pop_start) / SAMPLE_RATE
+        env = math.exp(-t * 26)
+        out[i] += (rng.random() * 2 - 1) * env * 0.10
+
+    # Sparkle shimmer over the held chord: high sine glints, staggered.
+    for idx, (start, freq) in enumerate([(0.62, 2_093.0), (0.78, 2_639.0), (0.94, 3_136.0)]):
         offset = int(SAMPLE_RATE * start)
         for i in range(offset, n):
             t = (i - offset) / SAMPLE_RATE
-            env = math.exp(-t * 3.1) * (1 - math.exp(-t * 260))
-            # Bell-ish: fundamental plus a quieter, faster-decaying octave.
-            v = math.sin(2 * math.pi * freq * t) * 0.5
-            v += math.sin(2 * math.pi * freq * 2 * t) * 0.18 * math.exp(-t * 5.5)
-            v += math.sin(2 * math.pi * freq * 3.01 * t) * 0.07 * math.exp(-t * 8)
-            out[i] += v * env * 0.42
-    # A little sparkle over the top of the final chord.
-    for i in range(int(SAMPLE_RATE * 0.32), n):
-        t = (i - SAMPLE_RATE * 0.32) / SAMPLE_RATE
-        env = math.exp(-t * 4.5)
-        out[i] += math.sin(2 * math.pi * 2_093 * t) * 0.07 * env
+            env = math.exp(-t * 4.0)
+            out[i] += math.sin(2 * math.pi * freq * t) * 0.07 * env
     return out
 
 

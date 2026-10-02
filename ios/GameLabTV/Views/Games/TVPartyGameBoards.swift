@@ -191,23 +191,18 @@ struct TVBluffItBoardView: View {
                 if vm.state.base.phase == "write" {
                     Text("\(vm.state.base.submitted.count) of \(vm.state.base.players.count) have written")
                         .font(.title3).foregroundColor(.white.opacity(0.45))
+                } else if vm.state.base.phase == "reveal" {
+                    stagedReveal
                 } else {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
                         ForEach(Array(vm.state.options.enumerated()), id: \.offset) { idx, text in
-                            let isTruth = vm.state.truthIndex == idx
                             VStack(spacing: 6) {
-                                Text(text).font(.title3.bold())
-                                    .foregroundColor(isTruth ? .black : .white)
-                                if let owner = vm.state.owners.first(where: { $0.index == idx }) {
-                                    Text(owner.name).font(.caption)
-                                        .foregroundColor(isTruth ? .black.opacity(0.6)
-                                                                 : .white.opacity(0.4))
-                                }
+                                Text(text).font(.title3.bold()).foregroundColor(.white)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 22)
                             .background(RoundedRectangle(cornerRadius: 14)
-                                .fill(isTruth ? Color.green : Color.white.opacity(0.07)))
+                                .fill(Color.white.opacity(0.07)))
                         }
                     }
                     .padding(.horizontal, 120)
@@ -217,6 +212,28 @@ struct TVBluffItBoardView: View {
             TVScoreStrip(players: vm.state.base.players, highlight: vm.state.base.submitted)
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    /// The staged big-screen reveal: each lie appears one by one with its
+    /// author, then the truth gets the spotlight.
+    private var stagedReveal: some View {
+        let rows = vm.state.options.enumerated().compactMap { idx, text -> TVRevealRow? in
+            guard idx != vm.state.truthIndex,
+                  let owner = vm.state.owners.first(where: { $0.index == idx })
+            else { return nil }
+            return TVRevealRow(id: "opt-\(idx)", name: owner.name, detail: text)
+        }
+        let spotlight: TVRevealSpotlight? = {
+            guard let truth = vm.state.truth, !truth.isEmpty else { return nil }
+            return TVRevealSpotlight(title: "THE TRUTH", name: truth)
+        }()
+        return TVRevealBoardView(
+            roundKey: "bluff-\(vm.state.base.round)-\(vm.state.prompt)",
+            header: "reveal",
+            headline: vm.state.prompt,
+            rows: rows,
+            spotlight: spotlight,
+            emptyMessage: "Nobody wrote a lie this round")
     }
 }
 
@@ -351,25 +368,36 @@ struct TVHerdBoardView: View {
                     Text("\(vm.state.base.submitted.count) of \(vm.state.base.players.count) answered")
                         .font(.title2).foregroundColor(.white.opacity(0.45))
                 } else {
-                    HStack(alignment: .bottom, spacing: 18) {
-                        ForEach(Array(vm.state.clusters.prefix(6).enumerated()), id: \.offset) { i, c in
-                            VStack(spacing: 8) {
-                                Text("\(c.size)").font(.system(size: 34, weight: .heavy))
-                                    .foregroundColor(i == 0 ? .black : .white)
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(i == 0 ? Color.yellow : Color.cyan.opacity(0.5))
-                                    .frame(width: 130, height: CGFloat(40 + c.size * 34))
-                                Text(c.text).font(.headline).foregroundColor(.white)
-                                    .lineLimit(1).frame(width: 140)
-                            }
-                        }
-                    }
+                    stagedReveal
                 }
             }
             Spacer()
             TVScoreStrip(players: vm.state.base.players, highlight: vm.state.base.submitted)
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    /// The staged big-screen reveal: clusters appear one by one, biggest
+    /// herd first, then the biggest herd gets the spotlight.
+    private var stagedReveal: some View {
+        let rows = vm.state.clusters.enumerated().map { i, c in
+            TVRevealRow(id: "cluster-\(i)", name: c.text,
+                        detail: c.names.joined(separator: ", "),
+                        sublabel: c.size == 1 ? "1 player" : "\(c.size) players",
+                        isWinner: i == 0 && c.size >= 2)
+        }
+        let spotlight: TVRevealSpotlight? = {
+            guard let top = vm.state.clusters.first, top.size >= 2 else { return nil }
+            return TVRevealSpotlight(title: "BIGGEST HERD", name: top.text,
+                                     detail: "\(top.size) players thought alike")
+        }()
+        return TVRevealBoardView(
+            roundKey: "herd-\(vm.state.base.round)-\(vm.state.prompt)",
+            header: "reveal",
+            headline: vm.state.prompt,
+            rows: rows,
+            spotlight: spotlight,
+            emptyMessage: "Nobody answered this round")
     }
 }
 
@@ -410,6 +438,8 @@ struct TVEmojiMovieBoardView: View {
                     Text("\(vm.state.composedCount) submitted")
                         .font(.title3).foregroundColor(.cyan)
                 }
+            } else if vm.state.base.phase == "reveal" {
+                stagedReveal
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 22) {
                     ForEach(Array(vm.state.entries.enumerated()), id: \.offset) { _, e in
@@ -431,6 +461,24 @@ struct TVEmojiMovieBoardView: View {
         }
         .onAppear { vm.bind(roomCode: room.code) }
     }
+
+    /// The staged big-screen reveal: each emoji clue appears with its
+    /// revealed title, one by one. No single winner in this game.
+    private var stagedReveal: some View {
+        let rows = vm.state.entries.enumerated().map { i, e in
+            TVRevealRow(id: "entry-\(i)",
+                        name: e.owner.isEmpty ? "Player" : e.owner,
+                        detail: e.emoji,
+                        sublabel: e.title)
+        }
+        return TVRevealBoardView(
+            roundKey: "emoji-\(vm.state.base.round)",
+            header: "reveal",
+            headline: "The films",
+            rows: rows,
+            spotlight: nil,
+            emptyMessage: "Nobody composed a clue this round")
+    }
 }
 
 // MARK: - Name Place Animal Thing
@@ -438,16 +486,23 @@ struct TVEmojiMovieBoardView: View {
 struct NPATState {
     var base = RoundBoardState()
     var letter = ""
-    var answers: [(name: String, values: [String])] = []
-    let fields = ["name", "place", "animal", "thing"]
+    var answers: [(id: String, name: String, values: [String])] = []
+    var totals: [String: Int] = [:]   // playerID -> points this round
 
     mutating func update(from d: [String: AnyCodable]) {
         base.updateBase(from: d)
         if let v = d["letter"]?.value as? String { letter = v }
         answers = (d["answers"]?.value as? [Any] ?? []).compactMap {
             guard let a = $0 as? [String: Any] else { return nil }
-            return (a["name"] as? String ?? "",
+            return (a["playerID"] as? String ?? "",
+                    a["name"] as? String ?? "",
                     ["name", "place", "animal", "thing"].map { a[$0] as? String ?? "—" })
+        }
+        totals = [:]
+        for item in (d["breakdown"]?.value as? [Any] ?? []) {
+            guard let b = item as? [String: Any],
+                  let pid = b["playerID"] as? String else { continue }
+            totals[pid, default: 0] += b["points"] as? Int ?? 0
         }
     }
 }
@@ -473,34 +528,40 @@ struct TVNPATBoardView: View {
                         .font(.title3).foregroundColor(.white.opacity(0.45))
                 }
             } else {
-                VStack(spacing: 10) {
-                    HStack {
-                        Text("").frame(width: 170, alignment: .leading)
-                        ForEach(["Name", "Place", "Animal", "Thing"], id: \.self) { h in
-                            Text(h).font(.caption.bold()).tracking(2)
-                                .foregroundColor(.white.opacity(0.4))
-                                .frame(maxWidth: .infinity)
-                        }
-                    }
-                    ForEach(Array(vm.state.answers.enumerated()), id: \.offset) { _, row in
-                        HStack {
-                            Text(row.name).font(.headline).foregroundColor(.cyan)
-                                .frame(width: 170, alignment: .leading)
-                            ForEach(Array(row.values.enumerated()), id: \.offset) { _, v in
-                                Text(v).font(.body).foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                        .padding(.vertical, 10)
-                        .background(RoundedRectangle(cornerRadius: 8).fill(.white.opacity(0.05)))
-                    }
-                }
-                .padding(.horizontal, 90)
+                stagedReveal
             }
             Spacer()
             TVScoreStrip(players: vm.state.base.players, highlight: vm.state.base.submitted)
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    /// The staged big-screen reveal: each player's answers appear one by
+    /// one with their points, then the top scorer gets the spotlight.
+    private var stagedReveal: some View {
+        let rows = vm.state.answers.map { a in
+            let pts = vm.state.totals[a.id] ?? 0
+            return TVRevealRow(id: a.id, name: a.name,
+                               detail: a.values.joined(separator: "  ·  "),
+                               sublabel: pts == 1 ? "1 pt" : "\(pts) pts")
+        }
+        let spotlight: TVRevealSpotlight? = {
+            let ranked = vm.state.answers.sorted {
+                (vm.state.totals[$0.id] ?? 0) > (vm.state.totals[$1.id] ?? 0)
+            }
+            guard let best = ranked.first,
+                  (vm.state.totals[best.id] ?? 0) > 0 else { return nil }
+            let pts = vm.state.totals[best.id] ?? 0
+            return TVRevealSpotlight(title: "TOP SCORER", name: best.name,
+                                     detail: pts == 1 ? "1 pt" : "\(pts) pts")
+        }()
+        return TVRevealBoardView(
+            roundKey: "npat-\(vm.state.base.round)-\(vm.state.letter)",
+            header: "reveal",
+            headline: "Letter \(vm.state.letter)",
+            rows: rows,
+            spotlight: spotlight,
+            emptyMessage: "Nobody submitted this round")
     }
 }
 
@@ -614,7 +675,6 @@ struct TVMostLikelyToBoardView: View {
     @StateObject private var vm = TVBoardModel(initial: MostLikelyState()) { $0.update(from: $1) }
 
     private var isReveal: Bool { vm.state.base.phase == "reveal" }
-    private var maxVotes: Int { max(1, vm.state.results.map(\.votes).max() ?? 1) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -634,7 +694,7 @@ struct TVMostLikelyToBoardView: View {
                     .padding(.horizontal, 120)
 
                 if isReveal {
-                    revealBars
+                    stagedReveal
                 } else {
                     ballotProgress
                 }
@@ -661,39 +721,28 @@ struct TVMostLikelyToBoardView: View {
         }
     }
 
-    private var revealBars: some View {
-        Group {
-            if vm.state.results.isEmpty {
-                Text("Nobody voted this round")
-                    .font(.title2).foregroundColor(.white.opacity(0.5))
-            } else {
-                VStack(spacing: 14) {
-                    ForEach(vm.state.results.prefix(6)) { r in
-                        HStack(spacing: 20) {
-                            Image(systemName: r.topVoted ? "crown.fill" : "person.fill")
-                                .font(.title2)
-                                .foregroundColor(r.topVoted ? .yellow : .white.opacity(0.4))
-                                .frame(width: 44)
-                            Text(r.name)
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(r.topVoted ? .yellow : .white)
-                                .frame(width: 280, alignment: .leading)
-                            GeometryReader { geo in
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(r.topVoted ? Color.yellow : Color.cyan.opacity(0.55))
-                                    .frame(width: geo.size.width * CGFloat(r.votes) / CGFloat(maxVotes))
-                                    .animation(.spring(response: 0.6), value: r.votes)
-                            }
-                            .frame(height: 40)
-                            Text("\(r.votes)")
-                                .font(.system(size: 34, weight: .heavy, design: .rounded))
-                                .foregroundColor(.white)
-                                .frame(width: 70)
-                        }
-                    }
-                }
-                .padding(.horizontal, 160)
-            }
+    /// The staged big-screen reveal: tallies appear one by one, then the
+    /// top-voted player gets the spotlight.
+    private var stagedReveal: some View {
+        let rows = vm.state.results.map { r in
+            TVRevealRow(id: r.id, name: r.name,
+                        detail: r.votes == 1 ? "1 vote" : "\(r.votes) votes",
+                        isWinner: r.topVoted)
         }
+        let tops = vm.state.results.filter(\.topVoted)
+        let spotlight: TVRevealSpotlight? = {
+            guard let first = tops.first else { return nil }
+            return TVRevealSpotlight(
+                title: "MOST VOTED",
+                name: tops.map(\.name).joined(separator: ", "),
+                detail: first.votes == 1 ? "1 vote" : "\(first.votes) votes")
+        }()
+        return TVRevealBoardView(
+            roundKey: "most-likely-\(vm.state.base.round)-\(vm.state.prompt)",
+            header: "the room has spoken",
+            headline: vm.state.prompt,
+            rows: rows,
+            spotlight: spotlight,
+            emptyMessage: "Nobody voted this round")
     }
 }

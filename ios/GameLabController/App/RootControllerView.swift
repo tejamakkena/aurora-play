@@ -27,23 +27,38 @@ struct RootControllerView: View {
             case .waiting(let room):
                 WaitingView(room: room, onReady: vm.markReady, onLeave: vm.leaveRoom)
 
-            case .playing(let room, let privateData):
-                ZStack {
-                    ControllerGameView(
-                        room: room,
-                        privateData: privateData,
-                        onAction: vm.sendAction
-                    )
-                    // How-to-play card: same payload the TV shows, dismissed
-                    // locally with Start. The leave button in the top safe
-                    // area stays outside this ZStack, so it remains reachable
-                    // while the card is up.
-                    if let rules = vm.pendingRules {
-                        RulesInterstitialView(rules: rules, layout: .card, primaryTitle: "Start") {
-                            vm.pendingRules = nil
+            case .rules(_, let rules):
+                // Host-gated rules card: the engine is held server-side
+                // until the host taps Begin. The host's phone gets the
+                // button; everyone else gets the waiting indicator. The
+                // leave button stays in the top safe area so the card never
+                // traps anyone.
+                RulesInterstitialView(
+                    rules: rules,
+                    layout: .card,
+                    primaryTitle: "Begin Game",
+                    onPrimary: vm.isHost ? { vm.beginGame() } : nil
+                )
+                .safeAreaInset(edge: .top) {
+                    HStack {
+                        Button { showLeaveConfirm = true } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.white.opacity(0.4))
                         }
+                        .buttonStyle(.plain)
+                        Spacer()
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
                 }
+
+            case .playing(let room, let privateData):
+                ControllerGameView(
+                    room: room,
+                    privateData: privateData,
+                    onAction: vm.sendAction
+                )
                 .safeAreaInset(edge: .top) {
                     HStack {
                         Button { showLeaveConfirm = true } label: {
@@ -59,7 +74,7 @@ struct RootControllerView: View {
                 }
 
             case .results(let room):
-                ResultsControllerView(room: room, onLeave: vm.leaveRoom)
+                ResultsControllerView(room: room, onLeave: vm.leaveRoom, onPlayAgain: vm.playAgain)
             }
         }
         .environmentObject(vm)
@@ -84,6 +99,7 @@ enum ControllerScreen: Equatable {
     case loading
     case error(String)
     case waiting(Room)
+    case rules(Room, GameRules)
     case playing(Room, [String: Any])
     case results(Room)
 
@@ -97,6 +113,7 @@ enum ControllerScreen: Equatable {
         case .loading:           return "loading"
         case .error(let msg):    return "error-\(msg)"
         case .waiting(let r):    return "waiting-\(r.code)"
+        case .rules(let r, _):   return "rules-\(r.code)"
         case .playing(let r, _): return "playing-\(r.code)"
         case .results(let r):    return "results-\(r.code)"
         }
@@ -155,10 +172,10 @@ final class ControllerRootViewModel: ObservableObject {
     @Published var pendingJoinCode: String? = nil
 
     /// Rules interstitial data from the last `game_started` broadcast. Set
-    /// on start; cleared when the player taps Start on the card, leaves the
-    /// room, or returns to the join screen. Kept in the view model, not the
-    /// view, because `private_state` rebuilds the `.playing` screen on every
-    /// state push.
+    /// on start; cleared on `game_begun` (the host tapped Begin), when the
+    /// player leaves the room, or on return to the join screen. Kept in the
+    /// view model, not the view, because `room_updated` rebuilds screens
+    /// repeatedly.
     @Published var pendingRules: GameRules?
 
     private let socket = GameSocketManager.shared
@@ -174,7 +191,7 @@ final class ControllerRootViewModel: ObservableObject {
     /// The room this phone is seated in, whatever screen it is on.
     var currentRoom: Room? {
         switch screen {
-        case .waiting(let r), .playing(let r, _), .results(let r): return r
+        case .waiting(let r), .rules(let r, _), .playing(let r, _), .results(let r): return r
         default: return nil
         }
     }
@@ -226,11 +243,31 @@ final class ControllerRootViewModel: ObservableObject {
         }
 
         // The server carries the how-to-play payload on game_started (see
-        // games/native_hub/socket_events.py). The phone leaves its waiting
-        // screen on the first private_state, so the card arms here and shows
-        // on top of the controller once that transition happens.
+        // games/native_hub/socket_events.py). The server holds the engine
+        // until the host taps Begin, so the phone parks on the rules card
+        // instead of jumping straight to the controller; game_begun (below)
+        // and the pump's first private_state then drive rules -> playing.
+        // A phone joining mid-rules gets this re-sent to it directly.
         socket.on(.gameStarted) { [weak self] (response: GameStartedResponse) in
-            self?.pendingRules = response.rules
+            guard let self else { return }
+            self.pendingRules = response.rules
+            switch self.screen {
+            case .waiting(let room), .results(let room):
+                self.screen = .rules(room, response.rules)
+            default:
+                break
+            }
+        }
+
+        // The host tapped Begin: drop the rules card and fall back to the
+        // waiting screen; the pump's first private_state (right behind this)
+        // moves the phone onto its controller as before.
+        socket.on(.gameBegun) { [weak self] (_: GameBegunResponse) in
+            guard let self else { return }
+            self.pendingRules = nil
+            if case .rules(let room, _) = self.screen {
+                self.screen = .waiting(room)
+            }
         }
 
         // Private screen update — drives waiting → playing and results → playing
@@ -290,6 +327,29 @@ final class ControllerRootViewModel: ObservableObject {
         socket.emit(.playerReady, payload: ["roomCode": room.code, "playerID": playerID])
     }
 
+    /// Lift the rules gate from the host's phone. The server authorizes by
+    /// socket (host flag), mirroring start_game; non-hosts never see this
+    /// button, and a stray emit from one is rejected server-side.
+    func beginGame() {
+        guard let room = currentRoom else { return }
+        socket.emit(.beginGame, payload: ["roomCode": room.code, "playerID": playerID])
+    }
+
+    /// Phone "Play Again": the exact same rematch flow as the TV button
+    /// (TVRootViewModel.playAgain). Re-emits start_game against the same
+    /// room code -- the room and its player list never go away when a round
+    /// ends, so the backend re-spins a fresh engine for the exact same
+    /// group, resetting scores in handle_start_game. The existing
+    /// .privateState handler then moves this phone results -> playing, and
+    /// .gameStarted arms the rules interstitial again. Server-side this is
+    /// host-or-TV-only, so the results screen only offers the button to the
+    /// host (everyone else just waits).
+    func playAgain() {
+        guard case .results(let room) = screen else { return }
+        pendingRules = nil   // replaced by the game_started payload, if the start succeeds
+        socket.emit(.startGame, payload: ["roomCode": room.code])
+    }
+
     func sendAction(action: String, data: [String: Any]) {
         guard case .playing(let room, _) = screen else { return }
         socket.emit(.gameAction, payload: GameActionPayload(
@@ -302,7 +362,7 @@ final class ControllerRootViewModel: ObservableObject {
 
     func leaveRoom() {
         switch screen {
-        case .playing(let room, _), .waiting(let room):
+        case .playing(let room, _), .waiting(let room), .rules(let room, _):
             socket.emit(.leaveRoom, payload: ["roomCode": room.code, "playerID": playerID])
         default:
             break

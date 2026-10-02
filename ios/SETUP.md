@@ -163,7 +163,7 @@ Then on your devices:
 cd ios
 brew install xcodegen               # one-time
 xcodegen generate                   # creates GameLab.xcodeproj
-open GameLab.xcworkspace            # open in Xcode
+open GameLab.xcodeproj                # open in Xcode
 ```
 
 Then in Xcode:

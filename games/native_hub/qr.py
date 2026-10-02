@@ -3,12 +3,17 @@
 The TV lobby shows the room code; ``GET /native/qr/<room_code>`` renders a
 scannable QR PNG of ``/join/<room_code>`` on this same server, so a guest's
 camera opens a page that hands the code straight to the Aurora Play app
-(``auroraplay://join/<code>``) and shows it large as a fallback. No room
-lookup is performed -- the code is only validated for shape, so the TV can
-render it before any phone has joined.
+(``auroraplay://join/<code>`` -- registered in the iOS app's Info.plist)
+and shows it large as a fallback. No room lookup is performed -- the code
+is only validated for shape, so the TV can render it before any phone has
+joined.
 
 ``NATIVE_JOIN_URL_BASE`` overrides the join URL base (e.g. a LAN address
 ``http://192.168.1.20:5000/join`` when hosting a party offline).
+
+``NATIVE_TESTFLIGHT_URL`` sets the TestFlight install link shown on the
+join page (e.g. ``https://testflight.apple.com/join/ABCDEF``). When unset,
+the page shows a placeholder telling guests to ask the host for the invite.
 """
 
 import io
@@ -20,6 +25,11 @@ from flask import Blueprint, Response, abort, render_template, request
 qr_bp = Blueprint("native_qr", __name__)
 
 _CODE_RE = re.compile(r"^[A-Z2-9]{6}$")
+
+
+def testflight_url() -> str:
+    """TestFlight invite link for the controller app ("" = placeholder)."""
+    return os.environ.get("NATIVE_TESTFLIGHT_URL", "").strip()
 
 
 def join_url_base() -> str:
@@ -40,7 +50,8 @@ def join_page(code: str):
     if not _CODE_RE.match(code):
         abort(404)
     return render_template("join.html", code=code,
-                           app_url=f"auroraplay://join/{code}")
+                           app_url=f"auroraplay://join/{code}",
+                           testflight_url=testflight_url())
 
 
 @qr_bp.route("/native/qr/<code>")

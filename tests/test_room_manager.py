@@ -53,10 +53,11 @@ class TestJSONShape:
         room = registry.create("trivia")
         room.add_player("dev-1", "Teja", "sid-1")
         payload = room.to_json()
-        assert set(payload) == {"code", "gameID", "players", "state",
+        assert set(payload) == {"code", "gameID", "players", "state", "phase",
                                "contentPack", "botsAllowed", "usesContentPack"}
         assert payload["gameID"] == "trivia"
         assert payload["state"] == "lobby"
+        assert payload["phase"] == "play"
 
     def test_state_values_match_swift_raw_values(self):
         assert [s.value for s in RoomState] == ["lobby", "playing", "results"]

@@ -11,6 +11,7 @@ enum ClientEvent: String {
     case playerReady    = "player_ready"
     case gameAction     = "game_action"    // generic per-game payload
     case startGame      = "start_game"
+    case beginGame      = "begin_game"     // host (or TV) lifts the rules gate
     case leaveRoom      = "leave_room"
     case addBot         = "add_bot"          // TV or host, lobby only
     case removeBot      = "remove_bot"
@@ -23,6 +24,7 @@ enum ServerEvent: String {
     case roomJoined     = "room_joined"
     case roomUpdated    = "room_updated"
     case gameStarted    = "game_started"
+    case gameBegun      = "game_begun"     // rules gate lifted, engine started
     case gameState      = "game_state"     // board update for TV
     case privateState   = "private_state"  // private data for phone only
     case gameEnded      = "game_ended"

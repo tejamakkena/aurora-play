@@ -962,6 +962,9 @@ struct GenericTapControllerView: View {
 struct ResultsControllerView: View {
     let room: Room
     let onLeave: () -> Void
+    let onPlayAgain: () -> Void
+
+    @EnvironmentObject private var vm: ControllerRootViewModel
 
     private var myID: String { AppConstants.deviceID }
     private var sorted: [Player] { room.players.sorted { $0.score > $1.score } }
@@ -1018,6 +1021,30 @@ struct ResultsControllerView: View {
             }
 
             Spacer()
+
+            // Rematch. start_game is host-or-TV-only server-side, so this
+            // mirrors the lobby's host gating (see WaitingView/HostLobbyControls):
+            // only the host's phone gets the button; everyone else sees a
+            // waiting note. The emitted action is identical to the TV's
+            // Play Again (TVRootViewModel.playAgain) -- start_game with the
+            // same room code -- and the existing privateState handler moves
+            // this phone results -> playing when the restart pumps.
+            if vm.isHost {
+                Button(action: onPlayAgain) {
+                    Label("Play Again", systemImage: "arrow.clockwise")
+                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple))
+                        .foregroundColor(.white)
+                }
+                .buttonStyle(.plain).padding(.horizontal, 24).padding(.bottom, 12)
+            } else {
+                HStack(spacing: 8) {
+                    ProgressView().scaleEffect(0.9).tint(.white.opacity(0.5))
+                    Text("Waiting for the host to start a rematch")
+                        .font(.subheadline).foregroundColor(.white.opacity(0.5))
+                }
+                .padding(.horizontal, 24).padding(.bottom, 12)
+            }
 
             Button(action: onLeave) {
                 Label("Leave Room", systemImage: "arrow.left.circle")

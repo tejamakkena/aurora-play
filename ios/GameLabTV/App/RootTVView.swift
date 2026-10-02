@@ -56,14 +56,21 @@ struct RootTVView: View {
                 ZStack {
                     TVGameBoardView(room: room)
                     // How-to-play interstitial: the group has already
-                    // committed (Start Game was pressed), but nobody has
-                    // seen the rules yet. Dismissed locally with the Start
-                    // button -- the room is already PLAYING server-side, so
-                    // this gate only affects what the TV shows.
+                    // committed (Start Game was pressed), but the engine is
+                    // still gated server-side -- no clocks, nothing dealt --
+                    // until the host taps Begin. The TV shows the button only
+                    // when this device is the host (solo rooms, whose
+                    // synthetic player carries the TV's own device id); in a
+                    // group game the host's phone holds the button and the
+                    // TV shows the waiting state. game_begun lifts the gate
+                    // and drops this overlay.
                     if let rules = vm.pendingRules {
-                        RulesInterstitialView(rules: rules, layout: .tv, primaryTitle: "Start Playing") {
-                            vm.pendingRules = nil
-                        }
+                        RulesInterstitialView(
+                            rules: rules,
+                            layout: .tv,
+                            primaryTitle: "Begin Game",
+                            onPrimary: TVRootViewModel.canBegin(room: room) ? { vm.beginGame() } : nil
+                        )
                     }
                 }
 
@@ -112,8 +119,8 @@ final class TVRootViewModel: ObservableObject {
     @Published var screen: TVScreen = .gameSelection
 
     /// Rules interstitial data from the last `game_started` broadcast.
-    /// Set on start and cleared when the viewer taps Start Playing (or
-    /// leaves the room). Kept in the view model, not the view, because
+    /// Set on start and cleared on `game_begun` (the host tapped Begin) or
+    /// when leaving the room. Kept in the view model, not the view, because
     /// `room_updated` rebuilds the `.playing` screen repeatedly.
     @Published var pendingRules: GameRules?
 
@@ -130,6 +137,13 @@ final class TVRootViewModel: ObservableObject {
         // below is already armed when the board appears.
         socket.on(.gameStarted) { [weak self] (response: GameStartedResponse) in
             self?.pendingRules = response.rules
+        }
+
+        // The host tapped Begin (on the TV or on their phone): the engine is
+        // running for real now, so drop the interstitial. The pump's first
+        // game_state (a beat later) builds the real board underneath.
+        socket.on(.gameBegun) { [weak self] (_: GameBegunResponse) in
+            self?.pendingRules = nil
         }
 
         socket.on(.roomUpdated) { [weak self] (response: Room) in
@@ -221,6 +235,23 @@ final class TVRootViewModel: ObservableObject {
         guard case .lobby(let room) = screen else { return }
         pendingRules = nil   // replaced by the game_started payload, if the start succeeds
         socket.emit(.startGame, payload: ["roomCode": room.code])
+    }
+
+    /// The TV shows the rules gate's Begin button only when this device is
+    /// the host: solo rooms (whose synthetic player carries the TV's own
+    /// device id) or a room with no players left at all, where the board is
+    /// the only device that can still begin. In a group game the host's
+    /// phone holds the button and the TV shows the waiting state; the server
+    /// still authorizes the TV socket either way, mirroring start_game.
+    static func canBegin(room: Room) -> Bool {
+        room.players.isEmpty
+            || room.players.first(where: { $0.id == AppConstants.deviceID })?.isHost == true
+    }
+
+    /// Lift the rules gate: the server starts the engine for real.
+    func beginGame() {
+        guard case .playing(let room) = screen else { return }
+        socket.emit(.beginGame, payload: ["roomCode": room.code])
     }
 
     /// What the "Play Again" button on TVResultsView is supposed to do:
