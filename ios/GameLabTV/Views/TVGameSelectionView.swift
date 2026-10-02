@@ -126,6 +126,13 @@ struct TVGameSelectionView: View {
                     Text(socket.isConnected ? "Server connected" : "Reconnecting…")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.5))
+
+                    // Build stamp — which commit this build came from, so a
+                    // glance at the TV answers "is this running the new code?".
+                    Text(BuildStamp.displayString)
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.3))
+                        .padding(.top, 2)
                 }
             }
             .frame(width: 280)

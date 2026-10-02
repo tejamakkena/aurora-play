@@ -38,6 +38,17 @@ targets:
       - package: SocketIO
         product: SocketIO
 
+    # Regenerates Shared/Resources/BuildStamp.json from git before every
+    # build, so the in-app "Build <sha>" line always matches the commit the
+    # app was built from (see ios/SETUP.md). The script never fails the
+    # build (writes commit="dev" when git is unavailable), and dependency
+    # analysis is off so the stamp refreshes even on no-op rebuilds.
+    # $SRCROOT is ios/ here: the .xcodeproj is generated next to project.yml.
+    preBuildScripts:
+      - name: Stamp build commit
+        script: "$SRCROOT/build-stamp.sh"
+        basedOnDependencyAnalysis: false
+
     info:
       path: GameLabController/Info.plist
       properties:
@@ -93,6 +104,13 @@ targets:
     dependencies:
       - package: SocketIO
         product: SocketIO
+
+    # Same build-stamp phase as GameLabController: regenerates
+    # Shared/Resources/BuildStamp.json from git before every build.
+    preBuildScripts:
+      - name: Stamp build commit
+        script: "$SRCROOT/build-stamp.sh"
+        basedOnDependencyAnalysis: false
 
     info:
       path: GameLabTV/Info.plist
