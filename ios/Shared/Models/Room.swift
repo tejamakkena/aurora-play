@@ -5,6 +5,10 @@ struct Room: Codable, Equatable {
     let gameID: GameID
     var players: [Player]
     var state: RoomState
+    // "rules" while the room waits for the host's Begin after Start Game;
+    // "play" once the engine is actually running. Optional so older servers
+    // that omit it still decode.
+    var phase: String? = nil
     // Lobby options. Optional so older servers that omit them still decode.
     var contentPack: String? = nil
     var botsAllowed: Bool? = nil

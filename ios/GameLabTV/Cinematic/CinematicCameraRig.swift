@@ -65,6 +65,15 @@ final class CinematicCameraRig {
     private var orbitStartTime: CFTimeInterval = 0
     private var isTransitioning = false
 
+    // MARK: Impact shake
+
+    /// Impact-shake state. A short, decaying random offset layered on top
+    /// of the idle orbit every frame -- a snake bite gets a quick rumble
+    /// rather than a jarring camera cut.
+    private var shakeStartTime: CFTimeInterval = 0
+    private var shakeIntensity: Float = 0
+    private var shakeDuration: CFTimeInterval = 0
+
     init(cameraNode: SCNNode = SCNNode(), initialShot: CameraShot) {
         self.cameraNode = cameraNode
         let camera = cameraNode.camera ?? SCNCamera()
@@ -144,6 +153,20 @@ final class CinematicCameraRig {
             orbitAmplitude.z * sin(orbitFrequency.z * t + .pi / 5)
         )
 
+        // Impact shake: a decaying random offset layered over the orbit.
+        // The linear decay reads as a rumble settling back into the idle
+        // float rather than a hard cut.
+        let shakeElapsed = link.timestamp - shakeStartTime
+        var shakeOffset = SCNVector3(0, 0, 0)
+        if shakeDuration > 0, shakeElapsed < shakeDuration {
+            let decay = 1 - Float(shakeElapsed / shakeDuration)
+            shakeOffset = SCNVector3(
+                Float.random(in: -1...1) * shakeIntensity * decay,
+                Float.random(in: -1...1) * shakeIntensity * 0.6 * decay,
+                Float.random(in: -1...1) * shakeIntensity * decay
+            )
+        }
+
         // Only the position moves here -- orientation is left entirely to
         // the SCNLookAtConstraint installed on this node (see
         // `lookAtTarget`), which re-aims the camera at the fixed look-at
@@ -151,10 +174,25 @@ final class CinematicCameraRig {
         // manually here too would fight that constraint instead of
         // cooperating with it.
         cameraNode.position = SCNVector3(
-            currentShot.position.x + offset.x,
-            currentShot.position.y + offset.y,
-            currentShot.position.z + offset.z
+            currentShot.position.x + offset.x + shakeOffset.x,
+            currentShot.position.y + offset.y + shakeOffset.y,
+            currentShot.position.z + offset.z + shakeOffset.z
         )
+    }
+
+    // MARK: - Impact shake trigger
+
+    /// Fires a short camera shake, e.g. on a snake bite. `intensity` is in
+    /// scene units of peak random offset (0.08-0.15 reads as a nudge at
+    /// the TV-board scale where the idle orbit itself is 0.18), and
+    /// `duration` is how long the rumble takes to decay, in seconds.
+    /// Safe to call mid-transition -- the shake only feeds the orbit path
+    /// the display link writes each frame, so it never fights a running
+    /// `SCNTransaction` transition.
+    func shake(intensity: Float = 0.12, duration: TimeInterval = 0.4) {
+        shakeIntensity = intensity
+        shakeDuration = duration
+        shakeStartTime = CACurrentMediaTime()
     }
 
     // MARK: - State-driven transitions (spec #3)

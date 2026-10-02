@@ -1,4 +1,4 @@
-"""The six Socket.IO handlers the native apps talk to.
+"""The seven Socket.IO handlers the native apps talk to.
 
 All of them live on the ``/native`` namespace. python-socketio keys handlers by
 ``(namespace, event)``, so these cannot collide with the five browser games that
@@ -136,6 +136,13 @@ def register_native_events(socketio):
             socketio.emit("room_joined", {"room": room.to_json(), "playerID": ""},
                           to=sid, namespace=NAMESPACE)
             push_room(socketio, room)
+            if room.state is RoomState.PLAYING and room.phase == "rules":
+                # A board rejoining mid-rules missed game_started; re-arm
+                # its interstitial the same way a late phone gets it below.
+                socketio.emit("game_started",
+                              {"roomCode": code, "gameID": room.game_id,
+                               "rules": rules_for(room.game_id)},
+                              to=sid, namespace=NAMESPACE)
             return
 
         pid = v.player_id(data.get("playerID"))
@@ -157,7 +164,13 @@ def register_native_events(socketio):
                 room.touch()
                 resumed = True
             else:
-                if room.state is not RoomState.LOBBY:
+                if room.state is not RoomState.LOBBY and not (
+                        room.state is RoomState.PLAYING
+                        and room.phase == "rules"):
+                    # The rules gate is still open: a late joiner lands on
+                    # the rules interstitial rather than the lobby, and is
+                    # seated in time for the engine start the host's Begin
+                    # triggers. Anything past the gate stays closed.
                     push_error(socketio, sid, "Game already in progress",
                                "GAME_IN_PROGRESS")
                     return
@@ -175,7 +188,18 @@ def register_native_events(socketio):
                       to=sid, namespace=NAMESPACE)
         push_room(socketio, room)
 
-        if resumed and room.state is RoomState.PLAYING and room.engine is not None:
+        if room.state is RoomState.PLAYING and room.phase == "rules":
+            # The joiner missed the start-of-game broadcast, so re-send the
+            # rules payload to this socket only: it arms the interstitial on
+            # the TV and on the phone (a second board rejoining mid-rules
+            # gets it here too).
+            socketio.emit("game_started",
+                          {"roomCode": code, "gameID": room.game_id,
+                           "rules": rules_for(room.game_id)},
+                          to=sid, namespace=NAMESPACE)
+
+        if (resumed and room.state is RoomState.PLAYING
+                and room.phase == "play" and room.engine is not None):
             # Get this phone back onto the game screen immediately rather than
             # making it wait up to a second for the next pump cycle.
             with room.lock:
@@ -340,27 +364,79 @@ def register_native_events(socketio):
 
             room.engine = engine_cls(room, Broadcaster(socketio, room))
             room.state = RoomState.PLAYING
+            # The host-gated rules phase: the engine exists but is NOT
+            # started here, so no clocks run and nothing is dealt while the
+            # rules interstitial is up. begin_game (below) performs the
+            # actual engine.start() once the host taps Begin.
+            room.phase = "rules"
             room.generation += 1
             room.touch()
-            try:
-                room.engine.start(players)
-            except Exception:
-                logger.exception("engine start failed room=%s", code)
-                room.engine = None
-                room.state = RoomState.LOBBY
-                push_error(socketio, sid, "Could not start game", "ENGINE_ERROR")
-                return
 
         # The rules interstitial (TV + phone) is driven by this one event: the
         # backend is the single source of truth for how-to-play text, so it
-        # rides along on the broadcast both clients already receive.
+        # rides along on the broadcast both clients already receive. The
+        # engine itself stays gated until begin_game lifts it.
         socketio.emit("game_started",
                       {"roomCode": code, "gameID": room.game_id,
                        "rules": rules_for(room.game_id)},
                       to=code, namespace=NAMESPACE)
         push_room(socketio, room)
+        logger.info("room %s started game=%s (awaiting begin)", code, room.game_id)
+
+    # ---- begin_game ----------------------------------------------------
+    # Lifts the rules gate: the host (or the TV board) taps Begin and the
+    # engine actually starts -- deadlines stamp, questions deal, the pump
+    # starts pushing state. Authorization mirrors start_game: a board socket
+    # for this room, or the host's phone.
+    @socketio.on("begin_game", namespace=NAMESPACE)
+    def handle_begin_game(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            push_error(socketio, sid, "Room not found", "ROOM_NOT_FOUND")
+            return
+
+        with room.lock:
+            if room.state is not RoomState.PLAYING or room.phase != "rules":
+                return                                  # idempotent
+            is_tv = sid in room.tv_sids
+            actor = room.player_by_sid(sid)
+            if not is_tv and (actor is None or not actor.is_host):
+                push_error(socketio, sid, "Only the host can begin", "NOT_HOST")
+                return
+
+            engine_cls = engine_for(room.game_id)
+            minimum = 1 if room.solo else engine_cls.min_players
+            players = room.connected_players()
+            if len(players) < minimum:
+                # Everyone left while the rules were up -- stay gated rather
+                # than starting a game nobody can play.
+                push_error(socketio, sid,
+                           f"Need at least {minimum} players", "NOT_ENOUGH_PLAYERS")
+                return
+
+            room.phase = "play"
+            room.touch()
+            try:
+                room.engine.start(players)
+            except Exception:
+                logger.exception("engine begin failed room=%s", code)
+                room.engine = None
+                room.state = RoomState.LOBBY
+                room.phase = "play"
+                push_error(socketio, sid, "Could not start game", "ENGINE_ERROR")
+                return
+
+        # Both clients drop the rules interstitial on this; the pump's first
+        # private_state/game_state (a beat later) then builds the real board.
+        socketio.emit("game_begun",
+                      {"roomCode": code, "gameID": room.game_id},
+                      to=code, namespace=NAMESPACE)
+        push_room(socketio, room)
         start_pump(socketio, room)
-        logger.info("room %s started game=%s", code, room.game_id)
+        logger.info("room %s began game=%s", code, room.game_id)
 
     # ---- game_action ---------------------------------------------------
     @socketio.on("game_action", namespace=NAMESPACE)
@@ -378,7 +454,10 @@ def register_native_events(socketio):
         room = rooms.get(code) if code else None
         if room is None or pid is None or verb is None:
             return
-        if room.state is not RoomState.PLAYING or room.engine is None:
+        if (room.state is not RoomState.PLAYING or room.engine is None
+                or room.phase != "play"):
+            # The rules gate is still up: the engine isn't started, so there
+            # is nothing valid to act on yet.
             return
 
         with room.lock:
@@ -417,7 +496,13 @@ def register_native_events(socketio):
                 room.remove_player(pid)
             else:
                 room.detach_sid(sid)
-            if room.engine is not None and pid:
+            # remove_player/detach_sid already reassign the host (oldest
+            # remaining connected player) when the host leaves mid-rules, so
+            # the gate survives a host departure with no special-casing here.
+            # The engine isn't started during the rules phase, so there is no
+            # seat for it to drop yet.
+            if (room.engine is not None and pid
+                    and room.phase == "play"):
                 try:
                     room.engine.on_player_leave(pid)
                 except Exception:
@@ -441,7 +526,8 @@ def register_native_events(socketio):
 
         with room.lock:
             who = room.detach_sid(sid)
-            if who and who != "__tv__" and room.engine is not None:
+            if (who and who != "__tv__" and room.engine is not None
+                    and room.phase == "play"):
                 try:
                     room.engine.on_player_leave(who)
                 except Exception:
@@ -450,4 +536,4 @@ def register_native_events(socketio):
         push_room(socketio, room)
 
     start_reaper(socketio)
-    print("✅ Native hub events registered on /native")
+    print("Native hub events registered on /native")

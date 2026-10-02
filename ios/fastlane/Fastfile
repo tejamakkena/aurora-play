@@ -3,6 +3,8 @@
 
 # ── Fastfile ──────────────────────────────────────────────────────────────────
 # Lanes:
+#   fastlane beta            — LOCAL MAC: bump build number, build iOS
+#                              controller app → upload to TestFlight
 #   fastlane deploy_ios      — build iOS controller app → TestFlight
 #   fastlane deploy_tvos     — build tvOS board app    → TestFlight
 #   fastlane deploy_all      — both in sequence
@@ -25,10 +27,79 @@ end
 # ── iOS controller app ────────────────────────────────────────────────────────
 platform :ios do
 
+  # ────────────────────────────────────────────────────────────────────────────
+  # fastlane beta — run on YOUR MAC to ship the iPhone controller app to
+  # TestFlight yourself (the CI workflow deploys automatically on push to
+  # main; use this lane when you want a build without pushing code).
+  #
+  # Required env vars (never commit their values):
+  #   ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY   App Store Connect API key
+  #                                                (Users & Access -> Integrations)
+  #   IOS_PROVISION_PROFILE_NAME                    exact name of the App Store
+  #                                                provisioning profile for
+  #                                                com.gamelab.controller
+  #
+  # Optional env vars:
+  #   BUILD_NUMBER        build number to set (default: git commit count,
+  #                       falling back to a timestamp if git is unavailable)
+  #   CHANGELOG           TestFlight "What to Test" text
+  #   TESTFLIGHT_GROUP    external tester group name (default "Friends")
+  #   DISTRIBUTE_EXTERNAL set to "true" to also submit this build to the
+  #                       external group (triggers Apple's Beta App Review,
+  #                       so the lane waits for build processing instead of
+  #                       skipping it). Default: internal testers only.
+  # ────────────────────────────────────────────────────────────────────────────
+  desc "Build iOS controller app on this Mac and upload to TestFlight"
+  lane :beta do
+    # Regenerate the project in case Swift files changed since the last run.
+    # Requires xcodegen (`brew install xcodegen`).
+    sh("xcodegen generate")
+
+    git_count = `git rev-list --count HEAD 2>/dev/null`.strip
+    build_number = ENV["BUILD_NUMBER"] ||
+                   (git_count.empty? ? Time.now.strftime("%Y%m%d%H%M") : git_count)
+
+    increment_build_number(
+      xcodeproj:    "GameLab.xcodeproj",
+      build_number: build_number
+    )
+
+    distribute_external = ENV["DISTRIBUTE_EXTERNAL"] == "true"
+    group_name = ENV.fetch("TESTFLIGHT_GROUP", "Friends")
+
+    build_app(
+      project:        "GameLab.xcodeproj",
+      scheme:         "GameLabController",
+      configuration:  "Release",
+      export_method:  "app-store",   # App Store distribution -> TestFlight eligible
+      export_options: {
+        provisioningProfiles: {
+          # Must match PRODUCT_BUNDLE_IDENTIFIER in project.yml.
+          "com.gamelab.controller" => ENV.fetch("IOS_PROVISION_PROFILE_NAME")
+        }
+      },
+      output_directory: "build/ios",
+      output_name:      "GameLabController.ipa"
+    )
+
+    upload_to_testflight(
+      api_key:  asc_api_key,
+      ipa:      "build/ios/GameLabController.ipa",
+      app_identifier: "com.gamelab.controller",
+      # Internal testers can install as soon as processing finishes; for an
+      # external group we must wait for processing so the build can be added
+      # to the group (and sent to Beta App Review) in the same run.
+      skip_waiting_for_build_processing: !distribute_external,
+      distribute_external: distribute_external,
+      groups: [group_name],
+      changelog: ENV["CHANGELOG"] || "Aurora Play controller build #{build_number}"
+    )
+  end
+
   desc "Build iOS controller app without uploading (PR check)"
   lane :build_ios do
     build_app(
-      workspace:          "GameLab.xcworkspace",
+      project:            "GameLab.xcodeproj",
       scheme:             "GameLabController",
       configuration:      "Debug",
       destination:        "generic/platform=iOS Simulator",
@@ -49,7 +120,7 @@ platform :ios do
     )
 
     build_app(
-      workspace:      "GameLab.xcworkspace",
+      project:        "GameLab.xcodeproj",
       scheme:         "GameLabController",
       configuration:  "Release",
       export_method:  "app-store",
@@ -79,7 +150,7 @@ platform :ios do   # Fastlane uses :ios platform for tvOS too
   desc "Build tvOS board app without uploading (PR check)"
   lane :build_tvos do
     build_app(
-      workspace:        "GameLab.xcworkspace",
+      project:          "GameLab.xcodeproj",
       scheme:           "GameLabTV",
       configuration:    "Debug",
       destination:      "generic/platform=tvOS Simulator",
@@ -99,7 +170,7 @@ platform :ios do   # Fastlane uses :ios platform for tvOS too
     )
 
     build_app(
-      workspace:      "GameLab.xcworkspace",
+      project:        "GameLab.xcodeproj",
       scheme:         "GameLabTV",
       configuration:  "Release",
       export_method:  "app-store",

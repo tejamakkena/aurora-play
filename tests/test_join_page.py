@@ -8,6 +8,7 @@ from app import create_app
 @pytest.fixture
 def client(monkeypatch):
     monkeypatch.delenv("NATIVE_JOIN_URL_BASE", raising=False)
+    monkeypatch.delenv("NATIVE_TESTFLIGHT_URL", raising=False)
     app, _ = create_app()
     return app.test_client()
 
@@ -22,6 +23,19 @@ class TestJoinPage:
 
     def test_bad_code_404s(self, client):
         assert client.get("/join/not-a-code").status_code == 404
+
+    def test_testflight_placeholder_when_unset(self, client):
+        body = client.get("/join/abc234").get_data(as_text=True)
+        assert "TestFlight" in body
+        assert "Ask your host for the TestFlight invite" in body
+        assert "Install via TestFlight</a>" not in body
+
+    def test_testflight_link_when_env_set(self, client, monkeypatch):
+        monkeypatch.setenv("NATIVE_TESTFLIGHT_URL",
+                           "https://testflight.apple.com/join/ABCDEF")
+        body = client.get("/join/abc234").get_data(as_text=True)
+        assert "https://testflight.apple.com/join/ABCDEF" in body
+        assert "Install via TestFlight" in body
 
 
 class TestJoinBase:

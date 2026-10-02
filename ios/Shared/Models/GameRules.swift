@@ -14,8 +14,17 @@ struct GameRules: Codable {
 
 /// The `game_started` broadcast the server emits right after a game starts.
 /// `rules` is what drives the how-to-play interstitial on both clients.
+/// The engine itself stays gated until the host taps Begin (`game_begun`).
 struct GameStartedResponse: Decodable {
     let roomCode: String
     let gameID: String
     let rules: GameRules
+}
+
+/// The `game_begun` broadcast: the host tapped Begin, the engine started for
+/// real, and the pump is about to push the first board state. Both clients
+/// drop the rules interstitial on this.
+struct GameBegunResponse: Decodable {
+    let roomCode: String
+    let gameID: String
 }
