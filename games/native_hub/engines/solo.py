@@ -126,8 +126,10 @@ class NeonSnakeEngine(NativeGameEngine):
 
     def private_state(self, player_id):
         snake = self.snakes.get(player_id, {})
+        alive = snake.get("alive", False)
         return {
-            "alive": snake.get("alive", False),
+            "alive": alive,
+            "isOut": not alive,  # read by the phone DPad "You're out" subtitle
             "score": snake.get("score", 0),
             "finished": self._finished,
             "controls": "dpad",
