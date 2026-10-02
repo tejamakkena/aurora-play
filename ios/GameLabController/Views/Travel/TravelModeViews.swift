@@ -73,7 +73,7 @@ struct TravelExternalControllerView: View {
 
     var body: some View {
         WaitingState(
-            systemImage: "car.fill",
+            systemIcon: "car.fill",
             text: "\(gameID.displayName) runs in Travel Mode",
             detail: "Leave this room and start Travel Mode from the join screen to host it in the car."
         )
