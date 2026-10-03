@@ -275,16 +275,19 @@ final class ControllerRootViewModel: ObservableObject {
         // A phone joining mid-rules gets this re-sent to it directly.
         socket.on(.gameStarted) { [weak self] (response: GameStartedResponse) in
             guard let self else { return }
-            // Travel Mode shows its own host screen, not the rules card; an
-            // unarmed card here would leak onto the next normal game.
-            if self.travelVM == nil {
-                self.pendingRules = response.rules
-                switch self.screen {
-                case .waiting(let room), .results(let room):
-                    self.screen = .rules(room, response.rules)
-                default:
-                    break
-                }
+            // Travel Mode has no rules card — hand the event to the travel
+            // VM so it can lift the gate immediately; otherwise the phone
+            // parks on the rules interstitial until the host taps Begin.
+            if let travel = self.travelVM, travel.isActive {
+                travel.handleGameStarted(response)
+                return
+            }
+            self.pendingRules = response.rules
+            switch self.screen {
+            case .waiting(let room), .results(let room):
+                self.screen = .rules(room, response.rules)
+            default:
+                break
             }
         }
 

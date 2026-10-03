@@ -513,3 +513,30 @@ class TestTriviaTopicIntegration:
         engine, room, _ = self._trivia(topic="cricket")
         assert room.seed_questions == []
         assert engine._pack == "topic:cricket"
+
+
+class TestExcludeParam:
+    def test_exclude_filters_cached_questions(self, client):
+        import json, urllib.parse
+        tg._cache_add("cricket", "questions",
+                      [good_question(0), good_question(1), good_question(2)])
+        exclude = urllib.parse.quote(json.dumps(["What is question number 0 about?"]))
+        resp = client.get(f"/api/travel/questions?topic=cricket&count=2&exclude={exclude}")
+        body = resp.get_json()
+        assert resp.status_code == 200
+        got = [q["question"] for q in body["questions"]]
+        assert "What is question number 0 about?" not in got
+        assert got == ["What is question number 1 about?",
+                       "What is question number 2 about?"]
+
+    def test_exclude_malformed_is_ignored(self, client):
+        resp = client.get("/api/travel/questions?topic=cricket&count=1&exclude=not-json{{")
+        assert resp.status_code == 200
+        assert resp.get_json()["success"] is True
+
+    def test_exclude_empty_means_no_filtering(self, client):
+        tg._cache_add("rugby", "questions", [good_question(5)])
+        resp = client.get("/api/travel/questions?topic=rugby&count=1")
+        body = resp.get_json()
+        assert [q["question"] for q in body["questions"]] == \
+            ["What is question number 5 about?"]

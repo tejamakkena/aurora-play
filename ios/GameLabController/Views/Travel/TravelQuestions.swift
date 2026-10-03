@@ -36,13 +36,13 @@ struct TravelQuestionFetch {
     let source: TravelQuestionSource
 }
 
-func fetchTravelQuestions(topic: String, count: Int = 10) async -> TravelQuestionFetch {
+func fetchTravelQuestions(topic: String, count: Int = 10, exclude: [String] = []) async -> TravelQuestionFetch {
     let cleanTopic = topic.trimmingCharacters(in: .whitespacesAndNewlines)
     let effectiveTopic = cleanTopic.isEmpty ? "General Knowledge" : cleanTopic
     let base = AppConstants.serverURL
 
     // 1. The travel endpoint (backend worker's build).
-    if let result = await fetchFromTravelEndpoint(base: base, topic: effectiveTopic, count: count) {
+    if let result = await fetchFromTravelEndpoint(base: base, topic: effectiveTopic, count: count, exclude: exclude) {
         return result
     }
     // 2. Legacy Gemini route as a second chance.
@@ -56,13 +56,21 @@ func fetchTravelQuestions(topic: String, count: Int = 10) async -> TravelQuestio
 
 // MARK: - Endpoint 1: GET /api/travel/questions
 
-private func fetchFromTravelEndpoint(base: URL, topic: String, count: Int) async -> TravelQuestionFetch? {
+private func fetchFromTravelEndpoint(base: URL, topic: String, count: Int, exclude: [String] = []) async -> TravelQuestionFetch? {
     var components = URLComponents(url: base.appendingPathComponent("api/travel/questions"),
                                    resolvingAgainstBaseURL: false)
-    components?.queryItems = [
+    var queryItems = [
         URLQueryItem(name: "topic", value: topic),
         URLQueryItem(name: "count", value: String(count)),
     ]
+    // Already-asked questions, so the server's per-topic cache can't hand
+    // back the identical batch game after game. Capped client-side too.
+    if !exclude.isEmpty,
+       let json = try? JSONSerialization.data(withJSONObject: Array(exclude.prefix(50))),
+       let text = String(data: json, encoding: .utf8) {
+        queryItems.append(URLQueryItem(name: "exclude", value: text))
+    }
+    components?.queryItems = queryItems
     guard let url = components?.url else { return nil }
     guard let (data, response) = await get(url: url) else { return nil }
     guard (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
