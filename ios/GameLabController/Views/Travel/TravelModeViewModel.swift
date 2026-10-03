@@ -174,7 +174,8 @@ final class TravelModeViewModel: ObservableObject {
     private func startTrivia() async {
         stage = .loading
         loadingMessage = "Fetching questions…"
-        let fetch = await fetchTravelQuestions(topic: topic, count: 10)
+        let asked = askedQuestionTexts()
+        let fetch = await fetchTravelQuestions(topic: topic, count: 10, exclude: asked)
         guard isActive else { return }
         guard !fetch.questions.isEmpty else {
             // Unreachable in practice — the offline deck always yields
@@ -183,11 +184,36 @@ final class TravelModeViewModel: ObservableObject {
             stage = .setup
             return
         }
-        questions = fetch.questions
+        // The offline deck doesn't know the exclude list — filter it here
+        // so a dead zone doesn't replay the same 24 questions either.
+        let seen = Set(asked.map { $0.lowercased() })
+        var fresh = fetch.questions.filter { !seen.contains($0.question.lowercased()) }
+        if fresh.isEmpty { fresh = fetch.questions } // deck exhausted: replay beats nothing
+        questions = fresh
+        recordAskedQuestions(fresh.map(\.question))
         usedOfflineQuestions = fetch.source == .offline
         questionIndex = 0
         pickedChoice = nil
         stage = .trivia
+    }
+
+    // MARK: Asked-question history (kills repeats across games)
+
+    private static let askedHistoryKey = "travel_asked_questions"
+    private static let askedHistoryCap = 300
+
+    /// Question texts already asked on this device, most recent last.
+    private func askedQuestionTexts() -> [String] {
+        UserDefaults.standard.stringArray(forKey: Self.askedHistoryKey) ?? []
+    }
+
+    private func recordAskedQuestions(_ texts: [String]) {
+        var history = askedQuestionTexts()
+        history.append(contentsOf: texts)
+        if history.count > Self.askedHistoryCap {
+            history.removeFirst(history.count - Self.askedHistoryCap)
+        }
+        UserDefaults.standard.set(history, forKey: Self.askedHistoryKey)
     }
 
     var currentQuestion: TravelQuestion? {
@@ -199,11 +225,24 @@ final class TravelModeViewModel: ObservableObject {
         guard pickedChoice == nil else { return }
         pickedChoice = index
         if index == currentQuestion?.correctIndex {
-            speech.speak("Correct.")
+            speech.speak(praise.randomElement() ?? "That's right!")
+        } else if let q = currentQuestion {
+            let letter = ["A", "B", "C", "D"][q.correctIndex]
+            speech.speak("Not quite — it was \(letter). \(q.options[q.correctIndex]).")
         } else {
             speech.speak("Not quite.")
         }
     }
+
+    /// Rotated so the host doesn't sound like a robot saying "Correct."
+    /// twenty times in a row.
+    private let praise = [
+        "That's right!",
+        "Nice one!",
+        "Got it!",
+        "Yes! Well done.",
+        "Correct — you're on fire.",
+    ]
 
     func advanceQuestion() {
         speech.stop()
@@ -233,6 +272,9 @@ final class TravelModeViewModel: ObservableObject {
         socket.on(.gameEnded) { [weak self] (p: TravelGameEndedPayload) in
             self?.handleGameEnded(p)
         }
+        // NOTE: .gameStarted stays owned by ControllerRootViewModel (it
+        // replaces handlers per event). The root VM forwards travel games
+        // here via handleGameStarted, which lifts the rules gate.
         socket.onConnected("travel") { [weak self] in
             self?.rejoinSeats()
         }
@@ -293,6 +335,15 @@ final class TravelModeViewModel: ObservableObject {
     private func handleGameState(_ response: GameStateResponse) {
         guard isActive, response.roomCode == roomCode else { return }
         board = response.boardState.mapValues { $0.value }
+    }
+
+    /// The server announced the game (rules phase). Called by
+    /// ControllerRootViewModel, which owns the .gameStarted event.
+    /// Immediately begins — there is no rules card in the car, and this
+    /// phone holds the room's board seat, so it is the host.
+    func handleGameStarted(_ response: GameStartedResponse) {
+        guard isActive, response.roomCode == roomCode, roomCode != nil else { return }
+        socket.emit(.beginGame, payload: ["roomCode": response.roomCode])
     }
 
     private func handleGameEnded(_ payload: TravelGameEndedPayload) {
@@ -384,13 +435,16 @@ final class TravelModeViewModel: ObservableObject {
 
     // MARK: - Speech helpers
 
-    /// The TTS-safe line for the current prompt, per game.
+    /// The TTS-safe line for the current prompt, per game. Phrased the way
+    /// a host would actually say it — the ellipsis is a real pause for
+    /// AVSpeechSynthesizer, which is what makes it sound conversational
+    /// instead of read-out-loud.
     func speakablePrompt() -> String {
         if selectedGame == .trivia, let q = currentQuestion {
             let opts = q.options.enumerated()
-                .map { "\(["A", "B", "C", "D"][$0.offset]). \($0.element)" }
-                .joined(separator: " ")
-            return "Question. \(q.question) \(opts)"
+                .map { "\(["A", "B", "C", "D"][$0.offset]): \($0.element)" }
+                .joined(separator: " … ")
+            return "Question \(questionIndex + 1). \(q.question) … \(opts)"
         }
         // The travel engines write hostPrompt for exactly this purpose:
         // short, spoken-style sentences with no markup.

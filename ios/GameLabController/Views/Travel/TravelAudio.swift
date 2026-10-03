@@ -17,6 +17,22 @@ import SwiftUI
 final class TravelSpeech: NSObject, ObservableObject {
     private let synthesizer = AVSpeechSynthesizer()
 
+    /// The most natural English voice on this device, resolved once.
+    /// iOS ships enhanced (neural) voices that sound far less robotic
+    /// than the default compact voice — prefer those, US English first.
+    private let voice: AVSpeechSynthesisVoice? = {
+        let english = AVSpeechSynthesisVoice.speechVoices().filter {
+            $0.language.hasPrefix("en")
+        }
+        let pool = english.filter { $0.language == "en-US" }
+        let candidates = pool.isEmpty ? english : pool
+        return candidates.sorted {
+            let lq = $0.quality == .enhanced ? 0 : 1
+            let rq = $1.quality == .enhanced ? 0 : 1
+            return (lq, $0.name) < (rq, $1.name)
+        }.first
+    }()
+
     @Published private(set) var isSpeaking = false
 
     override init() {
@@ -50,10 +66,14 @@ final class TravelSpeech: NSObject, ObservableObject {
         guard !trimmed.isEmpty else { return }
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
         let utterance = AVSpeechUtterance(string: trimmed)
+        // The enhanced voice picked at init; without it the default
+        // compact voice is what sounds robotic.
+        if let voice { utterance.voice = voice }
         // Deliberate and clear at highway noise levels; the default rate
         // (0.5) is too fast over road noise for younger/older players.
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.92
         utterance.preUtteranceDelay = 0.15
+        utterance.postUtteranceDelay = 0.1
         synthesizer.speak(utterance)
     }
 
