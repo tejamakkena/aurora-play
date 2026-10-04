@@ -43,14 +43,6 @@ enum RouletteWheel {
     }
 }
 
-/// Converts a polar position on the wheel into a point, with 0° at twelve
-/// o'clock and angles increasing clockwise.
-private func polarPoint(center: CGPoint, radius: CGFloat, degrees: Double) -> CGPoint {
-    let radians = (degrees - 90) * .pi / 180
-    return CGPoint(x: center.x + radius * cos(radians),
-                   y: center.y + radius * sin(radians))
-}
-
 // MARK: - Spin timing
 
 /// One spin, as everything the board needs to animate it without asking the
@@ -93,6 +85,13 @@ final class RouletteWheelModel: ObservableObject {
     /// Recent results, newest first, for the history strip.
     @Published private(set) var history: [Int] = []
     @Published private(set) var isSpinning = false
+    /// The pocket the ball is sitting in once it has stopped; nil while it
+    /// is still moving. Drives the gold outline on the wheel.
+    @Published private(set) var landedNumber: Int?
+
+    /// Ball-at-rest distance from the centre (fraction of the wheel radius):
+    /// the inner pocket band, directly below its number (RouletteWheelFace).
+    static let pocketRestFraction = 0.6
 
     private var lastClickPocket: Int?
     private var lastClickAt: Date = .distantPast
@@ -106,6 +105,7 @@ final class RouletteWheelModel: ObservableObject {
                             duration: max(1.5, duration),
                             result: result)
         isSpinning = true
+        landedNumber = nil
         announcedLanding = false
         SoundPlayer.shared.startLoop(.rouletteSpin, volume: 0.45)
     }
@@ -121,6 +121,7 @@ final class RouletteWheelModel: ObservableObject {
         }
         if spin == nil {
             isSpinning = false
+            landedNumber = result
         }
     }
 
@@ -128,6 +129,7 @@ final class RouletteWheelModel: ObservableObject {
         spin = nil
         resting = nil
         isSpinning = false
+        landedNumber = nil
         SoundPlayer.shared.fadeOutLoop(.rouletteSpin, over: 0.3)
     }
 
@@ -156,7 +158,7 @@ final class RouletteWheelModel: ObservableObject {
     /// Ball distance from the centre, as a fraction of the wheel's radius.
     func ballRadiusFraction(at now: Date) -> Double {
         let track = 0.935          // the rim it circles while fast
-        let pocket = 0.735         // where it comes to rest
+        let pocket = Self.pocketRestFraction   // where it comes to rest
         guard let spin else { return resting == nil ? track : pocket }
         let p = spin.progress(at: now)
 
@@ -186,6 +188,7 @@ final class RouletteWheelModel: ObservableObject {
             }
             // Hand the ball over to the resting position and end the spin.
             resting = spin.result
+            landedNumber = spin.result
             self.spin = nil
             isSpinning = false
             return
@@ -214,6 +217,17 @@ final class RouletteWheelModel: ObservableObject {
 /// frets and numerals are laid out once per state change rather than on
 /// every animation frame.
 ///
+/// Layout follows a real European wheel, as fractions of the wheel radius:
+/// pocket ring 0.46-0.82, numbers in the outer band (0.70-0.82, centred at
+/// 0.76), ball pockets in the inner band where the ball comes to rest
+/// (`RouletteWheelModel.pocketRestFraction`), so the number printed right
+/// above the ball is always the result.
+///
+/// The numerals used to be placed at `radius * 0.355` -- well inside the
+/// metal cone (radius 0.46), which is drawn on top of them -- so none were
+/// visible. They were also `.position`ed and then rotated as a full-size
+/// frame, which turned each one a second time (to twice its angle).
+///
 /// Deliberately NOT wrapped in `.drawingGroup()`: an earlier version was, to
 /// flatten those 37+37 shapes and numerals into one composited layer, and
 /// the wheel's numbers came back completely invisible on a real Apple TV --
@@ -225,11 +239,12 @@ final class RouletteWheelModel: ObservableObject {
 /// neither `build-check` nor `GameLabTVUITests` (neither of which renders a
 /// gameplay screen at all) had any chance of catching this before it shipped.
 private struct RouletteWheelFace: View {
+    /// The pocket the ball has come to rest in, outlined in gold.
+    var highlight: Int? = nil
 
     var body: some View {
         GeometryReader { geo in
             let size = min(geo.size.width, geo.size.height)
-            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
             let radius = size / 2
 
             ZStack {
@@ -284,22 +299,34 @@ private struct RouletteWheelFace: View {
                         .rotationEffect(.degrees(Double(index) * RouletteWheel.pocketArc))
                 }
 
-                // Numerals, upright relative to their own pocket
-                ForEach(Array(RouletteWheel.order.enumerated()), id: \.offset) { index, number in
+                // Gold ring splitting the number band from the ball pockets
+                Circle()
+                    .strokeBorder(Color(hex: "d4a531").opacity(0.85), lineWidth: size * 0.004)
+                    .frame(width: size * 0.70, height: size * 0.70)
+
+                // Winning pocket, outlined (rotates with the wheel)
+                if let highlight {
+                    PocketWedge(startAngle: Double(RouletteWheel.index(of: highlight)) * RouletteWheel.pocketArc,
+                                sweep: RouletteWheel.pocketArc,
+                                innerRatio: 0.56)
+                        .stroke(Color(hex: "ffe9a8"), lineWidth: size * 0.008)
+                        .frame(width: size * 0.82, height: size * 0.82)
+                        .shadow(color: Color(hex: "ffe9a8").opacity(0.9), radius: size * 0.015)
+                }
+
+                // Numerals in the outer band, tops pointing outward like a real
+                // wheel. Same offset-then-rotate idiom as the frets: the offset
+                // moves the label up to the band, and the rotation (about the
+                // wheel centre, the label's untranslated frame centre) carries
+                // it round to its pocket and turns it to match.
+                ForEach(Array(RouletteWheel.order.enumerated()), id: \.offset) { _, number in
                     Text("\(number)")
-                        .font(.system(size: size * 0.038, weight: .bold, design: .rounded))
+                        .font(.system(size: size * 0.042, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
-                        .position(
-                            polarPoint(center: center,
-                                       radius: radius * 0.355,
-                                       degrees: Double(index) * RouletteWheel.pocketArc
-                                                + RouletteWheel.pocketArc / 2)
-                        )
-                        .rotationEffect(
-                            .degrees(Double(index) * RouletteWheel.pocketArc
-                                     + RouletteWheel.pocketArc / 2),
-                            anchor: .center
-                        )
+                        .shadow(color: .black.opacity(0.6), radius: 1)
+                        .fixedSize()
+                        .offset(y: -radius * 0.76)
+                        .rotationEffect(.degrees(RouletteWheel.angle(of: number)))
                 }
 
                 // Metal cone and turret
@@ -414,7 +441,7 @@ struct TVRouletteBoardView: View {
             let ballR = wheel.ballRadiusFraction(at: now)
 
             ZStack {
-                RouletteWheelFace()
+                RouletteWheelFace(highlight: wheel.landedNumber)
                     .frame(width: size, height: size)
                     .rotationEffect(.degrees(wheelAngle))
                     .shadow(color: .black.opacity(0.6), radius: 30, y: 12)
@@ -567,7 +594,9 @@ struct TVRouletteBoardView: View {
     }
 
     private func numberCell(_ n: Int, width: CGFloat, height: CGFloat) -> some View {
-        let isWinner = !vm.state.isSpinning && vm.state.lastResult == n
+        // Only once the ball has actually stopped, so the felt never gives
+        // the number away before the wheel does.
+        let isWinner = !vm.state.isSpinning && !wheel.isSpinning && vm.state.lastResult == n
         return Text("\(n)")
             .font(.system(size: 17, weight: .bold, design: .rounded))
             .foregroundColor(.white)
