@@ -626,6 +626,24 @@ def _clamp_count(raw, default: int) -> int:
         return default
 
 
+def _parse_exclude(raw) -> list[str]:
+    """Already-asked question texts the client wants excluded (JSON array).
+
+    The travel endpoint is stateless HTTP, so without this the per-topic
+    cache returns the identical batch on every call and the client sees
+    the same questions game after game. Capped so URLs stay sane.
+    """
+    if not raw:
+        return []
+    try:
+        items = json.loads(raw)
+    except (ValueError, TypeError):
+        return []
+    if not isinstance(items, list):
+        return []
+    return [str(x)[:300] for x in items if isinstance(x, str)][:60]
+
+
 @topic_bp.route("/questions", methods=["GET"])
 def travel_questions():
     """GET /api/travel/questions?topic=<topic>&count=10
@@ -635,7 +653,8 @@ def travel_questions():
     """
     topic = (request.args.get("topic") or "").strip()
     count = _clamp_count(request.args.get("count"), 10)
-    items, source = _fetch("questions", topic, count)
+    exclude = _parse_exclude(request.args.get("exclude"))
+    items, source = _fetch("questions", topic, count, session_history=exclude)
     return jsonify({"success": True, "topic": topic, "source": source,
                     "fallback": source == "bundled",
                     "questions": items})
@@ -649,7 +668,8 @@ def travel_secrets():
     """
     topic = (request.args.get("topic") or "").strip()
     count = _clamp_count(request.args.get("count"), 5)
-    items, source = _fetch("secrets", topic, count)
+    exclude = _parse_exclude(request.args.get("exclude"))
+    items, source = _fetch("secrets", topic, count, session_history=exclude)
     return jsonify({"success": True, "topic": topic, "source": source,
                     "fallback": source == "bundled",
                     "secrets": items})
@@ -663,7 +683,8 @@ def travel_hot_takes():
     """
     topic = (request.args.get("topic") or "").strip()
     count = _clamp_count(request.args.get("count"), 5)
-    items, source = _fetch("hot_takes", topic, count)
+    exclude = _parse_exclude(request.args.get("exclude"))
+    items, source = _fetch("hot_takes", topic, count, session_history=exclude)
     return jsonify({"success": True, "topic": topic, "source": source,
                     "fallback": source == "bundled",
                     "hot_takes": items})
