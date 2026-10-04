@@ -601,3 +601,17 @@ class TestLudoSafeSquares:
     def test_public_state_exposes_safe_squares(self):
         engine, _ = make("ludo", players=2)
         assert engine.public_state()["safe"] == [0, 8, 13, 21, 26, 34, 39, 47]
+
+
+class TestRouletteResultMatchesSpin:
+    def test_settled_number_is_the_one_the_wheel_was_sent(self, monkeypatch):
+        clock = _Clock(monkeypatch)
+        for _ in range(20):
+            engine, roster = make("roulette", players=1)
+            engine.handle_action(roster[0].id, "place_bet", {"target": "red", "amount": 10})
+            engine.handle_action(roster[0].id, "spin", {})
+            announced = engine.public_state()["pendingResult"]
+            assert announced is not None and 0 <= announced <= 36
+            clock.advance(engine.SPIN_SECONDS + 0.1)
+            engine.tick(0.25)
+            assert engine.public_state()["lastResult"] == announced
