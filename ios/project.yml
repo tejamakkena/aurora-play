@@ -64,6 +64,16 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         NSMotionUsageDescription: "Aurora Play uses motion to let you tilt and shake your phone as a game controller."
         NSLocalNetworkUsageDescription: "Aurora Play connects to the game server on your local network."
+        # Travel Mode's quizmaster (Views/Travel/TravelVoice.swift) records
+        # spoken answers and transcribes them with SFSpeechRecognizer. These
+        # must live HERE, not only in Info.plist: CI and `fastlane beta` run
+        # `xcodegen generate`, which rewrites Info.plist from this list, so a
+        # key added to the plist alone is dropped from the uploaded build
+        # (App Store Connect then rejects it with ITMS-90683).
+        NSMicrophoneUsageDescription: "Travel Mode's quizmaster listens to your spoken answers through the microphone so it can hear and grade them."
+        NSSpeechRecognitionUsageDescription: "Your spoken quiz answers are transcribed on-device so the quizmaster can check them."
+        NSBonjourServices:
+          - _aurora._tcp
         # Plain http to a LAN host (a laptop running the server at a party).
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
