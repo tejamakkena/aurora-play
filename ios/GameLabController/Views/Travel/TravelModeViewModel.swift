@@ -66,6 +66,25 @@ final class TravelModeViewModel: ObservableObject {
     /// the car sees; engine seat scores are secondary.
     @Published var scores: [String: Int] = [:]
     let speech = TravelSpeech()
+    let voice = TravelVoiceListener()
+
+    // MARK: Quizmaster (voice loop)
+
+    /// The turn-based voice loop: ASK -> LISTEN -> LOCK -> GRADE. The mic
+    /// is armed only inside .listening -- deaf by design everywhere else,
+    /// which is what makes the game immune to side conversations.
+    enum QuizmasterPhase {
+        case idle, asking, listening, locked, grading
+    }
+    @Published var quizPhase: QuizmasterPhase = .idle
+    /// Live caption of what the mic hears ("hearing: ...").
+    @Published var liveTranscript = ""
+    /// Set after a voice answer is graded; drives the same "tap +1"
+    /// scoreboard flow as a tapped answer.
+    @Published var voiceVerdict: Bool?
+    /// Master toggle. Tap-to-answer always works regardless.
+    @Published var quizmasterOn = true
+    private var didReprompt = false
 
     /// Suggested topics for the trivia topic picker.
     let topicChips = ["Cricket", "World Capitals", "90s Music", "Tollywood"]
@@ -159,7 +178,15 @@ final class TravelModeViewModel: ObservableObject {
         errorMessage = nil
         resetScores()
         if selectedGame == .trivia {
-            Task { await startTrivia() }
+            Task {
+                // Mic permission is settled before the first question --
+                // never mid-round. Denied? The tap buttons still work.
+                if quizmasterOn {
+                    _ = await voice.requestAuthorization()
+                    guard isActive else { return }
+                }
+                await startTrivia()
+            }
         } else {
             startHostedGame()
         }
@@ -195,6 +222,7 @@ final class TravelModeViewModel: ObservableObject {
         questionIndex = 0
         pickedChoice = nil
         stage = .trivia
+        beginVoiceRound()
     }
 
     // MARK: Asked-question history (kills repeats across games)
@@ -223,6 +251,7 @@ final class TravelModeViewModel: ObservableObject {
 
     func pickChoice(_ index: Int) {
         guard pickedChoice == nil else { return }
+        cancelVoiceRound()
         pickedChoice = index
         if index == currentQuestion?.correctIndex {
             speech.speak(praise.randomElement() ?? "That's right!")
@@ -246,9 +275,15 @@ final class TravelModeViewModel: ObservableObject {
 
     func advanceQuestion() {
         speech.stop()
+        voice.stop()
         pickedChoice = nil
+        voiceVerdict = nil
+        liveTranscript = ""
+        quizPhase = .idle
+        didReprompt = false
         if questionIndex + 1 < questions.count {
             questionIndex += 1
+            beginVoiceRound()
         } else {
             stage = .results
         }
@@ -404,6 +439,7 @@ final class TravelModeViewModel: ObservableObject {
     // MARK: - Teardown
 
     func backToSetup() {
+        cancelVoiceRound()
         speech.stop()
         // Leave the room seats behind (best effort) and drop the
         // travel-only socket handlers; the roster and topic are kept.
@@ -461,6 +497,237 @@ final class TravelModeViewModel: ObservableObject {
             return "The clue is: \(clue). Spectrum: \(left) to \(right)."
         default:
             return "Waiting for the next prompt."
+        }
+    }
+
+    // MARK: - Quizmaster voice loop (trivia)
+
+    /// Ask the current question aloud, then arm the mic when it finishes.
+    /// Called on entering the trivia stage and after every advance.
+    func beginVoiceRound() {
+        guard quizmasterOn, isActive, stage == .trivia,
+              let q = currentQuestion else { return }
+        quizPhase = .asking
+        voiceVerdict = nil
+        liveTranscript = ""
+        didReprompt = false
+        speech.enableQuizmasterAudio()
+        // Zero dead air: the next question's audio is already cached by
+        // the time we need it.
+        if questionIndex + 1 < questions.count {
+            let nq = questions[questionIndex + 1]
+            speech.prefetch(voiceQuestionText(nq, number: questionIndex + 2))
+        }
+        // Mic permission was requested at game start; if it was denied,
+        // the tap-to-answer buttons remain the input path.
+        speech.speak(voiceQuestionText(q, number: questionIndex + 1)) {
+            [weak self] in self?.startListening()
+        }
+    }
+
+    private func voiceQuestionText(_ q: TravelQuestion, number: Int) -> String {
+        let opts = q.options.enumerated()
+            .map { "\(["A", "B", "C", "D"][$0.offset]): \($0.element)" }
+            .joined(separator: " … ")
+        return "Question \(number). \(q.question) … \(opts)"
+    }
+
+    private func startListening() {
+        guard isActive, quizPhase == .asking, stage == .trivia else { return }
+        quizPhase = .listening
+        liveTranscript = ""
+        voice.start(
+            timeout: 8,
+            onPartial: { [weak self] partial in
+                self?.liveTranscript = partial
+            },
+            onFinal: { [weak self] transcript, confidence in
+                self?.lockAnswer(transcript, confidence: confidence)
+            }
+        )
+    }
+
+    /// The LOCK step: the first final transcript wins. Everything the mic
+    /// hears after this is ignored until the next question -- side
+    /// conversations cannot derail the round.
+    private func lockAnswer(_ transcript: String, confidence: Float) {
+        guard quizPhase == .listening, stage == .trivia else { return }
+        quizPhase = .locked
+        voice.stop()
+        let clean = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean.isEmpty || confidence < 0.35 {
+            if !didReprompt {
+                // One re-prompt, then the host taps.
+                didReprompt = true
+                quizPhase = .grading
+                speech.speak("Didn't catch that -- say it again.") {
+                    [weak self] in
+                    guard let self, self.quizPhase == .grading else { return }
+                    self.quizPhase = .asking
+                    self.startListening()
+                }
+            } else {
+                quizPhase = .idle
+                liveTranscript = "Tap an answer below."
+            }
+            return
+        }
+        gradeVoiceAnswer(clean)
+    }
+
+    private func gradeVoiceAnswer(_ transcript: String) {
+        quizPhase = .grading
+        guard let q = currentQuestion else { quizPhase = .idle; return }
+        // 1. Letter match: "B", "option B", "the second one".
+        if let letter = voiceLetterIndex(transcript), (0...3).contains(letter) {
+            finishVoiceGrade(correct: letter == q.correctIndex)
+            return
+        }
+        // 2. Forgiving client-side match (free, instant).
+        if voiceFuzzyMatches(transcript, q.options[q.correctIndex]) {
+            finishVoiceGrade(correct: true)
+            return
+        }
+        for (i, opt) in q.options.enumerated() where i != q.correctIndex {
+            if voiceFuzzyMatches(transcript, opt) {
+                finishVoiceGrade(correct: false)
+                return
+            }
+        }
+        // 3. One tiny server call for the genuinely ambiguous cases.
+        Task {
+            let correct = await serverGrade(transcript: transcript, question: q)
+            await MainActor.run {
+                self.finishVoiceGrade(correct: correct)
+            }
+        }
+    }
+
+    private func finishVoiceGrade(correct: Bool?) {
+        guard stage == .trivia, let q = currentQuestion else { return }
+        let letter = ["A", "B", "C", "D"][q.correctIndex]
+        let verdict: String
+        if correct == true {
+            voiceVerdict = true
+            verdict = "\(praise.randomElement() ?? "That's right!")"
+        } else {
+            // correct == false (wrong) and correct == nil (ungradable)
+            // both reveal the answer; the host still taps +1 if it was right.
+            voiceVerdict = false
+            verdict = correct == nil
+                ? "I couldn't quite judge that -- the answer was \(letter). \(q.options[q.correctIndex])."
+                : "Not quite -- it was \(letter). \(q.options[q.correctIndex])."
+        }
+        quizPhase = .grading
+        speech.speak(verdict)
+        // The host taps +1 on the scoreboard for whoever got it right,
+        // then Next Question -- same flow as a tapped answer.
+    }
+
+    /// Manual tap or teardown cancels the in-flight voice round.
+    func cancelVoiceRound() {
+        voice.stop()
+        quizPhase = .idle
+        liveTranscript = ""
+        didReprompt = false
+    }
+
+    // MARK: Hold-to-talk
+
+    /// Press-and-hold mic button: press re-arms the window, release
+    /// finalizes. The reliable input in a noisy car.
+    func holdToTalkBegan() {
+        guard quizPhase == .listening else { return }
+        startListening()
+    }
+
+    func holdToTalkEnded() {
+        guard quizPhase == .listening else { return }
+        voice.finishEarly()
+    }
+
+    // MARK: - Voice answer matching (client-side, free)
+
+    private func voiceLetterIndex(_ transcript: String) -> Int? {
+        let t = transcript.lowercased()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let letters = ["a", "b", "c", "d"]
+        // "option B"
+        if let m = t.range(of: #"option\s+([a-d])"#,
+                           options: .regularExpression),
+           let last = String(t[m]).last,
+           let i = letters.firstIndex(of: String(last)) {
+            return i
+        }
+        // Standalone letter, but only in a short transcript -- "a" as an
+        // article inside a longer sentence must not count as answering A.
+        if t.split(separator: " ").count <= 3 {
+            let padded = " \(t) "
+            for (i, l) in letters.enumerated()
+            where padded.contains(" \(l) ") {
+                return i
+            }
+        }
+        let ordinals = ["first": 0, "second": 1, "third": 2, "fourth": 3]
+        for (word, i) in ordinals where t.contains(word) {
+            return i
+        }
+        return nil
+    }
+
+    private func voiceFuzzyMatches(_ transcript: String, _ answer: String) -> Bool {
+        let g = voiceNormalize(transcript), a = voiceNormalize(answer)
+        guard !g.isEmpty, !a.isEmpty else { return false }
+        if g == a || g.replacingOccurrences(of: " ", with: "")
+            == a.replacingOccurrences(of: " ", with: "") { return true }
+        let words = a.split(separator: " ")
+        if words.count >= 3,
+           g.replacingOccurrences(of: " ", with: "")
+            == words.map { String($0.prefix(1)) }.joined() { return true }
+        if g.contains(a) || a.contains(g) { return true }
+        return false
+    }
+
+    private func voiceNormalize(_ text: String) -> String {
+        var words = text.lowercased()
+            .components(separatedBy: CharacterSet.alphanumerics.inverted)
+            .filter { !$0.isEmpty }
+        if let first = words.first, ["the", "a", "an"].contains(first) {
+            words.removeFirst()
+        }
+        return words.joined(separator: " ")
+    }
+
+    // MARK: - Server grading fallback
+
+    private struct VoiceGradeResponse: Decodable {
+        let success: Bool
+        let correct: Bool?
+    }
+
+    private func serverGrade(transcript: String,
+                             question q: TravelQuestion) async -> Bool? {
+        let url = AppConstants.serverURL.appendingPathComponent("api/voice/grade")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 20
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "question": q.question,
+            "options": q.options,
+            "correct_answer": q.correctIndex,
+            "transcript": transcript,
+        ])
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+                return nil
+            }
+            let decoded = try JSONDecoder().decode(VoiceGradeResponse.self,
+                                                   from: data)
+            return decoded.success ? decoded.correct : nil
+        } catch {
+            return nil
         }
     }
 }

@@ -16,6 +16,11 @@ enum ClientEvent: String {
     case addBot         = "add_bot"          // TV or host, lobby only
     case removeBot      = "remove_bot"
     case setContentPack = "set_content_pack" // question language (Trivia/KBC)
+    // Voice quizmaster (TV speaks, one phone listens)
+    case claimMic       = "claim_mic"       // phone -> server: I hold the mic
+    case voiceState      = "voice_state"     // TV/mic -> room: ask/listen/lock/grade
+    case voiceTranscript = "voice_transcript" // mic phone -> room: partial/final
+    case voiceVerdict    = "voice_verdict"   // mic/TV -> room: grading result
 }
 
 // MARK: - Inbound (server → client)
@@ -29,6 +34,11 @@ enum ServerEvent: String {
     case privateState   = "private_state"  // private data for phone only
     case gameEnded      = "game_ended"
     case error          = "error"
+    // Voice quizmaster
+    case micReassigned  = "mic_reassigned"
+    case voiceState      = "voice_state"
+    case voiceTranscript = "voice_transcript"
+    case voiceVerdict    = "voice_verdict"
 }
 
 // MARK: - Payloads
@@ -72,6 +82,59 @@ struct PrivateStateResponse: Decodable {
 struct ErrorResponse: Decodable {
     let message: String
     let code: String?
+}
+
+// MARK: - Voice quizmaster payloads
+
+struct ClaimMicPayload: Encodable {
+    let roomCode: String
+    let playerID: String
+}
+
+struct VoiceStatePayload: Encodable {
+    let roomCode: String
+    let state: String        // ask | listen | lock | grade
+    let questionID: String
+}
+
+struct VoiceTranscriptPayload: Encodable {
+    let roomCode: String
+    let playerID: String
+    let text: String
+    let isFinal: Bool
+    let confidence: Double
+}
+
+struct VoiceVerdictPayload: Encodable {
+    let roomCode: String
+    let correct: Bool?
+    let text: String
+}
+
+struct MicReassignedResponse: Decodable {
+    let roomCode: String
+    let playerID: String
+    let playerName: String
+}
+
+struct VoiceStateResponse: Decodable {
+    let roomCode: String
+    let state: String
+    let questionID: String
+}
+
+struct VoiceTranscriptResponse: Decodable {
+    let roomCode: String
+    let playerID: String
+    let text: String
+    let isFinal: Bool
+    let confidence: Double
+}
+
+struct VoiceVerdictResponse: Decodable {
+    let roomCode: String
+    let correct: Bool?
+    let text: String
 }
 
 // MARK: - AnyCodable helper (encode/decode arbitrary JSON values)

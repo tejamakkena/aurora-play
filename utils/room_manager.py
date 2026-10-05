@@ -114,6 +114,10 @@ class Room:
     #: the content packs. Each item is {"question", "options"[4],
     #: "correct_answer" 0-3}, validated on the way in.
     seed_questions: list = field(default_factory=list)
+    #: The player currently holding the microphone for the cross-device
+    #: voice loop (TV speaks, this phone listens). Set via the claim_mic
+    #: socket event; None means no phone has claimed it yet.
+    mic_player_id: str | None = None
     # The solo placeholder's identity, held here rather than added to
     # `players` immediately at create_room time -- deferred until start_game
     # actually fires, and only materialized then if nobody real has joined by
@@ -172,6 +176,7 @@ class Room:
             "phase": self.phase,
             "contentPack": self.content_pack,
             "topic": self.topic,
+            "micPlayerID": self.mic_player_id,
             "botsAllowed": self.game_id in POLICIES,
             "usesContentPack": self.game_id in PACK_GAMES,
         }
@@ -387,3 +392,4 @@ class RoomRegistry:
 
 # Module-level singleton used by the hub.
 rooms = RoomRegistry()
+

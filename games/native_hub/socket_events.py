@@ -573,6 +573,101 @@ def register_native_events(socketio):
         rooms.unbind_sid(sid)
         push_room(socketio, room)
 
+    # ---- voice quizmaster (TV speaks, one phone listens) -----------------
+    # The cross-device voice loop from the quizmaster spec: the TV is the
+    # mouth (it fetches TTS audio over HTTP and plays it through the TV
+    # speakers -- tvOS gives third-party apps no mic access, so the TV can
+    # never be the ear) and exactly one phone is the ear. The server only
+    # relays and validates; the state machine itself is driven by the TV
+    # and the mic phone, which keeps this working for every game without
+    # per-engine voice support.
+
+    def _voice_sender(room, sid):
+        """(player_id, is_tv) for this sid, or (None, False) if unknown."""
+        if sid in room.tv_sids:
+            return None, True
+        player = room.player_by_sid(sid)
+        return (player.id if player else None), False
+
+    @socketio.on("claim_mic", namespace=NAMESPACE)
+    def handle_claim_mic(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        pid = v.player_id(data.get("playerID"))
+        room = rooms.get(code) if code else None
+        if room is None or pid is None:
+            return
+        with room.lock:
+            actor = room.player(pid)
+            if actor is None or actor.sid != sid:
+                return  # only a seated player can claim the mic, as themselves
+            room.mic_player_id = pid
+            name = actor.name
+        socketio.emit("mic_reassigned",
+                      {"roomCode": code, "playerID": pid, "playerName": name},
+                      room=code, namespace=NAMESPACE)
+
+    @socketio.on("voice_state", namespace=NAMESPACE)
+    def handle_voice_state(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        state = str(data.get("state") or "")
+        room = rooms.get(code) if code else None
+        if room is None or state not in ("ask", "listen", "lock", "grade"):
+            return
+        pid, is_tv = _voice_sender(room, sid)
+        if not is_tv and pid != room.mic_player_id:
+            return  # only the TV or the mic phone drives the loop
+        socketio.emit("voice_state",
+                      {"roomCode": code, "state": state,
+                       "questionID": str(data.get("questionID") or "")},
+                      room=code, namespace=NAMESPACE)
+
+    @socketio.on("voice_transcript", namespace=NAMESPACE)
+    def handle_voice_transcript(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        pid, _ = _voice_sender(room, sid)
+        if pid is None or pid != room.mic_player_id:
+            return  # only the designated mic phone transcribes
+        socketio.emit("voice_transcript",
+                      {"roomCode": code, "playerID": pid,
+                       "text": str(data.get("text") or "")[:500],
+                       "isFinal": bool(data.get("isFinal")),
+                       "confidence": float(data.get("confidence") or 0)},
+                      room=code, namespace=NAMESPACE)
+
+    @socketio.on("voice_verdict", namespace=NAMESPACE)
+    def handle_voice_verdict(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        pid, is_tv = _voice_sender(room, sid)
+        if not is_tv and pid != room.mic_player_id:
+            return
+        socketio.emit("voice_verdict",
+                      {"roomCode": code,
+                       "correct": data.get("correct"),  # true/false/null
+                       "text": str(data.get("text") or "")[:500]},
+                      room=code, namespace=NAMESPACE)
+
     # ---- disconnect ----------------------------------------------------
     @socketio.on("disconnect", namespace=NAMESPACE)
     def handle_disconnect():
