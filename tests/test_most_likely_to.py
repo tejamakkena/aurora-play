@@ -68,7 +68,9 @@ class TestStart:
         engine, roster = make()
         assert engine.phase == "vote"
         assert engine.prompt
-        assert engine.prompt in C.MOST_LIKELY_PROMPTS
+        # Bundled list or the content library (games/content_service.py).
+        from games import content_service
+        assert engine.prompt in content_service.all_items("most_likely")
 
     def test_content_pool_has_enough_clean_prompts(self):
         assert len(C.MOST_LIKELY_PROMPTS) >= 24

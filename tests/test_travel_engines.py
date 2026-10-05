@@ -353,7 +353,7 @@ class TestTwentyQuestions:
     def test_topic_generates_secrets_when_available(self, monkeypatch):
         import games.topic_gen as tg
         monkeypatch.setattr(tg, "_llm_batch",
-                            lambda kind, topic, count: ["Tollywood Star", "Film City"])
+                            lambda kind, topic, count, exclude=(): ["Tollywood Star", "Film City"])
         engine, roster = make("twenty_questions")
         engine.room.topic = "Tollywood movies"
         engine.used.clear()
@@ -363,7 +363,7 @@ class TestTwentyQuestions:
 
     def test_topic_failure_falls_back_to_bundled(self, monkeypatch):
         import games.topic_gen as tg
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise tg._GenError("no key")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         engine, roster = make("twenty_questions")
@@ -391,7 +391,8 @@ class TestHotTakes:
         engine, roster = make("hot_takes")
         assert engine.phase == "discuss"
         state = engine.public_state()
-        assert state["prompt"] in HOT_TAKES
+        from games import content_service
+        assert state["prompt"] in content_service.all_items("hot_take")
         assert state["secondsLeft"] > 0
         assert "hot take" in state["hostPrompt"].lower()
 
@@ -458,7 +459,7 @@ class TestHotTakes:
     def test_topic_generates_prompt_when_available(self, monkeypatch):
         import games.topic_gen as tg
         monkeypatch.setattr(tg, "_llm_batch",
-                            lambda kind, topic, count: ["Is cricket better than football?"])
+                            lambda kind, topic, count, exclude=(): ["Is cricket better than football?"])
         engine, roster = make("hot_takes")
         engine.room.topic = "cricket"
         engine.begin_phase("discuss")

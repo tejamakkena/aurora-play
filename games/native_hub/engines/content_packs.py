@@ -383,21 +383,39 @@ def _question_text(kind: str, item) -> str:
 
 
 def fresh_questions(room, pack_id: str, kind: str, pool=None) -> list:
-    """Question pool for a new quiz session, skipping the room's recent history.
+    """Question pool for a new quiz session, skipping what this table has seen.
 
-    Questions asked in this room's recent sessions (see record_questions)
-    are excluded so a second game doesn't replay the first. If the history
-    would leave fewer than a quarter of the bank, the full bank is returned
-    instead -- a full pool with a few repeats beats a starved one.
+    English games also get the live trivia pool (games/content_service.py,
+    grown in the background from Open Trivia DB), so the bank keeps growing
+    past the bundled questions.
+
+    Skipped, in order of preference: questions asked in this room
+    recently (record_questions) AND questions any player's device has
+    seen in earlier rooms or nights; then just the room's history; then
+    nothing -- a full pool with a few repeats beats a starved one (the
+    quarter-of-the-bank rule).
     """
+    from games import content_service as cs
     bank = list(pool) if pool is not None else list(questions_for(pack_id, kind))
-    seen = set(getattr(room, "question_history", {}).get((pack_id, kind), ()))
-    if not seen:
-        return bank
-    fresh = [q for q in bank if _question_text(kind, q) not in seen]
-    if len(fresh) < max(1, len(bank) // 4):
-        return bank
-    return fresh
+    if pack_id == "en":
+        have = {cs.norm_key(_question_text(kind, q)) for q in bank}
+        for q in cs.mc_extra(kind):
+            k = cs.norm_key(_question_text(kind, q))
+            if k not in have:
+                have.add(k)
+                bank.append(q)
+    room_seen = set(getattr(room, "question_history", {}).get((pack_id, kind), ()))
+    _, device_seen = cs.seen_keys(room, "mc")
+    enough = max(1, len(bank) // 4)
+    fresh = [q for q in bank
+             if _question_text(kind, q) not in room_seen
+             and cs.norm_key(_question_text(kind, q)) not in device_seen]
+    if pack_id == "en" and len(fresh) < 150:
+        cs.request_refill("mc")
+    if len(fresh) >= enough:
+        return fresh
+    fresh = [q for q in bank if _question_text(kind, q) not in room_seen]
+    return fresh if len(fresh) >= enough else bank
 
 
 def record_questions(room, pack_id: str, kind: str, questions) -> None:
@@ -417,3 +435,6 @@ def record_questions(room, pack_id: str, kind: str, questions) -> None:
             current.remove(text)
         current.append(text)
     del current[:-RECENT_HISTORY_CAP]
+    # Also remember it per player device, across rooms and nights.
+    from games import content_service as cs
+    cs.record(room, "mc", [cs.norm_key(_question_text(kind, q)) for q in questions])

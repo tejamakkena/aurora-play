@@ -31,6 +31,7 @@ Games in this module:
 import random
 import time
 
+from games import content_service as cs
 from games.native_hub.engine import NativeGameEngine
 from games.native_hub.engines._bases import RoundBasedEngine
 from utils.room_manager import Player
@@ -650,22 +651,18 @@ class HotTakesEngine(RoundBasedEngine):
     def __init__(self, room, broadcaster) -> None:
         super().__init__(room, broadcaster)
         self.prompt = ""
-        self.used: set[int] = set()
+        self.used: set[str] = set()       # normalized prompts asked this game
         self.awarded_to: str | None = None
 
     def begin_phase(self, phase: str) -> None:
         if phase == "discuss":
             prompt = self._topic_prompt()
-            if prompt is not None:
-                self.prompt = prompt
-            else:
-                pool = [i for i in range(len(HOT_TAKES)) if i not in self.used]
-                if not pool:
-                    self.used.clear()
-                    pool = list(range(len(HOT_TAKES)))
-                idx = random.choice(pool)
-                self.used.add(idx)
-                self.prompt = HOT_TAKES[idx]
+            if prompt is None:
+                prompt = cs.pick_one(self.room, "hot_take", avoid=self.used)
+            self.prompt = prompt
+            # Topic prompts count too: they used to be left out, so the
+            # topic cache handed back the same first prompt every round.
+            self.used.add(cs.norm_key(prompt))
             self.awarded_to = None
         elif phase == "award":
             self.awarded_to = None
@@ -681,7 +678,7 @@ class HotTakesEngine(RoundBasedEngine):
             return None
         try:
             from games import topic_gen
-            seen = [HOT_TAKES[i] for i in self.used]
+            seen = list(self.used)
             takes = topic_gen.get_hot_takes(topic, 1, session_history=seen)
             return takes[0] if takes else None
         except Exception:

@@ -7,6 +7,7 @@ which is what keeps these playable with twenty people in a room.
 import random
 import time
 
+from games import content_service as cs
 from games.native_hub.engines import _content as C
 from games.native_hub.engines._matching import guess_matches
 from games.native_hub.engines._bases import RoundBasedEngine
@@ -63,18 +64,15 @@ class BluffItEngine(RoundBasedEngine):
         self.truth = ""
         self.options: list[dict] = []      # [{text, ownerID}] shuffled, truth ownerID=None
         self.picks: dict[str, int] = {}    # player -> option index
-        self.used: set[int] = set()
+        self.used: set[str] = set()       # content keys picked this game
         self.round_log: list[dict] = []
 
     def begin_phase(self, phase):
         if phase == "write":
-            pool = [i for i in range(len(C.BLUFF_FACTS)) if i not in self.used]
-            if not pool:
-                self.used.clear()
-                pool = list(range(len(C.BLUFF_FACTS)))
-            idx = random.choice(pool)
-            self.used.add(idx)
-            self.prompt, self.truth = C.BLUFF_FACTS[idx]
+            # Fresh for this table across games and nights (content_service).
+            fact = cs.pick_one(self.room, "bluff", avoid=self.used)
+            self.used.add(cs.KINDS["bluff"].key(fact))
+            self.prompt, self.truth = fact
             self.options = []
             self.picks = {}
             self.round_log = []
@@ -319,18 +317,13 @@ class HerdEngine(RoundBasedEngine):
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
         self.prompt = ""
-        self.used: set[int] = set()
+        self.used: set[str] = set()
         self.clusters: list[dict] = []
 
     def begin_phase(self, phase):
         if phase == "answer":
-            pool = [i for i in range(len(C.HERD_PROMPTS)) if i not in self.used]
-            if not pool:
-                self.used.clear()
-                pool = list(range(len(C.HERD_PROMPTS)))
-            idx = random.choice(pool)
-            self.used.add(idx)
-            self.prompt = C.HERD_PROMPTS[idx]
+            self.prompt = cs.pick_one(self.room, "herd", avoid=self.used)
+            self.used.add(cs.norm_key(self.prompt))
             self.clusters = []
 
     def handle_action(self, player_id, action, data):
@@ -420,15 +413,12 @@ class EmojiMovieEngine(RoundBasedEngine):
 
     def begin_phase(self, phase):
         if phase == "compose":
-            pool = [t for t in C.EMOJI_TITLES if t not in self.used] or C.EMOJI_TITLES
-            if len(pool) < len(self.active_players()):
-                self.used.clear()
-                pool = list(C.EMOJI_TITLES)
-            picks = random.sample(pool, min(len(self.active_players()), len(pool)))
+            picks = cs.pick(self.room, "emoji_movie", len(self.active_players()),
+                            avoid=self.used)
             self.assignments = {}
             for player, title in zip(self.active_players(), picks):
                 self.assignments[player.id] = title
-                self.used.add(title)
+                self.used.add(cs.norm_key(title))
             self.entries = []
             self.guesses = {}
         elif phase == "guess":
@@ -715,18 +705,13 @@ class MostLikelyToEngine(RoundBasedEngine):
         super().__init__(room, broadcaster)
         self.prompt = ""
         self.votes: dict[str, str] = {}      # voter_id -> target_id
-        self.used: set[int] = set()
+        self.used: set[str] = set()
         self.round_results: list[dict] = []  # per-target counts, reveal only
 
     def begin_phase(self, phase):
         if phase == "vote":
-            pool = [i for i in range(len(C.MOST_LIKELY_PROMPTS)) if i not in self.used]
-            if not pool:
-                self.used.clear()
-                pool = list(range(len(C.MOST_LIKELY_PROMPTS)))
-            idx = random.choice(pool)
-            self.used.add(idx)
-            self.prompt = C.MOST_LIKELY_PROMPTS[idx]
+            self.prompt = cs.pick_one(self.room, "most_likely", avoid=self.used)
+            self.used.add(cs.norm_key(self.prompt))
             self.votes = {}
             self.round_results = []
 

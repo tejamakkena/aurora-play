@@ -43,9 +43,6 @@ Settings.json
 # Generated at build time by ios/build-stamp.sh (pre-build script phase);
 # never commit it — a stale stamp would lie about which commit is installed.
 ios/Shared/Resources/BuildStamp.json
-# Server runtime state (question caches, served histories, TTS audio).
-data/topic_cache.json
-data/topic_served.json
-data/travel_items_pool.json
-data/travel_items_served.json
-data/tts_cache/
+# Server runtime state (content histories / pools, question caches,
+# served histories, TTS audio).
+data/
