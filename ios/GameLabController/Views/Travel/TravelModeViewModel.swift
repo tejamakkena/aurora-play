@@ -68,6 +68,15 @@ final class TravelModeViewModel: ObservableObject {
     let speech = TravelSpeech()
     let voice = TravelVoiceListener()
 
+    init() {
+        // The hosted server sleeps when idle and needs 30-60s to wake;
+        // the cloud-voice path gives up after 5s and falls back to the
+        // device voice. Warm it the moment Travel Mode opens -- the user
+        // spends the setup screen picking a topic and seats, so the first
+        // real question gets a warm server and the AI voice.
+        speech.warmUpServer()
+    }
+
     // MARK: Quizmaster (voice loop)
 
     /// The turn-based voice loop: ASK -> LISTEN -> LOCK -> GRADE. The mic

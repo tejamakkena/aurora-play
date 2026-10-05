@@ -144,6 +144,15 @@ final class TravelSpeech: NSObject, ObservableObject {
         ttsSession.dataTask(with: request).resume()
     }
 
+    /// Wake the hosted server when Travel Mode opens. Render's free tier
+    /// sleeps after ~15 min idle and takes 30-60s to wake; without this,
+    /// the first question's cloud stream can't start within the 5s
+    /// fallback timeout and the game opens on the robotic device voice.
+    /// A short real line is used so the bytes are also useful if spoken.
+    func warmUpServer() {
+        prefetch("Let's play!")
+    }
+
     func stop() {
         finishCompletion()
         teardownPlayer()
