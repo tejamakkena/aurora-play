@@ -122,3 +122,28 @@ bundled offline question deck and keeps playing.
   one-handed without looking long.
 - If you're the only adult in the car, don't run Travel Mode while driving —
   wait for a passenger or a rest stop.
+
+## Voice quizmaster (v2)
+
+Trivia no longer needs the passenger to tap. A turn-based voice loop runs
+each question:
+
+```
+ASK (cloud TTS speaks) -> LISTEN (mic armed, 8 s) -> LOCK (first answer wins)
+    -> GRADE (fuzzy match, then one tiny LLM call) -> next question
+```
+
+- The mic is armed **only** inside LISTEN -- deaf by design everywhere else,
+  which is what keeps side conversations from derailing the game.
+- The voice is cloud TTS (`GET /api/voice/tts`, OpenAI behind it, key kept
+  server-side), streamed and disk-cached; the on-device voice is the offline
+  fallback. Push-to-talk (hold the mic button) is the default in the car.
+- Question repeats are killed three ways: OpenTDB session tokens, a
+  persistent per-device served history on the server, and high-temperature
+  LLM generation with an exclusion list.
+- The same loop runs cross-device on the TV: the TV speaks through the TV
+  speakers, one phone holds the mic (`claim_mic`), and `voice_state` /
+  `voice_transcript` / `voice_verdict` socket events keep them in sync.
+  tvOS gives third-party apps no mic access, so this split is mandatory.
+- Cost: roughly $0.07 per 10-question game (Oct 2026 pricing), ~95% of it
+  TTS. See `games/voice.py` and the PR description for the API-key setup.

@@ -6,6 +6,27 @@ import SwiftUI
 // readable at arm's length, oversized touch targets, and the persistent
 // safety footer ("Driver: voice only — never touch the phone.").
 
+// MARK: - Design tokens (quizmaster spec §5)
+
+/// The visual contract for Travel Mode. All new UI uses these; existing
+/// components are migrated opportunistically.
+enum TravelDesign {
+    static let bg        = Color(hex: "0B0B12")
+    static let surface   = Color(hex: "15151F")
+    static let surface2  = Color(hex: "1E1E2B")
+    static let primary   = Color(hex: "2FE07A")
+    static let onPrimary = Color(hex: "06210F")
+    static let info      = Color(hex: "38D6F5")
+    static let warning   = Color(hex: "FFC531")
+    static let danger    = Color(hex: "FF5A5A")
+    static let text2     = Color(hex: "A7A7B8")
+    static let text3     = Color(hex: "6B6B7E")
+
+    /// 8pt grid; cards 20, buttons 18.
+    static let cardRadius: CGFloat = 20
+    static let buttonRadius: CGFloat = 18
+}
+
 // MARK: - Root
 
 struct TravelModeRootView: View {
@@ -164,6 +185,24 @@ struct TravelSetupView: View {
 
                 // Start
                 VStack(spacing: 10) {
+                    if travel.selectedGame == .trivia {
+                        Toggle(isOn: $travel.quizmasterOn) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "waveform")
+                                    .foregroundColor(TravelDesign.primary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Voice quizmaster")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                    Text("The host asks aloud -- answer by voice. Tap answers still work.")
+                                        .font(.caption)
+                                        .foregroundColor(TravelDesign.text2)
+                                }
+                            }
+                        }
+                        .tint(TravelDesign.primary)
+                        .padding(.horizontal, 20)
+                    }
                     if let error = travel.errorMessage {
                         Text(error)
                             .font(.callout.bold())
@@ -490,6 +529,137 @@ struct TravelReadAloudButton: View {
     }
 }
 
+// MARK: - Quizmaster mic (push-to-talk)
+
+/// The 96pt centerpiece of the voice round. States are unmistakable at a
+/// glance: color + motion + label, never color alone (spec §5.1).
+/// Press-and-hold re-arms the listening window; release finalizes --
+/// the reliable input in a noisy car.
+struct QuizmasterMicButton: View {
+    @ObservedObject var travel: TravelModeViewModel
+
+    var body: some View {
+        Button(action: {}) {
+            ZStack {
+                if travel.quizPhase == .listening {
+                    Circle()
+                        .fill(TravelDesign.primary.opacity(0.35))
+                        .frame(width: 116, height: 116)
+                        .scaleEffect(1.12)
+                        .opacity(0.6)
+                        .animation(.easeInOut(duration: 1.0)
+                            .repeatForever(autoreverses: true),
+                            value: travel.quizPhase == .listening)
+                }
+                Circle()
+                    .fill(TravelDesign.surface2)
+                    .frame(width: 96, height: 96)
+                    .overlay(Circle().stroke(ringColor, lineWidth: 2.5))
+                Group {
+                    if travel.quizPhase == .locked || travel.quizPhase == .grading {
+                        ProgressView()
+                            .tint(TravelDesign.primary)
+                            .scaleEffect(1.6)
+                    } else {
+                        Image(systemName: iconName)
+                            .font(.system(size: 36, weight: .semibold))
+                            .foregroundColor(iconColor)
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in travel.holdToTalkBegan() }
+                .onEnded { _ in travel.holdToTalkEnded() }
+        )
+        .disabled(travel.quizPhase != .listening)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint("Press and hold while answering, release when done.")
+    }
+
+    private var iconName: String {
+        switch travel.quizPhase {
+        case .idle:      return "mic.slash.fill"
+        case .asking:    return "speaker.wave.2.fill"
+        case .listening: return "mic.fill"
+        case .locked:    return "checkmark.circle.fill"
+        case .grading:   return "ellipsis"
+        }
+    }
+
+    private var iconColor: Color {
+        switch travel.quizPhase {
+        case .listening: return TravelDesign.primary
+        case .asking:    return TravelDesign.info
+        default:         return TravelDesign.text3
+        }
+    }
+
+    private var ringColor: Color {
+        switch travel.quizPhase {
+        case .listening: return TravelDesign.primary
+        case .asking:    return TravelDesign.info.opacity(0.6)
+        default:         return Color.white.opacity(0.12)
+        }
+    }
+
+    private var accessibilityLabel: String {
+        switch travel.quizPhase {
+        case .asking:    return "Asking the question"
+        case .listening: return "Listening for your answer"
+        case .locked:    return "Answer locked in"
+        case .grading:   return "Checking your answer"
+        case .idle:      return "Microphone off"
+        }
+    }
+}
+
+/// One-line status under the mic: what the quizmaster is doing right now,
+/// plus the live "hearing: ..." caption while listening.
+struct QuizmasterStatusLine: View {
+    @ObservedObject var travel: TravelModeViewModel
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(statusText)
+                .font(.headline)
+                .foregroundColor(statusColor)
+            if travel.quizPhase == .listening && !travel.liveTranscript.isEmpty {
+                Text("Hearing: \(travel.liveTranscript)")
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.85))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .padding(.horizontal, 32)
+            }
+        }
+        .frame(minHeight: 56)
+    }
+
+    private var statusText: String {
+        switch travel.quizPhase {
+        case .asking:    return "Asking..."
+        case .listening: return "Listening -- hold the mic and answer"
+        case .locked:    return "Locked in"
+        case .grading:   return "Checking..."
+        case .idle:
+            return travel.liveTranscript.isEmpty
+                ? "Tap an answer below"
+                : travel.liveTranscript
+        }
+    }
+
+    private var statusColor: Color {
+        switch travel.quizPhase {
+        case .listening: return TravelDesign.primary
+        case .asking:    return TravelDesign.info
+        default:         return TravelDesign.text2
+        }
+    }
+}
+
 // MARK: - Client-side trivia
 
 struct TravelTriviaView: View {
@@ -524,8 +694,17 @@ struct TravelTriviaView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 24)
 
-                    TravelReadAloudButton(speech: travel.speech) {
-                        travel.speakablePrompt()
+                    if travel.quizmasterOn {
+                        // The question is read automatically; the mic is
+                        // the input. Tap answers below still work as the
+                        // manual override.
+                        QuizmasterMicButton(travel: travel)
+                            .padding(.top, 8)
+                        QuizmasterStatusLine(travel: travel)
+                    } else {
+                        TravelReadAloudButton(speech: travel.speech) {
+                            travel.speakablePrompt()
+                        }
                     }
 
                     // Answers
@@ -559,9 +738,20 @@ struct TravelTriviaView: View {
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
                         }
+                    } else if let verdict = travel.voiceVerdict {
+                        // Voice round graded: same +1 scoreboard flow.
+                        Text(verdict
+                             ? "Correct — tap +1 for who got it right."
+                             : "The answer was \(letters[q.correctIndex]).")
+                            .font(.title3.bold())
+                            .foregroundColor(verdict ? TravelDesign.primary
+                                                    : .white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
                     }
 
-                    Button(travel.pickedChoice == nil ? "Skip Question" : "Next Question") {
+                    Button(travel.pickedChoice == nil && travel.voiceVerdict == nil
+                           ? "Skip Question" : "Next Question") {
                         travel.advanceQuestion()
                     }
                     .font(.title3.bold())

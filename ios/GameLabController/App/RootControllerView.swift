@@ -65,6 +65,11 @@ struct RootControllerView: View {
                     privateData: privateData,
                     onAction: vm.sendAction
                 )
+                // Voice quizmaster: any phone can claim the mic for TV
+                // games. The bar is inert until someone taps it.
+                .safeAreaInset(edge: .bottom) {
+                    MicClaimBar(roomCode: room.code, playerID: vm.playerID)
+                }
                 .safeAreaInset(edge: .top) {
                     HStack {
                         Button { showLeaveConfirm = true } label: {

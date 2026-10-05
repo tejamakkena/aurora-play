@@ -119,6 +119,12 @@ def create_app(config_name='default'):
     from games.topic_gen import topic_bp
     app.register_blueprint(topic_bp, url_prefix='/api/travel')
 
+    # Voice quizmaster: cloud TTS proxy + answer grading. API keys stay
+    # server-side; the apps never see them. See games/voice.py and the
+    # PR description for the OPENAI_API_KEY setup.
+    from games.voice import voice_bp
+    app.register_blueprint(voice_bp, url_prefix='/api/voice')
+
     # Apply rate limiting to all game blueprints (configurable via RATE_LIMIT env var, default: 100/hour)
     game_rate_limit = app.config.get('RATELIMIT_DEFAULT', '100 per hour')
     limiter.limit(game_rate_limit)(tictactoe_bp)

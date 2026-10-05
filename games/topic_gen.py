@@ -164,7 +164,7 @@ class _GenError(Exception):
     """Anything that means 'fall back to the bundled packs'."""
 
 
-def _genai_model():
+def _genai_model(temperature: float | None = None):
     """Lazily build the Gemini model, exactly like games/trivia/routes.py.
 
     Raises _GenError when there is no API key, the package is missing, or
@@ -179,41 +179,68 @@ def _genai_model():
     if not api_key:
         raise _GenError("GEMINI_API_KEY is not set")
     genai.configure(api_key=api_key)
-    return genai.GenerativeModel(_MODEL_NAME)
+    if temperature is None:
+        return genai.GenerativeModel(_MODEL_NAME)
+    return genai.GenerativeModel(
+        _MODEL_NAME,
+        generation_config=genai.GenerationConfig(temperature=temperature),
+    )
 
 
-def _llm_batch(kind: str, topic: str, count: int) -> list:
+def _llm_batch(kind: str, topic: str, count: int,
+               exclude: tuple = ()) -> list:
     """One batched model call. Returns raw parsed objects (unvalidated).
+
+    Temperature is high (0.9) so repeat topics come back different, and the
+    exclusion list keeps the model from paraphrasing questions the device
+    has already seen.
 
     Raises _GenError on any failure so the caller falls back.
     """
-    model = _genai_model()
+    # High temperature: the same topic must generate *different* questions
+    # game after game. Deterministic output is the enemy here.
+    model = _genai_model(temperature=0.9)
+    avoid = "\n".join(f"- {t[:160]}" for t in exclude[:40] if t)
+    avoid_block = (
+        "\nDo NOT repeat or closely paraphrase any of these recently asked "
+        f"items:\n{avoid}\n" if avoid else ""
+    )
+    # Rotate the angle each call so even a cold model varies its output.
+    angles = ("", " This time lean into records, statistics, and firsts.",
+              " This time lean into people and personalities.",
+              " This time lean into recent events and modern history.",
+              " This time lean into origins and 'how it started' stories.")
+    angle = random.choice(angles)
     if kind == "questions":
         instruction = (
-            f"Generate {count} multiple-choice trivia questions about {topic}.\n"
+            f"Generate {count} multiple-choice trivia questions about {topic}.{angle}\n"
             "Return ONLY a JSON array, no other text, with this exact shape:\n"
             '[{"question": "Question text?", '
             '"options": ["A", "B", "C", "D"], "correct_answer": 0}]\n'
             "Rules: exactly 4 distinct options, correct_answer is the 0-based "
             "index of the single correct option, plain text only (no emojis, "
-            "no markdown, no abbreviations like w/), family-friendly."
+            "no markdown, no abbreviations like w/), family-friendly, and "
+            "phrased to sound natural when read aloud."
+            f"{avoid_block}"
         )
     elif kind == "secrets":
         instruction = (
             f"List {count} well-known, family-friendly things related to {topic} "
             "(places, foods, movies, animals, or objects) suitable for a game "
-            "of Twenty Questions.\n"
+            f"of Twenty Questions.{angle}\n"
             "Return ONLY a JSON array of short names, no other text, e.g. "
             '["Eiffel Tower", "Pizza"].\n'
             "Rules: each name 1-4 words, plain text, no emojis, no duplicates."
+            f"{avoid_block}"
         )
     elif kind == "hot_takes":
         instruction = (
             f"Write {count} fun, family-friendly debate prompts related to {topic}, "
-            'in the style of "Is a hot dog a sandwich?".\n'
+            f'in the style of "Is a hot dog a sandwich?".{angle}\n'
             "Return ONLY a JSON array of question strings, no other text.\n"
             "Rules: each is one short debatable question ending with a question "
             "mark, plain text, no emojis, no duplicates."
+            f"{avoid_block}"
         )
     else:
         raise _GenError(f"unknown kind: {kind}")
@@ -238,13 +265,14 @@ def _llm_batch(kind: str, topic: str, count: int) -> list:
     return parsed
 
 
-def _validated_batch(kind: str, topic: str, count: int) -> list:
+def _validated_batch(kind: str, topic: str, count: int,
+                     exclude: tuple = ()) -> list:
     """One LLM batch with invalid generations dropped (never regenerated one
     at a time -- cost and latency). Raises _GenError when the call itself
     fails."""
     validator = _VALIDATORS[kind]
     good = []
-    for raw in _llm_batch(kind, topic, count):
+    for raw in _llm_batch(kind, topic, count, exclude):
         item = _coerce(kind, raw)
         ok, _ = validator(item)
         if ok:
@@ -368,48 +396,158 @@ def _opentdb_to_question(raw: dict) -> dict:
     }
 
 
-def _opentdb_batch(topic: str, category_id: int, count: int) -> list[dict]:
+_OPENTDB_TOKEN_API = "https://opentdb.com/api_token.php"
+
+_opentdb_token_value: str | None = None
+_opentdb_token_lock = threading.Lock()
+
+
+def _opentdb_token_path() -> Path:
+    override = os.environ.get("OPENTDB_TOKEN_PATH")
+    if override:
+        return Path(override)
+    repo_root = Path(__file__).resolve().parents[1]
+    return repo_root / "data" / "opentdb_token.txt"
+
+
+def _opentdb_token() -> str | None:
+    """Session token so OpenTDB never repeats a question within its pool.
+
+    Without a token every api.php call draws *with replacement* -- repeats
+    are statistically guaranteed, worse in small categories. The token is
+    fetched once, persisted to data/opentdb_token.txt, and passed on every
+    batch. Returns None when the token endpoint is unreachable (the batch
+    still goes out untokened rather than failing the game).
+    """
+    global _opentdb_token_value
+    with _opentdb_token_lock:
+        if _opentdb_token_value:
+            return _opentdb_token_value
+        try:
+            _opentdb_token_value = _opentdb_token_path().read_text(
+                encoding="utf-8").strip() or None
+        except OSError:
+            pass
+        if _opentdb_token_value:
+            return _opentdb_token_value
+        try:
+            req = urllib.request.Request(
+                f"{_OPENTDB_TOKEN_API}?command=request",
+                headers={"User-Agent": "AuroraPlay/1.0 (Travel Mode)"},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+            token = (payload or {}).get("token")
+        except Exception:
+            return None
+        if not token:
+            return None
+        _opentdb_token_value = token
+        try:
+            _opentdb_token_path().parent.mkdir(parents=True, exist_ok=True)
+            _opentdb_token_path().write_text(token, encoding="utf-8")
+        except OSError:
+            pass
+        return token
+
+
+def _opentdb_drop_token() -> None:
+    """Forget the token (response_code 3: expired). Next batch re-requests."""
+    global _opentdb_token_value
+    with _opentdb_token_lock:
+        _opentdb_token_value = None
+    try:
+        _opentdb_token_path().unlink()
+    except OSError:
+        pass
+
+
+def _opentdb_reset_token(token: str) -> None:
+    """response_code 4: the pool is exhausted for this token -- reset it."""
+    try:
+        req = urllib.request.Request(
+            f"{_OPENTDB_TOKEN_API}?command=reset&token={token}",
+            headers={"User-Agent": "AuroraPlay/1.0 (Travel Mode)"},
+        )
+        with urllib.request.urlopen(req, timeout=10):
+            pass
+    except Exception:
+        pass
+
+
+def _opentdb_batch(topic: str, category_id: int, count: int,
+                   exclude: tuple = ()) -> list[dict]:
     """One batched OpenTDB call (amount=N, never one question per
     round-trip). Returns validated question dicts; invalid ones are
     dropped. Raises _GenError on any failure so the caller falls back.
+
+    The session token guarantees no repeats within the pool; ``exclude``
+    (normalized question texts) additionally filters anything the device
+    has already seen, over-requesting to top the batch back up.
 
     Etiquette: a single batched request per topic, and every usable
     question is cached aggressively (in-memory + persisted) so replays
     never re-hit the API.
     """
-    amount = min(max(count, BATCH_SIZE), 50)
-    params = urllib.parse.urlencode({
+    amount = min(max(count + len(exclude), BATCH_SIZE), 50)
+    params = {
         "amount": amount,
         "category": category_id,
         "type": "multiple",
-    })
-    req = urllib.request.Request(
-        f"{_OPENTDB_API}?{params}",
-        headers={"User-Agent": "AuroraPlay/1.0 (Travel Mode)"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            payload = json.loads(resp.read().decode("utf-8"))
-    except Exception as exc:
-        raise _GenError(f"OpenTDB request failed: {exc}")
-    if not isinstance(payload, dict) or payload.get("response_code") != 0:
-        code = payload.get("response_code") if isinstance(payload, dict) else "?"
+    }
+    token = _opentdb_token()
+    if token:
+        params["token"] = token
+
+    def _call(extra: dict | None = None) -> dict:
+        q = dict(params)
+        if extra:
+            q.update(extra)
+        req = urllib.request.Request(
+            f"{_OPENTDB_API}?{urllib.parse.urlencode(q)}",
+            headers={"User-Agent": "AuroraPlay/1.0 (Travel Mode)"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+        except Exception as exc:
+            raise _GenError(f"OpenTDB request failed: {exc}")
+        if not isinstance(payload, dict):
+            raise _GenError("OpenTDB bad response_code: ?")
+        return payload
+
+    payload = _call()
+    code = payload.get("response_code")
+    if code == 3 and token:
+        # Token expired (6 h idle) -- fetch a fresh one and retry once.
+        _opentdb_drop_token()
+        token = _opentdb_token()
+        payload = _call({"token": token} if token else None)
+        code = payload.get("response_code")
+    if code == 4 and token:
+        # Pool exhausted for this token -- reset and retry once.
+        _opentdb_reset_token(token)
+        payload = _call()
+        code = payload.get("response_code")
+    if code != 0:
         raise _GenError(f"OpenTDB bad response_code: {code}")
     results = payload.get("results")
     if not isinstance(results, list):
         raise _GenError("OpenTDB results not a list")
+    excluded = {_norm(t) for t in exclude if t}
     good = []
     for raw in results:
         if not isinstance(raw, dict):
             continue
         q = _opentdb_to_question(raw)
         ok, _ = validate_question(q)
-        if ok:
+        if ok and _norm(q["question"]) not in excluded:
             good.append(q)
     return good
 
 
-def _live_questions(topic: str, count: int) -> tuple[list, str]:
+def _live_questions(topic: str, count: int,
+                    exclude: tuple = ()) -> tuple[list, str]:
     """Live question batch for a topic. OpenTDB (free, no key) serves
     topics that map to one of its categories; the LLM serves arbitrary
     free-text topics that don't map. Returns (items, source) and raises
@@ -419,8 +557,8 @@ def _live_questions(topic: str, count: int) -> tuple[list, str]:
     """
     category = topic_to_opentdb_category(topic)
     if category is not None:
-        return _opentdb_batch(topic, category, count), "opentdb"
-    return _validated_batch("questions", topic, count), "llm"
+        return _opentdb_batch(topic, category, count, exclude), "opentdb"
+    return _validated_batch("questions", topic, count, exclude), "llm"
 
 
 # ---------------------------------------------------------------------------
@@ -456,6 +594,64 @@ def _cache_load() -> None:
                     kind: list(entry.get(kind, []))[:_CACHE_MAX_PER_KIND]
                     for kind in _VALIDATORS
                 }
+
+# ---------------------------------------------------------------------------
+# persistent per-device served history (kills repeats *across* games)
+# ---------------------------------------------------------------------------
+# The per-topic cache is a pool: once warm, every game would draw the same
+# batch. The client sends its own asked-history as `exclude`, but a fresh
+# install (or a second device) has no history -- so the server keeps its
+# own: normalized question texts per device id, capped, best-effort.
+
+_SERVED_MAX_PER_DEVICE = 500
+_served_lock = threading.Lock()
+
+
+def _served_path() -> Path:
+    override = os.environ.get("TOPIC_SERVED_PATH")
+    if override:
+        return Path(override)
+    repo_root = Path(__file__).resolve().parents[1]
+    return repo_root / "data" / "topic_served.json"
+
+
+def _served_get(device: str | None) -> set[str]:
+    if not device:
+        return set()
+    with _served_lock:
+        try:
+            data = json.loads(_served_path().read_text(encoding="utf-8"))
+        except Exception:
+            return set()
+        items = data.get(device) if isinstance(data, dict) else None
+        return set(items) if isinstance(items, list) else set()
+
+
+def _served_add(device: str | None, texts: list[str]) -> None:
+    if not device or not texts:
+        return
+    with _served_lock:
+        try:
+            data = json.loads(_served_path().read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                data = {}
+        except Exception:
+            data = {}
+        have = data.get(device)
+        if not isinstance(have, list):
+            have = []
+        known = set(have)
+        for t in texts:
+            n = _norm(t)
+            if n and n not in known:
+                have.append(n)
+                known.add(n)
+        data[device] = have[-_SERVED_MAX_PER_DEVICE:]
+        try:
+            _served_path().parent.mkdir(parents=True, exist_ok=True)
+            _served_path().write_text(json.dumps(data), encoding="utf-8")
+        except OSError:
+            pass
 
 
 def _cache_save() -> None:
@@ -530,10 +726,16 @@ def _bundled(kind: str, count: int, seen: set[str]) -> list:
 
 
 def _fetch(kind: str, topic: str, count: int,
-           session_history=None) -> tuple[list, str]:
+           session_history=None, device: str | None = None) -> tuple[list, str]:
     """Return (items, source). Never raises: the bundled fallback always
-    answers, even when the topic is empty or the API is down."""
-    seen = {_norm(t) for t in (session_history or []) if t}
+    answers, even when the topic is empty or the API is down.
+
+    ``device`` enables the persistent served history: the server's own
+    memory of what this device has already seen, merged with the client's
+    ``session_history``. Everything served is recorded, so back-to-back
+    games never repeat -- even for a fresh client with no local history.
+    """
+    seen = _served_get(device) | {_norm(t) for t in (session_history or []) if t}
     key = norm_topic(topic)
     items: list = []
     source = "bundled"
@@ -542,7 +744,9 @@ def _fetch(kind: str, topic: str, count: int,
         cached = [i for i in _cache_get(key, kind)
                   if _norm(_item_text(kind, i)) not in seen]
         if len(cached) >= count:
-            return cached[:count], "cache"
+            items = cached[:count]
+            _served_add(device, [_item_text(kind, i) for i in items])
+            return items, "cache"
         items = cached
         if items:
             source = "cache"
@@ -551,10 +755,12 @@ def _fetch(kind: str, topic: str, count: int,
             if kind == "questions":
                 # OpenTDB (free, no key) for mapped topics; the LLM for
                 # arbitrary free-text topics that don't map.
-                fresh, fresh_source = _live_questions(topic.strip(), need)
+                fresh, fresh_source = _live_questions(
+                    topic.strip(), need, tuple(seen))
             else:
                 fresh, fresh_source = (
-                    _validated_batch(kind, topic.strip(), need), "llm")
+                    _validated_batch(kind, topic.strip(), need, tuple(seen)),
+                    "llm")
             known = {_norm(_item_text(kind, i)) for i in items}
             new = [i for i in fresh
                    if _norm(_item_text(kind, i)) not in seen
@@ -569,7 +775,8 @@ def _fetch(kind: str, topic: str, count: int,
         # No topic: a free general-knowledge batch, served live when
         # possible but never cached under an empty key.
         try:
-            items = _opentdb_batch("", _OPENTDB_GENERAL_KNOWLEDGE, count)
+            items = _opentdb_batch("", _OPENTDB_GENERAL_KNOWLEDGE, count,
+                                   tuple(seen))
             source = "opentdb"
         except _GenError:
             pass
@@ -580,28 +787,36 @@ def _fetch(kind: str, topic: str, count: int,
         # off-topic questions.
         items = _bundled(kind, count, seen)
         source = "bundled"
-    return items[:count], source
+    items = items[:count]
+    _served_add(device, [_item_text(kind, i) for i in items])
+    return items, source
 
 
-def get_questions(topic: str, count: int = 10, session_history=None) -> list[dict]:
+def get_questions(topic: str, count: int = 10, session_history=None,
+                  device: str | None = None) -> list[dict]:
     """Fresh multiple-choice questions about ``topic``.
 
     Each item: {"question", "options" (4), "correct_answer" (0-3)} --
     the same shape the trivia engines consume.
     """
-    items, _ = _fetch("questions", topic, max(1, count), session_history)
+    items, _ = _fetch("questions", topic, max(1, count), session_history,
+                      device=device)
     return items
 
 
-def get_secrets(topic: str, count: int = 5, session_history=None) -> list[str]:
+def get_secrets(topic: str, count: int = 5, session_history=None,
+                device: str | None = None) -> list[str]:
     """Fresh Twenty Questions secrets about ``topic``."""
-    items, _ = _fetch("secrets", topic, max(1, count), session_history)
+    items, _ = _fetch("secrets", topic, max(1, count), session_history,
+                      device=device)
     return items
 
 
-def get_hot_takes(topic: str, count: int = 5, session_history=None) -> list[str]:
+def get_hot_takes(topic: str, count: int = 5, session_history=None,
+                  device: str | None = None) -> list[str]:
     """Fresh debate prompts about ``topic``."""
-    items, _ = _fetch("hot_takes", topic, max(1, count), session_history)
+    items, _ = _fetch("hot_takes", topic, max(1, count), session_history,
+                      device=device)
     return items
 
 
@@ -654,7 +869,9 @@ def travel_questions():
     topic = (request.args.get("topic") or "").strip()
     count = _clamp_count(request.args.get("count"), 10)
     exclude = _parse_exclude(request.args.get("exclude"))
-    items, source = _fetch("questions", topic, count, session_history=exclude)
+    device = (request.args.get("device") or "").strip()[:64] or None
+    items, source = _fetch("questions", topic, count, session_history=exclude,
+                           device=device)
     return jsonify({"success": True, "topic": topic, "source": source,
                     "fallback": source == "bundled",
                     "questions": items})
@@ -669,7 +886,9 @@ def travel_secrets():
     topic = (request.args.get("topic") or "").strip()
     count = _clamp_count(request.args.get("count"), 5)
     exclude = _parse_exclude(request.args.get("exclude"))
-    items, source = _fetch("secrets", topic, count, session_history=exclude)
+    device = (request.args.get("device") or "").strip()[:64] or None
+    items, source = _fetch("secrets", topic, count, session_history=exclude,
+                           device=device)
     return jsonify({"success": True, "topic": topic, "source": source,
                     "fallback": source == "bundled",
                     "secrets": items})
@@ -684,7 +903,9 @@ def travel_hot_takes():
     topic = (request.args.get("topic") or "").strip()
     count = _clamp_count(request.args.get("count"), 5)
     exclude = _parse_exclude(request.args.get("exclude"))
-    items, source = _fetch("hot_takes", topic, count, session_history=exclude)
+    device = (request.args.get("device") or "").strip()[:64] or None
+    items, source = _fetch("hot_takes", topic, count, session_history=exclude,
+                           device=device)
     return jsonify({"success": True, "topic": topic, "source": source,
                     "fallback": source == "bundled",
                     "hot_takes": items})

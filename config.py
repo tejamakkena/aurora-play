@@ -19,6 +19,18 @@ class Config:
     RATELIMIT_STORAGE_URL = os.environ.get('RATELIMIT_STORAGE_URL', 'memory://')
     RATELIMIT_HEADERS_ENABLED = True
 
+    # Voice quizmaster (cloud TTS + answer grading). The OpenAI key funds
+    # the TTS proxy at /api/voice/tts; grading reuses GEMINI_API_KEY via
+    # games.topic_gen. See games/voice.py for the cost math (~$0.07/game).
+    OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+    TTS_MODEL = os.environ.get('TTS_MODEL', 'gpt-4o-mini-tts')
+    TTS_VOICE = os.environ.get('TTS_VOICE', 'marin')
+    try:
+        TTS_DAILY_CHAR_CAP = max(0, int(os.environ.get('TTS_DAILY_CHAR_CAP',
+                                                       '500000')))
+    except ValueError:
+        TTS_DAILY_CHAR_CAP = 500000
+
     # Socket.IO CORS origins: comma-separated list, or "*" to allow all.
     # Default is same-origin only. The web UI is served by this app (same
     # origin needs no CORS entry) and the native iOS/tvOS apps do not send

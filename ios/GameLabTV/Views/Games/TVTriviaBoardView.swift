@@ -3,6 +3,8 @@ import SwiftUI
 struct TVTriviaBoardView: View {
     let room: Room
     @StateObject private var vm = TriviaboardViewModel()
+    /// Voice quizmaster: the TV speaks, one phone listens (spec §13).
+    @StateObject private var voiceHost = TVVoiceHost()
 
     var body: some View {
         VStack(spacing: 32) {
@@ -58,7 +60,36 @@ struct TVTriviaBoardView: View {
         }
         .padding(.top, 48)
         .background(Color(hex: "0a0a14").ignoresSafeArea())
-        .onAppear { vm.bind(roomCode: room.code) }
+        .overlay(alignment: .topTrailing) {
+            TVVoiceOverlay(host: voiceHost)
+        }
+        .onAppear {
+            vm.bind(roomCode: room.code)
+            voiceHost.attach(roomCode: room.code)
+            // Grade on the TV: it owns the question + correct answer.
+            voiceHost.onFinalTranscript = { [weak vm] transcript in
+                guard let q = vm?.currentQuestion else { return }
+                voiceHost.gradeVoiceAnswer(transcript: transcript,
+                                           question: q.text,
+                                           options: q.choices,
+                                           correctIndex: q.correctIndex)
+            }
+        }
+        .onDisappear { voiceHost.detach() }
+        .onChange(of: vm.currentQuestion?.text) { _ in
+            if let q = vm.currentQuestion {
+                voiceHost.askQuestion(speakableQuestion(q))
+            }
+        }
+    }
+
+    /// Host phrasing: spoken through the TV speakers when the question lands.
+    private func speakableQuestion(_ q: TriviaQuestion) -> String {
+        let letters = ["A", "B", "C", "D"]
+        let opts = q.choices.enumerated()
+            .map { "\(letters[$0.offset % letters.count]): \($0.element)" }
+            .joined(separator: ". ")
+        return "\(q.text). \(opts)."
     }
 }
 
