@@ -856,7 +856,10 @@ def _parse_exclude(raw) -> list[str]:
         return []
     if not isinstance(items, list):
         return []
-    return [str(x)[:300] for x in items if isinstance(x, str)][:60]
+    # Clients send history oldest-first: keep the MOST RECENT 60. (Was
+    # [:60], which kept the oldest and dropped exactly the texts most
+    # likely to repeat next.)
+    return [str(x)[:300] for x in items if isinstance(x, str)][-60:]
 
 
 @topic_bp.route("/questions", methods=["GET"])

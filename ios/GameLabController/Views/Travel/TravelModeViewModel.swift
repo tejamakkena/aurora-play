@@ -61,10 +61,11 @@ final class TravelModeViewModel: ObservableObject {
 
     private var riddleQueue: [TravelItem] = []
     private var quizQueue: [TravelItem] = []
+    private var liveRiddles: [TravelItem] = []
     private var liveQuiz: [TravelItem] = []
     private var nextKind: TravelItem.Kind = .riddle
-    private var fetchingLive = false
-    private var liveFailures = 0
+    private var fetching: Set<TravelItem.Kind> = []
+    private var liveFailures: [TravelItem.Kind: Int] = [:]
     private var topicIndex = Int.random(in: 0..<travelQuizTopics.count)
 
     init() {
@@ -85,7 +86,7 @@ final class TravelModeViewModel: ObservableObject {
         correct = 0
         item = nil
         buildQueues()
-        fetchLiveQuizIfNeeded()
+        fetchLiveIfNeeded()
         Task { [weak self] in
             guard let self else { return }
             // Permission is settled up front, never mid-question. Denied?
@@ -200,14 +201,14 @@ final class TravelModeViewModel: ObservableObject {
         heard = ""
         tries = 0
         asked += 1
-        recordHeard(current.item.prompt)
+        recordHeard(current.item)
         // Everything this question might say, plus the next question, is
         // fetched while this one plays: no dead air between lines.
         speech.prefetch(current.lines.hint)
         speech.prefetch(current.lines.correct)
         speech.prefetch(current.lines.reveal)
         speech.prefetch(following.lines.ask)
-        fetchLiveQuizIfNeeded()
+        fetchLiveIfNeeded()
         ask(flow: f)
     }
 
@@ -423,30 +424,44 @@ final class TravelModeViewModel: ObservableObject {
     private static let oneMoreGuess = "Nope! One more guess."
 
     // MARK: - Queues
+    //
+    // "Already asked" is tracked two ways on the phone and sent to the
+    // server with every request:
+    //  - prompts, to skip bundled items heard on earlier trips;
+    //  - ANSWERS, which is what the server dedupes on. A riddle comes back
+    //    reworded, but "a piano" is still "a piano", so the server tells
+    //    the model every answer this phone has heard is off limits.
+    // The phone's copy is the durable one: the hosted server's disk resets
+    // on every redeploy.
 
-    private static let historyKey = "travel_heard_items"
+    private static let promptHistoryKey = "travel_heard_items"
+    private static let answerHistoryKey = "travel_heard_answers"
     private static let historyCap = 400
 
-    private var history: [String] {
-        UserDefaults.standard.stringArray(forKey: Self.historyKey) ?? []
+    private var promptHistory: [String] {
+        UserDefaults.standard.stringArray(forKey: Self.promptHistoryKey) ?? []
     }
 
-    private func recordHeard(_ prompt: String) {
-        var h = history
-        h.append(prompt)
-        if h.count > Self.historyCap { h.removeFirst(h.count - Self.historyCap) }
-        UserDefaults.standard.set(h, forKey: Self.historyKey)
+    private var answerHistory: [String] {
+        UserDefaults.standard.stringArray(forKey: Self.answerHistoryKey) ?? []
     }
 
-    /// Unheard items first; a nearly-finished deck simply starts over.
-    private func buildQueues() {
-        let seen = Set(history)
-        func fresh(_ deck: [TravelItem]) -> [TravelItem] {
-            let unseen = deck.filter { !seen.contains($0.prompt) }
-            return (unseen.count >= 5 ? unseen : deck).shuffled()
+    private func recordHeard(_ item: TravelItem) {
+        for (key, value) in [(Self.promptHistoryKey, item.prompt),
+                             (Self.answerHistoryKey, item.answer)] {
+            var h = UserDefaults.standard.stringArray(forKey: key) ?? []
+            h.append(value)
+            if h.count > Self.historyCap { h.removeFirst(h.count - Self.historyCap) }
+            UserDefaults.standard.set(h, forKey: key)
         }
-        riddleQueue = fresh(TravelDeck.riddles)
-        quizQueue = fresh(TravelDeck.quiz)
+    }
+
+    /// Only bundled items this phone hasn't heard; once those run out,
+    /// fresh server items take over (see dequeue).
+    private func buildQueues() {
+        let seen = Set(promptHistory)
+        riddleQueue = TravelDeck.riddles.filter { !seen.contains($0.prompt) }.shuffled()
+        quizQueue = TravelDeck.quiz.filter { !seen.contains($0.prompt) }.shuffled()
         nextKind = Bool.random() ? .riddle : .quiz
     }
 
@@ -460,35 +475,59 @@ final class TravelModeViewModel: ObservableObject {
             nextKind = (nextKind == .riddle) ? .quiz : .riddle
         }
         if kind == .riddle {
-            if riddleQueue.isEmpty { riddleQueue = TravelDeck.riddles.shuffled() }
-            return riddleQueue.removeFirst()
+            return take(live: &liveRiddles, bundled: &riddleQueue, deck: TravelDeck.riddles)
         }
-        // Quiz: mix fresh server questions in with the bundled ones.
-        if !liveQuiz.isEmpty, quizQueue.isEmpty || Bool.random() {
-            return liveQuiz.removeFirst()
-        }
-        if quizQueue.isEmpty { quizQueue = TravelDeck.quiz.shuffled() }
-        return quizQueue.removeFirst()
+        return take(live: &liveQuiz, bundled: &quizQueue, deck: TravelDeck.quiz)
     }
 
-    private func fetchLiveQuizIfNeeded() {
-        guard isActive, style != .riddles, !fetchingLive,
-              liveQuiz.count < 3, liveFailures < 2 else { return }
-        fetchingLive = true
+    /// Fresh server items mixed with unheard bundled ones; a repeat from
+    /// the bundled deck only when there is nothing new at all (offline,
+    /// and every bundled item already heard).
+    private func take(live: inout [TravelItem], bundled: inout [TravelItem],
+                      deck: [TravelItem]) -> TravelItem {
+        if !live.isEmpty, bundled.isEmpty || Bool.random() {
+            return live.removeFirst()
+        }
+        if bundled.isEmpty { bundled = deck.shuffled() }
+        return bundled.removeFirst()
+    }
+
+    private func fetchLiveIfNeeded() {
+        guard isActive else { return }
+        switch style {
+        case .riddles: fetchLive(.riddle)
+        case .quiz:    fetchLive(.quiz)
+        case .mix:     fetchLive(.riddle); fetchLive(.quiz)
+        }
+    }
+
+    private func fetchLive(_ kind: TravelItem.Kind) {
+        let queued = kind == .riddle ? liveRiddles : liveQuiz
+        guard !fetching.contains(kind), queued.count < 4,
+              liveFailures[kind, default: 0] < 2 else { return }
+        fetching.insert(kind)
+        // Everything heard, plus everything already waiting in the queue.
+        let seenAnswers = answerHistory + (liveRiddles + liveQuiz).map(\.answer)
         let topic = travelQuizTopics[topicIndex % travelQuizTopics.count]
         topicIndex += 1
-        let exclude = history
+        let promptsHeard = promptHistory
         Task { [weak self] in
-            let questions = await fetchLiveQuizQuestions(topic: topic, exclude: exclude)
+            var items = await fetchTravelItems(kind: kind, seenAnswers: seenAnswers)
+            if items.isEmpty, kind == .quiz {
+                // No model on the server: Open Trivia DB questions instead.
+                items = await fetchLiveQuizQuestions(topic: topic, exclude: promptsHeard)
+                    .map(\.asItem)
+            }
             guard let self, self.isActive else { return }
-            self.fetchingLive = false
-            let seen = Set(self.history)
-            let items = questions.map(\.asItem).filter { !seen.contains($0.prompt) }
-            if items.isEmpty {
-                self.liveFailures += 1   // offline: stop asking after two tries
+            self.fetching.remove(kind)
+            let heard = Set(self.promptHistory)
+            let waiting = Set((self.liveRiddles + self.liveQuiz).map(\.prompt))
+            let fresh = items.filter { !heard.contains($0.prompt) && !waiting.contains($0.prompt) }
+            if fresh.isEmpty {
+                self.liveFailures[kind, default: 0] += 1   // offline: stop after two tries
             } else {
-                self.liveFailures = 0
-                self.liveQuiz += items
+                self.liveFailures[kind] = 0
+                if kind == .riddle { self.liveRiddles += fresh } else { self.liveQuiz += fresh }
             }
         }
     }

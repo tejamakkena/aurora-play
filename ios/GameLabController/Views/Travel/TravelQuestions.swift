@@ -51,3 +51,41 @@ func fetchLiveQuizQuestions(topic: String, count: Int = 8,
     let list = raw as? [Any] ?? []
     return list.compactMap { ($0 as? [String: Any]).flatMap(TravelQuestion.init(dict:)) }
 }
+
+// MARK: - Fresh riddles / fun-fact questions (games/travel_items.py)
+//
+//   POST {serverURL}/api/travel/items
+//        {"kind": "riddle"|"quiz", "count": 8, "device": <id>,
+//         "seen": [answers this phone has already heard]}
+//
+// The server writes these with its model (OpenAI, then Gemini) and keeps
+// a shared pool, deduped by ANSWER per device -- so a riddle can't come
+// back reworded. An empty list (no model configured, offline, pool and
+// model both dry) just means "keep playing the bundled deck".
+
+func fetchTravelItems(kind: TravelItem.Kind, count: Int = 8,
+                      seenAnswers: [String]) async -> [TravelItem] {
+    let url = AppConstants.serverURL.appendingPathComponent("api/travel/items")
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.timeoutInterval = 60
+    request.httpBody = try? JSONSerialization.data(withJSONObject: [
+        "kind": kind == .riddle ? "riddle" : "quiz",
+        "count": count,
+        "device": AppConstants.deviceID,
+        "seen": Array(seenAnswers.suffix(300)),
+    ] as [String: Any])
+    guard let (data, response) = try? await URLSession.shared.data(for: request),
+          (response as? HTTPURLResponse)?.statusCode == 200,
+          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let list = json["items"] as? [[String: Any]] else { return [] }
+    return list.compactMap { raw -> TravelItem? in
+        guard let prompt = raw["prompt"] as? String, !prompt.isEmpty,
+              let answer = raw["answer"] as? String, !answer.isEmpty,
+              let hint = raw["hint"] as? String else { return nil }
+        return TravelItem(kind: kind, prompt: prompt, answer: answer,
+                          accepts: raw["accepts"] as? [String] ?? [],
+                          hint: hint, fact: raw["fact"] as? String)
+    }
+}

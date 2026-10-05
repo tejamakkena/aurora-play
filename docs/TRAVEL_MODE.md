@@ -33,13 +33,33 @@ question, ten seconds, hint, eight seconds, answer.
   family-friendly riddles and fun-fact questions, so play works with no
   signal at all. Each item has the answer, other accepted ways of saying it,
   a hint, and an optional fun fact or punchline.
-- **Quiz** and **Mix** also top up with fresh questions from
-  `GET /api/travel/questions?topic=<text>&count=8` (Open Trivia DB, then LLM,
-  then bundled packs on the server). These arrive multiple-choice, so the
-  quizmaster reads the choices with the question, and the hint narrows them
-  to two. The bundled deck carries the game while they load. Two failed
-  fetches in a row (no signal) stop further requests for the session.
-- A per-device history (last 400 items) keeps repeats away across trips.
+- **Fresh items:** `POST /api/travel/items` (`games/travel_items.py`). The
+  server writes new riddles and quiz questions in the same shape with
+  **OpenAI** (`OPENAI_API_KEY`, the key the voice already uses;
+  `TRAVEL_TEXT_MODEL` picks the model, default `gpt-4o-mini`), falling back
+  to Gemini (`GEMINI_API_KEY`). Results go into a shared pool, so most
+  requests need no model call. With no model at all, Quiz falls back to Open
+  Trivia DB questions (`/api/travel/questions`), and Riddles stays on the
+  bundled deck.
+- The phone mixes fresh items with bundled ones it hasn't heard. Once every
+  bundled item has been heard, only fresh items are used. A bundled item
+  repeats only when there's nothing new at all (offline). Two failed fetches
+  in a row stop further requests for that game.
+
+### How "already asked" is tracked
+
+Repeats are matched on the **answer**, not the question text. A riddle
+comes back reworded, but "a piano" is still "a piano".
+
+1. **The phone** keeps its last 400 prompts and answers (`UserDefaults`)
+   and sends the answers with every request. This is the durable copy,
+   because the hosted server's disk resets on every redeploy.
+2. **The server** keeps its own per-device answer history
+   (`data/travel_items_served.json`) and never serves an answer that device
+   has heard.
+3. **The model** is told every heard answer, plus every answer already in
+   the pool, is off limits. Its output is filtered against that list anyway.
+   Because answers are one to four words, about 200 fit in one prompt.
 
 Answer checking is local and instant (`TravelAnswerMatcher`): articles,
 fillers and plurals are ignored ("it's a piano!" matches "a piano"), and a
