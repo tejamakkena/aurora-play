@@ -34,11 +34,16 @@ def good_question(i=0):
 def mock_llm(monkeypatch, items):
     """Pretend the model returned ``items`` (raw, unvalidated)."""
     calls = []
-    def fake(kind, topic, count):
+    def fake(kind, topic, count, exclude=()):
         calls.append((kind, topic, count))
         return list(items)
     monkeypatch.setattr(tg, "_llm_batch", fake)
     return calls
+
+
+def _batch_url(calls):
+    """The api.php batch request (a token request may come first)."""
+    return next(c for c in calls if "api.php" in c)
 
 
 def opentdb_result(question, correct, incorrect, category="Sports"):
@@ -168,9 +173,9 @@ class TestOpenTDBBatch:
         assert q["options"][q["correct_answer"]] == "India"
         ok, _ = tg.validate_question(q)
         assert ok
-        assert "category=21" in calls[0]
-        assert "type=multiple" in calls[0]
-        assert "amount=" in calls[0]   # one batched request
+        assert "category=21" in _batch_url(calls)
+        assert "type=multiple" in _batch_url(calls)
+        assert "amount=" in _batch_url(calls)   # one batched request
 
     def test_invalid_results_dropped(self, monkeypatch):
         mock_opentdb(monkeypatch, {
@@ -198,7 +203,7 @@ class TestOpenTDBBatch:
 class TestChain:
     def test_cache_hit_avoids_the_api(self, monkeypatch):
         tg._cache_add("cricket", "questions", [good_question(1), good_question(2)])
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise AssertionError("API must not be called on a cache hit")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         items, source = tg._fetch("questions", "cricket", 2)
@@ -216,7 +221,7 @@ class TestChain:
         assert len(calls) == 1                       # one batch, not per question
         assert calls[0][1] == "quantum knitting"
         # Second call is a cache hit: the API stays quiet.
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise AssertionError("second call must be a cache hit")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         items2, source2 = tg._fetch("questions", "quantum knitting", 2)
@@ -235,7 +240,7 @@ class TestChain:
     @pytest.mark.parametrize("topic", ["cricket", "quantum knitting"])
     def test_api_failure_falls_back_to_bundled(self, monkeypatch, topic):
         mock_opentdb(monkeypatch, exc=OSError("down"))
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise tg._GenError("offline")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         items, source = tg._fetch("questions", topic, 5)
@@ -256,7 +261,7 @@ class TestChain:
         tg._cache_add("cricket", "questions",
                       [good_question(0), good_question(1), good_question(2)])
         mock_opentdb(monkeypatch, exc=OSError("down"))
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise tg._GenError("force the fallback path")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         asked = ["What is question number 0 about?",
@@ -270,7 +275,7 @@ class TestChain:
             ["What is question number 2 about?"]
 
     def test_bundled_secrets_and_hot_takes(self, monkeypatch):
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise tg._GenError("offline")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         secrets, source = tg._fetch("secrets", "cricket", 4)
@@ -298,7 +303,7 @@ class TestQuestionPriority:
         calls = mock_opentdb(monkeypatch, {
             "response_code": 0,
             "results": [opentdb_result("Q?", "A", ["B", "C", "D"])]})
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise AssertionError("LLM must not be called for a mapped topic")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         items, source = tg._fetch("questions", "cricket", 1)
@@ -308,7 +313,7 @@ class TestQuestionPriority:
 
     def test_opentdb_failure_skips_llm_straight_to_bundled(self, monkeypatch):
         mock_opentdb(monkeypatch, exc=OSError("down"))
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise AssertionError("mapped topics never burn LLM budget")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         items, source = tg._fetch("questions", "cricket", 3)
@@ -330,7 +335,7 @@ class TestQuestionPriority:
             "results": [opentdb_result("Q?", "A", ["B", "C", "D"])]})
         items, source = tg._fetch("questions", "   ", 2)
         assert source == "opentdb"
-        assert "category=9" in calls[0]
+        assert "category=9" in _batch_url(calls)
 
     def test_empty_topic_opentdb_down_to_bundled(self, monkeypatch):
         mock_opentdb(monkeypatch, exc=OSError("down"))
@@ -452,11 +457,11 @@ class TestTriviaTopicIntegration:
         assert engine.question[1] == \
             'Which country won the "1983" Cricket World Cup?'
         assert engine.question[0] == "cricket"
-        assert "category=21" in calls[0]
+        assert "category=21" in _batch_url(calls)
 
     def test_topic_failure_uses_the_pack(self, monkeypatch):
         mock_opentdb(monkeypatch, exc=OSError("down"))
-        def boom(kind, topic, count):
+        def boom(kind, topic, count, exclude=()):
             raise tg._GenError("offline")
         monkeypatch.setattr(tg, "_llm_batch", boom)
         engine, room, _ = self._trivia(topic="cricket")

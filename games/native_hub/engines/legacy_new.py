@@ -20,6 +20,7 @@ below is built directly from the Swift state contract:
 import random
 import time
 
+from games import content_service as cs
 from games.native_hub.engine import NativeGameEngine
 from games.native_hub.engines._bases import TurnBasedEngine
 
@@ -371,6 +372,7 @@ class MindMeldEngine(NativeGameEngine):
         super().__init__(room, broadcaster)
         self.round = 0
         self.category = ""
+        self.used_categories: set[str] = set()
         self.submissions: dict[str, str] = {}
         self.show_reveal = False
         self.deadline = 0.0
@@ -384,7 +386,9 @@ class MindMeldEngine(NativeGameEngine):
 
     def _next_round(self):
         self.round += 1
-        self.category = random.choice(MELD_CATEGORIES)
+        # Was random.choice over 7 categories: repeats within one game.
+        self.category = cs.pick_one(self.room, "meld_category", avoid=self.used_categories)
+        self.used_categories.add(cs.norm_key(self.category))
         self.submissions = {}
         self.show_reveal = False
         self.deadline = time.time() + self.SUBMIT_SECONDS
@@ -560,6 +564,7 @@ class SpeedSculptorEngine(NativeGameEngine):
         super().__init__(room, broadcaster)
         self.round = 0
         self.prompt = ""
+        self.used_prompts: set[str] = set()
         self.voting_phase = False
         self.drawings: dict[str, dict] = {}
         self.votes: dict[str, str] = {}
@@ -574,7 +579,9 @@ class SpeedSculptorEngine(NativeGameEngine):
 
     def _next_round(self):
         self.round += 1
-        self.prompt = random.choice(DRAW_PROMPTS)
+        # Was random.choice over 10 prompts: repeats within one game.
+        self.prompt = cs.pick_one(self.room, "draw_prompt", avoid=self.used_prompts)
+        self.used_prompts.add(cs.norm_key(self.prompt))
         self.voting_phase = False
         self.drawings = {}
         self.votes = {}

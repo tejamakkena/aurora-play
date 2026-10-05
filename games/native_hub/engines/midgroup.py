@@ -7,6 +7,7 @@ Out's location are impossible to hide in a single-screen game.
 import random
 import time
 
+from games import content_service as cs
 from games.native_hub.engines import _content as C
 from games.native_hub.engines._matching import guess_matches
 from games.native_hub.engines._bases import RoundBasedEngine
@@ -51,7 +52,7 @@ class CipherGridEngine(NativeGameEngine):
         self.log: list[dict] = []
 
     def start(self, players):
-        self.words = random.sample(C.CIPHER_WORDS, self.GRID)
+        self.words = cs.pick(self.room, "cipher_word", self.GRID)
 
         # 9 for the starting team, 8 for the other, 7 neutral, 1 assassin.
         key = ([self.RED] * 9 + [self.BLUE] * 8
@@ -218,6 +219,9 @@ class OddOneOutEngine(NativeGameEngine):
     VOTE_SECONDS = 60
     REVEAL_SECONDS = 10
 
+    #: How many locations the spy picks from (the real one plus decoys).
+    SPY_CHOICES = 20
+
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
         self.location = ""
@@ -230,6 +234,9 @@ class OddOneOutEngine(NativeGameEngine):
         self.round = 0
         self.scores: dict[str, int] = {}
         self.used_locations: set[str] = set()
+        #: What the spy may guess from: the real location plus decoys,
+        #: fixed for the round (the full list is now hundreds long).
+        self.location_choices: list[str] = []
         self.past_spies: list[str] = []
         self._finished = False
 
@@ -239,10 +246,12 @@ class OddOneOutEngine(NativeGameEngine):
 
     def _new_round(self):
         self.round += 1
-        pool = [loc for loc in C.SPY_LOCATIONS if loc not in self.used_locations] \
-            or list(C.SPY_LOCATIONS)
-        self.location = random.choice(pool)
-        self.used_locations.add(self.location)
+        self.location = cs.pick_one(self.room, "spy_location", avoid=self.used_locations)
+        self.used_locations.add(cs.norm_key(self.location))
+        decoys = [loc for loc in cs.all_items("spy_location")
+                  if cs.norm_key(loc) != cs.norm_key(self.location)]
+        self.location_choices = sorted(
+            random.sample(decoys, min(self.SPY_CHOICES - 1, len(decoys))) + [self.location])
         people = [p.id for p in self.room.connected_players()] or list(self.scores)
         fresh = [pid for pid in people if pid not in self.past_spies] or people
         self.spy = random.choice(fresh)
@@ -357,7 +366,7 @@ class OddOneOutEngine(NativeGameEngine):
             "secondsLeft": self.seconds_left(),
             "canVote": self.phase == "vote" and player_id not in self.votes,
             "myVote": self.votes.get(player_id),
-            "allLocations": C.SPY_LOCATIONS if is_spy else [],
+            "allLocations": self.location_choices if is_spy else [],
             "score": self.scores.get(player_id, 0),
             "players": [
                 {"id": p.id, "name": p.name}
@@ -388,7 +397,7 @@ class SealedAuctionEngine(RoundBasedEngine):
         super().__init__(room, broadcaster)
         self.budgets: dict[str, int] = {}
         self.lot = ("", 0)
-        self.used: set[int] = set()
+        self.used: set[str] = set()
         self.last_result: dict = {}
 
     def start(self, players):
@@ -397,13 +406,8 @@ class SealedAuctionEngine(RoundBasedEngine):
 
     def begin_phase(self, phase):
         if phase == "bid":
-            pool = [i for i in range(len(C.AUCTION_LOTS)) if i not in self.used]
-            if not pool:
-                self.used.clear()
-                pool = list(range(len(C.AUCTION_LOTS)))
-            idx = random.choice(pool)
-            self.used.add(idx)
-            self.lot = C.AUCTION_LOTS[idx]
+            self.lot = cs.pick_one(self.room, "auction", avoid=self.used)
+            self.used.add(cs.KINDS["auction"].key(self.lot))
             self.last_result = {}
 
     def handle_action(self, player_id, action, data):
@@ -481,6 +485,7 @@ class WavelengthEngine(RoundBasedEngine):
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
         self.spectrum = ("", "")
+        self.used_spectra: set[str] = set()
         self.target = 50
         self.clue = ""
         self.psychic: str | None = None
@@ -494,7 +499,10 @@ class WavelengthEngine(RoundBasedEngine):
 
     def begin_phase(self, phase):
         if phase == "clue":
-            self.spectrum = random.choice(C.WAVELENGTH_SPECTRA)
+            # Was random.choice every round: the same spectrum could come
+            # up twice in one game.
+            self.spectrum = cs.pick_one(self.room, "wavelength", avoid=self.used_spectra)
+            self.used_spectra.add(cs.KINDS["wavelength"].key(self.spectrum))
             self.target = random.randint(8, 92)
             self.clue = ""
             self.dial = 50
@@ -866,12 +874,8 @@ class BollywoodCharadesEngine(RoundBasedEngine):
 
     def begin_phase(self, phase):
         if phase == "act":
-            pool = [t for t in C.CHARADES_TITLES if t not in self.used]
-            if not pool:
-                self.used.clear()
-                pool = list(C.CHARADES_TITLES)
-            self.title = random.choice(pool)
-            self.used.add(self.title)
+            self.title = cs.pick_one(self.room, "charades", avoid=self.used)
+            self.used.add(cs.norm_key(self.title))
             if self.order:
                 self.actor = self.order[(self.round - 1) % len(self.order)]
             self.correct_ids = []
