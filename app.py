@@ -118,6 +118,10 @@ def create_app(config_name='default'):
     # Travel Mode: live topic-based question generation for the iOS client.
     from games.topic_gen import topic_bp
     app.register_blueprint(topic_bp, url_prefix='/api/travel')
+    # Travel Mode quizmaster: fresh riddles / fun-fact questions, deduped
+    # by answer per device (games/travel_items.py).
+    from games.travel_items import travel_items_bp
+    app.register_blueprint(travel_items_bp, url_prefix='/api/travel')
 
     # Voice quizmaster: cloud TTS proxy + answer grading. API keys stay
     # server-side; the apps never see them. See games/voice.py and the
