@@ -142,10 +142,11 @@ final class TravelVoiceListener: NSObject, ObservableObject {
             partialTranscript = result.bestTranscription.formattedString
             onPartial?(partialTranscript)
             if result.isFinal {
+                let segments = result.bestTranscription.segments
+                let total: Double = segments.reduce(0) { $0 + Double($1.confidence) }
+                let avg = total / max(1, Double(segments.count))
                 finish(transcript: partialTranscript,
-                       confidence: Float(result.bestTranscription.segments
-                        .map(\.confidence).reduce(0, +)
-                        / max(1, Double(result.bestTranscription.segments.count))))
+                       confidence: Float(avg))
                 return
             }
         }

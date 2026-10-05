@@ -45,7 +45,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
 
     private let synthesizer = AVSpeechSynthesizer()
 
-    init() {
+    override init() {
         super.init()
         synthesizer.delegate = self
         configureAudioSession()

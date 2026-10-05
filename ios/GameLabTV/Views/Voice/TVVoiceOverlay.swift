@@ -13,7 +13,7 @@ struct TVVoiceOverlay: View {
                 Image(systemName: host.micPlayerID == nil
                       ? "mic.slash.fill" : "mic.fill")
                     .foregroundColor(host.micPlayerID == nil ? .gray : .green)
-                Text(host.micPlayerName.map { "🎤 \($0)'s phone" }
+                Text(host.micPlayerName.map { "\($0)'s phone" }
                      ?? "No mic -- claim it on your phone")
                     .font(.callout)
                     .foregroundColor(.white.opacity(0.75))
@@ -62,10 +62,10 @@ struct TVVoiceOverlay: View {
 
     private var stateLabel: String {
         switch host.voiceState {
-        case "ask":     return "🔊 Asking..."
-        case "listen":  return "🎙 Listening..."
-        case "lock":    return "🔒 Locked in"
-        case "grade":   return "⏳ Checking..."
+        case "ask":     return "Asking..."
+        case "listen":  return "Listening..."
+        case "lock":    return "Locked in"
+        case "grade":   return "Checking..."
         default:        return host.voiceState
         }
     }

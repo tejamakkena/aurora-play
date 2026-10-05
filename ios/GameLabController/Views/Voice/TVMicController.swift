@@ -24,16 +24,14 @@ final class TVMicController: ObservableObject {
 
     let roomCode: String
     let playerID: String
-    let playerName: String
 
     private let socket = GameSocketManager.shared
     private let voice = TravelVoiceListener()
     private var attached = false
 
-    init(roomCode: String, playerID: String, playerName: String) {
+    init(roomCode: String, playerID: String) {
         self.roomCode = roomCode
         self.playerID = playerID
-        self.playerName = playerName
     }
 
     func attach() {
@@ -165,8 +163,7 @@ struct MicClaimBar: View {
                 Button { mic.claimMic() } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "mic.fill")
-                        Text(mic.micPlayerName.map { "🎤 \($0)" }
-                             ?? "Take the mic")
+                        Text(mic.micPlayerName ?? "Take the mic")
                             .font(.subheadline.bold())
                     }
                     .foregroundColor(.white)
