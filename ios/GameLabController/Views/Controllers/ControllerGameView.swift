@@ -79,7 +79,7 @@ struct ControllerGameView: View {
         case .blastRunners:
             BlastRunnersControllerView(privateData: privateData, onAction: onAction)
 
-        // Travel Mode — hosted on the phone itself, not through a TV room.
+        // No TV-room experience for these engines.
         case .storyChain:
             TravelModeNoticeControllerView(gameID: .storyChain)
         case .twentyQuestions:
@@ -90,8 +90,9 @@ struct ControllerGameView: View {
     }
 }
 
-/// Travel Mode games run phone-hosted; if one is ever picked in a TV room,
-/// the controller just points the player at Travel Mode.
+/// Story Chain / Twenty Questions / Hot Takes have no TV board or phone
+/// controller (Travel Mode is now a single quizmaster); if one is ever
+/// picked in a TV room, say so instead of showing a blank screen.
 private struct TravelModeNoticeControllerView: View {
     let gameID: GameID
 
@@ -103,7 +104,7 @@ private struct TravelModeNoticeControllerView: View {
             Text(gameID.displayName)
                 .font(.title2.bold())
                 .foregroundColor(.white)
-            Text("Play this game in Travel Mode on your phone.")
+            Text("This game isn't available in a TV room. Pick another game on the TV.")
                 .foregroundColor(.white.opacity(0.5))
                 .multilineTextAlignment(.center)
         }

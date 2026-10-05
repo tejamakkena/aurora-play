@@ -3,747 +3,532 @@ import SwiftUI
 
 // MARK: - TravelModeViewModel
 //
-// Owns a whole Travel Mode session. Two play styles:
+// The road-trip quizmaster. Pick Riddles, Quiz or Mix once; after that the
+// phone runs itself:
 //
-//  - Trivia (client-side): fetches topic questions over REST, then runs the
-//    round locally on the phone. No room, no socket game flow.
-//  - Server-hosted games (most_likely_to, story_chain, twenty_questions,
-//    hot_takes, wavelength): the phone creates a room itself and joins one
-//    seat per car player — all seats share this phone's socket, and the
-//    passenger operates every seat on the car's behalf. This uses only the
-//    existing protocol: create_room / join_room / start_game / game_action /
-//    leave_room. `handle_game_action` authorizes by matching the seat's
-//    recorded sid, so seats on the same socket are all legal.
+//   ASK (spoken) -> LISTEN (mic, ~9 s) -> react:
+//     right answer        -> cheer + fun fact -> next question
+//     wrong / silence     -> joke + hint -> listen again
+//     still wrong         -> "one more guess" -> listen again
+//     out of guesses      -> reveal + fun fact -> next question
 //
-// Socket-handler ownership: GameSocketManager.on replaces the handler per
-// event, so this VM only registers events the root VM doesn't own
-// (.gameState, .gameEnded). roomJoined / privateState / roomUpdated / error
-// stay owned by ControllerRootViewModel, which forwards travel traffic here.
+// The car can also SAY "hint", "repeat", "skip" or "I give up". Nobody
+// has to touch the phone; the on-screen buttons are optional shortcuts.
+// Without mic permission the same loop runs on a thinking-time countdown.
+//
+// Every async callback carries the `flow` token it was started under.
+// Any interruption (skip, pause, hint button...) bumps it, so a late
+// callback from an older step can never speak or move the game on.
 
 @MainActor
 final class TravelModeViewModel: ObservableObject {
 
-    enum Stage {
-        case setup      // picker + roster (+ topic for trivia)
-        case loading    // fetching questions or creating the room
-        case trivia     // client-side trivia round
-        case hosted     // server-driven game screen
-        case results    // final scores
+    enum Stage { case pick, starting, playing }
+
+    enum Phase {
+        case asking     // the quizmaster is talking
+        case listening  // mic open for answers
+        case thinking   // no mic: countdown before the hint / reveal
+        case reacting   // talking back after a guess
+        case revealed   // answer is out; the next one follows by itself
+        case paused
     }
 
-    // MARK: Setup state
+    @Published private(set) var stage: Stage = .pick
+    @Published private(set) var style: TravelPlayStyle = .mix
+    @Published private(set) var phase: Phase = .asking
+    @Published private(set) var item: TravelItem?
+    @Published private(set) var hintShown = false
+    /// nil while the question is open; true = the car got it.
+    @Published private(set) var gotIt: Bool?
+    /// What the mic heard last ("Heard: ...").
+    @Published private(set) var heard = ""
+    @Published private(set) var asked = 0
+    @Published private(set) var correct = 0
+    @Published private(set) var micReady = false
+    @Published private(set) var countdown = 0
 
-    @Published var stage: Stage = .setup
-    @Published var selectedGame: TravelGame = .trivia
-    @Published var topic: String = ""
-    @Published var roster: [TravelPlayer] = [
-        TravelPlayer(name: "Driver"),
-        TravelPlayer(name: "Passenger"),
-    ]
-    @Published var newPlayerName = ""
-    @Published var loadingMessage = ""
-    @Published var errorMessage: String? = nil
-
-    // MARK: Trivia state
-
-    @Published var questions: [TravelQuestion] = []
-    @Published var questionIndex = 0
-    @Published var pickedChoice: Int? = nil
-    @Published var usedOfflineQuestions = false
-
-    // MARK: Hosted-game state
-
-    @Published var roomCode: String? = nil
-    /// The engine's public state (game_state boardState), untyped like the
-    /// rest of the controller app — read through ControllerKit's helpers.
-    @Published var board: [String: Any] = [:]
-    @Published var seatPrivate: [String: [String: Any]] = [:]
-    @Published var hostSeatID: String? = nil
-
-    // MARK: Shared
-
-    /// Local +1 tally, keyed by roster player id. This is the scoreboard
-    /// the car sees; engine seat scores are secondary.
-    @Published var scores: [String: Int] = [:]
     let speech = TravelSpeech()
-    let voice = TravelVoiceListener()
+    private let ear = TravelVoiceListener()
+
+    private(set) var isActive = true
+    private var flow = 0
+    private var tries = 0
+
+    private struct Lines { let ask, hint, correct, reveal: String }
+    private var lines: Lines?
+    private var upcoming: (item: TravelItem, lines: Lines)?
+
+    private var riddleQueue: [TravelItem] = []
+    private var quizQueue: [TravelItem] = []
+    private var liveRiddles: [TravelItem] = []
+    private var liveQuiz: [TravelItem] = []
+    private var nextKind: TravelItem.Kind = .riddle
+    private var fetching: Set<TravelItem.Kind> = []
+    private var liveFailures: [TravelItem.Kind: Int] = [:]
+    private var topicIndex = Int.random(in: 0..<travelQuizTopics.count)
 
     init() {
-        // The hosted server sleeps when idle and needs 30-60s to wake;
-        // the cloud-voice path gives up after 5s and falls back to the
-        // device voice. Warm it the moment Travel Mode opens -- the user
-        // spends the setup screen picking a topic and seats, so the first
-        // real question gets a warm server and the AI voice.
+        // The hosted server sleeps when idle and needs 30-60 s to wake.
+        // Warm it while the car is still picking Riddles / Quiz / Mix.
         speech.warmUpServer()
     }
 
-    // MARK: Quizmaster (voice loop)
+    // MARK: - Start / stop
 
-    /// The turn-based voice loop: ASK -> LISTEN -> LOCK -> GRADE. The mic
-    /// is armed only inside .listening -- deaf by design everywhere else,
-    /// which is what makes the game immune to side conversations.
-    enum QuizmasterPhase {
-        case idle, asking, listening, locked, grading
-    }
-    @Published var quizPhase: QuizmasterPhase = .idle
-    /// Live caption of what the mic hears ("hearing: ...").
-    @Published var liveTranscript = ""
-    /// Set after a voice answer is graded; drives the same "tap +1"
-    /// scoreboard flow as a tapped answer.
-    @Published var voiceVerdict: Bool?
-    /// Master toggle. Tap-to-answer always works regardless.
-    @Published var quizmasterOn = true
-    private var didReprompt = false
-
-    /// Suggested topics for the trivia topic picker.
-    let topicChips = ["Cricket", "World Capitals", "90s Music", "Tollywood"]
-
-    private let socket = GameSocketManager.shared
-    private let deviceID = AppConstants.deviceID
-
-    /// False after endTravel(); every handler and the reconnect hook no-op.
-    private(set) var isActive = true
-
-    private var joinsEmitted = false
-    private var joinedSeats = Set<String>()
-
-    /// Snapshot of seat names taken when a hosted game starts. The
-    /// scoreboard roster stays editable mid-game, but room seats are
-    /// fixed at start — every seat lookup goes through this snapshot so
-    /// a mid-game roster edit can't shift seat indices under the game.
-    private var activeSeatNames: [String]? = nil
-
-    /// Seat names for the current (or upcoming) game: the snapshot while
-    /// a hosted game is in flight, else the live roster.
-    var seatNames: [String] { activeSeatNames ?? roster.map(\.name) }
-    var seatCount: Int { seatNames.count }
-
-    // MARK: - Seats
-
-    /// Seat 0 (roster[0], the phone operator) uses the device id so the
-    /// seat survives reconnects the same way the normal join flow does;
-    /// the rest are derived and stay under the 64-char server limit.
-    func seatID(for index: Int) -> String {
-        index == 0 ? deviceID : "\(deviceID)-t\(index)"
-    }
-
-    private var seatIDs: [String] {
-        let count = activeSeatNames?.count ?? roster.count
-        return (0..<count).map { seatID(for: $0) }
-    }
-
-    func ownsSeat(_ playerID: String) -> Bool {
-        isActive && seatIDs.contains(playerID)
-    }
-
-    func seatName(_ seatID: String) -> String {
-        if let i = seatIDs.firstIndex(of: seatID) {
-            if let names = activeSeatNames, i < names.count { return names[i] }
-            if i < roster.count { return roster[i].name }
-        }
-        return "Player"
-    }
-
-    // MARK: - Setup actions
-
-    var canStart: Bool {
-        let names = roster.map { $0.name.trimmingCharacters(in: .whitespaces) }
-        return roster.count >= selectedGame.minPlayers
-            && names.allSatisfy { !$0.isEmpty }
-    }
-
-    func addPlayer() {
-        let name = newPlayerName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty, roster.count < 8 else { return }
-        roster.append(TravelPlayer(name: String(name.prefix(20))))
-        newPlayerName = ""
-        errorMessage = nil
-    }
-
-    func removePlayer(_ player: TravelPlayer) {
-        guard roster.count > 1 else { return }
-        roster.removeAll { $0.id == player.id }
-    }
-
-    func awardPlusOne(_ player: TravelPlayer) {
-        scores[player.id, default: 0] += 1
-    }
-
-    var rankedRoster: [TravelPlayer] {
-        roster.sorted {
-            (scores[$0.id] ?? 0, $0.name) > (scores[$1.id] ?? 0, $1.name)
-        }
-    }
-
-    func nextInPlaylist() -> TravelGame {
-        let all = TravelGame.allCases
-        let i = all.firstIndex(of: selectedGame) ?? 0
-        return all[(i + 1) % all.count]
-    }
-
-    // MARK: - Start
-
-    func startGame() {
-        errorMessage = nil
-        resetScores()
-        if selectedGame == .trivia {
-            Task {
-                // Mic permission is settled before the first question --
-                // never mid-round. Denied? The tap buttons still work.
-                if quizmasterOn {
-                    _ = await voice.requestAuthorization()
-                    guard isActive else { return }
-                }
-                await startTrivia()
+    func start(_ style: TravelPlayStyle) {
+        guard stage == .pick, isActive else { return }
+        self.style = style
+        stage = .starting
+        flow += 1
+        let f = flow
+        asked = 0
+        correct = 0
+        item = nil
+        buildQueues()
+        fetchLiveIfNeeded()
+        Task { [weak self] in
+            guard let self else { return }
+            // Permission is settled up front, never mid-question. Denied?
+            // The game still runs on thinking-time countdowns.
+            let mic = await self.ear.requestAuthorization()
+            guard f == self.flow, self.isActive else { return }
+            self.micReady = mic
+            self.speech.configureSession(withMic: mic)
+            let intro = mic ? Self.introWithMic : Self.introNoMic
+            await self.speech.prepare(firstLine: intro)
+            guard f == self.flow, self.isActive else { return }
+            for line in Self.wrongLines + Self.silenceLines + [Self.oneMoreGuess] {
+                self.speech.prefetch(line)
             }
-        } else {
-            startHostedGame()
-        }
-    }
-
-    private func resetScores() {
-        scores = Dictionary(uniqueKeysWithValues: roster.map { ($0.id, 0) })
-    }
-
-    // MARK: Trivia (client-side)
-
-    private func startTrivia() async {
-        stage = .loading
-        loadingMessage = "Fetching questions…"
-        let asked = askedQuestionTexts()
-        let fetch = await fetchTravelQuestions(topic: topic, count: 10, exclude: asked)
-        guard isActive else { return }
-        guard !fetch.questions.isEmpty else {
-            // Unreachable in practice — the offline deck always yields
-            // questions — but never strand the UI on loading.
-            errorMessage = "Could not load questions. Check your connection and try again."
-            stage = .setup
-            return
-        }
-        // The offline deck doesn't know the exclude list — filter it here
-        // so a dead zone doesn't replay the same 24 questions either.
-        let seen = Set(asked.map { $0.lowercased() })
-        var fresh = fetch.questions.filter { !seen.contains($0.question.lowercased()) }
-        if fresh.isEmpty { fresh = fetch.questions } // deck exhausted: replay beats nothing
-        questions = fresh
-        recordAskedQuestions(fresh.map(\.question))
-        usedOfflineQuestions = fetch.source == .offline
-        questionIndex = 0
-        pickedChoice = nil
-        stage = .trivia
-        beginVoiceRound()
-    }
-
-    // MARK: Asked-question history (kills repeats across games)
-
-    private static let askedHistoryKey = "travel_asked_questions"
-    private static let askedHistoryCap = 300
-
-    /// Question texts already asked on this device, most recent last.
-    private func askedQuestionTexts() -> [String] {
-        UserDefaults.standard.stringArray(forKey: Self.askedHistoryKey) ?? []
-    }
-
-    private func recordAskedQuestions(_ texts: [String]) {
-        var history = askedQuestionTexts()
-        history.append(contentsOf: texts)
-        if history.count > Self.askedHistoryCap {
-            history.removeFirst(history.count - Self.askedHistoryCap)
-        }
-        UserDefaults.standard.set(history, forKey: Self.askedHistoryKey)
-    }
-
-    var currentQuestion: TravelQuestion? {
-        guard questionIndex < questions.count else { return nil }
-        return questions[questionIndex]
-    }
-
-    func pickChoice(_ index: Int) {
-        guard pickedChoice == nil else { return }
-        cancelVoiceRound()
-        pickedChoice = index
-        if index == currentQuestion?.correctIndex {
-            speech.speak(praise.randomElement() ?? "That's right!")
-        } else if let q = currentQuestion {
-            let letter = ["A", "B", "C", "D"][q.correctIndex]
-            speech.speak("Not quite — it was \(letter). \(q.options[q.correctIndex]).")
-        } else {
-            speech.speak("Not quite.")
-        }
-    }
-
-    /// Rotated so the host doesn't sound like a robot saying "Correct."
-    /// twenty times in a row.
-    private let praise = [
-        "That's right!",
-        "Nice one!",
-        "Got it!",
-        "Yes! Well done.",
-        "Correct — you're on fire.",
-    ]
-
-    func advanceQuestion() {
-        speech.stop()
-        voice.stop()
-        pickedChoice = nil
-        voiceVerdict = nil
-        liveTranscript = ""
-        quizPhase = .idle
-        didReprompt = false
-        if questionIndex + 1 < questions.count {
-            questionIndex += 1
-            beginVoiceRound()
-        } else {
-            stage = .results
-        }
-    }
-
-    // MARK: Hosted games (server room, one seat per player)
-
-    private func startHostedGame() {
-        stage = .loading
-        loadingMessage = "Starting \(selectedGame.displayName)…"
-        joinsEmitted = false
-        joinedSeats = []
-        activeSeatNames = roster.map { $0.name }
-        board = [:]
-        seatPrivate = [:]
-        roomCode = nil
-
-        socket.on(.gameState) { [weak self] (r: GameStateResponse) in
-            self?.handleGameState(r)
-        }
-        socket.on(.gameEnded) { [weak self] (p: TravelGameEndedPayload) in
-            self?.handleGameEnded(p)
-        }
-        // NOTE: .gameStarted stays owned by ControllerRootViewModel (it
-        // replaces handlers per event). The root VM forwards travel games
-        // here via handleGameStarted, which lifts the rules gate.
-        socket.onConnected("travel") { [weak self] in
-            self?.rejoinSeats()
-        }
-
-        let payload = TravelCreateRoomPayload(
-            gameID: selectedGame.rawValue,
-            hostName: roster[0].name,
-            hostID: deviceID,
-            solo: false,
-            // Forward-compatible: today's server ignores unknown
-            // create_room keys; a future backend can seed the room's
-            // question pool from this for topic trivia.
-            topic: selectedGame.usesTopic ? topic : nil
-        )
-        socket.emit(.createRoom, payload: payload)
-    }
-
-    /// Forwarded by ControllerRootViewModel's roomJoined handler while a
-    /// travel session is active.
-    func handleRoomJoined(_ response: RoomJoinedResponse) {
-        guard isActive else { return }
-        if roomCode == nil {
-            // The create_room reply. Now seat every car player.
-            roomCode = response.room.code
-            joinsEmitted = true
-            let names = activeSeatNames ?? roster.map(\.name)
-            for i in names.indices {
-                socket.emit(.joinRoom, payload: JoinRoomPayload(
-                    roomCode: response.room.code,
-                    playerName: names[i],
-                    playerID: seatID(for: i),
-                    isTV: false
-                ))
-            }
-            return
-        }
-        // One seat's join_room reply. When every seat is in, start.
-        guard joinsEmitted, seatIDs.contains(response.playerID) else { return }
-        joinedSeats.insert(response.playerID)
-        if joinedSeats.count >= seatIDs.count, let code = roomCode {
-            socket.emit(.startGame, payload: ["roomCode": code])
-            stage = .hosted
-        }
-    }
-
-    /// Forwarded by ControllerRootViewModel's privateState handler for our seats.
-    func handlePrivateState(_ response: PrivateStateResponse) {
-        guard isActive, ownsSeat(response.playerID) else { return }
-        seatPrivate[response.playerID] = response.privateData.mapValues { $0.value }
-    }
-
-    /// Forwarded by ControllerRootViewModel's roomUpdated handler.
-    func handleRoomUpdated(_ room: Room) {
-        guard isActive, room.code == roomCode else { return }
-        hostSeatID = room.players.first(where: { $0.isHost })?.id
-    }
-
-    private func handleGameState(_ response: GameStateResponse) {
-        guard isActive, response.roomCode == roomCode else { return }
-        board = response.boardState.mapValues { $0.value }
-    }
-
-    /// The server announced the game (rules phase). Called by
-    /// ControllerRootViewModel, which owns the .gameStarted event.
-    /// Immediately begins — there is no rules card in the car, and this
-    /// phone holds the room's board seat, so it is the host.
-    func handleGameStarted(_ response: GameStartedResponse) {
-        guard isActive, response.roomCode == roomCode, roomCode != nil else { return }
-        socket.emit(.beginGame, payload: ["roomCode": response.roomCode])
-    }
-
-    private func handleGameEnded(_ payload: TravelGameEndedPayload) {
-        guard isActive, payload.roomCode == roomCode else { return }
-        speech.stop()
-        stage = .results
-    }
-
-    /// Forwarded by ControllerRootViewModel's error handler.
-    func handleError(_ message: String) {
-        guard isActive else { return }
-        if stage == .loading {
-            errorMessage = message
-            stage = .setup
-        }
-    }
-
-    private func rejoinSeats() {
-        // A reconnect gets a fresh sid that is in no room; re-seat every
-        // car player so the game continues instead of stalling.
-        guard isActive, let code = roomCode, stage == .hosted || stage == .loading else { return }
-        let names = activeSeatNames ?? roster.map(\.name)
-        for i in names.indices {
-            socket.emit(.joinRoom, payload: JoinRoomPayload(
-                roomCode: code,
-                playerName: names[i],
-                playerID: seatID(for: i),
-                isTV: false
-            ))
-        }
-    }
-
-    /// A game_action as one of our seats. The server authorizes by
-    /// matching the seat's recorded sid, and every seat shares this
-    /// phone's socket, so the passenger can operate every seat.
-    func sendAction(_ action: String, data: [String: Any] = [:], seat index: Int) {
-        guard let code = roomCode, index < seatIDs.count else { return }
-        socket.emit(.gameAction, payload: GameActionPayload(
-            roomCode: code,
-            playerID: seatID(for: index),
-            action: action,
-            data: data.mapValues { AnyCodable($0) }
-        ))
-    }
-
-    /// Convenience: act as the host seat (host-gated actions like reveal
-    /// or awarding). Falls back to seat 0 if the host id isn't known yet.
-    func sendHostAction(_ action: String, data: [String: Any] = [:]) {
-        let index: Int
-        if let host = hostSeatID, let i = seatIDs.firstIndex(of: host) {
-            index = i
-        } else {
-            index = 0
-        }
-        sendAction(action, data: data, seat: index)
-    }
-
-    // MARK: - Teardown
-
-    func backToSetup() {
-        cancelVoiceRound()
-        speech.stop()
-        // Leave the room seats behind (best effort) and drop the
-        // travel-only socket handlers; the roster and topic are kept.
-        if let code = roomCode {
-            for i in roster.indices {
-                socket.emit(.leaveRoom, payload: ["roomCode": code,
-                                                  "playerID": seatID(for: i)])
+            let first = self.prepared(self.dequeue())
+            self.upcoming = first
+            self.speech.prefetch(first.lines.ask)
+            self.stage = .playing
+            self.phase = .asking
+            self.speech.speak(intro) { [weak self] in
+                guard let self, f == self.flow else { return }
+                self.nextQuestion()
             }
         }
-        socket.off(.gameState)
-        socket.off(.gameEnded)
-        roomCode = nil
-        activeSeatNames = nil
-        board = [:]
-        seatPrivate = [:]
-        hostSeatID = nil
-        questions = []
-        questionIndex = 0
-        pickedChoice = nil
-        usedOfflineQuestions = false
-        errorMessage = nil
-        stage = .setup
+    }
+
+    /// Back to the Riddles / Quiz / Mix picker. Also re-checks the voice
+    /// on the next start, so a server that woke up late gets its AI voice
+    /// at a natural break instead of mid-game.
+    func changeGame() {
+        flow += 1
+        ear.stop()
+        speech.reset()
+        item = nil
+        lines = nil
+        upcoming = nil
+        gotIt = nil
+        hintShown = false
+        heard = ""
+        phase = .asking
+        stage = .pick
     }
 
     func shutdown() {
         isActive = false
-        backToSetup()
+        flow += 1
+        ear.stop()
+        speech.reset()
+        speech.deactivateSession()
     }
 
-    // MARK: - Speech helpers
+    // MARK: - Optional buttons (everything also works by voice)
 
-    /// The TTS-safe line for the current prompt, per game. Phrased the way
-    /// a host would actually say it — the ellipsis is a real pause for
-    /// AVSpeechSynthesizer, which is what makes it sound conversational
-    /// instead of read-out-loud.
-    func speakablePrompt() -> String {
-        if selectedGame == .trivia, let q = currentQuestion {
-            let opts = q.options.enumerated()
-                .map { "\(["A", "B", "C", "D"][$0.offset]): \($0.element)" }
-                .joined(separator: " … ")
-            return "Question \(questionIndex + 1). \(q.question) … \(opts)"
-        }
-        // The travel engines write hostPrompt for exactly this purpose:
-        // short, spoken-style sentences with no markup.
-        let host = board.str("hostPrompt")
-        if !host.isEmpty { return host }
-        switch selectedGame {
-        case .mostLikelyTo:
-            let p = board.str("prompt")
-            return p.isEmpty ? "Waiting for the next prompt." : "Most likely to: \(p)"
-        case .wavelength:
-            let clue = board.str("clue")
-            let left = board.str("leftLabel"), right = board.str("rightLabel")
-            if clue.isEmpty { return "Waiting for the psychic's clue. The spectrum is \(left) to \(right)." }
-            return "The clue is: \(clue). Spectrum: \(left) to \(right)."
-        default:
-            return "Waiting for the next prompt."
-        }
+    var canUseButtons: Bool { stage == .playing && item != nil && phase != .paused }
+
+    func hint() {
+        guard canUseButtons, gotIt == nil, !hintShown else { return }
+        flow += 1
+        giveHint(flow: flow, lead: nil)
     }
 
-    // MARK: - Quizmaster voice loop (trivia)
+    func revealNow() {
+        guard canUseButtons, gotIt == nil else { return }
+        flow += 1
+        reveal(flow: flow)
+    }
 
-    /// Ask the current question aloud, then arm the mic when it finishes.
-    /// Called on entering the trivia stage and after every advance.
-    func beginVoiceRound() {
-        guard quizmasterOn, isActive, stage == .trivia,
-              let q = currentQuestion else { return }
-        quizPhase = .asking
-        voiceVerdict = nil
-        liveTranscript = ""
-        didReprompt = false
-        speech.enableQuizmasterAudio()
-        // Zero dead air: the next question's audio is already cached by
-        // the time we need it.
-        if questionIndex + 1 < questions.count {
-            let nq = questions[questionIndex + 1]
-            speech.prefetch(voiceQuestionText(nq, number: questionIndex + 2))
-        }
-        // Mic permission was requested at game start; if it was denied,
-        // the tap-to-answer buttons remain the input path.
-        speech.speak(voiceQuestionText(q, number: questionIndex + 1)) {
-            [weak self] in self?.startListening()
+    /// "We got it!" -- for when the mic missed it (or there is no mic).
+    func markGotIt() {
+        guard canUseButtons, gotIt == nil else { return }
+        flow += 1
+        celebrate(flow: flow)
+    }
+
+    func skip() {
+        guard stage == .playing, phase != .paused else { return }
+        nextQuestion()
+    }
+
+    func repeatQuestion() {
+        guard canUseButtons, gotIt == nil else { return }
+        flow += 1
+        ear.stop()
+        ask(flow: flow)
+    }
+
+    func togglePause() {
+        guard stage == .playing else { return }
+        flow += 1
+        ear.stop()
+        speech.stop()
+        if phase == .paused {
+            if gotIt != nil || item == nil { nextQuestion() } else { ask(flow: flow) }
+        } else {
+            phase = .paused
         }
     }
 
-    private func voiceQuestionText(_ q: TravelQuestion, number: Int) -> String {
-        let opts = q.options.enumerated()
-            .map { "\(["A", "B", "C", "D"][$0.offset]): \($0.element)" }
-            .joined(separator: " … ")
-        return "Question \(number). \(q.question) … \(opts)"
+    // MARK: - The loop
+
+    private func nextQuestion() {
+        flow += 1
+        let f = flow
+        ear.stop()
+        let current = upcoming ?? prepared(dequeue())
+        let following = prepared(dequeue())
+        upcoming = following
+        item = current.item
+        lines = current.lines
+        hintShown = false
+        gotIt = nil
+        heard = ""
+        tries = 0
+        asked += 1
+        recordHeard(current.item)
+        // Everything this question might say, plus the next question, is
+        // fetched while this one plays: no dead air between lines.
+        speech.prefetch(current.lines.hint)
+        speech.prefetch(current.lines.correct)
+        speech.prefetch(current.lines.reveal)
+        speech.prefetch(following.lines.ask)
+        fetchLiveIfNeeded()
+        ask(flow: f)
     }
 
-    private func startListening() {
-        guard isActive, quizPhase == .asking, stage == .trivia else { return }
-        quizPhase = .listening
-        liveTranscript = ""
-        voice.start(
-            timeout: 8,
+    private func ask(flow f: Int) {
+        guard let lines else { return }
+        phase = .asking
+        speech.speak(lines.ask) { [weak self] in self?.openFloor(flow: f) }
+    }
+
+    private func openFloor(flow f: Int) {
+        guard f == flow, isActive, gotIt == nil else { return }
+        if micReady { listen(flow: f) } else { think(flow: f) }
+    }
+
+    private func listen(flow f: Int) {
+        phase = .listening
+        heard = ""
+        ear.start(
+            timeout: 9,
             onPartial: { [weak self] partial in
-                self?.liveTranscript = partial
+                guard let self, f == self.flow, self.phase == .listening else { return }
+                self.heard = partial
+                // Shouted the right answer? Don't wait for the pause.
+                if let item = self.item,
+                   TravelAnswerMatcher.matches(partial, accepted: item.acceptedAnswers) {
+                    self.celebrate(flow: f)
+                }
             },
-            onFinal: { [weak self] transcript, confidence in
-                self?.lockAnswer(transcript, confidence: confidence)
+            onFinal: { [weak self] transcript, _ in
+                guard let self, f == self.flow, self.phase == .listening else { return }
+                self.judge(transcript, flow: f)
             }
         )
     }
 
-    /// The LOCK step: the first final transcript wins. Everything the mic
-    /// hears after this is ignored until the next question -- side
-    /// conversations cannot derail the round.
-    private func lockAnswer(_ transcript: String, confidence: Float) {
-        guard quizPhase == .listening, stage == .trivia else { return }
-        quizPhase = .locked
-        voice.stop()
-        let clean = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        if clean.isEmpty || confidence < 0.35 {
-            if !didReprompt {
-                // One re-prompt, then the host taps.
-                didReprompt = true
-                quizPhase = .grading
-                speech.speak("Didn't catch that -- say it again.") {
-                    [weak self] in
-                    guard let self, self.quizPhase == .grading else { return }
-                    self.quizPhase = .asking
-                    self.startListening()
+    /// No mic: give the car thinking time, then a hint, then the answer.
+    private func think(flow f: Int) {
+        phase = .thinking
+        countdown = hintShown ? 8 : 10
+        Task { [weak self] in
+            while true {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self, f == self.flow, self.phase == .thinking else { return }
+                self.countdown -= 1
+                if self.countdown <= 0 {
+                    if self.hintShown { self.reveal(flow: f) } else { self.giveHint(flow: f, lead: nil) }
+                    return
                 }
-            } else {
-                quizPhase = .idle
-                liveTranscript = "Tap an answer below."
-            }
-            return
-        }
-        gradeVoiceAnswer(clean)
-    }
-
-    private func gradeVoiceAnswer(_ transcript: String) {
-        quizPhase = .grading
-        guard let q = currentQuestion else { quizPhase = .idle; return }
-        // 1. Letter match: "B", "option B", "the second one".
-        if let letter = voiceLetterIndex(transcript), (0...3).contains(letter) {
-            finishVoiceGrade(correct: letter == q.correctIndex)
-            return
-        }
-        // 2. Forgiving client-side match (free, instant).
-        if voiceFuzzyMatches(transcript, q.options[q.correctIndex]) {
-            finishVoiceGrade(correct: true)
-            return
-        }
-        for (i, opt) in q.options.enumerated() where i != q.correctIndex {
-            if voiceFuzzyMatches(transcript, opt) {
-                finishVoiceGrade(correct: false)
-                return
-            }
-        }
-        // 3. One tiny server call for the genuinely ambiguous cases.
-        Task {
-            let correct = await serverGrade(transcript: transcript, question: q)
-            await MainActor.run {
-                self.finishVoiceGrade(correct: correct)
             }
         }
     }
 
-    private func finishVoiceGrade(correct: Bool?) {
-        guard stage == .trivia, let q = currentQuestion else { return }
-        let letter = ["A", "B", "C", "D"][q.correctIndex]
-        let verdict: String
-        if correct == true {
-            voiceVerdict = true
-            verdict = "\(praise.randomElement() ?? "That's right!")"
+    private func judge(_ transcript: String, flow f: Int) {
+        guard let item else { return }
+        let said = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        heard = said
+        if !said.isEmpty, TravelAnswerMatcher.matches(said, accepted: item.acceptedAnswers) {
+            celebrate(flow: f)
+            return
+        }
+        if let command = TravelCommand.parse(said) {
+            switch command {
+            case .hint:
+                if hintShown { speakThenListen("That was my only hint! Have a guess.", flow: f) }
+                else { giveHint(flow: f, lead: nil) }
+            case .giveUp, .skip:
+                reveal(flow: f)
+            case .repeatQuestion:
+                ask(flow: f)
+            }
+            return
+        }
+        tries += 1
+        if said.isEmpty {
+            // Nobody answered.
+            if hintShown { reveal(flow: f) }
+            else { giveHint(flow: f, lead: Self.silenceLines.randomElement()) }
+            return
+        }
+        // A wrong guess.
+        if !hintShown {
+            giveHint(flow: f, lead: Self.wrongLines.randomElement())
+        } else if tries < 3 {
+            speakThenListen(Self.oneMoreGuess, flow: f)
         } else {
-            // correct == false (wrong) and correct == nil (ungradable)
-            // both reveal the answer; the host still taps +1 if it was right.
-            voiceVerdict = false
-            verdict = correct == nil
-                ? "I couldn't quite judge that -- the answer was \(letter). \(q.options[q.correctIndex])."
-                : "Not quite -- it was \(letter). \(q.options[q.correctIndex])."
+            reveal(flow: f, lead: Self.wrongLines.randomElement())
         }
-        quizPhase = .grading
-        speech.speak(verdict)
-        // The host taps +1 on the scoreboard for whoever got it right,
-        // then Next Question -- same flow as a tapped answer.
     }
 
-    /// Manual tap or teardown cancels the in-flight voice round.
-    func cancelVoiceRound() {
-        voice.stop()
-        quizPhase = .idle
-        liveTranscript = ""
-        didReprompt = false
+    private func speakThenListen(_ line: String, flow f: Int) {
+        ear.stop()
+        phase = .reacting
+        speech.speak(line) { [weak self] in self?.openFloor(flow: f) }
     }
 
-    // MARK: Hold-to-talk
-
-    /// Press-and-hold mic button: press re-arms the window, release
-    /// finalizes. The reliable input in a noisy car.
-    func holdToTalkBegan() {
-        guard quizPhase == .listening else { return }
-        startListening()
-    }
-
-    func holdToTalkEnded() {
-        guard quizPhase == .listening else { return }
-        voice.finishEarly()
-    }
-
-    // MARK: - Voice answer matching (client-side, free)
-
-    private func voiceLetterIndex(_ transcript: String) -> Int? {
-        let t = transcript.lowercased()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let letters = ["a", "b", "c", "d"]
-        // "option B"
-        if let m = t.range(of: #"option\s+([a-d])"#,
-                           options: .regularExpression),
-           let last = String(t[m]).last,
-           let i = letters.firstIndex(of: String(last)) {
-            return i
+    private func giveHint(flow f: Int, lead: String?) {
+        guard let hintLine = lines?.hint else { return }
+        ear.stop()
+        hintShown = true
+        phase = .reacting
+        let sayHint: () -> Void = { [weak self] in
+            guard let self, f == self.flow else { return }
+            self.speech.speak(hintLine) { [weak self] in self?.openFloor(flow: f) }
         }
-        // Standalone letter, but only in a short transcript -- "a" as an
-        // article inside a longer sentence must not count as answering A.
-        if t.split(separator: " ").count <= 3 {
-            let padded = " \(t) "
-            for (i, l) in letters.enumerated()
-            where padded.contains(" \(l) ") {
-                return i
+        if let lead { speech.speak(lead, completion: sayHint) } else { sayHint() }
+    }
+
+    private func celebrate(flow f: Int) {
+        guard let line = lines?.correct, gotIt == nil else { return }
+        ear.stop()
+        correct += 1
+        gotIt = true
+        phase = .revealed
+        speech.speak(line) { [weak self] in self?.wrapUp(flow: f) }
+    }
+
+    private func reveal(flow f: Int, lead: String? = nil) {
+        guard let line = lines?.reveal, gotIt == nil else { return }
+        ear.stop()
+        gotIt = false
+        phase = .revealed
+        let sayAnswer: () -> Void = { [weak self] in
+            guard let self, f == self.flow else { return }
+            self.speech.speak(line) { [weak self] in self?.wrapUp(flow: f) }
+        }
+        if let lead { speech.speak(lead, completion: sayAnswer) } else { sayAnswer() }
+    }
+
+    /// After the answer: a score check every ten questions, a short
+    /// breather, then the next question by itself.
+    private func wrapUp(flow f: Int) {
+        guard f == flow, isActive else { return }
+        if micReady, asked % 10 == 0 {
+            speech.speak(summaryLine()) { [weak self] in self?.breather(flow: f) }
+        } else {
+            breather(flow: f)
+        }
+    }
+
+    private func breather(flow f: Int) {
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            guard let self, f == self.flow, self.isActive else { return }
+            self.nextQuestion()
+        }
+    }
+
+    // MARK: - Lines
+
+    private func prepared(_ item: TravelItem) -> (item: TravelItem, lines: Lines) {
+        let intro = (item.kind == .riddle ? Self.riddleIntros : Self.quizIntros)
+            .randomElement() ?? ""
+        var ask = "\(intro) \(item.prompt)"
+        if let options = item.options { ask += " Is it \(Self.spokenList(options))?" }
+        let answer = Self.capitalizedFirst(item.answer)
+        let fact = item.fact.map { " \($0)" } ?? ""
+        let lines = Lines(
+            ask: ask,
+            hint: "Here's a hint. \(item.hint)",
+            correct: "\(Self.praise.randomElement() ?? "Yes!") \(answer)!\(fact)",
+            reveal: "\(Self.revealIntros.randomElement() ?? "The answer is") \(item.answer)!\(fact)"
+        )
+        return (item, lines)
+    }
+
+    private func summaryLine() -> String {
+        let ratio = Double(correct) / Double(max(asked, 1))
+        let quip: String
+        if ratio >= 0.8 { quip = "You lot are way too smart for one car." }
+        else if ratio >= 0.5 { quip = "Not bad at all!" }
+        else { quip = "Don't worry, I'm blaming the road noise." }
+        return "That's \(asked) questions! You got \(correct) right. \(quip) Keep going!"
+    }
+
+    private static func spokenList(_ items: [String]) -> String {
+        guard items.count > 1 else { return items.first ?? "" }
+        return items.dropLast().joined(separator: ", ") + ", or " + (items.last ?? "")
+    }
+
+    private static func capitalizedFirst(_ text: String) -> String {
+        guard let first = text.first else { return text }
+        return first.uppercased() + String(text.dropFirst())
+    }
+
+    private static let introWithMic =
+        "Hi everyone, I'm your road trip quizmaster! I ask, you shout out the answer. Stuck? Just say hint. Let's go!"
+    private static let introNoMic =
+        "Hi everyone, I'm your road trip quizmaster! I ask, you shout out the answer, and I'll tell you if you got it after a little thinking time. Let's go!"
+
+    private static let riddleIntros = ["Riddle time!", "Here's a riddle.", "Okay, brain teaser."]
+    private static let quizIntros = ["Quiz time!", "Quick question.", "Here's one for the smart people in the car."]
+    private static let praise = [
+        "Yes! Somebody in this car is a genius.",
+        "Nailed it!",
+        "Correct! Give that person the window seat.",
+        "Boom! That's right.",
+        "Yes! I'm impressed. A little annoyed, but impressed.",
+        "That's it! Extra snacks for the winner.",
+    ]
+    private static let revealIntros = ["The answer is", "Drumroll please... it's", "And the answer was"]
+    private static let wrongLines = [
+        "Ha! Nice try, but no.",
+        "Nope! I love the confidence though.",
+        "Ooh, interesting guess. Wrong, but interesting.",
+        "Not quite!",
+        "Ha, no! But that was a funny one.",
+    ]
+    private static let silenceLines = [
+        "Hello? Is anybody awake back there?",
+        "So quiet... I can hear the engine thinking.",
+        "Nobody? Okay, I'll help you out.",
+    ]
+    private static let oneMoreGuess = "Nope! One more guess."
+
+    // MARK: - Queues
+    //
+    // "Already asked" is tracked two ways on the phone and sent to the
+    // server with every request:
+    //  - prompts, to skip bundled items heard on earlier trips;
+    //  - ANSWERS, which is what the server dedupes on. A riddle comes back
+    //    reworded, but "a piano" is still "a piano", so the server tells
+    //    the model every answer this phone has heard is off limits.
+    // The phone's copy is the durable one: the hosted server's disk resets
+    // on every redeploy.
+
+    private static let promptHistoryKey = "travel_heard_items"
+    private static let answerHistoryKey = "travel_heard_answers"
+    private static let historyCap = 400
+
+    private var promptHistory: [String] {
+        UserDefaults.standard.stringArray(forKey: Self.promptHistoryKey) ?? []
+    }
+
+    private var answerHistory: [String] {
+        UserDefaults.standard.stringArray(forKey: Self.answerHistoryKey) ?? []
+    }
+
+    private func recordHeard(_ item: TravelItem) {
+        for (key, value) in [(Self.promptHistoryKey, item.prompt),
+                             (Self.answerHistoryKey, item.answer)] {
+            var h = UserDefaults.standard.stringArray(forKey: key) ?? []
+            h.append(value)
+            if h.count > Self.historyCap { h.removeFirst(h.count - Self.historyCap) }
+            UserDefaults.standard.set(h, forKey: key)
+        }
+    }
+
+    /// Only bundled items this phone hasn't heard; once those run out,
+    /// fresh server items take over (see dequeue).
+    private func buildQueues() {
+        let seen = Set(promptHistory)
+        riddleQueue = TravelDeck.riddles.filter { !seen.contains($0.prompt) }.shuffled()
+        quizQueue = TravelDeck.quiz.filter { !seen.contains($0.prompt) }.shuffled()
+        nextKind = Bool.random() ? .riddle : .quiz
+    }
+
+    private func dequeue() -> TravelItem {
+        let kind: TravelItem.Kind
+        switch style {
+        case .riddles: kind = .riddle
+        case .quiz:    kind = .quiz
+        case .mix:
+            kind = nextKind
+            nextKind = (nextKind == .riddle) ? .quiz : .riddle
+        }
+        if kind == .riddle {
+            return take(live: &liveRiddles, bundled: &riddleQueue, deck: TravelDeck.riddles)
+        }
+        return take(live: &liveQuiz, bundled: &quizQueue, deck: TravelDeck.quiz)
+    }
+
+    /// Fresh server items mixed with unheard bundled ones; a repeat from
+    /// the bundled deck only when there is nothing new at all (offline,
+    /// and every bundled item already heard).
+    private func take(live: inout [TravelItem], bundled: inout [TravelItem],
+                      deck: [TravelItem]) -> TravelItem {
+        if !live.isEmpty, bundled.isEmpty || Bool.random() {
+            return live.removeFirst()
+        }
+        if bundled.isEmpty { bundled = deck.shuffled() }
+        return bundled.removeFirst()
+    }
+
+    private func fetchLiveIfNeeded() {
+        guard isActive else { return }
+        switch style {
+        case .riddles: fetchLive(.riddle)
+        case .quiz:    fetchLive(.quiz)
+        case .mix:     fetchLive(.riddle); fetchLive(.quiz)
+        }
+    }
+
+    private func fetchLive(_ kind: TravelItem.Kind) {
+        let queued = kind == .riddle ? liveRiddles : liveQuiz
+        guard !fetching.contains(kind), queued.count < 4,
+              liveFailures[kind, default: 0] < 2 else { return }
+        fetching.insert(kind)
+        // Everything heard, plus everything already waiting in the queue.
+        let seenAnswers = answerHistory + (liveRiddles + liveQuiz).map(\.answer)
+        let topic = travelQuizTopics[topicIndex % travelQuizTopics.count]
+        topicIndex += 1
+        let promptsHeard = promptHistory
+        Task { [weak self] in
+            var items = await fetchTravelItems(kind: kind, seenAnswers: seenAnswers)
+            if items.isEmpty, kind == .quiz {
+                // No model on the server: Open Trivia DB questions instead.
+                items = await fetchLiveQuizQuestions(topic: topic, exclude: promptsHeard)
+                    .map(\.asItem)
+            }
+            guard let self, self.isActive else { return }
+            self.fetching.remove(kind)
+            let heard = Set(self.promptHistory)
+            let waiting = Set((self.liveRiddles + self.liveQuiz).map(\.prompt))
+            let fresh = items.filter { !heard.contains($0.prompt) && !waiting.contains($0.prompt) }
+            if fresh.isEmpty {
+                self.liveFailures[kind, default: 0] += 1   // offline: stop after two tries
+            } else {
+                self.liveFailures[kind] = 0
+                if kind == .riddle { self.liveRiddles += fresh } else { self.liveQuiz += fresh }
             }
         }
-        let ordinals = ["first": 0, "second": 1, "third": 2, "fourth": 3]
-        for (word, i) in ordinals where t.contains(word) {
-            return i
-        }
-        return nil
     }
-
-    private func voiceFuzzyMatches(_ transcript: String, _ answer: String) -> Bool {
-        let g = voiceNormalize(transcript), a = voiceNormalize(answer)
-        guard !g.isEmpty, !a.isEmpty else { return false }
-        if g == a || g.replacingOccurrences(of: " ", with: "")
-            == a.replacingOccurrences(of: " ", with: "") { return true }
-        let words = a.split(separator: " ")
-        if words.count >= 3,
-           g.replacingOccurrences(of: " ", with: "")
-            == words.map { String($0.prefix(1)) }.joined() { return true }
-        if g.contains(a) || a.contains(g) { return true }
-        return false
-    }
-
-    private func voiceNormalize(_ text: String) -> String {
-        var words = text.lowercased()
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-        if let first = words.first, ["the", "a", "an"].contains(first) {
-            words.removeFirst()
-        }
-        return words.joined(separator: " ")
-    }
-
-    // MARK: - Server grading fallback
-
-    private struct VoiceGradeResponse: Decodable {
-        let success: Bool
-        let correct: Bool?
-    }
-
-    private func serverGrade(transcript: String,
-                             question q: TravelQuestion) async -> Bool? {
-        let url = AppConstants.serverURL.appendingPathComponent("api/voice/grade")
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 20
-        request.httpBody = try? JSONSerialization.data(withJSONObject: [
-            "question": q.question,
-            "options": q.options,
-            "correct_answer": q.correctIndex,
-            "transcript": transcript,
-        ])
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-                return nil
-            }
-            let decoded = try JSONDecoder().decode(VoiceGradeResponse.self,
-                                                   from: data)
-            return decoded.success ? decoded.correct : nil
-        } catch {
-            return nil
-        }
-    }
-}
-
-// MARK: - game_ended payload
-
-struct TravelGameEndedPayload: Decodable {
-    let roomCode: String
-    let results: [AnyCodable]?
 }
