@@ -1,166 +1,257 @@
 import AVFoundation
 import SwiftUI
 
-/// Spoken prompts for Travel Mode, now cloud-first.
+/// The quizmaster's voice: ONE voice for the whole session.
 ///
-/// The quizmaster speaks through a natural neural voice served by the
-/// backend (`GET /api/voice/tts`, OpenAI TTS behind it -- the API key
-/// stays server-side). Audio streams via AVPlayer and is cached on disk
-/// by URLCache, so repeated lines ("Correct!") cost nothing and replay
-/// instantly. When the network is unavailable, the on-device
-/// AVSpeechSynthesizer enhanced voice is the fallback -- robotic beats
-/// silent in a tunnel.
+/// Two voices used to take turns -- the cloud AI voice and the phone's
+/// built-in one -- and could even talk over each other. Three causes,
+/// all fixed here:
+///  1. A 5 s "cloud didn't start" timer was not tied to the line it was
+///     armed for. Firing during a LATER line, it re-spoke the OLD line in
+///     the device voice on top of the new one.
+///  2. AVPlayer never used the URLCache the prefetch filled, so "cached"
+///     lines still streamed, hit that timer, and fell back line by line.
+///  3. The device fallback picked the alphabetically-first English voice,
+///     which can be one of Apple's novelty voices (Whisper, Bad News,
+///     Trinoids...) -- the "ghost" voice.
 ///
-/// CARPLAY LIMITATION -- there is no CarPlay screen UI for games, by Apple's
-/// design, not ours: CarPlay app categories are limited (audio, messaging,
-/// navigation, parking, charging, food ordering) and there is no games
-/// entitlement, so a game cannot render CarPlay templates at all. "CarPlay
-/// support" in Travel Mode therefore means audio routing only: speech
-/// routes through the car speakers automatically whenever the iPhone is
-/// connected via CarPlay or car Bluetooth, exactly like music or podcast
-/// audio. Do not attempt CarPlay scenes, templates, or entitlements here.
+/// Now: `prepare()` decides once, at the start of a session, whether the
+/// cloud voice is reachable. Cloud lines are fetched as data (through the
+/// disk cache, so prefetch really works) and played with AVAudioPlayer;
+/// every callback carries a token so a stale line can never speak or
+/// advance the game. If the cloud fails mid-session the session switches
+/// to the device voice for good -- one switch at most, never alternating.
+/// The device voice is a real (non-novelty) Siri-style English voice.
+///
+/// CARPLAY: there is no CarPlay UI for games (Apple has no games
+/// entitlement). Audio simply routes through the car speakers over
+/// CarPlay or Bluetooth like any other audio.
 @MainActor
 final class TravelSpeech: NSObject, ObservableObject {
-    /// On-device fallback: the most natural English voice on this device.
+
+    enum Voice { case undecided, cloud, device }
+
+    @Published private(set) var voice: Voice = .undecided
+    @Published private(set) var isSpeaking = false
+
+    var usingCloudVoice: Bool { voice == .cloud }
+
+    // MARK: Device voice
+
     private let synthesizer = AVSpeechSynthesizer()
-    private let fallbackVoice: AVSpeechSynthesisVoice? = {
+    private var currentUtterance: AVSpeechUtterance?
+
+    nonisolated private static func isNovelty(_ v: AVSpeechSynthesisVoice) -> Bool {
+        if v.voiceTraits.contains(.isNoveltyVoice) { return true }
+        // Older novelty / Eloquence voices ("Grandma", "Rocko"...) by id.
+        let id = v.identifier.lowercased()
+        return id.contains("speech.synthesis.voice") || id.contains("eloquence")
+    }
+
+    private let deviceVoice: AVSpeechSynthesisVoice? = {
         let english = AVSpeechSynthesisVoice.speechVoices().filter {
-            $0.language.hasPrefix("en")
+            $0.language.hasPrefix("en") && !TravelSpeech.isNovelty($0)
         }
-        let pool = english.filter { $0.language == "en-US" }
-        let candidates = pool.isEmpty ? english : pool
-        return candidates.sorted {
-            let lq = $0.quality == .enhanced ? 0 : 1
-            let rq = $1.quality == .enhanced ? 0 : 1
-            return (lq, $0.name) < (rq, $1.name)
+        func rank(_ q: AVSpeechSynthesisVoiceQuality) -> Int {
+            switch q {
+            case .premium:  return 0
+            case .enhanced: return 1
+            default:        return 2
+            }
+        }
+        let preferred = Locale.current.identifier.replacingOccurrences(of: "_", with: "-")
+        let best = english.sorted {
+            let l = (rank($0.quality), $0.language == preferred ? 0 : 1, $0.language == "en-US" ? 0 : 1)
+            let r = (rank($1.quality), $1.language == preferred ? 0 : 1, $1.language == "en-US" ? 0 : 1)
+            return l < r
         }.first
+        // Only take an upgraded voice; otherwise the system default
+        // English voice (Samantha et al.) is the safe, normal choice.
+        if let best, best.quality != .default { return best }
+        return AVSpeechSynthesisVoice(language: "en-US") ?? best
     }()
 
-    /// Cloud TTS player. One at a time: in a moving car, the newest prompt
-    /// always wins over a stale one.
-    private var player: AVPlayer?
-    private var endObserver: NSObjectProtocol?
-    private var failObserver: NSObjectProtocol?
-    private var pendingCompletion: (() -> Void)?
-    /// Guards the exactly-once fallback when a cloud stream fails.
-    private var didFallback = false
+    // MARK: Cloud voice
 
-    /// Disk cache for TTS audio: 20 MB memory / 200 MB disk. The endpoint
-    /// serves immutable Cache-Control, so repeats never re-hit the network.
+    private var audioPlayer: AVAudioPlayer?
+    /// Bumped on every speak/stop; callbacks for an older token are ignored.
+    private var token = 0
+    private var pendingCompletion: (() -> Void)?
+
+    /// Decoded lines kept in memory for this session (they are also on disk).
+    private var memory: [String: Data] = [:]
+    private var inflight: [String: Task<Data?, Never>] = [:]
+
     private static let ttsCache: URLCache = {
-        let dir = FileManager.default.urls(for: .cachesDirectory,
-                                           in: .userDomainMask).first?
+        let dir = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
             .appendingPathComponent("tts_audio")
-        return URLCache(memoryCapacity: 20 * 1024 * 1024,
+        return URLCache(memoryCapacity: 10 * 1024 * 1024,
                         diskCapacity: 200 * 1024 * 1024,
                         directory: dir)
     }()
+
     private lazy var ttsSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.urlCache = Self.ttsCache
         config.requestCachePolicy = .returnCacheDataElseLoad
-        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForRequest = 12
         return URLSession(configuration: config)
     }()
-
-    @Published private(set) var isSpeaking = false
-    /// True once a cloud voice has succeeded at least once this launch.
-    /// The UI can show a subtle "AI voice" vs "device voice" note from this.
-    @Published private(set) var usingCloudVoice = false
-
-    private var quizmasterAudio = false
 
     override init() {
         super.init()
         synthesizer.delegate = self
-        configureAudioSession()
     }
 
     // MARK: - Audio session
 
-    /// `.playback` for pure output (Read Aloud on hosted games).
-    func configureAudioSession() {
-        quizmasterAudio = false
+    /// Set ONCE per session. Switching categories between lines changes
+    /// the route and volume mid-game, which sounds like a different voice.
+    /// With the mic, `.defaultToSpeaker` keeps the voice on the loudspeaker
+    /// (not the earpiece) when no car audio is connected.
+    func configureSession(withMic: Bool) {
         let session = AVAudioSession.sharedInstance()
         do {
-            // `.spokenAudio` mode tunes ducking/frequency response for
-            // speech; `.duckOthers` lowers music instead of stopping it.
-            try session.setCategory(.playback, mode: .spokenAudio,
-                                    options: [.duckOthers])
+            if withMic {
+                try session.setCategory(.playAndRecord, mode: .default,
+                                        options: [.defaultToSpeaker, .duckOthers,
+                                                  .allowBluetoothA2DP])
+            } else {
+                try session.setCategory(.playback, mode: .spokenAudio,
+                                        options: [.duckOthers])
+            }
             try session.setActive(true)
         } catch {
-            // Speech still works on the built-in speaker if the category
-            // set fails; never block play on audio setup.
+            // Never block play on audio setup; the built-in speaker works.
         }
     }
 
-    /// `.playAndRecord` + `.voiceChat` for the quizmaster: this is what buys
-    /// echo cancellation, so the mic doesn't re-hear the question coming
-    /// through the car speakers. `.allowBluetoothA2DP` keeps high-quality
-    /// output routing to the car; input stays on the iPhone's built-in mic
-    /// (the phone is in the passenger's hand -- the "pass the mic" pattern).
-    /// The state machine (TravelModeViewModel) additionally never arms the
-    /// mic while TTS is playing -- half-duplex by design.
-    func enableQuizmasterAudio() {
-        quizmasterAudio = true
-        let session = AVAudioSession.sharedInstance()
-        do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat,
-                                    options: [.duckOthers, .allowBluetoothA2DP])
-            try session.setActive(true)
-        } catch {
-            // Fall through to the .playback session; the quizmaster still
-            // works, just without echo cancellation.
-        }
+    func deactivateSession() {
+        try? AVAudioSession.sharedInstance()
+            .setActive(false, options: .notifyOthersOnDeactivation)
     }
 
-    // MARK: - Speaking
+    // MARK: - Choosing the voice
 
-    /// Speak one prompt. Anything already playing is cut off first.
-    /// - Parameter completion: called on the main actor when the utterance
-    ///   finishes (or is cut off). The quizmaster uses this to arm the mic
-    ///   exactly when the question ends -- never while we're still talking.
-    func speak(_ text: String, completion: (() -> Void)? = nil) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { completion?(); return }
-        stop()
-        pendingCompletion = completion
-        // Cloud first. playCloud's failure observer falls back to the
-        // device voice mid-flight if the stream can't play (no API key,
-        // tunnel, 502) -- the game never goes silent.
-        if !playCloud(trimmed) {
-            speakOnDevice(trimmed)
-        }
-    }
-
-    /// Fire-and-forget: fetch (and cache) the audio for `text` now, so
-    /// speaking it later starts instantly. Used to pre-generate the *next*
-    /// question while the players answer the current one -- zero dead air.
-    func prefetch(_ text: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let url = ttsURL(for: trimmed) else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        ttsSession.dataTask(with: request).resume()
-    }
-
-    /// Wake the hosted server when Travel Mode opens. Render's free tier
-    /// sleeps after ~15 min idle and takes 30-60s to wake; without this,
-    /// the first question's cloud stream can't start within the 5s
-    /// fallback timeout and the game opens on the robotic device voice.
-    /// A short real line is used so the bytes are also useful if spoken.
+    /// Wake the server early (it sleeps when idle) so `prepare` finds it up.
     func warmUpServer() {
         prefetch("Let's play!")
     }
 
+    /// Decide the session's voice: cloud if a line can be fetched within
+    /// `timeout`, else the device voice. Called once per session.
+    func prepare(firstLine: String, timeout: TimeInterval = 10) async {
+        guard voice == .undecided else { return }
+        let fetch = audio(for: firstLine)
+        let timer = Task { () -> Data? in
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            return nil
+        }
+        let data = await withTaskGroup(of: Data?.self) { group -> Data? in
+            group.addTask { await fetch.value }
+            group.addTask { await timer.value }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+        timer.cancel()
+        voice = (data != nil) ? .cloud : .device
+    }
+
+    /// Fetch and keep a line's audio so speaking it later starts instantly.
+    func prefetch(_ text: String) {
+        guard voice != .device else { return }
+        _ = audio(for: text)
+    }
+
+    // MARK: - Speaking
+
+    /// Speak one line. Anything already playing is cut off, and its
+    /// completion is dropped (a cut-off line never advances the game).
+    /// `completion` runs once, on the main actor, when this line finishes.
+    func speak(_ text: String, completion: (() -> Void)? = nil) {
+        let line = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        stop()
+        guard !line.isEmpty else { completion?(); return }
+        let myToken = token
+        pendingCompletion = completion
+        isSpeaking = true
+        if voice != .cloud {
+            speakOnDevice(line)
+            return
+        }
+        let fetch = audio(for: line)
+        Task { [weak self] in
+            let data = await fetch.value
+            guard let self, self.token == myToken else { return }
+            if let data, let player = try? AVAudioPlayer(data: data) {
+                player.delegate = self
+                self.audioPlayer = player
+                if player.play() { return }
+            }
+            // The cloud failed: the device voice from here on, so the
+            // car never hears the two voices alternate.
+            self.audioPlayer = nil
+            self.voice = .device
+            self.speakOnDevice(line)
+        }
+    }
+
     func stop() {
-        finishCompletion()
-        teardownPlayer()
+        token += 1
+        pendingCompletion = nil
+        audioPlayer?.stop()
+        audioPlayer = nil
+        currentUtterance = nil
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
         isSpeaking = false
     }
 
-    // MARK: - Cloud TTS
+    /// End of session: forget the voice choice so the next one re-checks.
+    func reset() {
+        stop()
+        voice = .undecided
+        memory.removeAll()
+        inflight.values.forEach { $0.cancel() }
+        inflight.removeAll()
+    }
+
+    private func finished(token finishedToken: Int) {
+        guard finishedToken == token else { return }
+        audioPlayer = nil
+        currentUtterance = nil
+        isSpeaking = false
+        let completion = pendingCompletion
+        pendingCompletion = nil
+        completion?()
+    }
+
+    // MARK: - Cloud audio fetch
+
+    private func audio(for text: String) -> Task<Data?, Never> {
+        if let data = memory[text] { return Task<Data?, Never> { data } }
+        if let task = inflight[text] { return task }
+        guard let url = ttsURL(for: text) else { return Task<Data?, Never> { nil } }
+        let session = ttsSession
+        let task = Task { [weak self] () -> Data? in
+            let result = try? await session.data(from: url)
+            let ok = (result?.1 as? HTTPURLResponse)?.statusCode == 200
+            let data = ok ? result?.0 : nil
+            // Anything tiny is an error body, not audio.
+            let audio = (data?.count ?? 0) > 1_000 ? data : nil
+            await MainActor.run {
+                guard let self else { return }
+                self.inflight[text] = nil
+                if let audio {
+                    if self.memory.count > 150 { self.memory.removeAll() }
+                    self.memory[text] = audio
+                }
+            }
+            return audio
+        }
+        inflight[text] = task
+        return task
+    }
 
     private func ttsURL(for text: String) -> URL? {
         var components = URLComponents(
@@ -170,116 +261,51 @@ final class TravelSpeech: NSObject, ObservableObject {
         return components?.url
     }
 
-    /// Streams the backend's TTS audio. Returns true when playback started
-    /// (cloud path); false means "use the on-device fallback" now.
-    /// A failed stream (e.g. the server 502s with no API key configured)
-    /// falls back mid-flight via the failure observer below.
-    private func playCloud(_ text: String) -> Bool {
-        guard let url = ttsURL(for: text) else { return false }
-        let item = AVPlayerItem(url: url)
-        let player = AVPlayer(playerItem: item)
-        self.player = player
-        isSpeaking = true
-        didFallback = false
-        let center = NotificationCenter.default
-        endObserver = center.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: item, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.cloudDidFinish() }
-        }
-        failObserver = center.addObserver(
-            forName: .AVPlayerItemFailedToPlayToEndTime,
-            object: item, queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in self?.cloudDidFail(text) }
-        }
-        player.play()
-        // If the stream can't even start (server down, 502, tunnel),
-        // don't hang: fall back to the device voice after a short wait.
-        Task {
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            await MainActor.run { [weak self] in
-                self?.cloudStartTimeout(text)
-            }
-        }
-        return true
-    }
-
-    private func cloudStartTimeout(_ text: String) {
-        // Still not playing and not finished: the stream is stuck.
-        guard player?.timeControlStatus != .playing,
-              player?.currentItem != nil else { return }
-        cloudDidFail(text)
-    }
-
-    private func cloudDidFail(_ text: String) {
-        guard !didFallback else { return }
-        didFallback = true
-        teardownPlayer()
-        speakOnDevice(text)
-    }
-
-    private func cloudDidFinish() {
-        teardownPlayer()
-        isSpeaking = false
-        usingCloudVoice = true
-        finishCompletion()
-    }
-
-    private func teardownPlayer() {
-        if let observer = endObserver {
-            NotificationCenter.default.removeObserver(observer)
-            endObserver = nil
-        }
-        if let observer = failObserver {
-            NotificationCenter.default.removeObserver(observer)
-            failObserver = nil
-        }
-        player?.pause()
-        player = nil
-    }
-
-    private func finishCompletion() {
-        let completion = pendingCompletion
-        pendingCompletion = nil
-        completion?()
-    }
-
-    // MARK: - On-device fallback
+    // MARK: - Device voice
 
     private func speakOnDevice(_ text: String) {
         let utterance = AVSpeechUtterance(string: text)
-        if let fallbackVoice { utterance.voice = fallbackVoice }
-        // Deliberate and clear at highway noise levels; the default rate
-        // (0.5) is too fast over road noise for younger/older players.
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.92
-        utterance.preUtteranceDelay = 0.15
+        if let deviceVoice { utterance.voice = deviceVoice }
+        // A touch slower than default: clearer over road noise.
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.95
         utterance.postUtteranceDelay = 0.1
+        currentUtterance = utterance
         isSpeaking = true
         synthesizer.speak(utterance)
+    }
+
+    private func deviceFinished(_ utterance: AVSpeechUtterance) {
+        // Only the line we're waiting on may advance the game; a cancelled
+        // older utterance reports in late and must be ignored.
+        guard utterance === currentUtterance else { return }
+        finished(token: token)
+    }
+}
+
+extension TravelSpeech: AVAudioPlayerDelegate {
+    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        Task { @MainActor in
+            guard player === self.audioPlayer else { return }
+            self.finished(token: self.token)
+        }
+    }
+
+    nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        Task { @MainActor in
+            guard player === self.audioPlayer else { return }
+            self.finished(token: self.token)
+        }
     }
 }
 
 extension TravelSpeech: AVSpeechSynthesizerDelegate {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
-                                       didStart utterance: AVSpeechUtterance) {
-        Task { @MainActor in self.isSpeaking = true }
-    }
-
-    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didFinish utterance: AVSpeechUtterance) {
-        Task { @MainActor in
-            self.isSpeaking = false
-            self.finishCompletion()
-        }
+        Task { @MainActor in self.deviceFinished(utterance) }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didCancel utterance: AVSpeechUtterance) {
-        Task { @MainActor in
-            self.isSpeaking = false
-            self.finishCompletion()
-        }
+        Task { @MainActor in self.deviceFinished(utterance) }
     }
 }

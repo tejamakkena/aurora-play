@@ -72,7 +72,9 @@ final class TravelVoiceListener: NSObject, ObservableObject {
         self.audioEngine = audioEngine
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
-        request.requiresOnDeviceRecognition = true
+        // On-device when this phone supports it (free, private, works in
+        // tunnels); otherwise Apple's server recognizer rather than none.
+        request.requiresOnDeviceRecognition = recognizer.supportsOnDeviceRecognition
         // Task hint improves end-of-utterance detection for short answers.
         if #available(iOS 13, *) {
             request.taskHint = .dictation

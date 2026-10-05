@@ -202,7 +202,6 @@ final class ControllerRootViewModel: ObservableObject {
     }
 
     /// The room this phone is seated in, whatever screen it is on.
-    /// Travel Mode tracks its own room inside its view model.
     var currentRoom: Room? {
         switch screen {
         case .waiting(let r), .rules(let r, _), .playing(let r, _), .results(let r): return r
@@ -210,8 +209,8 @@ final class ControllerRootViewModel: ObservableObject {
         }
     }
 
-    /// Non-nil while Travel Mode is active. Owns the travel session; the
-    /// socket handlers below forward travel traffic to it.
+    /// Non-nil while Travel Mode is active. Travel Mode is phone-only (no
+    /// room), so none of the socket handlers below involve it.
     @Published var travelVM: TravelModeViewModel? = nil
 
     var isHost: Bool {
@@ -228,12 +227,6 @@ final class ControllerRootViewModel: ObservableObject {
         // controller instead of flashing back to the lobby.
         socket.on(.roomJoined) { [weak self] (response: RoomJoinedResponse) in
             guard let self else { return }
-            // Travel Mode runs its own create/seat/join sequence on this
-            // same socket; route its traffic to the travel view model.
-            if let travel = self.travelVM, travel.isActive {
-                travel.handleRoomJoined(response)
-                return
-            }
             self.joinTimeoutTask?.cancel()
             self.pendingJoinCode = nil
             let room = response.room
@@ -256,12 +249,6 @@ final class ControllerRootViewModel: ObservableObject {
         // Room state changes (more players join, game ends, etc.)
         socket.on(.roomUpdated) { [weak self] (room: Room) in
             guard let self else { return }
-            // A travel room's updates (seats joining, host id) belong to
-            // the travel session, not the join/waiting/results screens.
-            if let travel = self.travelVM, travel.isActive, travel.roomCode == room.code {
-                travel.handleRoomUpdated(room)
-                return
-            }
             switch room.state {
             case .lobby:
                 if case .waiting = self.screen { self.screen = .waiting(room) }
@@ -280,13 +267,6 @@ final class ControllerRootViewModel: ObservableObject {
         // A phone joining mid-rules gets this re-sent to it directly.
         socket.on(.gameStarted) { [weak self] (response: GameStartedResponse) in
             guard let self else { return }
-            // Travel Mode has no rules card — hand the event to the travel
-            // VM so it can lift the gate immediately; otherwise the phone
-            // parks on the rules interstitial until the host taps Begin.
-            if let travel = self.travelVM, travel.isActive {
-                travel.handleGameStarted(response)
-                return
-            }
             self.pendingRules = response.rules
             switch self.screen {
             case .waiting(let room), .results(let room):
@@ -312,12 +292,6 @@ final class ControllerRootViewModel: ObservableObject {
         // private_state again; a phone on its results screen needs this too).
         socket.on(.privateState) { [weak self] (r: PrivateStateResponse) in
             guard let self else { return }
-            // In Travel Mode the phone holds one seat per car player; each
-            // seat's private slice goes to the travel view model.
-            if let travel = self.travelVM, travel.ownsSeat(r.playerID) {
-                travel.handlePrivateState(r)
-                return
-            }
             guard r.playerID == self.playerID else { return }
             switch self.screen {
             case .waiting(let room), .playing(let room, _), .results(let room):
@@ -331,12 +305,6 @@ final class ControllerRootViewModel: ObservableObject {
         socket.on(.error) { [weak self] (r: ErrorResponse) in
             guard let self else { return }
             self.joinTimeoutTask?.cancel()
-            // Travel create/start failures (unknown game, not enough
-            // players) surface on the travel setup screen, not as the
-            // join-flow error overlay.
-            if let travel = self.travelVM, travel.isActive {
-                travel.handleError(r.message)
-            }
             // Only show error overlay from loading state; in-game errors stay silent
             if case .loading = self.screen {
                 self.screen = .error(r.message)
