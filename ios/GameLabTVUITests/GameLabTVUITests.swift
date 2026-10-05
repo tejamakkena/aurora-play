@@ -122,8 +122,15 @@ final class GameLabTVUITests: XCTestCase {
 
             let deadline = Date().addingTimeInterval(5)
             while Date() < deadline {
-                if debugLabel.exists {
-                    XCTAssertEqual(debugLabel.label, expectedLabel)
+                // Read the banner through one snapshot, not `exists` and
+                // then `.label`: pick(_:)'s createRoom round-trip can flip
+                // the screen to the lobby between those two queries, and
+                // reading `.label` off the unmounted element fails the test
+                // ("No matches found for debugLastInput") even though the
+                // press DID reach pick(_:). A failed snapshot just means
+                // "not there right now" and falls through to the checks below.
+                if let banner = try? debugLabel.snapshot() {
+                    XCTAssertEqual(banner.label, expectedLabel)
                     return
                 }
                 if !triviaCard.exists {
