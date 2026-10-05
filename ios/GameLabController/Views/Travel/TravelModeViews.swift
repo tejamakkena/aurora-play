@@ -67,6 +67,21 @@ struct TravelModeRootView: View {
                 .font(.headline)
                 .foregroundColor(.white)
             Spacer()
+            // Which voice is actually speaking: green "AI voice" once cloud
+            // TTS has succeeded, gray "Device voice" while the phone's
+            // built-in voice covers (e.g. no OpenAI quota on the server).
+            // If this never turns green, the AI voice isn't set up.
+            HStack(spacing: 6) {
+                Image(systemName: travel.speech.usingCloudVoice
+                      ? "sparkles" : "speaker.wave.2.fill")
+                Text(travel.speech.usingCloudVoice ? "AI voice" : "Device voice")
+            }
+            .font(.caption2.bold())
+            .foregroundColor(travel.speech.usingCloudVoice
+                             ? .green : .white.opacity(0.5))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Capsule().fill(Color.white.opacity(0.06)))
             if let code = travel.roomCode {
                 Text(code)
                     .font(.subheadline.monospaced().bold())

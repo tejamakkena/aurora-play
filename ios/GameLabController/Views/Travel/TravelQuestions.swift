@@ -62,11 +62,20 @@ private func fetchFromTravelEndpoint(base: URL, topic: String, count: Int, exclu
     var queryItems = [
         URLQueryItem(name: "topic", value: topic),
         URLQueryItem(name: "count", value: String(count)),
+        // Identifies this phone so the server's per-device served history
+        // can keep repeats away even for a fresh install with no local
+        // history. (Was missing entirely -- the server's dedup bucket was
+        // never keyed, so its cache served the identical batch every game.)
+        URLQueryItem(name: "device", value: AppConstants.deviceID),
     ]
     // Already-asked questions, so the server's per-topic cache can't hand
-    // back the identical batch game after game. Capped client-side too.
-    if !exclude.isEmpty,
-       let json = try? JSONSerialization.data(withJSONObject: Array(exclude.prefix(50))),
+    // back the identical batch game after game. History is oldest-first,
+    // so take from the tail: the most recent ~15 games. (Was prefix(50) --
+    // the OLDEST 50 -- so anything asked after the first five games was
+    // never excluded and repeats were guaranteed.)
+    let recent = Array(exclude.suffix(150))
+    if !recent.isEmpty,
+       let json = try? JSONSerialization.data(withJSONObject: recent),
        let text = String(data: json, encoding: .utf8) {
         queryItems.append(URLQueryItem(name: "exclude", value: text))
     }
