@@ -22,6 +22,10 @@
 	<string>Aurora Play uses motion to let you tilt and shake your phone as a game controller.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Aurora Play connects to the game server on your local network.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Travel Mode's quizmaster listens to your spoken answers through the microphone so it can hear and grade them.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Your spoken quiz answers are transcribed on-device so the quizmaster can check them.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_aurora._tcp</string>
