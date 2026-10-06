@@ -19,14 +19,19 @@ import UIKit
 // The engine is back to a classic-style board (10 snakes, 9 ladders) after a
 // 3-snake version was reported as "same and easy". To keep that many set
 // pieces cheap:
-//   * each snake body is ONE procedurally built tube mesh (one draw call)
-//     instead of a chain of per-segment capsules, textured with a small
-//     repeating pattern; materials and head geometry are shared per style;
+//   * each snake body is ONE continuous, tapering, slightly flattened tube
+//     mesh swept along an S-curve (one draw call) instead of a chain of
+//     capsule "balloons", wearing a runtime-drawn scale skin (dorsal
+//     pattern, pale belly) plus a shared scale normal map; materials and
+//     head geometry are shared per style, and nothing is rebuilt per frame;
 //   * each ladder is built from shared wood material/rung geometry and then
 //     flattened into a single node;
 //   * every idle animation is an `SCNAction` loop on a small head/tongue
 //     node -- no per-frame work, no particle systems;
 //   * the numbered grid is one texture drawn once, not 100 text nodes.
+// The board is printed card with a little thickness, lying on a wooden
+// table in a warm, lamp-lit room (fogged into a dim background, with a
+// SwiftUI vignette on top) rather than floating in a black void.
 // Tokens walk square by square along the boustrophedon path; moves queue per
 // token, so a quick roll-again on a 6 waits for the previous walk/slide to
 // finish instead of fighting it.
@@ -211,6 +216,13 @@ struct TVSnakeLadderBoardView: View {
             // atmosphere, never the only place a state fact lives.
             SnakeLadderCinematicBoardSceneView(state: vm.state)
                 .ignoresSafeArea()
+
+            // A soft vignette, like a lamp-lit table in a dim room: the
+            // board stays bright, the corners of the room fall off.
+            RadialGradient(colors: [.clear, .black.opacity(0.55)], center: .center,
+                           startRadius: 420, endRadius: 1200)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
 
             VStack {
                 LinearGradient(colors: [.black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom)
@@ -468,7 +480,7 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         view.scene = context.coordinator.scene
         view.pointOfView = context.coordinator.cameraRig.cameraNode
         view.antialiasingMode = .multisampling4X
-        view.backgroundColor = .black
+        view.backgroundColor = Coordinator.roomColor
         view.isPlaying = true
         view.rendersContinuously = true
         context.coordinator.apply(state, animated: false)
@@ -490,6 +502,7 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         private let cellSize: Float = 0.9
         private let boardExtent: Float = 9.0      // 10 * cellSize
         private let boardTopY: Float = 0.06       // top surface of the board slab
+        private let tableTopY: Float = -0.02      // the tabletop the board lies on
         private let tokenHoverHeight: Float = 0.22
         /// One square-to-square hop while a token walks its roll.
         private let hopSeconds: TimeInterval = 0.2
@@ -542,28 +555,46 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             scene.rootNode.addChildNode(cameraRig.cameraNode)
             lighting.addToScene(scene)
 
-            let floor = SCNNode(geometry: SCNCylinder(radius: CGFloat(boardRadius) * 2.6, height: 0.02))
-            let floorMaterial = SCNMaterial()
-            floorMaterial.lightingModel = .physicallyBased
-            floorMaterial.diffuse.contents = UIColor(red: 0.05, green: 0.035, blue: 0.03, alpha: 1)
-            floorMaterial.roughness.contents = 0.9
-            floor.geometry?.materials = [floorMaterial]
-            floor.position = SCNVector3(0, -0.2, 0)
-            scene.rootNode.addChildNode(floor)
+            // A real room, not a void: the board lies on a big wooden
+            // table, the far edges of which fade into a warm, dim room
+            // through fog the color of the background.
+            let room = Coordinator.roomColor
+            scene.background.contents = room
+            scene.fogColor = room
+            scene.fogStartDistance = 15
+            scene.fogEndDistance = 32
+            scene.fogDensityExponent = 1.4
 
-            let dicePosition = SCNVector3(-(boardExtent / 2 + 1.4), 0.35, -(boardExtent / 2 + 0.5))
+            let table = SCNBox(width: 24, height: 0.4, length: 18, chamferRadius: 0.06)
+            table.materials = [SnakeLadderSharedParts.tableMaterial()]
+            let tableNode = SCNNode(geometry: table)
+            tableNode.position = SCNVector3(0, tableTopY - 0.2, -1.0)
+            scene.rootNode.addChildNode(tableNode)
+
+            // Warm, lamp-lit key: the shared rig's spotlight shifted toward
+            // tungsten, plus a soft warm side lamp (no shadows, so it costs
+            // no extra shadow pass) that lifts the board's near edge.
+            lighting.apply(PhaseLightingMood(keyTemperature: 3500, fillTemperature: 4300,
+                                             keyIntensity: 1350, fillIntensity: 300),
+                           duration: 0)
+            let lamp = SCNLight()
+            lamp.type = .omni
+            lamp.color = UIColor(red: 1.0, green: 0.80, blue: 0.58, alpha: 1)
+            lamp.intensity = 380
+            lamp.castsShadow = false
+            let lampNode = SCNNode()
+            lampNode.light = lamp
+            lampNode.position = SCNVector3(-7, 6, 6)
+            scene.rootNode.addChildNode(lampNode)
+
+            // The die rests on the table beside the board.
+            let dicePosition = SCNVector3(-(boardExtent / 2 + 1.4), tableTopY + 0.25, -(boardExtent / 2 + 0.5))
             dice.rootNode.position = dicePosition
             scene.rootNode.addChildNode(dice.rootNode)
-
-            let pedestalMaterial = SCNMaterial()
-            pedestalMaterial.lightingModel = .physicallyBased
-            pedestalMaterial.diffuse.contents = UIColor(red: 0.30, green: 0.18, blue: 0.10, alpha: 1)
-            pedestalMaterial.roughness.contents = 0.6
-            let pedestal = SCNNode(geometry: SCNCylinder(radius: 0.5, height: 0.5))
-            pedestal.geometry?.materials = [pedestalMaterial]
-            pedestal.position = SCNVector3(dicePosition.x, 0.1, dicePosition.z)
-            scene.rootNode.addChildNode(pedestal)
         }
+
+        /// The dim, warm room around the table (background and fog).
+        static let roomColor = UIColor(red: 0.10, green: 0.06, blue: 0.035, alpha: 1)
 
         // MARK: - Board dressing (built once, the first time snakes/ladders arrive)
 
@@ -579,22 +610,19 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             topMaterial.diffuse.mipFilter = .linear
             topMaterial.roughness.contents = 0.55
 
-            // SCNBox material order is documented as front/right/back/left/
-            // top/bottom -- index 4 is the +y face, the only one that needs
-            // the numbered grid texture.
-            let slab = SCNBox(width: CGFloat(boardExtent), height: 0.12, length: CGFloat(boardExtent), chamferRadius: 0.02)
-            let wood = parts.woodMaterial
-            slab.materials = [wood, wood, wood, wood, topMaterial, wood]
-            scene.rootNode.addChildNode(SCNNode(geometry: slab))
-
-            // A raised wooden frame around the grid, like a real folding
-            // board, sitting just under the printed surface.
-            let frame = SCNBox(width: CGFloat(boardExtent + 0.5), height: 0.14,
-                               length: CGFloat(boardExtent + 0.5), chamferRadius: 0.05)
-            frame.materials = [parts.frameMaterial]
-            let frameNode = SCNNode(geometry: frame)
-            frameNode.position = SCNVector3(0, -0.02, 0)
-            scene.rootNode.addChildNode(frameNode)
+            // The board itself: printed cardboard with a little thickness,
+            // lying flat on the table. SCNBox material order is documented
+            // as front/right/back/left/top/bottom -- index 4 is the +y face,
+            // the only one that needs the numbered grid texture; the edges
+            // show the layered board stock.
+            let thickness = boardTopY - tableTopY
+            let slab = SCNBox(width: CGFloat(boardExtent), height: CGFloat(thickness),
+                              length: CGFloat(boardExtent), chamferRadius: 0.012)
+            let edge = Coordinator.boardEdgeMaterial()
+            slab.materials = [edge, edge, edge, edge, topMaterial, edge]
+            let slabNode = SCNNode(geometry: slab)
+            slabNode.position = SCNVector3(0, tableTopY + thickness / 2, 0)
+            scene.rootNode.addChildNode(slabNode)
 
             // Sorted so each snake keeps the same style on every launch.
             for (index, head) in state.snakes.keys.sorted().enumerated() {
@@ -950,7 +978,9 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         /// the token gets there.
         private func placeRing(for pid: String, at anchor: SCNVector3, after delay: TimeInterval) {
             guard let ring = playerRings[pid] else { return }
-            let target = SCNVector3(anchor.x, boardTopY + 0.02, anchor.z)
+            // Just above whatever surface the token stands on (the board,
+            // or the table for an off-board token).
+            let target = SCNVector3(anchor.x, anchor.y - tokenHoverHeight + 0.02, anchor.z)
             ring.removeAction(forKey: "ringMove")
             if delay <= 0 {
                 ring.position = target
@@ -968,8 +998,9 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             return SCNVector3(x, boardTopY, z)
         }
 
+        /// Off-board tokens wait on the table beside square 1.
         private func stagingPoint(index: Int) -> SCNVector3 {
-            SCNVector3(-(boardExtent / 2 + 1.1), boardTopY, 3.6 - Float(index) * 0.75)
+            SCNVector3(-(boardExtent / 2 + 1.1), tableTopY, 3.6 - Float(index) * 0.75)
         }
 
         private func tokenAnchor(square: Int) -> SCNVector3 {
@@ -1018,6 +1049,27 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
                 let ct = min(max(t, 0), 1)
                 node.position = SCNVector3(a.x + (b.x - a.x) * ct, a.y + (b.y - a.y) * ct, a.z + (b.z - a.z) * ct)
             }
+        }
+
+        /// The board's cut edge: layered board stock -- a printed red
+        /// border band over pale card with faint ply lines.
+        private static func boardEdgeMaterial() -> SCNMaterial {
+            let size = CGSize(width: 64, height: 32)
+            let image = UIGraphicsImageRenderer(size: size).image { _ in
+                UIColor(red: 0.88, green: 0.82, blue: 0.70, alpha: 1).setFill()
+                UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
+                UIColor(red: 0.62, green: 0.14, blue: 0.10, alpha: 1).setFill()
+                UIBezierPath(rect: CGRect(x: 0, y: 0, width: size.width, height: 9)).fill()
+                UIColor(white: 0, alpha: 0.12).setFill()
+                for y: CGFloat in [15, 21, 27] {
+                    UIBezierPath(rect: CGRect(x: 0, y: y, width: size.width, height: 1)).fill()
+                }
+            }
+            let material = SCNMaterial()
+            material.lightingModel = .physicallyBased
+            material.diffuse.contents = image
+            material.roughness.contents = 0.8
+            return material
         }
 
         private static func winnerShot() -> CameraShot {
@@ -1096,100 +1148,246 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
 
 // MARK: - Shared snake/ladder parts
 
-/// One snake look: body color, pattern color and pattern. Cycled by snake
-/// index (snakes sorted by head square), so with the classic ten snakes
-/// almost every snake has its own identity at TV distance.
+/// One natural snake look: body color, dorsal pattern color, the pale
+/// outline some patterns carry, belly tint and the dorsal pattern itself.
+/// Cycled by snake index (snakes sorted by head square), so with the
+/// classic ten snakes almost every snake has its own identity at TV
+/// distance.
 private struct SnakeStyle {
-    enum Pattern { case bands, diamonds, spots, zigzag }
+    enum Pattern {
+        case blotches   // python: big irregular dorsal saddles
+        case diamonds   // rattlesnake: a chain of outlined diamonds
+        case bands      // krait: full rings
+        case coral      // coral snake: wide rings edged in a thin pale ring
+        case zigzag     // viper: a dark zigzag down the spine
+        case spots      // a double row of small dorsal spots
+    }
 
     let base: UIColor
     let accent: UIColor
+    let outline: UIColor
+    let belly: UIColor
     let pattern: Pattern
 
     static let all: [SnakeStyle] = [
-        SnakeStyle(base: UIColor(red: 0.16, green: 0.55, blue: 0.22, alpha: 1),
-                   accent: UIColor(red: 0.98, green: 0.84, blue: 0.20, alpha: 1), pattern: .bands),
-        SnakeStyle(base: UIColor(red: 0.78, green: 0.14, blue: 0.12, alpha: 1),
-                   accent: UIColor(red: 0.12, green: 0.08, blue: 0.06, alpha: 1), pattern: .diamonds),
-        SnakeStyle(base: UIColor(red: 0.15, green: 0.35, blue: 0.82, alpha: 1),
-                   accent: UIColor(red: 0.92, green: 0.95, blue: 1.00, alpha: 1), pattern: .zigzag),
-        SnakeStyle(base: UIColor(red: 0.45, green: 0.20, blue: 0.70, alpha: 1),
-                   accent: UIColor(red: 1.00, green: 0.62, blue: 0.18, alpha: 1), pattern: .spots),
-        SnakeStyle(base: UIColor(red: 0.10, green: 0.10, blue: 0.12, alpha: 1),
-                   accent: UIColor(red: 0.98, green: 0.88, blue: 0.25, alpha: 1), pattern: .bands),
-        SnakeStyle(base: UIColor(red: 0.92, green: 0.50, blue: 0.10, alpha: 1),
-                   accent: UIColor(red: 0.35, green: 0.18, blue: 0.06, alpha: 1), pattern: .diamonds),
-        SnakeStyle(base: UIColor(red: 0.08, green: 0.55, blue: 0.55, alpha: 1),
-                   accent: UIColor(red: 0.05, green: 0.25, blue: 0.20, alpha: 1), pattern: .spots),
-        SnakeStyle(base: UIColor(red: 0.95, green: 0.80, blue: 0.18, alpha: 1),
-                   accent: UIColor(red: 0.80, green: 0.12, blue: 0.10, alpha: 1), pattern: .zigzag),
+        // Green python.
+        SnakeStyle(base: UIColor(red: 0.27, green: 0.50, blue: 0.16, alpha: 1),
+                   accent: UIColor(red: 0.09, green: 0.20, blue: 0.06, alpha: 1),
+                   outline: UIColor(red: 0.78, green: 0.82, blue: 0.40, alpha: 1),
+                   belly: UIColor(red: 0.86, green: 0.86, blue: 0.56, alpha: 1), pattern: .blotches),
+        // Brown/tan rattlesnake.
+        SnakeStyle(base: UIColor(red: 0.70, green: 0.56, blue: 0.36, alpha: 1),
+                   accent: UIColor(red: 0.33, green: 0.20, blue: 0.10, alpha: 1),
+                   outline: UIColor(red: 0.95, green: 0.89, blue: 0.72, alpha: 1),
+                   belly: UIColor(red: 0.93, green: 0.87, blue: 0.71, alpha: 1), pattern: .diamonds),
+        // Black-and-yellow banded krait.
+        SnakeStyle(base: UIColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1),
+                   accent: UIColor(red: 0.95, green: 0.80, blue: 0.16, alpha: 1),
+                   outline: UIColor(red: 0.07, green: 0.07, blue: 0.07, alpha: 1),
+                   belly: UIColor(red: 0.85, green: 0.78, blue: 0.50, alpha: 1), pattern: .bands),
+        // Red coral-style: red with black rings edged in yellow.
+        SnakeStyle(base: UIColor(red: 0.78, green: 0.13, blue: 0.08, alpha: 1),
+                   accent: UIColor(red: 0.06, green: 0.05, blue: 0.05, alpha: 1),
+                   outline: UIColor(red: 0.98, green: 0.84, blue: 0.22, alpha: 1),
+                   belly: UIColor(red: 0.90, green: 0.55, blue: 0.40, alpha: 1), pattern: .coral),
+        // Olive viper.
+        SnakeStyle(base: UIColor(red: 0.45, green: 0.46, blue: 0.21, alpha: 1),
+                   accent: UIColor(red: 0.17, green: 0.17, blue: 0.07, alpha: 1),
+                   outline: UIColor(red: 0.70, green: 0.70, blue: 0.42, alpha: 1),
+                   belly: UIColor(red: 0.82, green: 0.80, blue: 0.58, alpha: 1), pattern: .zigzag),
+        // Brown python.
+        SnakeStyle(base: UIColor(red: 0.56, green: 0.40, blue: 0.22, alpha: 1),
+                   accent: UIColor(red: 0.22, green: 0.13, blue: 0.07, alpha: 1),
+                   outline: UIColor(red: 0.85, green: 0.72, blue: 0.48, alpha: 1),
+                   belly: UIColor(red: 0.90, green: 0.82, blue: 0.62, alpha: 1), pattern: .blotches),
+        // Emerald tree snake with pale dorsal spots.
+        SnakeStyle(base: UIColor(red: 0.08, green: 0.48, blue: 0.26, alpha: 1),
+                   accent: UIColor(red: 0.90, green: 0.95, blue: 0.85, alpha: 1),
+                   outline: UIColor(red: 0.04, green: 0.25, blue: 0.12, alpha: 1),
+                   belly: UIColor(red: 0.80, green: 0.90, blue: 0.55, alpha: 1), pattern: .spots),
+        // Grey-brown rattlesnake.
+        SnakeStyle(base: UIColor(red: 0.56, green: 0.52, blue: 0.45, alpha: 1),
+                   accent: UIColor(red: 0.24, green: 0.21, blue: 0.18, alpha: 1),
+                   outline: UIColor(red: 0.90, green: 0.87, blue: 0.80, alpha: 1),
+                   belly: UIColor(red: 0.88, green: 0.85, blue: 0.76, alpha: 1), pattern: .diamonds),
     ]
 
     static func style(_ index: Int) -> SnakeStyle {
         all[((index % all.count) + all.count) % all.count]
     }
 
-    /// One repeat of the skin pattern. `u` (x) runs around the body, with
-    /// the top of the back at x = 0.25 and the belly at x = 0.75; `v` (y)
-    /// runs along the body and repeats.
+    /// Side length of the square skin/normal textures, and of one scale.
+    static let texturePixels = 128
+    static let scalePixels = 16
+
+    /// One repeat of the skin. `u` (x) runs around the body, with the top
+    /// of the back (the dorsal line) at x = 0.25 and the belly at x = 0.75;
+    /// `v` (y) runs along the body and repeats. Drawn once per style with
+    /// Core Graphics and shared by every snake wearing that style.
     func skinTexture() -> UIImage {
-        let w: CGFloat = 128
-        let h: CGFloat = 128
+        let w = CGFloat(SnakeStyle.texturePixels)
+        let h = w
         let size = CGSize(width: w, height: h)
         return UIGraphicsImageRenderer(size: size).image { _ in
             base.setFill()
             UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
-            // A paler belly strip, like a real snake's underside.
-            UIColor(white: 1, alpha: 0.3).setFill()
-            UIBezierPath(rect: CGRect(x: w * 0.62, y: 0, width: w * 0.26, height: h)).fill()
 
-            let edge = UIColor(white: 0, alpha: 0.35)
+            // Lighter belly, feathered into the flanks.
+            belly.withAlphaComponent(0.45).setFill()
+            UIBezierPath(rect: CGRect(x: w * 0.52, y: 0, width: w * 0.46, height: h)).fill()
+            belly.setFill()
+            UIBezierPath(rect: CGRect(x: w * 0.60, y: 0, width: w * 0.30, height: h)).fill()
+
             switch pattern {
-            case .bands:
-                accent.setFill()
-                let band = UIBezierPath(rect: CGRect(x: 0, y: 0, width: w, height: h * 0.3))
-                band.fill()
-                edge.setFill()
-                UIBezierPath(rect: CGRect(x: 0, y: h * 0.3, width: w, height: 3)).fill()
-                UIBezierPath(rect: CGRect(x: 0, y: 0, width: w, height: 3)).fill()
+            case .blotches:
+                // Irregular dorsal saddles with pale borders, python style,
+                // plus small lateral blotches low on each flank.
+                let saddles: [CGRect] = [
+                    CGRect(x: w * 0.08, y: h * 0.04, width: w * 0.34, height: h * 0.36),
+                    CGRect(x: w * 0.12, y: h * 0.54, width: w * 0.26, height: h * 0.34),
+                ]
+                for rect in saddles {
+                    let saddle = UIBezierPath(roundedRect: rect, cornerRadius: w * 0.09)
+                    outline.withAlphaComponent(0.9).setStroke()
+                    saddle.lineWidth = 5
+                    saddle.stroke()
+                    accent.setFill()
+                    saddle.fill()
+                }
+                accent.withAlphaComponent(0.8).setFill()
+                UIBezierPath(ovalIn: CGRect(x: w * 0.44, y: h * 0.40, width: w * 0.10, height: h * 0.14)).fill()
+                UIBezierPath(ovalIn: CGRect(x: w * 0.94, y: h * 0.40, width: w * 0.10, height: h * 0.14)).fill()
+                UIBezierPath(ovalIn: CGRect(x: w * -0.06, y: h * 0.40, width: w * 0.10, height: h * 0.14)).fill()
             case .diamonds:
+                // A chain of dark diamonds with pale borders down the spine.
                 let diamond = UIBezierPath()
                 diamond.move(to: CGPoint(x: w * 0.25, y: 0))
-                diamond.addLine(to: CGPoint(x: w * 0.45, y: h * 0.5))
+                diamond.addLine(to: CGPoint(x: w * 0.47, y: h * 0.5))
                 diamond.addLine(to: CGPoint(x: w * 0.25, y: h))
-                diamond.addLine(to: CGPoint(x: w * 0.05, y: h * 0.5))
+                diamond.addLine(to: CGPoint(x: w * 0.03, y: h * 0.5))
                 diamond.close()
+                outline.setStroke()
+                diamond.lineWidth = 8
+                diamond.stroke()
                 accent.setFill()
                 diamond.fill()
-                edge.setStroke()
-                diamond.lineWidth = 4
-                diamond.stroke()
-            case .spots:
+                // Lighter diamond centres.
+                let inner = UIBezierPath()
+                inner.move(to: CGPoint(x: w * 0.25, y: h * 0.28))
+                inner.addLine(to: CGPoint(x: w * 0.34, y: h * 0.5))
+                inner.addLine(to: CGPoint(x: w * 0.25, y: h * 0.72))
+                inner.addLine(to: CGPoint(x: w * 0.16, y: h * 0.5))
+                inner.close()
+                base.withAlphaComponent(0.6).setFill()
+                inner.fill()
+            case .bands:
                 accent.setFill()
-                edge.setStroke()
-                let spots: [(CGFloat, CGFloat, CGFloat)] = [
-                    (0.25, 0.25, 0.14), (0.5, 0.75, 0.10), (0.0, 0.75, 0.10), (1.0, 0.75, 0.10),
-                ]
-                for (x, y, r) in spots {
-                    let spot = UIBezierPath(ovalIn: CGRect(x: x * w - r * w, y: y * h - r * w,
-                                                           width: 2 * r * w, height: 2 * r * w))
-                    spot.fill()
-                    spot.lineWidth = 3
-                    spot.stroke()
-                }
+                UIBezierPath(rect: CGRect(x: 0, y: 0, width: w, height: h * 0.32)).fill()
+            case .coral:
+                outline.setFill()
+                UIBezierPath(rect: CGRect(x: 0, y: h * 0.0, width: w, height: h * 0.44)).fill()
+                accent.setFill()
+                UIBezierPath(rect: CGRect(x: 0, y: h * 0.06, width: w, height: h * 0.32)).fill()
             case .zigzag:
                 let zig = UIBezierPath()
-                zig.move(to: CGPoint(x: w * 0.12, y: 0))
-                zig.addLine(to: CGPoint(x: w * 0.38, y: h * 0.25))
-                zig.addLine(to: CGPoint(x: w * 0.12, y: h * 0.5))
-                zig.addLine(to: CGPoint(x: w * 0.38, y: h * 0.75))
-                zig.addLine(to: CGPoint(x: w * 0.12, y: h))
-                zig.lineWidth = w * 0.1
+                zig.move(to: CGPoint(x: w * 0.13, y: 0))
+                zig.addLine(to: CGPoint(x: w * 0.37, y: h * 0.25))
+                zig.addLine(to: CGPoint(x: w * 0.13, y: h * 0.5))
+                zig.addLine(to: CGPoint(x: w * 0.37, y: h * 0.75))
+                zig.addLine(to: CGPoint(x: w * 0.13, y: h))
                 zig.lineJoinStyle = .miter
-                accent.setStroke()
+                outline.withAlphaComponent(0.7).setStroke()
+                zig.lineWidth = w * 0.14
                 zig.stroke()
+                accent.setStroke()
+                zig.lineWidth = w * 0.09
+                zig.stroke()
+            case .spots:
+                accent.setFill()
+                outline.setStroke()
+                let spots: [(CGFloat, CGFloat)] = [(0.17, 0.2), (0.33, 0.45), (0.17, 0.7), (0.33, 0.95), (0.33, -0.05)]
+                for (x, y) in spots {
+                    let spot = UIBezierPath(ovalIn: CGRect(x: x * w - w * 0.06, y: y * h - w * 0.06,
+                                                           width: w * 0.12, height: w * 0.12))
+                    spot.fill()
+                    spot.lineWidth = 2
+                    spot.stroke()
+                }
+            }
+
+            // Overlapping scale rows over everything: each scale is a
+            // small arc, offset half a scale on alternate rows, with a
+            // faint highlight on its upper edge. Same tiling as the
+            // shared normal map, so the shading lines up with the lines.
+            let cell = CGFloat(SnakeStyle.scalePixels)
+            let cells = SnakeStyle.texturePixels / SnakeStyle.scalePixels
+            for row in 0..<cells {
+                let shift: CGFloat = row % 2 == 0 ? 0 : cell / 2
+                for col in -1...cells {
+                    let cx = CGFloat(col) * cell + cell / 2 - shift
+                    let cy = CGFloat(row) * cell + cell / 2
+                    let scale = UIBezierPath(arcCenter: CGPoint(x: cx, y: cy), radius: cell * 0.55,
+                                             startAngle: 0, endAngle: .pi, clockwise: true)
+                    UIColor(white: 0, alpha: 0.22).setStroke()
+                    scale.lineWidth = 1.5
+                    scale.stroke()
+                    let shine = UIBezierPath(arcCenter: CGPoint(x: cx, y: cy - cell * 0.1), radius: cell * 0.3,
+                                             startAngle: .pi * 1.15, endAngle: .pi * 1.85, clockwise: true)
+                    UIColor(white: 1, alpha: 0.12).setStroke()
+                    shine.lineWidth = 1.5
+                    shine.stroke()
+                }
             }
         }
+    }
+
+    /// A tangent-space normal map of domed, overlapping scales on the same
+    /// tiling as `skinTexture`'s scale lines. Computed once (128x128) from a
+    /// height field and shared by every snake.
+    static func scaleNormalMap() -> UIImage? {
+        let size = texturePixels
+        let cell = scalePixels
+        var height = [Float](repeating: 0, count: size * size)
+        for y in 0..<size {
+            let row = y / cell
+            let shift = row % 2 == 0 ? 0 : cell / 2
+            for x in 0..<size {
+                let lx = Float((x + shift) % cell) - Float(cell) / 2 + 0.5
+                let ly = Float(y % cell) - Float(cell) / 2 + 0.5
+                let d = sqrt(lx * lx + ly * ly) / (Float(cell) * 0.62)
+                height[y * size + x] = max(0, 1 - d * d)
+            }
+        }
+        var pixels = [UInt8](repeating: 255, count: size * size * 4)
+        let strength: Float = 2.2
+        for y in 0..<size {
+            for x in 0..<size {
+                let left = height[y * size + (x + size - 1) % size]
+                let right = height[y * size + (x + 1) % size]
+                let up = height[((y + size - 1) % size) * size + x]
+                let down = height[((y + 1) % size) * size + x]
+                var nx = (left - right) * strength
+                var ny = (up - down) * strength
+                var nz: Float = 1
+                let len = sqrt(nx * nx + ny * ny + nz * nz)
+                nx /= len
+                ny /= len
+                nz /= len
+                let i = (y * size + x) * 4
+                pixels[i] = UInt8(max(0, min(255, (nx * 0.5 + 0.5) * 255)))
+                pixels[i + 1] = UInt8(max(0, min(255, (ny * 0.5 + 0.5) * 255)))
+                pixels[i + 2] = UInt8(max(0, min(255, (nz * 0.5 + 0.5) * 255)))
+                pixels[i + 3] = 255
+            }
+        }
+        guard let provider = CGDataProvider(data: Data(pixels) as CFData),
+              let image = CGImage(width: size, height: size, bitsPerComponent: 8, bitsPerPixel: 32,
+                                  bytesPerRow: size * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                                  provider: provider, decode: nil, shouldInterpolate: true,
+                                  intent: .defaultIntent)
+        else { return nil }
+        return UIImage(cgImage: image)
     }
 }
 
@@ -1199,11 +1397,14 @@ private struct SnakeStyle {
 @MainActor
 private final class SnakeLadderSharedParts {
     let woodMaterial: SCNMaterial
-    let frameMaterial: SCNMaterial
     let rungGeometry: SCNGeometry
     let eyeGeometry: SCNGeometry
     let pupilGeometry: SCNGeometry
+    let glintGeometry: SCNGeometry
     let tongueGeometry: SCNGeometry
+    let tongueForkGeometry: SCNGeometry
+    /// The domed-scale normal map, shared by every snake's skin and head.
+    private let scaleNormals: UIImage?
     private var bodyMaterials: [Int: SCNMaterial] = [:]
     private var headGeometries: [Int: SCNGeometry] = [:]
 
@@ -1216,13 +1417,6 @@ private final class SnakeLadderSharedParts {
         wood.metalness.contents = 0.0
         woodMaterial = wood
 
-        let frame = SCNMaterial()
-        frame.lightingModel = .physicallyBased
-        frame.diffuse.contents = SnakeLadderSharedParts.woodTexture(
-            base: UIColor(red: 0.36, green: 0.20, blue: 0.09, alpha: 1))
-        frame.roughness.contents = 0.6
-        frameMaterial = frame
-
         let rung = SCNCylinder(radius: 0.035, height: 0.56)
         rung.radialSegmentCount = 10
         rung.materials = [wood]
@@ -1230,9 +1424,9 @@ private final class SnakeLadderSharedParts {
 
         let eyeMaterial = SCNMaterial()
         eyeMaterial.lightingModel = .physicallyBased
-        eyeMaterial.diffuse.contents = UIColor(red: 1.0, green: 0.93, blue: 0.45, alpha: 1)
-        eyeMaterial.emission.contents = UIColor(white: 0.25, alpha: 1)
-        let eye = SCNSphere(radius: 0.055)
+        eyeMaterial.diffuse.contents = UIColor(red: 0.95, green: 0.72, blue: 0.15, alpha: 1)
+        eyeMaterial.roughness.contents = 0.1
+        let eye = SCNSphere(radius: 0.05)
         eye.segmentCount = 12
         eye.materials = [eyeMaterial]
         eyeGeometry = eye
@@ -1240,21 +1434,37 @@ private final class SnakeLadderSharedParts {
         let pupilMaterial = SCNMaterial()
         pupilMaterial.lightingModel = .physicallyBased
         pupilMaterial.diffuse.contents = UIColor.black
-        pupilMaterial.roughness.contents = 0.2
-        let pupil = SCNSphere(radius: 0.028)
+        pupilMaterial.roughness.contents = 0.05
+        let pupil = SCNSphere(radius: 0.03)
         pupil.segmentCount = 10
         pupil.materials = [pupilMaterial]
         pupilGeometry = pupil
 
+        // The glossy highlight: a tiny unlit white dot on each eye, so the
+        // eyes read as wet and alive under any light.
+        let glintMaterial = SCNMaterial()
+        glintMaterial.lightingModel = .constant
+        glintMaterial.diffuse.contents = UIColor.white
+        let glint = SCNSphere(radius: 0.012)
+        glint.segmentCount = 6
+        glint.materials = [glintMaterial]
+        glintGeometry = glint
+
         let tongueMaterial = SCNMaterial()
         tongueMaterial.lightingModel = .physicallyBased
         tongueMaterial.diffuse.contents = UIColor(red: 0.85, green: 0.08, blue: 0.15, alpha: 1)
-        let tongue = SCNBox(width: 0.045, height: 0.014, length: 0.22, chamferRadius: 0)
+        tongueMaterial.roughness.contents = 0.3
+        let tongue = SCNBox(width: 0.032, height: 0.012, length: 0.2, chamferRadius: 0)
         tongue.materials = [tongueMaterial]
         tongueGeometry = tongue
+        let fork = SCNBox(width: 0.018, height: 0.01, length: 0.08, chamferRadius: 0)
+        fork.materials = [tongueMaterial]
+        tongueForkGeometry = fork
+
+        scaleNormals = SnakeStyle.scaleNormalMap()
     }
 
-    /// The patterned, repeating skin for a snake style.
+    /// The patterned, scaled, repeating skin for a snake style.
     func bodyMaterial(style index: Int) -> SCNMaterial {
         let key = ((index % SnakeStyle.all.count) + SnakeStyle.all.count) % SnakeStyle.all.count
         if let cached = bodyMaterials[key] { return cached }
@@ -1264,22 +1474,39 @@ private final class SnakeLadderSharedParts {
         material.diffuse.wrapS = .repeat
         material.diffuse.wrapT = .repeat
         material.diffuse.mipFilter = .linear
-        material.roughness.contents = 0.35
-        material.metalness.contents = 0.05
+        if let scaleNormals {
+            material.normal.contents = scaleNormals
+            material.normal.wrapS = .repeat
+            material.normal.wrapT = .repeat
+            material.normal.mipFilter = .linear
+            material.normal.intensity = 0.8
+        }
+        // Snakeskin has a soft satin sheen rather than a plastic shine.
+        material.roughness.contents = 0.42
+        material.metalness.contents = 0.0
         material.isDoubleSided = true
         bodyMaterials[key] = material
         return material
     }
 
-    /// The (plain, body-colored) head shape for a snake style.
+    /// The head shape for a snake style: a sphere the snake scales into a
+    /// flattened wedge, in the style's body color with the same scales.
     func headGeometry(style index: Int) -> SCNGeometry {
         let key = ((index % SnakeStyle.all.count) + SnakeStyle.all.count) % SnakeStyle.all.count
         if let cached = headGeometries[key] { return cached }
+        let style = SnakeStyle.style(key)
         let material = SCNMaterial()
         material.lightingModel = .physicallyBased
-        material.diffuse.contents = SnakeStyle.style(key).base
-        material.roughness.contents = 0.35
-        let sphere = SCNSphere(radius: 0.26)
+        material.diffuse.contents = style.pattern == .coral ? style.accent : style.base
+        if let scaleNormals {
+            material.normal.contents = scaleNormals
+            material.normal.wrapS = .repeat
+            material.normal.wrapT = .repeat
+            material.normal.contentsTransform = SCNMatrix4MakeScale(3, 2, 1)
+            material.normal.intensity = 0.6
+        }
+        material.roughness.contents = 0.4
+        let sphere = SCNSphere(radius: 0.24)
         sphere.segmentCount = 24
         sphere.materials = [material]
         headGeometries[key] = sphere
@@ -1304,15 +1531,66 @@ private final class SnakeLadderSharedParts {
             }
         }
     }
+
+    /// The tabletop the board rests on: warm, honey-toned planks with
+    /// flowing grain and dark seams, tiled across a large slab.
+    static func tableMaterial() -> SCNMaterial {
+        let size = CGSize(width: 512, height: 512)
+        let plankHeight: CGFloat = 128
+        let tones: [UIColor] = [
+            UIColor(red: 0.50, green: 0.30, blue: 0.15, alpha: 1),
+            UIColor(red: 0.56, green: 0.34, blue: 0.17, alpha: 1),
+            UIColor(red: 0.46, green: 0.27, blue: 0.13, alpha: 1),
+            UIColor(red: 0.53, green: 0.32, blue: 0.16, alpha: 1),
+        ]
+        let image = UIGraphicsImageRenderer(size: size).image { _ in
+            for plank in 0..<4 {
+                let top = CGFloat(plank) * plankHeight
+                tones[plank % tones.count].setFill()
+                UIBezierPath(rect: CGRect(x: 0, y: top, width: size.width, height: plankHeight)).fill()
+                // Gently waving grain lines along each plank.
+                for line in 0..<9 {
+                    let baseY = top + 8 + CGFloat(line) * 13
+                    let grain = UIBezierPath()
+                    grain.move(to: CGPoint(x: 0, y: baseY))
+                    var x: CGFloat = 0
+                    while x <= size.width {
+                        let wave = sin((x / size.width) * 2 * .pi * CGFloat(1 + (line + plank) % 3)
+                                       + CGFloat(line)) * 3
+                        grain.addLine(to: CGPoint(x: x, y: baseY + wave))
+                        x += 16
+                    }
+                    UIColor(red: 0.20, green: 0.10, blue: 0.04, alpha: line % 3 == 0 ? 0.22 : 0.10).setStroke()
+                    grain.lineWidth = line % 3 == 0 ? 2 : 1
+                    grain.stroke()
+                }
+                // Dark seam between planks.
+                UIColor(red: 0.12, green: 0.06, blue: 0.02, alpha: 0.85).setFill()
+                UIBezierPath(rect: CGRect(x: 0, y: top, width: size.width, height: 3)).fill()
+            }
+        }
+        let material = SCNMaterial()
+        material.lightingModel = .physicallyBased
+        material.diffuse.contents = image
+        material.diffuse.wrapS = .repeat
+        material.diffuse.wrapT = .repeat
+        material.diffuse.mipFilter = .linear
+        material.diffuse.contentsTransform = SCNMatrix4MakeScale(3, 3, 1)
+        material.roughness.contents = 0.45
+        return material
+    }
 }
 
 // MARK: - Snakes
 
-/// A single snake: one smooth, tapering tube mesh (head to tail) wiggling
-/// in an S-curve between its head square and its tail square, with a
-/// distinct head (eyes, flicking tongue) on the head square and a pointed
-/// tail ending on the tail square. One draw call for the whole body; the
-/// only animation is a couple of `SCNAction` loops on the head.
+/// A single snake: one smooth, continuous, tapering tube mesh swept along
+/// an S-curve from its head square to its tail square, with a slightly
+/// flattened cross-section so it reads as lying on the board, a scaled
+/// skin, a wedge-shaped head (glossy eyes, a forked tongue that flicks
+/// now and then) on the head square and a thin pointed tail ending on the
+/// tail square. The body is built once and is one draw call; the only
+/// animation is a couple of `SCNAction` loops on the head and tongue --
+/// no per-frame mesh rebuilds.
 @MainActor
 private final class SnakeNode {
     let rootNode = SCNNode()
@@ -1327,6 +1605,9 @@ private final class SnakeNode {
     private let gestureNode: SCNNode
     private let tongueNode: SCNNode
 
+    /// Height of the body's cross-section relative to its width.
+    private static let flatten: Float = 0.72
+
     init(headSquare: Int, tailSquare: Int, squareToPoint: (Int) -> SCNVector3,
          boardTopY: Float, styleIndex: Int, parts: SnakeLadderSharedParts) {
         let head2D = squareToPoint(headSquare)
@@ -1338,10 +1619,12 @@ private final class SnakeNode {
             ? SCNVector3(-dz / length, 0, dx / length)
             : SCNVector3(1, 0, 0)
 
-        // An S-curve whose wiggle fades to zero at both ends, so the head
-        // sits exactly on the head square and the tail tip exactly on the
-        // tail square. Alternate snakes bend the opposite way.
-        let samples = max(24, min(64, Int(length / 0.15)))
+        // A smooth S-curve whose wiggle fades to zero at both ends, so the
+        // head sits exactly on the head square and the tail tip exactly on
+        // the tail square. Alternate snakes bend the opposite way. The
+        // curve is analytic (a sine wave under a sine envelope), so it is
+        // smooth at any sample count -- no control-point kinks.
+        let samples = max(28, min(72, Int(length / 0.13)))
         let waves = max(1, (length / 2.4).rounded())
         let amplitude = min(0.42, 0.2 + length * 0.025) * (styleIndex.isMultiple(of: 2) ? 1 : -1)
         var centers: [SCNVector3] = []
@@ -1354,23 +1637,25 @@ private final class SnakeNode {
             let r = SnakeNode.radius(at: t)
             radii.append(r)
             centers.append(SCNVector3(head2D.x + dx * t + perp.x * offset,
-                                      boardTopY + r * 0.9,
+                                      boardTopY + r * SnakeNode.flatten * 0.92,
                                       head2D.z + dz * t + perp.z * offset))
         }
         pathPoints = centers
 
         let skin = parts.bodyMaterial(style: styleIndex)
-        let tube = SnakeNode.tubeGeometry(centers: centers, radii: radii, radialSegments: 10, repeatLength: 0.5)
+        let tube = SnakeNode.tubeGeometry(centers: centers, radii: radii, radialSegments: 12,
+                                          flatten: SnakeNode.flatten, repeatLength: 0.85)
         tube.materials = [skin]
         rootNode.addChildNode(SCNNode(geometry: tube))
 
-        // Close the pointed tail tip.
+        // Close the thin tail tip.
         if let tipCenter = centers.last, let tipRadius = radii.last {
             let tip = SCNSphere(radius: CGFloat(tipRadius))
             tip.segmentCount = 8
             tip.materials = [skin]
             let tipNode = SCNNode(geometry: tip)
             tipNode.position = tipCenter
+            tipNode.scale = SCNVector3(1, SnakeNode.flatten, 1)
             rootNode.addChildNode(tipNode)
         }
 
@@ -1382,33 +1667,53 @@ private final class SnakeNode {
         let heading = atan2(forward.x, forward.z)
 
         let orient = SCNNode()
-        orient.position = SCNVector3(first.x, boardTopY + 0.17, first.z)
+        orient.position = SCNVector3(first.x, boardTopY + 0.15, first.z)
         orient.eulerAngles = SCNVector3(0, heading, 0)
         let sway = SCNNode()
         orient.addChildNode(sway)
         let gesture = SCNNode()
         sway.addChildNode(gesture)
 
-        let skull = SCNNode(geometry: parts.headGeometry(style: styleIndex))
-        skull.scale = SCNVector3(1.0, 0.68, 1.3)       // flattened, elongated snout
-        skull.position = SCNVector3(0, 0, 0.08)
+        // A wedge: a broad, flat skull blending into a narrower, flatter
+        // snout -- two scaled copies of the same sphere.
+        let headShape = parts.headGeometry(style: styleIndex)
+        let skull = SCNNode(geometry: headShape)
+        skull.scale = SCNVector3(1.0, 0.6, 1.05)
+        skull.position = SCNVector3(0, 0, 0.02)
         gesture.addChildNode(skull)
+        let snout = SCNNode(geometry: headShape)
+        snout.scale = SCNVector3(0.72, 0.46, 0.95)
+        snout.position = SCNVector3(0, -0.015, 0.2)
+        gesture.addChildNode(snout)
 
         for side: Float in [-1, 1] {
             let eye = SCNNode(geometry: parts.eyeGeometry)
-            eye.position = SCNVector3(side * 0.13, 0.12, 0.2)
+            eye.position = SCNVector3(side * 0.15, 0.08, 0.15)
             gesture.addChildNode(eye)
             let pupil = SCNNode(geometry: parts.pupilGeometry)
-            pupil.position = SCNVector3(side * 0.145, 0.14, 0.24)
+            pupil.position = SCNVector3(side * 0.175, 0.085, 0.16)
+            pupil.scale = SCNVector3(0.5, 1.0, 0.45)   // a vertical slit
             gesture.addChildNode(pupil)
+            let glint = SCNNode(geometry: parts.glintGeometry)
+            glint.position = SCNVector3(side * 0.19, 0.11, 0.18)
+            glint.castsShadow = false
+            gesture.addChildNode(glint)
         }
 
-        let tongue = SCNNode(geometry: parts.tongueGeometry)
-        // Pivot at the tongue's back end, so scaling shoots it out of the
-        // mouth rather than growing it in both directions.
-        tongue.pivot = SCNMatrix4MakeTranslation(0, 0, -0.11)
-        tongue.position = SCNVector3(0, -0.04, 0.36)
+        // Forked tongue: a thin red strip plus two angled tips, inside a
+        // container scaled from the mouth so a flick shoots it out.
+        let tongue = SCNNode()
+        tongue.position = SCNVector3(0, -0.04, 0.4)
         tongue.scale = SCNVector3(0.05, 0.05, 0.05)
+        let strip = SCNNode(geometry: parts.tongueGeometry)
+        strip.position = SCNVector3(0, 0, 0.1)
+        tongue.addChildNode(strip)
+        for side: Float in [-1, 1] {
+            let fork = SCNNode(geometry: parts.tongueForkGeometry)
+            fork.position = SCNVector3(side * 0.016, 0, 0.23)
+            fork.eulerAngles = SCNVector3(0, side * 0.45, 0)
+            tongue.addChildNode(fork)
+        }
         tongue.castsShadow = false
         gesture.addChildNode(tongue)
 
@@ -1421,21 +1726,23 @@ private final class SnakeNode {
     }
 
     /// Body radius along the snake: a slim neck behind the head, the
-    /// thickest point a little way down, tapering to a point at the tail.
+    /// thickest point a little way down, tapering to a thin tail.
     private static func radius(at t: Float) -> Float {
-        if t < 0.18 {
-            return 0.15 + 0.04 * (t / 0.18)
+        if t < 0.15 {
+            return 0.13 + 0.05 * (t / 0.15)
         }
-        let rest = (t - 0.18) / 0.82
-        return 0.17 * pow(max(0, 1 - rest), 0.85) + 0.02
+        let rest = (t - 0.15) / 0.85
+        return 0.165 * pow(max(0, 1 - rest), 1.1) + 0.015
     }
 
     /// A tube swept along `centers`: rings of `radialSegments + 1` vertices
-    /// (the seam is duplicated so the texture wraps cleanly), outward
-    /// normals, and texture coordinates with `u` around the body (0.25 =
-    /// top of the back) and `v` along it in repeats of `repeatLength`.
-    private static func tubeGeometry(centers: [SCNVector3], radii: [Float],
-                                     radialSegments: Int, repeatLength: Float) -> SCNGeometry {
+    /// (the seam is duplicated so the texture wraps cleanly) on an
+    /// elliptical cross-section `flatten` times as tall as it is wide,
+    /// outward ellipse normals, and texture coordinates with `u` around the
+    /// body (0.25 = top of the back) and `v` along it in repeats of
+    /// `repeatLength`.
+    private static func tubeGeometry(centers: [SCNVector3], radii: [Float], radialSegments: Int,
+                                     flatten: Float, repeatLength: Float) -> SCNGeometry {
         let ringCount = centers.count
         let stride = radialSegments + 1
         var vertices: [SCNVector3] = []
@@ -1464,11 +1771,18 @@ private final class SnakeNode {
                 let a = Float(j) / Float(radialSegments) * 2 * Float.pi
                 let ca = cos(a)
                 let sa = sin(a)
-                let dir = SCNVector3(side.x * ca + lift.x * sa,
-                                     side.y * ca + lift.y * sa,
-                                     side.z * ca + lift.z * sa)
-                vertices.append(SCNVector3(c.x + dir.x * r, c.y + dir.y * r, c.z + dir.z * r))
-                normals.append(dir)
+                // Point on the ellipse (semi-axes r and r * flatten)...
+                let offset = SCNVector3(side.x * ca * r + lift.x * sa * r * flatten,
+                                        side.y * ca * r + lift.y * sa * r * flatten,
+                                        side.z * ca * r + lift.z * sa * r * flatten)
+                vertices.append(SCNVector3(c.x + offset.x, c.y + offset.y, c.z + offset.z))
+                // ...and its outward normal, proportional to (flatten * cos, sin).
+                let normal = SnakeLadderGeometry.normalized(
+                    SCNVector3(side.x * ca * flatten + lift.x * sa,
+                               side.y * ca * flatten + lift.y * sa,
+                               side.z * ca * flatten + lift.z * sa),
+                    fallback: up)
+                normals.append(normal)
                 uvs.append(CGPoint(x: CGFloat(j) / CGFloat(radialSegments),
                                    y: CGFloat(arc / repeatLength)))
             }
@@ -1492,10 +1806,10 @@ private final class SnakeNode {
         return SCNGeometry(sources: sources, elements: [element])
     }
 
-    /// Always-running, cheap idle: the head sways and lifts a little and
-    /// the tongue flicks every few seconds. Phase-shifted per snake so ten
-    /// snakes never move in lockstep. Pure `SCNAction` loops -- no
-    /// per-frame code.
+    /// Always-running, cheap idle: the head sways and lifts a little (a
+    /// gentle slither at the business end) and the forked tongue flicks
+    /// every few seconds. Phase-shifted per snake so ten snakes never move
+    /// in lockstep. Pure `SCNAction` loops -- no per-frame code.
     private func startIdle(phase: TimeInterval, restSeconds: TimeInterval) {
         let axis = SCNVector3(0, 1, 0)
         let swayOut = SCNAction.rotate(by: 0.24, around: axis, duration: 1.5)
