@@ -75,9 +75,9 @@ struct TVGameSelectionView: View {
 
     private var displayedGames: [GameID] {
         if let cat = selectedCategory {
-            return GameID.allCases.filter { $0.category == cat }
+            return GameID.listed.filter { $0.category == cat }
         }
-        return GameID.allCases
+        return GameID.listed
     }
 
     /// The game the hero banner above the grid is showing: whichever card
@@ -455,22 +455,7 @@ private struct TVGameCard: View {
     private var depth: CGFloat { isFocused ? 13 : 8 }
 
     var body: some View {
-        ZStack {
-            slab
-            face
-        }
-        .frame(width: Self.cardWidth, height: Self.cardHeight)
-        // One composited layer, so the shadows below are cast by the
-        // finished card rather than separately by each sublayer.
-        .compositingGroup()
-        .shadow(color: Color.black.opacity(isFocused ? 0.55 : 0.4),
-                radius: isFocused ? 26 : 10,
-                x: 0,
-                y: isFocused ? 28 : 10)
-        .shadow(color: style.accent.opacity(isFocused ? (halo ? 0.75 : 0.4) : 0),
-                radius: isFocused ? (halo ? 42 : 26) : 0,
-                x: 0,
-                y: 0)
+        cardBody
         .rotation3DEffect(.degrees(isFocused ? 8 : 0),
                           axis: (x: 1, y: 0, z: 0), perspective: 0.5)
         .rotation3DEffect(.degrees(isFocused ? (sway ? 5 : -5) : 0),
@@ -478,16 +463,12 @@ private struct TVGameCard: View {
         .scaleEffect(isFocused ? 1.1 : 1.0)
         .offset(y: isFocused ? -8 : 0)
         .animation(.spring(response: 0.34, dampingFraction: 0.66), value: isFocused)
-        // Curved wall: rows near the top/bottom edge of the scroll view tilt
-        // away and shrink a little. phase.value runs -1 (top) ... 0 ... 1.
-        .scrollTransition(.interactive, axis: .vertical) { content, phase in
-            content
-                .scaleEffect(CGFloat(1.0 - abs(phase.value) * 0.1))
-                .opacity(Double(1.0 - abs(phase.value) * 0.5))
-                .rotation3DEffect(Angle(degrees: phase.value * -24),
-                                  axis: (x: 1, y: 0, z: 0),
-                                  perspective: 0.6)
-        }
+        // Performance: the per-card scrollTransition "curved wall" and the
+        // two blurred shadows on EVERY card made swiping through the grid
+        // stutter on Apple TV (each was an offscreen render per card per
+        // frame). Now unfocused cards are flat layers with a cheap,
+        // unblurred contact shadow; only the focused card pays for
+        // compositing and real shadows.
         .onChange(of: isFocused) { _, focused in setMotion(focused) }
         // A card can be created by LazyVGrid *after* the grid has already
         // handed it focus (initial focus is assigned in the parent's
@@ -496,6 +477,34 @@ private struct TVGameCard: View {
     }
 
     // MARK: Layers
+
+    @ViewBuilder
+    private var cardBody: some View {
+        if isFocused {
+            ZStack {
+                slab
+                face
+            }
+            .frame(width: Self.cardWidth, height: Self.cardHeight)
+            // One composited layer, so the shadows below are cast by the
+            // finished card rather than separately by each sublayer.
+            .compositingGroup()
+            .shadow(color: Color.black.opacity(0.55), radius: 26, x: 0, y: 28)
+            .shadow(color: style.accent.opacity(halo ? 0.75 : 0.4),
+                    radius: halo ? 42 : 26, x: 0, y: 0)
+        } else {
+            ZStack {
+                // Unblurred contact shadow: a dark copy of the shape.
+                shape
+                    .fill(Color.black.opacity(0.35))
+                    .frame(width: Self.cardWidth, height: Self.cardHeight)
+                    .offset(y: 14)
+                slab
+                face
+            }
+            .frame(width: Self.cardWidth, height: Self.cardHeight)
+        }
+    }
 
     /// The card's "thickness": a darker copy of its shape peeking out below.
     private var slab: some View {

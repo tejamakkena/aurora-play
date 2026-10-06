@@ -21,45 +21,46 @@ import time
 from flask import Blueprint, jsonify, request
 
 #: Per-game facts the picker needs beyond min/max players (which come from
-#: the engine classes). minutes = a typical round; kids = fine for children
-#: (no gambling theme, no elimination-by-murder, readable by a 7-year-old);
-#: tags shape a balanced night.
+#: the engine classes). minutes = a typical round; kids = part of Kids
+#: mode, which is LEARNING mode: only games that build knowledge or brain
+#: skills (quizzes, puzzles, words and spelling, memory, logic, counting),
+#: never social, bluffing, acting, casino or pure-action games; tags shape a
+#: balanced night.
 CATALOG: dict[str, dict] = {
     "trivia":             {"minutes": 10, "kids": True,  "tags": ["quiz"]},
     "kbc":                {"minutes": 15, "kids": True,  "tags": ["quiz"]},
     "brain_battle":       {"minutes": 12, "kids": True,  "tags": ["quiz", "brain"]},
-    "most_likely_to":     {"minutes": 8,  "kids": True,  "tags": ["social"]},
-    "herd":               {"minutes": 8,  "kids": True,  "tags": ["social"]},
+    "most_likely_to":     {"minutes": 8,  "kids": False, "tags": ["social"]},
+    "herd":               {"minutes": 8,  "kids": False, "tags": ["social"]},
     "bluff_it":           {"minutes": 10, "kids": False, "tags": ["social", "words"]},
-    "emoji_movie":        {"minutes": 10, "kids": True,  "tags": ["creative"]},
+    "emoji_movie":        {"minutes": 10, "kids": False, "tags": ["creative"]},
     "npat":               {"minutes": 10, "kids": True,  "tags": ["words"]},
-    "antakshari":         {"minutes": 15, "kids": True,  "tags": ["music"]},
-    "bollywood_charades": {"minutes": 12, "kids": True,  "tags": ["acting"]},
-    "speed_sculptor":     {"minutes": 8,  "kids": True,  "tags": ["creative"]},
-    "mind_meld":          {"minutes": 8,  "kids": True,  "tags": ["social"]},
-    "wavelength":         {"minutes": 10, "kids": True,  "tags": ["social"]},
-    "odd_one_out":        {"minutes": 10, "kids": True,  "tags": ["social"]},
+    "antakshari":         {"minutes": 15, "kids": False, "tags": ["music"]},
+    "bollywood_charades": {"minutes": 12, "kids": False, "tags": ["acting"]},
+    "speed_sculptor":     {"minutes": 8,  "kids": False, "tags": ["creative"]},
+    "mind_meld":          {"minutes": 8,  "kids": False, "tags": ["social"]},
+    "wavelength":         {"minutes": 10, "kids": False, "tags": ["social"]},
+    "odd_one_out":        {"minutes": 10, "kids": False, "tags": ["social"]},
     "cipher_grid":        {"minutes": 15, "kids": True,  "tags": ["words", "teams"]},
-    "sealed_auction":     {"minutes": 8,  "kids": True,  "tags": ["strategy"]},
-    "last_tap":           {"minutes": 4,  "kids": True,  "tags": ["action"]},
-    "tambola":            {"minutes": 20, "kids": True,  "tags": ["classic"]},
+    "sealed_auction":     {"minutes": 8,  "kids": False, "tags": ["strategy"]},
+    "last_tap":           {"minutes": 4,  "kids": False, "tags": ["action"]},
+    "tambola":            {"minutes": 20, "kids": False, "tags": ["classic"]},
     "connect4":           {"minutes": 6,  "kids": True,  "tags": ["board"]},
-    "ludo":               {"minutes": 20, "kids": True,  "tags": ["board"]},
+    "ludo":               {"minutes": 20, "kids": False, "tags": ["board"]},
     "snake_ladder":       {"minutes": 12, "kids": True,  "tags": ["board"]},
-    "carrom":             {"minutes": 12, "kids": True,  "tags": ["action"]},
-    "chess":              {"minutes": 20, "kids": True,  "tags": ["board"]},
+    "carrom":             {"minutes": 12, "kids": False, "tags": ["action"]},
     "memory":             {"minutes": 6,  "kids": True,  "tags": ["board"]},
-    "pong":               {"minutes": 4,  "kids": True,  "tags": ["action"]},
-    "air_hockey":         {"minutes": 4,  "kids": True,  "tags": ["action"]},
+    "pong":               {"minutes": 4,  "kids": False, "tags": ["action"]},
+    "air_hockey":         {"minutes": 4,  "kids": False, "tags": ["action"]},
     "hot_grid":           {"minutes": 6,  "kids": True,  "tags": ["strategy"]},
     "digit_guess":        {"minutes": 6,  "kids": True,  "tags": ["brain"]},
     "battleship":         {"minutes": 12, "kids": True,  "tags": ["strategy"]},
-    "heist":              {"minutes": 15, "kids": True,  "tags": ["strategy"]},
-    "heist_escape":       {"minutes": 10, "kids": True,  "tags": ["action"]},
-    "defuse":             {"minutes": 8,  "kids": True,  "tags": ["teams"]},
-    "stock_panic":        {"minutes": 10, "kids": True,  "tags": ["strategy"]},
-    "blast_runners":      {"minutes": 6,  "kids": True,  "tags": ["action"]},
-    "raja_mantri":        {"minutes": 8,  "kids": True,  "tags": ["classic"]},
+    "heist":              {"minutes": 15, "kids": False, "tags": ["strategy"]},
+    "heist_escape":       {"minutes": 10, "kids": False, "tags": ["action"]},
+    "defuse":             {"minutes": 8,  "kids": False, "tags": ["teams"]},
+    "stock_panic":        {"minutes": 10, "kids": False, "tags": ["strategy"]},
+    "blast_runners":      {"minutes": 6,  "kids": False, "tags": ["action"]},
+    "raja_mantri":        {"minutes": 8,  "kids": False, "tags": ["classic"]},
     "mafia":              {"minutes": 20, "kids": False, "tags": ["social"]},
     "poker":              {"minutes": 25, "kids": False, "tags": ["cards"]},
     "teen_patti":         {"minutes": 15, "kids": False, "tags": ["cards"]},
@@ -128,12 +129,37 @@ def build_playlist(players: int, kids: bool = False, total_minutes: int = 45,
 # the night itself (callers hold room.lock)
 # ---------------------------------------------------------------------------
 
-def start(room, playlist: list[str]) -> dict:
+#: Kids mode quiz topics: school-age learning, rotated game by game. The
+#: quiz engines write fresh questions on room.topic (games/topic_gen.py).
+KIDS_TOPICS = [
+    "Science for kids", "Animals and nature for kids", "Space and planets for kids",
+    "World geography for kids", "The human body for kids", "Maths puzzles for kids",
+    "Inventions and how things work for kids", "Oceans and sea life for kids",
+    "Dinosaurs and fossils for kids", "Weather and the seasons for kids",
+]
+
+
+def _apply_kids_topic(room) -> None:
+    """In Kids mode, give the next quiz a learning topic -- unless the host
+    chose their own topic, which always wins."""
+    night = room.night or {}
+    if not night.get("kids"):
+        return
+    if room.topic and room.topic != night.get("kidsTopic"):
+        return                      # a topic the host set themselves
+    topic = KIDS_TOPICS[(night.get("index", 0) + night.get("kidsSeed", 0)) % len(KIDS_TOPICS)]
+    room.topic = topic
+    night["kidsTopic"] = topic
+
+
+def start(room, playlist: list[str], kids: bool = False) -> dict:
     room.night = {
         "playlist": list(playlist), "index": 0, "totals": {}, "names": {},
         "history": [], "finished": False, "startedAt": time.time(),
+        "kids": bool(kids), "kidsSeed": random.randrange(len(KIDS_TOPICS)),
     }
     room.game_id = playlist[0]
+    _apply_kids_topic(room)
     return room.night
 
 
@@ -166,6 +192,7 @@ def advance(room) -> str | None:
         night["finished"] = True
         return None
     room.game_id = night["playlist"][night["index"]]
+    _apply_kids_topic(room)
     return room.game_id
 
 
@@ -192,6 +219,7 @@ def to_json(room) -> dict | None:
         "finished": night["finished"],
         "standings": standings(room),
         "gamesPlayed": len(night["history"]),
+        "kids": bool(night.get("kids")),
     }
 
 

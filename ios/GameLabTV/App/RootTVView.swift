@@ -73,7 +73,10 @@ struct RootTVView: View {
                             rules: rules,
                             layout: .tv,
                             primaryTitle: "Begin Game",
-                            onPrimary: TVRootViewModel.canBegin(room: room) ? { vm.beginGame() } : nil
+                            // The server lets the TV lift the gate too, so
+                            // the TV always gets the Begin button (the host's
+                            // phone keeps its own).
+                            onPrimary: { vm.beginGame() }
                         )
                     }
                 }

@@ -51,27 +51,97 @@ struct RulesInterstitialView: View {
     private var tvBody: some View {
         ZStack {
             tvBackdrop
-            ScrollView {
-                HStack(alignment: .top, spacing: 56) {
-                    tvBadge
-                    tvContent
+            // The Begin button sits OUTSIDE the scroll view so it is always
+            // on screen and focusable; the rules scroll above it. tvOS only
+            // scrolls by moving focus, so each rule row is focusable (see
+            // TVRuleRow) -- swiping down walks the rules, then lands on Begin.
+            VStack(alignment: .leading, spacing: 0) {
+                ScrollView {
+                    HStack(alignment: .top, spacing: 48) {
+                        tvBadge
+                        tvContent
+                    }
+                    .padding(.horizontal, 56)
+                    .padding(.top, 48)
+                    .padding(.bottom, 24)
                 }
-                .padding(64)
-                .background { tvPanel }
-                .padding(.horizontal, 90)
-                .padding(.vertical, 60)
-                .frame(maxWidth: 1500)
-                .scaleEffect(rulesShown ? 1.0 : 0.94)
-                .opacity(rulesShown ? 1.0 : 0.0)
-                .rotation3DEffect(.degrees(rulesShown ? 0 : 10),
-                                  axis: (x: 1, y: 0, z: 0),
-                                  perspective: 0.5)
+                tvFooter
+                    .padding(.horizontal, 56)
+                    .padding(.top, 12)
+                    .padding(.bottom, 40)
             }
+            .background { tvPanel }
+            .frame(maxWidth: 1500)
+            .padding(.horizontal, 90)
+            .padding(.vertical, 50)
+            // 2D entrance only: a 3D transform on the focus container
+            // confuses the tvOS focus engine.
+            .scaleEffect(rulesShown ? 1.0 : 0.94)
+            .opacity(rulesShown ? 1.0 : 0.0)
         }
+        .defaultFocus($startFocused, true)
+        #if os(tvOS)
+        // Play/Pause begins from anywhere on the screen.
+        .onPlayPauseCommand { onPrimary?() }
+        #endif
         .onAppear {
-            startFocused = true
             withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
                 rulesShown = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                startFocused = true
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tvFooter: some View {
+        if let onPrimary {
+            HStack(spacing: 28) {
+                Button(action: onPrimary) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "play.fill")
+                        Text(primaryTitle)
+                    }
+                    .font(.title.bold())
+                    .frame(width: 420)
+                    .padding(.vertical, 22)
+                    .background {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(LinearGradient(colors: startFocused
+                                                    ? [Color.white, Color.white]
+                                                    : [Color.white.opacity(0.9), Self.tvAccent],
+                                                 startPoint: .top,
+                                                 endPoint: .bottom))
+                    }
+                    .foregroundColor(.black)
+                    .compositingGroup()
+                    .shadow(color: Self.tvAccent.opacity(startFocused ? 0.75 : 0.25),
+                            radius: startFocused ? 34 : 12)
+                    .scaleEffect(startFocused ? 1.08 : 1.0)
+                    .animation(.spring(response: 0.3, dampingFraction: 0.65), value: startFocused)
+                }
+                .buttonStyle(.plain)
+                .focused($startFocused)
+
+                Text("or press Play/Pause")
+                    .font(.title3)
+                    .foregroundColor(.white.opacity(0.55))
+                Spacer(minLength: 0)
+            }
+        } else {
+            HStack(spacing: 16) {
+                ProgressView()
+                    .tint(Self.tvAccent)
+                    .scaleEffect(1.4)
+                Text("Waiting for host to begin...")
+                    .font(.title2)
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            .phaseAnimator([false, true]) { content, phase in
+                content.opacity(phase ? 1.0 : 0.55)
+            } animation: { _ in
+                Animation.easeInOut(duration: 1.2)
             }
         }
     }
@@ -154,7 +224,7 @@ struct RulesInterstitialView: View {
                 .tracking(6)
 
             Text(rules.title)
-                .font(.system(size: 72, weight: .heavy, design: .rounded))
+                .font(.system(size: 64, weight: .heavy, design: .rounded))
                 .foregroundStyle(LinearGradient(colors: [Color.white, Self.tvAccent],
                                                 startPoint: .top,
                                                 endPoint: .bottom))
@@ -164,14 +234,10 @@ struct RulesInterstitialView: View {
                 .font(.title2)
                 .foregroundColor(Self.tvAccent)
 
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 12) {
                 ForEach(Array(rules.rules.enumerated()), id: \.offset) { index, rule in
-                    HStack(alignment: .top, spacing: 20) {
+                    TVRuleRow(number: index + 1, text: rule, accent: Self.tvAccent) {
                         tvRuleNumber(index + 1)
-                        Text(rule)
-                            .font(.title2)
-                            .foregroundColor(.white.opacity(0.92))
-                            .padding(.top, 6)
                     }
                     .opacity(rulesShown ? 1 : 0)
                     .offset(x: rulesShown ? 0 : 60)
@@ -192,50 +258,6 @@ struct RulesInterstitialView: View {
             .padding(.vertical, 14)
             .background {
                 Capsule().fill(Color.white.opacity(0.07))
-            }
-
-            if let onPrimary {
-                Button(action: onPrimary) {
-                    HStack(spacing: 14) {
-                        Image(systemName: "play.fill")
-                        Text(primaryTitle)
-                    }
-                    .font(.title.bold())
-                    .frame(maxWidth: 420)
-                    .padding(.vertical, 22)
-                    .background {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(LinearGradient(colors: startFocused
-                                                    ? [Color.white, Color.white]
-                                                    : [Color.white.opacity(0.9), Self.tvAccent],
-                                                 startPoint: .top,
-                                                 endPoint: .bottom))
-                    }
-                    .foregroundColor(.black)
-                    .compositingGroup()
-                    .shadow(color: Self.tvAccent.opacity(startFocused ? 0.75 : 0.25),
-                            radius: startFocused ? 34 : 12)
-                    .scaleEffect(startFocused ? 1.08 : 1.0)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.65), value: startFocused)
-                }
-                .buttonStyle(.plain)
-                .focused($startFocused)
-                .padding(.top, 8)
-            } else {
-                HStack(spacing: 16) {
-                    ProgressView()
-                        .tint(Self.tvAccent)
-                        .scaleEffect(1.4)
-                    Text("Waiting for host to begin…")
-                        .font(.title2)
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                .padding(.top, 8)
-                .phaseAnimator([false, true]) { content, phase in
-                    content.opacity(phase ? 1.0 : 0.55)
-                } animation: { _ in
-                    Animation.easeInOut(duration: 1.2)
-                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -327,5 +349,43 @@ struct RulesInterstitialView: View {
             .background(RoundedRectangle(cornerRadius: 20).fill(Color(hex: "14141f")))
             .padding(.horizontal, 24)
         }
+    }
+}
+
+/// One numbered rule on the TV. Focusable so the Siri Remote can scroll
+/// the rules (tvOS scroll views only move with focus); the focused row
+/// lifts and gets a soft highlight.
+private struct TVRuleRow<Badge: View>: View {
+    let number: Int
+    let text: String
+    let accent: Color
+    @ViewBuilder let badge: () -> Badge
+
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 20) {
+            badge()
+            Text(text)
+                .font(.title2)
+                .foregroundColor(.white.opacity(focused ? 1.0 : 0.88))
+                .padding(.top, 6)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(focused ? 0.1 : 0))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(accent.opacity(focused ? 0.6 : 0), lineWidth: 2)
+        }
+        .scaleEffect(focused ? 1.02 : 1.0)
+        .animation(.easeOut(duration: 0.15), value: focused)
+        .focusable()
+        .focused($focused)
     }
 }

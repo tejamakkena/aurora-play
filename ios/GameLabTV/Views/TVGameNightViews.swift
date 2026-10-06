@@ -438,7 +438,7 @@ struct TVNightSetupPanel: View {
                     Button {
                         kids.toggle()
                     } label: {
-                        Label(kids ? "Kids: On" : "Kids: Off",
+                        Label(kids ? "Kids learning: On" : "Kids learning: Off",
                               systemImage: kids ? "checkmark.circle.fill" : "circle")
                     }
                     .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.mint, isSelected: kids))

@@ -115,9 +115,13 @@ struct ShellAmbientBackground: View {
     var showsFloor: Bool = true
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isAnimated)) { context in
+        // The blobs drift slowly, so 20 fps looks the same as 30. The Canvas
+        // is rendered on the GPU (drawingGroup): drawn on the CPU it repainted
+        // a full-screen 4K gradient every frame and stole time from scrolling.
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: !isAnimated)) { context in
             ShellAmbientCanvas(time: context.date.timeIntervalSinceReferenceDate,
                                showsFloor: showsFloor)
+                .drawingGroup()
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)

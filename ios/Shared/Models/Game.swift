@@ -332,7 +332,12 @@ enum GameID: String, Codable, CaseIterable {
     var soloPlayable: Bool           { meta.soloPlayable }
 
     /// Games playable alone on the TV with nothing but the remote.
-    static var soloGames: [GameID] { allCases.filter(\.soloPlayable) }
+    /// Games shown in the apps. Chess stays decodable (older rooms, the
+    /// server registry) but is no longer offered: it plays better on one
+    /// screen than as a phone-plus-TV game.
+    static var listed: [GameID] { allCases.filter { $0 != .chess } }
+
+    static var soloGames: [GameID] { listed.filter(\.soloPlayable) }
 }
 
 enum GameCategory: String, CaseIterable {

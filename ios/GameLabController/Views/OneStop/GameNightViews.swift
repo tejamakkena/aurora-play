@@ -34,9 +34,14 @@ struct GameNightPlannerCard: View {
             if expanded {
                 VStack(alignment: .leading, spacing: 14) {
                     Toggle(isOn: $kids) {
-                        Label("Kids are playing", systemImage: "figure.and.child.holdinghands")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.white.opacity(0.85))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Label("Kids learning mode", systemImage: "figure.and.child.holdinghands")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(.white.opacity(0.85))
+                            Text("Only quizzes, puzzles, words and brain games, with kid-level questions")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.55))
+                        }
                     }
                     .tint(.pink)
 
