@@ -86,6 +86,11 @@ class Player:
         }
 
 
+def _teams_json(room):
+    from games import teams
+    return teams.to_json(room)
+
+
 def _night_json(room):
     from games import game_night
     return game_night.to_json(room)
@@ -142,6 +147,9 @@ class Room:
     #: Game Night (games/game_night.py): the playlist, which game is up,
     #: and the running night scoreboard. None outside a Game Night.
     night: dict | None = None
+    #: Teams mode (games/teams.py): 2-4 named teams scoring together.
+    #: None when everyone plays for themselves.
+    teams: dict | None = None
     # Bumped on start and on finish. A background pump captures the value it was
     # spawned with and exits as soon as it no longer matches, so a pump from a
     # previous round can never double-broadcast into the next one.
@@ -188,6 +196,7 @@ class Room:
             "botsAllowed": self.game_id in POLICIES,
             "usesContentPack": self.game_id in PACK_GAMES,
             "night": _night_json(self),
+            "teams": _teams_json(self),
         }
 
     # ---- mutations (callers hold self.lock) --------------------------------
@@ -195,6 +204,9 @@ class Room:
     def touch(self) -> None:
         self.last_activity = time.time()
         self.empty_since = None
+        if self.teams:
+            from games import teams
+            teams.sync_members(self)
 
     def add_player(self, player_id: str, name: str, sid: str) -> Player:
         """Add a phone. The first phone to arrive becomes host."""
@@ -241,6 +253,9 @@ class Room:
         self.players.remove(player)
         self.reassign_host()
         self.mark_empty_if_needed()
+        if self.teams:
+            from games import teams
+            teams.sync_members(self)
         return player
 
     def attach_tv(self, sid: str) -> None:

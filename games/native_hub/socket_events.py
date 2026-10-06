@@ -479,6 +479,79 @@ def register_native_events(socketio):
             room.touch()
         push_room(socketio, room)
 
+    # ---- Teams mode ------------------------------------------------------
+    # set_teams {roomCode, count?, teams?: [[playerID]], names?: [str]}:
+    # auto-split into 2-4 teams (or use the lists given). move_to_team
+    # {roomCode, playerID, teamID}: the host/TV moves anyone; a phone may
+    # move itself. clear_teams: back to everyone-for-themselves.
+    # Team points are awarded in broadcast.finish_game (games/teams.py).
+    @socketio.on("set_teams", namespace=NAMESPACE)
+    def handle_set_teams(data):
+        from games import teams
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "set up teams"):
+                return
+            if room.state is RoomState.PLAYING:
+                return
+            try:
+                count = int(data.get("count") or 2)
+            except (TypeError, ValueError):
+                count = 2
+            teams.set_teams(room, count, data.get("teams"), data.get("names"))
+            room.touch()
+        push_room(socketio, room)
+
+    @socketio.on("move_to_team", namespace=NAMESPACE)
+    def handle_move_to_team(data):
+        from games import teams
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        pid = v.player_id(data.get("playerID"))
+        team_id = data.get("teamID")
+        if room is None or pid is None or not isinstance(team_id, str):
+            return
+        with room.lock:
+            if room.state is RoomState.PLAYING:
+                return
+            actor = room.player_by_sid(sid)
+            self_move = actor is not None and actor.id == pid
+            if not self_move and not _lobby_controller(room, sid, "move players"):
+                return
+            if not teams.move(room, pid, team_id):
+                return
+            room.touch()
+        push_room(socketio, room)
+
+    @socketio.on("clear_teams", namespace=NAMESPACE)
+    def handle_clear_teams(data):
+        from games import teams
+        data = v.as_dict(data)
+        sid = request.sid
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "clear the teams"):
+                return
+            if room.state is RoomState.PLAYING:
+                return
+            teams.clear(room)
+            room.touch()
+        push_room(socketio, room)
+
     # ---- player_ready --------------------------------------------------
     @socketio.on("player_ready", namespace=NAMESPACE)
     def handle_player_ready(data):

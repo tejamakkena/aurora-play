@@ -118,6 +118,11 @@ def finish_game(socketio, room) -> None:
             game_night.record_game(room, results)
         except Exception:
             logger.exception("game night record failed room=%s", room.code)
+        try:
+            from games import teams
+            teams.record_game(room, results)
+        except Exception:
+            logger.exception("teams record failed room=%s", room.code)
         players = list(room.players)
         game_id = room.game_id
 
