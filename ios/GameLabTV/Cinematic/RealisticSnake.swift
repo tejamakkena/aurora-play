@@ -981,6 +981,215 @@ enum RealSnakeMesh {
     }
 }
 
+// MARK: - Head
+
+/// Builds the head into `parent` (head-local space, see
+/// `RealSnakeHeadShape`): a lofted upper head and a separately hinged lower
+/// jaw, each split into a scaly outer surface and a pink mouth surface,
+/// plus eyes, fangs and the forked tongue.
+@MainActor
+enum RealSnakeHeadBuilder {
+    struct Parts {
+        let jawPivot: SCNNode
+        let tongueRoot: SCNNode
+        /// How far the tongue slides forward when it flicks out.
+        let tongueTravel: Float
+    }
+
+    static func build(shape: RealSnakeHeadShape, skin: RealSnakeSkin, into parent: SCNNode) -> Parts {
+        let sides = 20
+        let ringCount = 26
+        let hingeZ = shape.z(0.13)
+
+        var upperRings: [[SIMD3<Float>]] = []
+        var jawRings: [[SIMD3<Float>]] = []
+        var ringV: [Float] = []
+        upperRings.reserveCapacity(ringCount)
+        jawRings.reserveCapacity(ringCount)
+        ringV.reserveCapacity(ringCount)
+        for i in 0..<ringCount {
+            let s = Float(i) / Float(ringCount - 1)
+            let z = shape.z(s)
+            let halfWidth = shape.halfWidth(s)
+            let top = shape.top(s)
+            let palate = shape.palate(s)
+            let jawHalf = shape.jawHalfWidth(s)
+            let jawDepth = shape.jawDepth(s)
+            let jawTop = shape.jawTop(s)
+            var upper: [SIMD3<Float>] = []
+            var jaw: [SIMD3<Float>] = []
+            upper.reserveCapacity(sides)
+            jaw.reserveCapacity(sides)
+            for j in 0..<sides {
+                // Same angular convention as the body: 0 underneath, pi/2 at
+                // the +x lip line, pi on top.
+                let phi = 2 * Float.pi * Float(j) / Float(sides)
+                let sn = sin(phi)
+                let cs = cos(phi)
+                let sx = RealSnakeMath.signedPow(sn, 2.0 / 3.0)
+                let upperY: Float
+                let jawY: Float
+                if cs <= 0 {
+                    // Superellipse (n = 3): a flat crown with firm sides.
+                    upperY = shape.mouthY + top * pow(-cs, 2.0 / 3.0)
+                    jawY = jawTop * pow(-cs, 1.0 / 3.0)
+                } else {
+                    upperY = shape.mouthY - palate * pow(cs, 1.0 / 3.0)
+                    jawY = -jawDepth * pow(cs, 0.8)
+                }
+                upper.append(SIMD3<Float>(halfWidth * sx, upperY, z))
+                // The jaw is built relative to its hinge so it can rotate.
+                jaw.append(SIMD3<Float>(jawHalf * sx, jawY, z - hingeZ))
+            }
+            upperRings.append(upper)
+            jawRings.append(jaw)
+            // v = 0 at the snout, so scales overlap toward the neck.
+            ringV.append(1 - s)
+        }
+
+        let upperLoft = RealSnakeLoft(rings: upperRings, ringV: ringV, sides: sides)
+        let jawLoft = RealSnakeLoft(rings: jawRings, ringV: ringV, sides: sides)
+        let quarter = sides / 4
+        let threeQuarters = 3 * sides / 4
+        let isTopColumn: (Int) -> Bool = { column in column >= quarter && column < threeQuarters }
+        let isBottomColumn: (Int) -> Bool = { column in !(column >= quarter && column < threeQuarters) }
+
+        // Upper head: crown is skin, underside is the palate.
+        let upperGeometry = RealSnakeMesh.makeGeometry(loft: upperLoft, elements: [
+            upperLoft.indices(includeColumn: isTopColumn),
+            upperLoft.indices(includeColumn: isBottomColumn),
+        ])
+        upperGeometry.materials = [skin.headMaterial, skin.mouthMaterial]
+        let upperNode = SCNNode(geometry: upperGeometry)
+        upperNode.name = "realSnakeHead"
+        parent.addChildNode(upperNode)
+
+        // Lower jaw: chin and throat are skin, the top is the mouth floor.
+        let jawGeometry = RealSnakeMesh.makeGeometry(loft: jawLoft, elements: [
+            jawLoft.indices(includeColumn: isBottomColumn),
+            jawLoft.indices(includeColumn: isTopColumn),
+        ])
+        jawGeometry.materials = [skin.headMaterial, skin.mouthMaterial]
+        let jawPivot = SCNNode()
+        jawPivot.name = "realSnakeJaw"
+        jawPivot.position = SCNVector3(0, shape.mouthY, hingeZ)
+        jawPivot.addChildNode(SCNNode(geometry: jawGeometry))
+        parent.addChildNode(jawPivot)
+
+        addEyes(shape: shape, skin: skin, to: parent)
+        addFangs(shape: shape, skin: skin, to: parent)
+        let tongue = makeTongue(shape: shape, skin: skin)
+        parent.addChildNode(tongue.root)
+
+        return Parts(jawPivot: jawPivot, tongueRoot: tongue.root, tongueTravel: tongue.travel)
+    }
+
+    /// Glossy dark eyeballs set into the sides of the head, each with a
+    /// vertical slit pupil (a flattened ellipsoid on the outward face) and a
+    /// small always-lit catchlight.
+    private static func addEyes(shape: RealSnakeHeadShape, skin: RealSnakeSkin, to parent: SCNNode) {
+        let eyeS: Float = 0.64
+        let eyeHalf = shape.halfWidth(eyeS)
+        let eyeTop = shape.top(eyeS)
+        let eyeRadius: Float = 0.20 * shape.radius
+
+        let eyeGeometry = SCNSphere(radius: CGFloat(eyeRadius))
+        eyeGeometry.segmentCount = 18
+        eyeGeometry.materials = [skin.eyeMaterial]
+        let pupilGeometry = SCNSphere(radius: CGFloat(eyeRadius * 0.42))
+        pupilGeometry.segmentCount = 12
+        pupilGeometry.materials = [skin.pupilMaterial]
+        let glintGeometry = SCNSphere(radius: CGFloat(eyeRadius * 0.14))
+        glintGeometry.segmentCount = 8
+        glintGeometry.materials = [skin.catchlightMaterial]
+
+        for side: Float in [-1, 1] {
+            let eye = SCNNode(geometry: eyeGeometry)
+            eye.position = SCNVector3(side * 0.80 * eyeHalf, shape.mouthY + 0.60 * eyeTop, shape.z(eyeS))
+            parent.addChildNode(eye)
+
+            let lookDirection = RealSnakeMath.normalized(SIMD3<Float>(side, 0.15, 0.35),
+                                                         fallback: SIMD3<Float>(side, 0, 0))
+            let pupilOffset: SIMD3<Float> = lookDirection * (eyeRadius * 0.88)
+            let pupil = SCNNode(geometry: pupilGeometry)
+            pupil.position = SCNVector3(pupilOffset.x, pupilOffset.y, pupilOffset.z)
+            // Local z (the thin axis) faces outward; local y stays vertical.
+            pupil.eulerAngles = SCNVector3(0, atan2(lookDirection.x, lookDirection.z), 0)
+            pupil.scale = SCNVector3(0.30, 1.0, 0.19)
+            eye.addChildNode(pupil)
+
+            let glintDirection = RealSnakeMath.normalized(SIMD3<Float>(side * 0.55, 0.70, 0.45),
+                                                          fallback: SIMD3<Float>(0, 1, 0))
+            let glintOffset: SIMD3<Float> = glintDirection * (eyeRadius * 0.93)
+            let glint = SCNNode(geometry: glintGeometry)
+            glint.position = SCNVector3(glintOffset.x, glintOffset.y, glintOffset.z)
+            glint.castsShadow = false
+            eye.addChildNode(glint)
+        }
+    }
+
+    /// Two small fangs under the front of the upper jaw: hidden inside the
+    /// closed mouth, revealed when the jaw drops in `playEat()`.
+    private static func addFangs(shape: RealSnakeHeadShape, skin: RealSnakeSkin, to parent: SCNNode) {
+        let fangS: Float = 0.86
+        let fangLength: Float = 0.14 * shape.radius
+        let fang = SCNCone(topRadius: 0, bottomRadius: CGFloat(0.022 * shape.radius), height: CGFloat(fangLength))
+        fang.radialSegmentCount = 6
+        fang.materials = [skin.fangMaterial]
+        let halfWidth = shape.halfWidth(fangS)
+        let rootY = shape.mouthY - shape.palate(fangS)
+        for side: Float in [-1, 1] {
+            let node = SCNNode(geometry: fang)
+            // Flipped so the cone's point (its +y end) hangs downward.
+            node.eulerAngles = SCNVector3(Float.pi, 0, 0)
+            node.position = SCNVector3(side * 0.45 * halfWidth, rootY - fangLength * 0.45, shape.z(fangS))
+            node.castsShadow = false
+            parent.addChildNode(node)
+        }
+    }
+
+    /// A thin forked tongue: a short cylinder ending in two splayed,
+    /// tapered cones. It rests fully inside the closed mouth (and hidden);
+    /// `RealisticSnakeNode.startTongue` slides it out along +z.
+    private static func makeTongue(shape: RealSnakeHeadShape, skin: RealSnakeSkin) -> (root: SCNNode, travel: Float) {
+        let r = shape.radius
+        let stemLength: Float = 0.55 * r
+        let forkLength: Float = 0.34 * r
+        let root = SCNNode()
+        root.name = "realSnakeTongue"
+
+        let stem = SCNCylinder(radius: CGFloat(0.04 * r), height: CGFloat(stemLength))
+        stem.radialSegmentCount = 8
+        stem.materials = [skin.tongueMaterial]
+        let stemNode = SCNNode(geometry: stem)
+        // Cylinder axis is +y; a quarter turn about x lays it along +z.
+        stemNode.eulerAngles = SCNVector3(Float.pi / 2, 0, 0)
+        stemNode.position = SCNVector3(0, 0, stemLength / 2)
+        stemNode.castsShadow = false
+        root.addChildNode(stemNode)
+
+        let tine = SCNCone(topRadius: 0, bottomRadius: CGFloat(0.034 * r), height: CGFloat(forkLength))
+        tine.radialSegmentCount = 6
+        tine.materials = [skin.tongueMaterial]
+        for side: Float in [-1, 1] {
+            let pivot = SCNNode()
+            pivot.position = SCNVector3(0, 0, stemLength * 0.96)
+            pivot.eulerAngles = SCNVector3(0, side * 0.30, 0)
+            let tineNode = SCNNode(geometry: tine)
+            tineNode.eulerAngles = SCNVector3(Float.pi / 2, 0, 0)
+            tineNode.position = SCNVector3(0, 0, forkLength / 2)
+            tineNode.castsShadow = false
+            pivot.addChildNode(tineNode)
+            root.addChildNode(pivot)
+        }
+
+        let tongueLength = stemLength + forkLength
+        root.position = SCNVector3(0, shape.mouthY - 0.01 * r, shape.z(1) - tongueLength - 0.08 * r)
+        root.isHidden = true
+        return (root, tongueLength * 0.95)
+    }
+}
+
 // MARK: - Scale lattice (species independent)
 
 /// The scale layout of the skin texture: 16 columns of staggered,
