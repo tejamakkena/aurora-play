@@ -3,24 +3,33 @@ import SceneKit
 import UIKit
 
 // ---------------------------------------------------------------------------
-// Snake & Ladder finally gets a real board. `TVGameBoardView` used to route
-// `.snakeLadder` straight to `TVWebGameBoardView` -- a `WKWebView` pointing
-// at the old, dead `games/snake_ladder` browser game (its `game_logic.py`/
-// `models.py` are empty) -- so the TV showed a "coming soon" placeholder no
-// matter how far along `SnakeLadderEngine` (the real, working native
-// backend) was. This file is the board that was never built: a full 3D
-// scene in the style of `PokerCinematicBoardSceneView` (same
-// `CinematicCameraRig`/`CinematicLighting` primitives, built directly
-// rather than through the generic `CinematicBoardSceneView` wrapper, since
-// this needs live per-square token/snake/ladder content, not just a
-// `TablePhase` label), reusing the "primitives + procedural `SCNAction`
-// joints" technique `PokerDealerNode` proved out -- no imported 3D models
-// anywhere in this project, and no toolchain here to make one.
+// Snake & Ladder's native TV board: a full 3D scene in the style of
+// `PokerCinematicBoardSceneView` (same `CinematicCameraRig`/`CinematicLighting`
+// primitives, built directly rather than through the generic
+// `CinematicBoardSceneView` wrapper, since this needs live per-square
+// token/snake/ladder content, not just a `TablePhase` label). No imported 3D
+// models anywhere in this project, so everything is primitives plus a few
+// procedurally built meshes and textures.
 //
-// `SnakeLadderEngine.public_state()` now exposes its `snakes`/`ladders`
-// maps directly (see `games/native_hub/engines/legacy_boards.py`), so this
-// file treats them as the single authoritative board layout instead of
-// hardcoding its own copy that could silently drift from the engine's.
+// `SnakeLadderEngine.public_state()` exposes its `snakes`/`ladders` maps
+// directly (see `games/native_hub/engines/legacy_boards.py`), so this file
+// treats them as the single authoritative board layout instead of hardcoding
+// its own copy that could silently drift from the engine's.
+//
+// The engine is back to a classic-style board (10 snakes, 9 ladders) after a
+// 3-snake version was reported as "same and easy". To keep that many set
+// pieces cheap:
+//   * each snake body is ONE procedurally built tube mesh (one draw call)
+//     instead of a chain of per-segment capsules, textured with a small
+//     repeating pattern; materials and head geometry are shared per style;
+//   * each ladder is built from shared wood material/rung geometry and then
+//     flattened into a single node;
+//   * every idle animation is an `SCNAction` loop on a small head/tongue
+//     node -- no per-frame work, no particle systems;
+//   * the numbered grid is one texture drawn once, not 100 text nodes.
+// Tokens walk square by square along the boustrophedon path; moves queue per
+// token, so a quick roll-again on a 6 waits for the previous walk/slide to
+// finish instead of fighting it.
 // ---------------------------------------------------------------------------
 
 // MARK: - Board state (mirrors SnakeLadderEngine.public_state())
@@ -60,6 +69,12 @@ private struct SnakeLadderBoardState {
     /// the engine's `lastSlide`. Empty for a player whose last move was a
     /// plain hop (or who hasn't moved yet).
     var lastSlide: [String: SnakeLadderSlide] = [:]
+    /// Whoever rolled most recently (`lastRollerID`).
+    var lastRollerID: String?
+    /// True while the current player is owed another roll for a 6.
+    var lastRollBonus = false
+    /// Monotonic count of accepted rolls; a change means a fresh roll.
+    var rollSeq = 0
 
     mutating func update(from data: [String: AnyCodable]) {
         currentPlayerID = data["currentPlayerID"]?.value as? String
@@ -79,27 +94,44 @@ private struct SnakeLadderBoardState {
             lastRoll = raw.compactMapValues { $0 as? Int }
         }
         if let raw = data["snakes"]?.value as? [String: Any] {
-            snakes = Dictionary(uniqueKeysWithValues: raw.compactMap { entry -> (Int, Int)? in
+            snakes = Dictionary(raw.compactMap { entry -> (Int, Int)? in
                 guard let head = Int(entry.key), let tail = entry.value as? Int else { return nil }
                 return (head, tail)
-            })
+            }, uniquingKeysWith: { first, _ in first })
         }
         if let raw = data["ladders"]?.value as? [String: Any] {
-            ladders = Dictionary(uniqueKeysWithValues: raw.compactMap { entry -> (Int, Int)? in
+            ladders = Dictionary(raw.compactMap { entry -> (Int, Int)? in
                 guard let bottom = Int(entry.key), let top = entry.value as? Int else { return nil }
                 return (bottom, top)
-            })
+            }, uniquingKeysWith: { first, _ in first })
         }
         if let raw = data["lastSlide"]?.value as? [String: Any] {
-            lastSlide = Dictionary(uniqueKeysWithValues: raw.compactMap { entry -> (String, SnakeLadderSlide)? in
+            lastSlide = Dictionary(raw.compactMap { entry -> (String, SnakeLadderSlide)? in
                 guard let d = entry.value as? [String: Any],
                       let kind = d["kind"] as? String,
                       let from = d["from"] as? Int,
                       let to = d["to"] as? Int,
                       let seq = d["seq"] as? Int else { return nil }
                 return (entry.key, SnakeLadderSlide(playerID: entry.key, kind: kind, from: from, to: to, seq: seq))
-            })
+            }, uniquingKeysWith: { first, _ in first })
         }
+        lastRollerID = data["lastRollerID"]?.value as? String
+        lastRollBonus = (data["lastRollBonus"]?.value as? Bool) ?? false
+        if let v = data["rollSeq"]?.value as? Int { rollSeq = v }
+    }
+
+    /// Stable per-player color slot: the player's index in the engine's
+    /// `positions` list (the turn order), shared by the 3D tokens and the
+    /// SwiftUI HUD so a player's color matches everywhere.
+    func colorIndex(of playerID: String?) -> Int? {
+        guard let playerID else { return nil }
+        return positions.firstIndex { $0.playerID == playerID }
+    }
+
+    func name(of playerID: String?) -> String? {
+        guard let playerID else { return nil }
+        return players.first { $0.id == playerID }?.name
+            ?? positions.first { $0.playerID == playerID }?.name
     }
 }
 
@@ -116,6 +148,41 @@ private final class SnakeLadderBoardViewModel: ObservableObject {
     }
 }
 
+/// Token colors, shared by the 3D pawns and the SwiftUI HUD.
+private enum SnakeLadderPalette {
+    static let tokenColors: [UIColor] = [
+        UIColor(red: 0.95, green: 0.25, blue: 0.25, alpha: 1),
+        UIColor(red: 0.25, green: 0.55, blue: 0.95, alpha: 1),
+        UIColor(red: 0.30, green: 0.85, blue: 0.40, alpha: 1),
+        UIColor(red: 0.95, green: 0.80, blue: 0.20, alpha: 1),
+        UIColor(red: 0.75, green: 0.35, blue: 0.95, alpha: 1),
+        UIColor(red: 0.20, green: 0.85, blue: 0.85, alpha: 1),
+    ]
+
+    static func tokenColor(_ index: Int?) -> UIColor {
+        guard let index, index >= 0 else { return UIColor(white: 0.8, alpha: 1) }
+        return tokenColors[index % tokenColors.count]
+    }
+}
+
+/// Standard die pip layout, as fractions of the face on each axis. Shared by
+/// the HUD die and the 3D dice texture.
+private enum SnakeLadderDice {
+    static func pips(for value: Int) -> [CGPoint] {
+        let raw: [(CGFloat, CGFloat)]
+        switch value {
+        case 1: raw = [(0.5, 0.5)]
+        case 2: raw = [(0.28, 0.28), (0.72, 0.72)]
+        case 3: raw = [(0.28, 0.28), (0.5, 0.5), (0.72, 0.72)]
+        case 4: raw = [(0.28, 0.28), (0.72, 0.28), (0.28, 0.72), (0.72, 0.72)]
+        case 5: raw = [(0.28, 0.28), (0.72, 0.28), (0.5, 0.5), (0.28, 0.72), (0.72, 0.72)]
+        case 6: raw = [(0.28, 0.22), (0.72, 0.22), (0.28, 0.5), (0.72, 0.5), (0.28, 0.78), (0.72, 0.78)]
+        default: raw = []
+        }
+        return raw.map { CGPoint(x: $0.0, y: $0.1) }
+    }
+}
+
 // MARK: - TV board
 
 struct TVSnakeLadderBoardView: View {
@@ -123,18 +190,23 @@ struct TVSnakeLadderBoardView: View {
     @StateObject private var vm = SnakeLadderBoardViewModel()
 
     private var currentName: String {
-        vm.state.players.first { $0.id == vm.state.currentPlayerID }?.name ?? "\u{2014}"
+        vm.state.name(of: vm.state.currentPlayerID) ?? "\u{2014}"
     }
     private var winnerName: String? {
-        guard let id = vm.state.winner else { return nil }
-        return vm.state.players.first { $0.id == id }?.name
+        vm.state.name(of: vm.state.winner)
+    }
+    /// The player whose roll the HUD shows: the engine's `lastRollerID`
+    /// (the current player's own last roll would show the wrong number
+    /// right after the turn passes).
+    private var rollerID: String? {
+        vm.state.lastRollerID ?? vm.state.currentPlayerID
     }
 
     var body: some View {
         ZStack {
-            // The real 3D board: 100 numbered squares, 3 resting/animated
-            // snakes, 10 ladders, and a token per player, shot with the
-            // cinematic camera rig. Every number below is rendered again as
+            // The real 3D board: 100 numbered squares, the classic set of
+            // snakes and ladders, and a pawn per player, shot with the
+            // cinematic camera rig. Every fact below is rendered again as
             // legible SwiftUI text over the top -- the 3D scene is
             // atmosphere, never the only place a state fact lives.
             SnakeLadderCinematicBoardSceneView(state: vm.state)
@@ -144,8 +216,8 @@ struct TVSnakeLadderBoardView: View {
                 LinearGradient(colors: [.black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom)
                     .frame(height: 170)
                 Spacer()
-                LinearGradient(colors: [.clear, .black.opacity(0.6)], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 200)
+                LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 220)
             }
             .ignoresSafeArea()
             .allowsHitTesting(false)
@@ -164,19 +236,23 @@ struct TVSnakeLadderBoardView: View {
                 HStack(alignment: .top, spacing: 24) {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(vm.state.positions.sorted { $0.position > $1.position }) { p in
-                            SnakeLadderPositionRow(entry: p, isCurrent: p.playerID == vm.state.currentPlayerID)
+                            SnakeLadderPositionRow(
+                                entry: p,
+                                isCurrent: p.playerID == vm.state.currentPlayerID,
+                                color: Color(uiColor: SnakeLadderPalette.tokenColor(vm.state.colorIndex(of: p.playerID)))
+                            )
                         }
                     }
                     .padding(.leading, 48).padding(.top, 24)
 
                     Spacer()
 
-                    if let id = vm.state.currentPlayerID, let roll = vm.state.lastRoll[id] {
-                        VStack(spacing: 4) {
-                            Text("LAST ROLL").font(.caption.bold()).tracking(2)
-                                .foregroundColor(.white.opacity(0.5))
-                            Text("\(roll)").font(.system(size: 44, weight: .heavy)).foregroundColor(.yellow)
-                        }
+                    if let id = rollerID, let roll = vm.state.lastRoll[id] {
+                        SnakeLadderLastRollCard(
+                            rollerName: vm.state.name(of: id) ?? "",
+                            value: roll,
+                            color: Color(uiColor: SnakeLadderPalette.tokenColor(vm.state.colorIndex(of: id)))
+                        )
                         .padding(.trailing, 60).padding(.top, 24)
                     }
                 }
@@ -197,10 +273,102 @@ struct TVSnakeLadderBoardView: View {
                     .font(.system(size: 42, weight: .bold))
                     .foregroundColor(.yellow)
                     .padding(.bottom, 24)
+                } else if vm.state.currentPlayerID != nil {
+                    SnakeLadderTurnBanner(
+                        name: currentName,
+                        color: Color(uiColor: SnakeLadderPalette.tokenColor(vm.state.colorIndex(of: vm.state.currentPlayerID))),
+                        rollAgain: vm.state.lastRollBonus
+                    )
+                    .padding(.bottom, 36)
                 }
             }
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+}
+
+/// The big "whose turn" pill along the bottom, in the current player's
+/// token color, plus the "Rolled a 6, roll again!" call-out while the
+/// engine says the current player is owed a bonus roll.
+private struct SnakeLadderTurnBanner: View {
+    let name: String
+    let color: Color
+    let rollAgain: Bool
+
+    var body: some View {
+        VStack(spacing: 12) {
+            if rollAgain {
+                Label {
+                    Text("Rolled a 6, roll again!")
+                } icon: {
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                }
+                .font(.system(size: 30, weight: .heavy))
+                .foregroundColor(.black)
+                .padding(.horizontal, 28).padding(.vertical, 10)
+                .background(Capsule().fill(Color.yellow))
+                .transition(.scale.combined(with: .opacity))
+            }
+            HStack(spacing: 16) {
+                Circle()
+                    .fill(color)
+                    .frame(width: 28, height: 28)
+                    .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 3))
+                Text("\(name)'s turn")
+                    .font(.system(size: 40, weight: .heavy))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .padding(.horizontal, 36).padding(.vertical, 14)
+            .frame(maxWidth: 760)
+            .background(Capsule().fill(Color.black.opacity(0.62)))
+            .overlay(Capsule().stroke(color, lineWidth: 4))
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.6), value: rollAgain)
+    }
+}
+
+/// Top-right card: who rolled last and a real pip die face of the value.
+private struct SnakeLadderLastRollCard: View {
+    let rollerName: String
+    let value: Int
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text("LAST ROLL").font(.caption.bold()).tracking(2)
+                .foregroundColor(.white.opacity(0.6))
+            SnakeLadderDieFace(value: value, size: 84)
+            Text(rollerName)
+                .font(.headline)
+                .foregroundColor(color)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: 180)
+        }
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.45)))
+    }
+}
+
+private struct SnakeLadderDieFace: View {
+    let value: Int
+    var size: CGFloat = 84
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.18)
+                .fill(Color.white)
+            ForEach(Array(SnakeLadderDice.pips(for: value).enumerated()), id: \.offset) { entry in
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: size * 0.18, height: size * 0.18)
+                    .position(x: entry.element.x * size, y: entry.element.y * size)
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityLabel("Rolled \(value)")
     }
 }
 
@@ -228,7 +396,7 @@ private struct WinConfettiOverlay: View {
             Piece(x: CGFloat.random(in: 0...1),
                   delay: Double.random(in: 0...0.9),
                   duration: Double.random(in: 1.6...2.6),
-                  color: colors.randomElement()!,
+                  color: colors.randomElement() ?? .yellow,
                   size: CGFloat.random(in: 8...16),
                   spin: Double.random(in: -540...540))
         }
@@ -255,12 +423,14 @@ private struct WinConfettiOverlay: View {
 private struct SnakeLadderPositionRow: View {
     let entry: SnakeLadderPlayerPosition
     let isCurrent: Bool
+    let color: Color
 
     var body: some View {
         HStack(spacing: 10) {
             Circle()
-                .fill(isCurrent ? Color.yellow : Color.white.opacity(0.2))
-                .frame(width: 10, height: 10)
+                .fill(color)
+                .frame(width: 14, height: 14)
+                .overlay(Circle().stroke(Color.white.opacity(isCurrent ? 0.9 : 0), lineWidth: 2))
             // A long name must truncate with an ellipsis, never wrap
             // mid-word ("Gand"/"hi" on two lines). The fixed-width parent
             // below gives the truncation a bound to work against.
@@ -276,6 +446,8 @@ private struct SnakeLadderPositionRow: View {
         .frame(width: 260)
         .background(RoundedRectangle(cornerRadius: 10)
             .fill(isCurrent ? Color.white.opacity(0.14) : Color.white.opacity(0.05)))
+        .overlay(RoundedRectangle(cornerRadius: 10)
+            .stroke(isCurrent ? color : Color.clear, lineWidth: 2))
     }
 }
 
@@ -319,14 +491,26 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         private let boardExtent: Float = 9.0      // 10 * cellSize
         private let boardTopY: Float = 0.06       // top surface of the board slab
         private let tokenHoverHeight: Float = 0.22
+        /// One square-to-square hop while a token walks its roll.
+        private let hopSeconds: TimeInterval = 0.2
 
         private var tokenNodes: [String: SCNNode] = [:]
-        private var lastPositions: [String: Int] = [:]
         /// One glowing ring per player, marking the tile their token
-        /// stands on in that player's color -- positioned in `apply`
-        /// alongside the token itself.
+        /// stands on in that player's color.
         private var playerRings: [String: SCNNode] = [:]
+        /// The square each token was last told to go to.
+        private var lastPositions: [String: Int] = [:]
+        /// Where each token will rest once its queued movement finishes --
+        /// the starting point for the next queued move.
+        private var lastAnchors: [String: SCNVector3] = [:]
+        /// `CACurrentMediaTime()` at which each token's queued movement
+        /// ends. A new move (e.g. the bonus roll after a 6) waits for it.
+        private var busyUntil: [String: CFTimeInterval] = [:]
         private var boardBuilt = false
+        /// Becomes true once a real state (with positions) has been adopted
+        /// as-is; until then every update is treated as a first paint, so
+        /// a TV that joins mid-game never replays old moves.
+        private var adoptedState = false
         private var snakeNodes: [Int: SnakeNode] = [:]
         private var ladderNodes: [Int: LadderNode] = [:]
         private var lastAnnouncedWinner: String?
@@ -334,6 +518,8 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         /// survives in the engine state until that player's next move, so
         /// without this every re-broadcast would replay the cinematic.
         private var seenSlideSeq: [String: Int] = [:]
+        /// The engine's `rollSeq` last acted on (die tumble, bump).
+        private var seenRollSeq = 0
 
         init() {
             // A wide, angled 3/4 overhead shot -- the whole board, the dice
@@ -342,9 +528,7 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             // framing distance for the camera math below, not a stored
             // property, so referencing it doesn't touch `self` before
             // `cameraRig`/`lighting` (the two properties with no default
-            // value) are actually assigned -- the same "local constant
-            // instead of self" rule `PokerCinematicBoardSceneView.Coordinator.init()`
-            // documents for its own `radius` local.
+            // value) are actually assigned.
             let boardRadius: Float = 5.6
             let initialShot = CameraShot(
                 position: SCNVector3(1.4, boardRadius * 1.6, boardRadius * 1.55),
@@ -361,7 +545,7 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             let floor = SCNNode(geometry: SCNCylinder(radius: CGFloat(boardRadius) * 2.6, height: 0.02))
             let floorMaterial = SCNMaterial()
             floorMaterial.lightingModel = .physicallyBased
-            floorMaterial.diffuse.contents = UIColor(white: 0.03, alpha: 1)
+            floorMaterial.diffuse.contents = UIColor(red: 0.05, green: 0.035, blue: 0.03, alpha: 1)
             floorMaterial.roughness.contents = 0.9
             floor.geometry?.materials = [floorMaterial]
             floor.position = SCNVector3(0, -0.2, 0)
@@ -373,7 +557,7 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
 
             let pedestalMaterial = SCNMaterial()
             pedestalMaterial.lightingModel = .physicallyBased
-            pedestalMaterial.diffuse.contents = UIColor(red: 0.14, green: 0.12, blue: 0.20, alpha: 1)
+            pedestalMaterial.diffuse.contents = UIColor(red: 0.30, green: 0.18, blue: 0.10, alpha: 1)
             pedestalMaterial.roughness.contents = 0.6
             let pedestal = SCNNode(geometry: SCNCylinder(radius: 0.5, height: 0.5))
             pedestal.geometry?.materials = [pedestalMaterial]
@@ -384,126 +568,113 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         // MARK: - Board dressing (built once, the first time snakes/ladders arrive)
 
         private func ensureBoardDressing(state: SnakeLadderBoardState) {
-            guard !boardBuilt, !state.snakes.isEmpty else { return }
+            guard !boardBuilt, !state.snakes.isEmpty || !state.ladders.isEmpty else { return }
             boardBuilt = true
 
-            let boardImage = Coordinator.boardTexture(snakes: state.snakes, ladders: state.ladders)
-            let sideMaterial = SCNMaterial()
-            sideMaterial.lightingModel = .physicallyBased
-            sideMaterial.diffuse.contents = UIColor(red: 0.32, green: 0.20, blue: 0.11, alpha: 1)
-            sideMaterial.roughness.contents = 0.7
+            let parts = SnakeLadderSharedParts()
+
             let topMaterial = SCNMaterial()
             topMaterial.lightingModel = .physicallyBased
-            topMaterial.diffuse.contents = boardImage
-            topMaterial.roughness.contents = 0.5
+            topMaterial.diffuse.contents = Coordinator.boardTexture()
+            topMaterial.diffuse.mipFilter = .linear
+            topMaterial.roughness.contents = 0.55
 
             // SCNBox material order is documented as front/right/back/left/
             // top/bottom -- index 4 is the +y face, the only one that needs
             // the numbered grid texture.
             let slab = SCNBox(width: CGFloat(boardExtent), height: 0.12, length: CGFloat(boardExtent), chamferRadius: 0.02)
-            slab.materials = [sideMaterial, sideMaterial, sideMaterial, sideMaterial, topMaterial, sideMaterial]
+            let wood = parts.woodMaterial
+            slab.materials = [wood, wood, wood, wood, topMaterial, wood]
             scene.rootNode.addChildNode(SCNNode(geometry: slab))
 
-            for (head, tail) in state.snakes {
-                let (color, band) = Coordinator.snakeColors[snakeNodes.count % Coordinator.snakeColors.count]
+            // A raised wooden frame around the grid, like a real folding
+            // board, sitting just under the printed surface.
+            let frame = SCNBox(width: CGFloat(boardExtent + 0.5), height: 0.14,
+                               length: CGFloat(boardExtent + 0.5), chamferRadius: 0.05)
+            frame.materials = [parts.frameMaterial]
+            let frameNode = SCNNode(geometry: frame)
+            frameNode.position = SCNVector3(0, -0.02, 0)
+            scene.rootNode.addChildNode(frameNode)
+
+            // Sorted so each snake keeps the same style on every launch.
+            for (index, head) in state.snakes.keys.sorted().enumerated() {
+                guard let tail = state.snakes[head] else { continue }
                 let snake = SnakeNode(headSquare: head, tailSquare: tail, squareToPoint: squareToPoint,
-                                      color: color, bandColor: band)
+                                      boardTopY: boardTopY, styleIndex: index, parts: parts)
                 scene.rootNode.addChildNode(snake.rootNode)
                 snakeNodes[head] = snake
             }
-            for (bottom, top) in state.ladders {
-                let ladder = LadderNode(bottomSquare: bottom, topSquare: top, squareToPoint: squareToPoint)
+            for bottom in state.ladders.keys.sorted() {
+                guard let top = state.ladders[bottom] else { continue }
+                let ladder = LadderNode(bottomSquare: bottom, topSquare: top, squareToPoint: squareToPoint, parts: parts)
                 scene.rootNode.addChildNode(ladder.rootNode)
                 ladderNodes[bottom] = ladder
             }
         }
 
-        /// (body color, band color). One distinct pair per snake, assigned
-        /// by snake index, so each snake has its own identity at TV
-        /// distance -- and every one is unmistakably not a ladder, which
-        /// is bright gold and straight-edged.
-        private static let snakeColors: [(UIColor, UIColor)] = [
-            (UIColor(red: 0.82, green: 0.16, blue: 0.12, alpha: 1),
-             UIColor(red: 1.00, green: 0.55, blue: 0.30, alpha: 1)),
-            (UIColor(red: 0.14, green: 0.60, blue: 0.26, alpha: 1),
-             UIColor(red: 0.62, green: 1.00, blue: 0.52, alpha: 1)),
-            (UIColor(red: 0.16, green: 0.38, blue: 0.85, alpha: 1),
-             UIColor(red: 0.45, green: 0.80, blue: 1.00, alpha: 1)),
-            (UIColor(red: 0.95, green: 0.72, blue: 0.12, alpha: 1),
-             UIColor(red: 1.00, green: 0.90, blue: 0.45, alpha: 1)),
-            (UIColor(red: 0.42, green: 0.18, blue: 0.78, alpha: 1),
-             UIColor(red: 0.74, green: 0.54, blue: 1.00, alpha: 1)),
-            (UIColor(red: 0.90, green: 0.35, blue: 0.10, alpha: 1),
-             UIColor(red: 1.00, green: 0.75, blue: 0.35, alpha: 1)),
-        ]
-
-        private static let tokenPalette: [UIColor] = [
-            UIColor(red: 0.95, green: 0.25, blue: 0.25, alpha: 1),
-            UIColor(red: 0.25, green: 0.55, blue: 0.95, alpha: 1),
-            UIColor(red: 0.30, green: 0.85, blue: 0.40, alpha: 1),
-            UIColor(red: 0.95, green: 0.75, blue: 0.20, alpha: 1),
-            UIColor(red: 0.75, green: 0.35, blue: 0.95, alpha: 1),
-            UIColor(red: 0.95, green: 0.55, blue: 0.20, alpha: 1),
-        ]
-
         private func rebuildTokensIfNeeded(players: [SnakeLadderPlayerPosition]) {
-            for entry in players where tokenNodes[entry.playerID] == nil {
-                let color = Coordinator.tokenPalette[tokenNodes.count % Coordinator.tokenPalette.count]
+            for (index, entry) in players.enumerated() where tokenNodes[entry.playerID] == nil {
+                let color = SnakeLadderPalette.tokenColor(index)
                 let token = Coordinator.makeTokenNode(color: color)
                 // Floating name plate, billboarded so it always faces the
                 // camera; it rides the token, so it follows automatically.
                 let plate = Coordinator.makeNamePlate(name: entry.name, color: color)
-                plate.position = SCNVector3(0, 0.62, 0)
+                plate.position = SCNVector3(0, 0.66, 0)
                 token.addChildNode(plate)
+                token.position = tokenAnchor(square: 0, offsetIndex: index, offsetCount: players.count)
                 scene.rootNode.addChildNode(token)
                 tokenNodes[entry.playerID] = token
 
-                // Glowing ring on the tile under the token, in the
-                // player's color -- positioned in `apply` alongside the
-                // token so it tracks every move.
                 let ring = Coordinator.makePlayerRing(color: color)
                 scene.rootNode.addChildNode(ring)
                 playerRings[entry.playerID] = ring
             }
         }
 
+        /// A classic pawn: base disc, conical body and a round head. The
+        /// idle bob runs on an inner node, so the outer node's position is
+        /// owned entirely by the walk/slide actions and never drifts.
         private static func makeTokenNode(color: UIColor) -> SCNNode {
             let material = SCNMaterial()
             material.lightingModel = .physicallyBased
             material.diffuse.contents = color
             material.metalness.contents = 0.15
-            material.roughness.contents = 0.4
+            material.roughness.contents = 0.35
 
-            let body = SCNNode(geometry: SCNCone(topRadius: 0.02, bottomRadius: 0.13, height: 0.28))
+            let base = SCNNode(geometry: SCNCylinder(radius: 0.15, height: 0.05))
+            base.geometry?.materials = [material]
+            base.position = SCNVector3(0, -0.12, 0)
+            let body = SCNNode(geometry: SCNCone(topRadius: 0.03, bottomRadius: 0.12, height: 0.26))
             body.geometry?.materials = [material]
             let head = SCNNode(geometry: SCNSphere(radius: 0.09))
             head.geometry?.materials = [material]
-            head.position = SCNVector3(0, 0.19, 0)
+            head.position = SCNVector3(0, 0.18, 0)
+
+            let bob = SCNNode()
+            bob.addChildNode(base)
+            bob.addChildNode(body)
+            bob.addChildNode(head)
 
             let root = SCNNode()
-            root.addChildNode(body)
-            root.addChildNode(head)
+            root.addChildNode(bob)
 
             let bobUp = SCNAction.moveBy(x: 0, y: 0.04, z: 0, duration: 0.9)
             bobUp.timingMode = .easeInEaseOut
-            root.runAction(.repeatForever(.sequence([bobUp, bobUp.reversed()])), forKey: "idleBob")
+            bob.runAction(.repeatForever(.sequence([bobUp, bobUp.reversed()])), forKey: "idleBob")
             return root
         }
 
         /// A flat glowing ring marking the tile the token stands on, in
-        /// the player's color, with a gentle pulse. Positioned in `apply`
-        /// next to its token so it tracks every move.
+        /// the player's color, with a gentle pulse.
         private static func makePlayerRing(color: UIColor) -> SCNNode {
             let ring = SCNTorus(ringRadius: 0.34, pipeRadius: 0.035)
             let material = SCNMaterial()
-            material.lightingModel = .physicallyBased
+            material.lightingModel = .constant
             material.diffuse.contents = color
             material.emission.contents = color
-            material.emission.intensity = 0.9
             ring.materials = [material]
             let node = SCNNode(geometry: ring)
-            // SCNTorus lies in the XY plane; lay it flat on the board.
-            node.eulerAngles = SCNVector3(Float.pi / 2, 0, 0)
+            node.castsShadow = false
             let pulse = SCNAction.scale(by: 1.08, duration: 0.8)
             pulse.timingMode = .easeInEaseOut
             node.runAction(.repeatForever(.sequence([pulse, pulse.reversed()])), forKey: "ringPulse")
@@ -511,11 +682,8 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         }
 
         /// A billboarded name plate floating above the token: a dark pill
-        /// with the player's name, edged in the player's color. The name
-        /// truncates with an ellipsis rather than wrapping. The billboard
-        /// constraint keeps it facing the camera from the cinematic rig's
-        /// angles, and `.constant` lighting keeps it legible instead of
-        /// shaded dark by the scene lights.
+        /// with the player's name, edged in the player's color. `.constant`
+        /// lighting keeps it legible instead of shaded by the scene lights.
         private static func makeNamePlate(name: String, color: UIColor) -> SCNNode {
             let label = name.count > 12 ? String(name.prefix(11)) + "\u{2026}" : name
             let size = CGSize(width: 256, height: 64)
@@ -543,55 +711,92 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             let plane = SCNPlane(width: 1.1, height: 0.28)
             plane.materials = [material]
             let node = SCNNode(geometry: plane)
+            node.castsShadow = false
             node.constraints = [SCNBillboardConstraint()]
             return node
         }
 
         // MARK: - Live state -> scene
 
-        func apply(_ state: SnakeLadderBoardState, animated: Bool) {
+        func apply(_ state: SnakeLadderBoardState, animated requestedAnimation: Bool) {
             ensureBoardDressing(state: state)
             rebuildTokensIfNeeded(players: state.positions)
 
+            let animated = requestedAnimation && adoptedState
+            if !state.positions.isEmpty { adoptedState = true }
+
+            // The roller whose roll left them where they were (an overshoot
+            // near 100 needs the exact number): they get a little bump.
+            var bumpPlayer: String?
             if !animated {
-                // First paint (or a full rebind): adopt the board as-is.
-                // Any slide event the engine is still holding -- e.g. after
-                // a rejoin mid-game -- is history, not a cue: record its
-                // seq so it is never replayed as a cinematic.
+                // First paint (or a mid-game join): adopt the board as-is.
+                // Any slide event the engine is still holding is history,
+                // not a cue: record its seq so it is never replayed.
                 for (pid, slide) in state.lastSlide { seenSlideSeq[pid] = slide.seq }
+                seenRollSeq = state.rollSeq
+            } else if state.rollSeq != seenRollSeq {
+                seenRollSeq = state.rollSeq
+                if let roller = state.lastRollerID, let value = state.lastRoll[roller] {
+                    dice.roll(to: max(1, min(6, value)))
+                    bumpPlayer = roller
+                }
             }
 
             var bySquare: [Int: [String]] = [:]
             for entry in state.positions { bySquare[entry.position, default: []].append(entry.playerID) }
 
-            for entry in state.positions {
-                guard let token = tokenNodes[entry.playerID] else { continue }
-                let group = bySquare[entry.position] ?? [entry.playerID]
-                let offsetIndex = group.firstIndex(of: entry.playerID) ?? 0
-                let anchor = tokenAnchor(square: entry.position, offsetIndex: offsetIndex, offsetCount: group.count)
-                let previous = lastPositions[entry.playerID] ?? 0
-
-                if !animated || previous == entry.position {
-                    token.position = anchor
-                } else if let slide = state.lastSlide[entry.playerID],
-                          slide.seq != seenSlideSeq[entry.playerID],
-                          slide.to == entry.position {
-                    // Authoritative slide event from the engine: play the
-                    // full bite/climb cinematic (with its sound) instead of
-                    // a plain hop. The seq check dedupes re-broadcasts.
-                    seenSlideSeq[entry.playerID] = slide.seq
-                    playSlideEvent(kind: slide.kind, from: slide.from, token: token,
-                                   previous: previous, finalAnchor: anchor,
-                                   diceValue: state.lastRoll[entry.playerID])
+            for (index, entry) in state.positions.enumerated() {
+                let pid = entry.playerID
+                guard let token = tokenNodes[pid] else { continue }
+                let group = bySquare[entry.position] ?? [pid]
+                let anchor: SCNVector3
+                if entry.position > 0 {
+                    anchor = tokenAnchor(square: entry.position,
+                                         offsetIndex: group.firstIndex(of: pid) ?? 0,
+                                         offsetCount: group.count)
                 } else {
-                    let diceValue = state.lastRoll[entry.playerID] ?? max(entry.position - previous, 1)
-                    animateMove(token: token, from: previous, to: entry.position, diceValue: diceValue, finalAnchor: anchor)
+                    // Off-board tokens keep a fixed staging slot each.
+                    anchor = tokenAnchor(square: 0, offsetIndex: index, offsetCount: state.positions.count)
                 }
-                lastPositions[entry.playerID] = entry.position
-                // The player's color ring tracks the token's tile.
-                if let ring = playerRings[entry.playerID] {
-                    ring.position = SCNVector3(anchor.x, boardTopY + 0.02, anchor.z)
+                let previous = lastPositions[pid] ?? 0
+
+                if !animated {
+                    token.removeAllActions()
+                    token.position = anchor
+                    token.scale = SCNVector3(1, 1, 1)
+                    busyUntil[pid] = 0
+                    placeRing(for: pid, at: anchor, after: 0)
+                } else if previous != entry.position {
+                    var slide: SnakeLadderSlide?
+                    if let event = state.lastSlide[pid], event.seq != seenSlideSeq[pid], event.to == entry.position {
+                        slide = event
+                        seenSlideSeq[pid] = event.seq
+                    }
+                    if state.rollSeq == 0, let value = state.lastRoll[pid] {
+                        // An engine without `rollSeq`: tumble on the move.
+                        dice.roll(to: max(1, min(6, value)))
+                    }
+                    let done = queueMove(pid: pid, token: token, from: previous, to: entry.position,
+                                         slide: slide, finalAnchor: anchor)
+                    placeRing(for: pid, at: anchor, after: done)
+                } else if pid == bumpPlayer, entry.position > 0 {
+                    // Rolled, but the exact-roll rule kept them in place.
+                    let start = lastAnchors[pid] ?? anchor
+                    let done = queue(pid: pid, token: token, actions: [
+                        Coordinator.hopAction(from: start, to: anchor, duration: 0.22, arcHeight: 0.22),
+                        Coordinator.hopAction(from: anchor, to: anchor, duration: 0.18, arcHeight: 0.12),
+                    ], duration: 0.4)
+                    placeRing(for: pid, at: anchor, after: done)
+                } else if let last = lastAnchors[pid], !SnakeLadderGeometry.nearlyEqual(last, anchor) {
+                    // Same square, but another token arrived or left, so the
+                    // tokens sharing it re-spread around the tile.
+                    let done = queue(pid: pid, token: token,
+                                     actions: [Coordinator.slideAction(from: last, to: anchor, duration: 0.25)],
+                                     duration: 0.25)
+                    placeRing(for: pid, at: anchor, after: done)
                 }
+                lastPositions[pid] = entry.position
+                lastAnchors[pid] = anchor
             }
 
             if let winnerID = state.winner, winnerID != lastAnnouncedWinner {
@@ -605,133 +810,153 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             }
         }
 
-        /// Plain hop-to-hop token movement. Snake bites and ladder climbs
-        /// never come through here -- the engine broadcasts an explicit
-        /// `lastSlide` event for those and `apply` routes it to
-        /// `playSlideEvent`, which is the only place the bite/climb
-        /// cinematics (and their sounds) live.
-        private func animateMove(token: SCNNode, from oldPos: Int, to newPos: Int, diceValue: Int, finalAnchor: SCNVector3) {
-            dice.roll(to: max(1, min(6, diceValue)))
-
-            guard oldPos > 0 else {
-                // Entering the board for the first time -- there's no prior
-                // square to hop from, so this is a single pop onto square 1.
-                token.runAction(Coordinator.hopAction(from: token.position, to: finalAnchor, duration: 0.35, arcHeight: 0.5))
-                return
-            }
-
-            runHopSequence(token: token, from: oldPos, to: newPos, finalAnchor: finalAnchor)
+        /// Runs `actions` on the token once its current queued movement is
+        /// done. Returns the seconds from now until this one finishes.
+        @discardableResult
+        private func queue(pid: String, token: SCNNode, actions: [SCNAction], duration: TimeInterval) -> TimeInterval {
+            let now = CACurrentMediaTime()
+            let startDelay = max(0, (busyUntil[pid] ?? 0) - now)
+            var sequence: [SCNAction] = []
+            if startDelay > 0 { sequence.append(.wait(duration: startDelay)) }
+            sequence.append(contentsOf: actions)
+            if !sequence.isEmpty { token.runAction(.sequence(sequence)) }
+            let total = startDelay + duration
+            busyUntil[pid] = now + total
+            return total
         }
 
-        /// The authoritative slide cinematic, driven by the engine's
-        /// `lastSlide` event. The token hops to the head/bottom square if
-        /// it isn't there yet, then -- for a snake -- the head lunges
-        /// (`playEat`), the bite sound fires, and the token rides the
-        /// snake's body down; for a ladder the chime fires and the token
-        /// climbs rung by rung.
-        private func playSlideEvent(kind: String, from slideFrom: Int, token: SCNNode,
-                                    previous: Int, finalAnchor: SCNVector3, diceValue: Int?) {
-            dice.roll(to: max(1, min(6, diceValue ?? 1)))
-            let headAnchor = tokenAnchor(square: slideFrom)
-            let hopSeconds: TimeInterval
-            if previous > 0, abs(slideFrom - previous) <= 8 {
-                hopSeconds = runHopSequence(token: token, from: previous, to: slideFrom, finalAnchor: headAnchor)
-            } else {
-                // The TV missed the hops that led here (backgrounded, or a
-                // rejoin landing on a live event): snap to the head/bottom
-                // square so the cinematic still starts from the right place.
-                token.position = headAnchor
-                hopSeconds = 0.25
+        /// The whole move for one roll as a single queued action sequence:
+        /// walk square by square along the boustrophedon path (to the
+        /// snake head / ladder bottom when the engine says this roll hit
+        /// one), then the bite-and-slide or the climb. Sounds and the
+        /// snake's strike are scheduled to line up with the queued motion.
+        /// Returns the seconds from now until the token comes to rest.
+        private func queueMove(pid: String, token: SCNNode, from previous: Int, to target: Int,
+                               slide: SnakeLadderSlide?, finalAnchor: SCNVector3) -> TimeInterval {
+            let now = CACurrentMediaTime()
+            let startDelay = max(0, (busyUntil[pid] ?? 0) - now)
+            var actions: [SCNAction] = []
+            var elapsed: TimeInterval = 0
+            var cursor = lastAnchors[pid] ?? token.position
+            var hopTimes: [TimeInterval] = []
+
+            let walkEnd = slide?.from ?? target
+            let walkStart = max(previous, 0)
+            if walkEnd > walkStart, walkEnd - walkStart <= 12 {
+                for square in (walkStart + 1)...walkEnd {
+                    let point = (square == walkEnd && slide == nil) ? finalAnchor : tokenAnchor(square: square)
+                    let entering = walkStart == 0 && square == 1
+                    let duration = entering ? 0.35 : hopSeconds
+                    actions.append(Coordinator.hopAction(from: cursor, to: point, duration: duration,
+                                                         arcHeight: entering ? 0.5 : 0.3))
+                    cursor = point
+                    elapsed += duration
+                    hopTimes.append(startDelay + elapsed)
+                }
+            } else if walkEnd != walkStart {
+                // The TV missed updates (backgrounded, or a reconnect): one
+                // long arc beats a 40-square march.
+                let point = slide == nil ? finalAnchor : tokenAnchor(square: walkEnd)
+                actions.append(Coordinator.hopAction(from: cursor, to: point, duration: 0.6, arcHeight: 0.9))
+                cursor = point
+                elapsed += 0.6
+                hopTimes.append(startDelay + elapsed)
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + hopSeconds) { [weak self] in
-                guard let self else { return }
-                if kind == "snake", let snake = self.snakeNodes[slideFrom] {
-                    snake.playEat()
-                    SoundPlayer.shared.play(.snakeBite)
-                    // A short, subtle camera rumble sells the strike --
-                    // well below the idle orbit's own amplitude so it reads
-                    // as impact, not vertigo.
-                    self.cameraRig.shake(intensity: 0.12, duration: 0.4)
-                    // The doom sting swells in just behind the bite snap
-                    // and carries the whole slide down the body.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+
+            // A soft tick as the pawn lands on each square, like a pawn
+            // being tapped along a real board.
+            for time in hopTimes {
+                DispatchQueue.main.asyncAfter(deadline: .now() + time) {
+                    SoundPlayer.shared.playClick(volume: 0.25)
+                }
+            }
+
+            if let slide {
+                let strikeAt = startDelay + elapsed
+                if slide.kind == "snake", let snake = snakeNodes[slide.from] {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + strikeAt) { [weak self] in
+                        snake.playEat()
+                        SoundPlayer.shared.play(.snakeBite)
+                        // A short, subtle camera rumble sells the strike.
+                        self?.cameraRig.shake(intensity: 0.12, duration: 0.4)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + strikeAt + 0.3) {
                         SoundPlayer.shared.play(.snakeDoomSting, volume: 0.9)
                     }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        self.runSlide(token: token, along: snake.pathPoints, finalAnchor: finalAnchor)
+                    actions.append(.wait(duration: 0.4))
+                    elapsed += 0.4
+                    // Swallowed: shrink, ride the snake's own body down to
+                    // the tail, then pop back out at full size.
+                    actions.append(.scale(to: 0.45, duration: 0.18))
+                    elapsed += 0.18
+                    let body = snake.pathPoints
+                    if body.count > 1 {
+                        let rideSeconds = min(2.2, max(1.0, Double(body.count) * 0.05))
+                        let perPoint = rideSeconds / Double(body.count - 1)
+                        for (i, p) in body.enumerated().dropFirst() {
+                            let point = i == body.count - 1 ? finalAnchor : SCNVector3(p.x, p.y + 0.16, p.z)
+                            actions.append(Coordinator.slideAction(from: cursor, to: point, duration: perPoint))
+                            cursor = point
+                            elapsed += perPoint
+                        }
+                    } else {
+                        actions.append(Coordinator.slideAction(from: cursor, to: finalAnchor, duration: 0.6))
+                        elapsed += 0.6
                     }
-                } else if kind == "ladder", let ladder = self.ladderNodes[slideFrom] {
-                    SoundPlayer.shared.play(.ladderClimb)
-                    self.runClimb(token: token, ladder: ladder, finalAnchor: finalAnchor)
+                    actions.append(.scale(to: 1.0, duration: 0.25))
+                    elapsed += 0.25
+                } else if slide.kind == "ladder", let ladder = ladderNodes[slide.from] {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + strikeAt) {
+                        SoundPlayer.shared.play(.ladderClimb)
+                    }
+                    // Taller, slower hops rung by rung up the ladder's own
+                    // line -- distinct from a normal hop's flatter arc.
+                    let steps = max(4, min(10, ladder.rungCount / 2))
+                    for i in 1...steps {
+                        let t = Float(i) / Float(steps)
+                        let point: SCNVector3
+                        if i == steps {
+                            point = finalAnchor
+                        } else {
+                            point = SCNVector3(
+                                ladder.bottomWorldPosition.x + (ladder.topWorldPosition.x - ladder.bottomWorldPosition.x) * t,
+                                boardTopY + tokenHoverHeight + 0.08,
+                                ladder.bottomWorldPosition.z + (ladder.topWorldPosition.z - ladder.bottomWorldPosition.z) * t
+                            )
+                        }
+                        actions.append(Coordinator.hopAction(from: cursor, to: point, duration: 0.2, arcHeight: 0.2))
+                        cursor = point
+                        elapsed += 0.2
+                    }
                 } else {
                     // The event names a square this client has no model for
                     // (both come from the same engine maps, so this
                     // shouldn't happen): fall back to a plain hop.
-                    token.runAction(Coordinator.hopAction(from: token.position, to: finalAnchor,
-                                                         duration: 0.3, arcHeight: 0.3))
+                    actions.append(Coordinator.hopAction(from: cursor, to: finalAnchor, duration: 0.4, arcHeight: 0.4))
+                    elapsed += 0.4
                 }
             }
+
+            var sequence: [SCNAction] = []
+            if startDelay > 0 { sequence.append(.wait(duration: startDelay)) }
+            sequence.append(contentsOf: actions)
+            if !sequence.isEmpty { token.runAction(.sequence(sequence)) }
+            let total = startDelay + elapsed
+            busyUntil[pid] = now + total
+            return total
         }
 
-        @discardableResult
-        private func runHopSequence(token: SCNNode, from startSquare: Int, to endSquare: Int,
-                                     finalAnchor: SCNVector3, perHop: TimeInterval = 0.16, arcHeight: Float = 0.3) -> TimeInterval {
-            guard endSquare > startSquare else { return 0 }
-            var actions: [SCNAction] = []
-            var previous = token.position
-            for square in (startSquare + 1)...endSquare {
-                let point = square == endSquare ? finalAnchor : tokenAnchor(square: square)
-                actions.append(Coordinator.hopAction(from: previous, to: point, duration: perHop, arcHeight: arcHeight))
-                previous = point
+        /// Moves the player's color ring to the token's resting tile once
+        /// the token gets there.
+        private func placeRing(for pid: String, at anchor: SCNVector3, after delay: TimeInterval) {
+            guard let ring = playerRings[pid] else { return }
+            let target = SCNVector3(anchor.x, boardTopY + 0.02, anchor.z)
+            ring.removeAction(forKey: "ringMove")
+            if delay <= 0 {
+                ring.position = target
+            } else {
+                ring.runAction(.sequence([.wait(duration: delay), .move(to: target, duration: 0.2)]), forKey: "ringMove")
             }
-            token.runAction(.sequence(actions))
-            return perHop * TimeInterval(endSquare - startSquare)
-        }
-
-        /// The distinct "eaten and spat out" motion: the token shrinks,
-        /// rides the snake's own body centerline down to the tail, then
-        /// grows back -- visually unmistakable from a normal hop.
-        private func runSlide(token: SCNNode, along bodyPoints: [SCNVector3], finalAnchor: SCNVector3) {
-            guard bodyPoints.count > 1 else {
-                token.runAction(Coordinator.hopAction(from: token.position, to: finalAnchor, duration: 0.3, arcHeight: 0.15))
-                return
-            }
-            let hoverAboveBody: Float = 0.12
-            var waypoints = bodyPoints.map { SCNVector3($0.x, $0.y + hoverAboveBody, $0.z) }
-            waypoints[waypoints.count - 1] = finalAnchor
-
-            var actions: [SCNAction] = [SCNAction.scale(to: 0.45, duration: 0.18)]
-            var previous = token.position
-            for point in waypoints {
-                actions.append(Coordinator.slideAction(from: previous, to: point, duration: 0.12))
-                previous = point
-            }
-            actions.append(SCNAction.scale(to: 1.0, duration: 0.25))
-            token.runAction(.sequence(actions))
-        }
-
-        /// A handful of taller, slower hops straight up the ladder's own
-        /// line -- distinct from a normal hop's flatter, faster arc.
-        private func runClimb(token: SCNNode, ladder: LadderNode, finalAnchor: SCNVector3) {
-            let steps = 5
-            var actions: [SCNAction] = []
-            var previous = token.position
-            for i in 1...steps {
-                let t = Float(i) / Float(steps)
-                let point: SCNVector3
-                if i == steps {
-                    point = finalAnchor
-                } else {
-                    point = SCNVector3(
-                        ladder.bottomWorldPosition.x + (ladder.topWorldPosition.x - ladder.bottomWorldPosition.x) * t,
-                        boardTopY + tokenHoverHeight,
-                        ladder.bottomWorldPosition.z + (ladder.topWorldPosition.z - ladder.bottomWorldPosition.z) * t
-                    )
-                }
-                actions.append(Coordinator.hopAction(from: previous, to: point, duration: 0.2, arcHeight: 0.2))
-                previous = point
-            }
-            token.runAction(.sequence(actions))
         }
 
         // MARK: - Geometry helpers
@@ -802,76 +1027,280 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
 
         /// The numbered 10x10 grid, drawn once into a texture (rather than
         /// as 100 individual `SCNText` nodes) and applied to the board
-        /// slab's top face -- cheap, and guarantees every number is
-        /// legible at TV distance regardless of camera angle.
+        /// slab's top face -- cheap, and every number stays legible at TV
+        /// distance regardless of camera angle.
         ///
-        /// The classic vibrant look: tiles cycle through red, yellow,
-        /// green, blue and white like the physical board game. Numbers
-        /// stay big and centered; the text color is picked per tile (black
-        /// or white) for contrast. Snake-head and ladder-bottom tiles
-        /// can't rely on a full-tile tint anymore (it would vanish into
-        /// the colorful tiles), so they get a thick white outline plus a
-        /// small corner marker instead.
-        private static func boardTexture(snakes: [Int: Int], ladders: [Int: Int]) -> UIImage {
+        /// The classic printed-board look: a checkerboard of alternating
+        /// warm tones (cream / orange on one row, butter / brick red on the
+        /// next), big outlined numbers in each square's top-left corner so
+        /// a snake or ladder lying across the middle never hides them, and
+        /// START / HOME on 1 and 100.
+        private static func boardTexture() -> UIImage {
             let cells = 10
-            let cellPx: CGFloat = 96
+            let cellPx: CGFloat = 128
             let size = CGSize(width: cellPx * CGFloat(cells), height: cellPx * CGFloat(cells))
-            let snakeHeads = Set(snakes.keys)
-            let ladderBottoms = Set(ladders.keys)
-            // Classic board-game palette, cycling in tile order, with the
-            // text color that reads best on each.
-            let palette: [(tile: UIColor, text: UIColor)] = [
-                (UIColor(red: 0.85, green: 0.17, blue: 0.14, alpha: 1), .white),  // red
-                (UIColor(red: 0.98, green: 0.79, blue: 0.10, alpha: 1), .black),  // yellow
-                (UIColor(red: 0.11, green: 0.55, blue: 0.24, alpha: 1), .white),  // green
-                (UIColor(red: 0.13, green: 0.36, blue: 0.84, alpha: 1), .white),  // blue
-                (UIColor(white: 0.96, alpha: 1), .black),                          // white
-            ]
+            let cream = UIColor(red: 0.99, green: 0.94, blue: 0.80, alpha: 1)
+            let butter = UIColor(red: 0.99, green: 0.86, blue: 0.52, alpha: 1)
+            let orange = UIColor(red: 0.95, green: 0.55, blue: 0.22, alpha: 1)
+            let brick = UIColor(red: 0.80, green: 0.26, blue: 0.19, alpha: 1)
+            let darkText = UIColor(red: 0.30, green: 0.15, blue: 0.07, alpha: 1)
+
             let renderer = UIGraphicsImageRenderer(size: size)
             return renderer.image { _ in
                 for n in 1...100 {
                     let (row, col) = Coordinator.squareRowCol(n)
                     let rect = CGRect(x: CGFloat(col) * cellPx, y: CGFloat(cells - 1 - row) * cellPx,
-                                       width: cellPx, height: cellPx)
-                    let (base, textColor) = palette[(n - 1) % palette.count]
-                    base.setFill()
+                                      width: cellPx, height: cellPx)
+                    let warm = (row + col) % 2 == 1
+                    let evenRow = row % 2 == 0
+                    let tile: UIColor = warm ? (evenRow ? orange : brick) : (evenRow ? cream : butter)
+                    tile.setFill()
                     UIBezierPath(rect: rect).fill()
-                    UIColor(white: 0, alpha: 0.15).setStroke()
-                    UIBezierPath(rect: rect.insetBy(dx: 0.5, dy: 0.5)).stroke()
+                    UIColor(white: 0, alpha: 0.18).setStroke()
+                    let border = UIBezierPath(rect: rect.insetBy(dx: 1, dy: 1))
+                    border.lineWidth = 2
+                    border.stroke()
 
-                    // Special-tile marker: a thick white outline plus a
-                    // corner tab, so snake heads and ladder bases stay
-                    // findable on the now-colorful board. Top-left tab for
-                    // a snake head, bottom-right tab for a ladder base.
-                    if snakeHeads.contains(n) || ladderBottoms.contains(n) {
-                        UIColor.white.setStroke()
-                        let outline = UIBezierPath(rect: rect.insetBy(dx: 3, dy: 3))
-                        outline.lineWidth = 5
-                        outline.stroke()
-                        let tabSize: CGFloat = 22
-                        let tab: CGRect
-                        if snakeHeads.contains(n) {
-                            tab = CGRect(x: rect.minX + 4, y: rect.minY + 4,
-                                         width: tabSize, height: tabSize)
-                        } else {
-                            tab = CGRect(x: rect.maxX - 4 - tabSize, y: rect.maxY - 4 - tabSize,
-                                         width: tabSize, height: tabSize)
-                        }
-                        UIColor.white.setFill()
-                        UIBezierPath(ovalIn: tab).fill()
-                    }
-
-                    let paragraph = NSMutableParagraphStyle()
-                    paragraph.alignment = .center
+                    let textColor: UIColor = warm ? .white : darkText
+                    let outline: UIColor = warm ? UIColor(white: 0, alpha: 0.55) : UIColor(white: 1, alpha: 0.8)
                     let attrs: [NSAttributedString.Key: Any] = [
-                        .font: UIFont.boldSystemFont(ofSize: 44),
+                        .font: UIFont.systemFont(ofSize: 46, weight: .heavy),
                         .foregroundColor: textColor,
-                        .paragraphStyle: paragraph,
+                        .strokeColor: outline,
+                        .strokeWidth: -3.0,
                     ]
-                    // Vertically centered: 44pt bold runs ~52pt tall.
-                    let textRect = rect.insetBy(dx: 4, dy: (cellPx - 52) / 2)
-                    ("\(n)" as NSString).draw(in: textRect, withAttributes: attrs)
+                    ("\(n)" as NSString).draw(at: CGPoint(x: rect.minX + 10, y: rect.minY + 4), withAttributes: attrs)
+
+                    if n == 1 || n == 100 {
+                        let paragraph = NSMutableParagraphStyle()
+                        paragraph.alignment = .center
+                        let small: [NSAttributedString.Key: Any] = [
+                            .font: UIFont.systemFont(ofSize: 22, weight: .black),
+                            .foregroundColor: textColor,
+                            .paragraphStyle: paragraph,
+                        ]
+                        let caption = n == 1 ? "START" : "HOME"
+                        (caption as NSString).draw(in: CGRect(x: rect.minX, y: rect.maxY - 34, width: cellPx, height: 30),
+                                                   withAttributes: small)
+                    }
                 }
+                // A dark outer border so the grid reads as a printed board.
+                UIColor(red: 0.25, green: 0.12, blue: 0.05, alpha: 1).setStroke()
+                let edge = UIBezierPath(rect: CGRect(origin: .zero, size: size).insetBy(dx: 3, dy: 3))
+                edge.lineWidth = 6
+                edge.stroke()
+            }
+        }
+    }
+}
+
+// MARK: - Shared snake/ladder parts
+
+/// One snake look: body color, pattern color and pattern. Cycled by snake
+/// index (snakes sorted by head square), so with the classic ten snakes
+/// almost every snake has its own identity at TV distance.
+private struct SnakeStyle {
+    enum Pattern { case bands, diamonds, spots, zigzag }
+
+    let base: UIColor
+    let accent: UIColor
+    let pattern: Pattern
+
+    static let all: [SnakeStyle] = [
+        SnakeStyle(base: UIColor(red: 0.16, green: 0.55, blue: 0.22, alpha: 1),
+                   accent: UIColor(red: 0.98, green: 0.84, blue: 0.20, alpha: 1), pattern: .bands),
+        SnakeStyle(base: UIColor(red: 0.78, green: 0.14, blue: 0.12, alpha: 1),
+                   accent: UIColor(red: 0.12, green: 0.08, blue: 0.06, alpha: 1), pattern: .diamonds),
+        SnakeStyle(base: UIColor(red: 0.15, green: 0.35, blue: 0.82, alpha: 1),
+                   accent: UIColor(red: 0.92, green: 0.95, blue: 1.00, alpha: 1), pattern: .zigzag),
+        SnakeStyle(base: UIColor(red: 0.45, green: 0.20, blue: 0.70, alpha: 1),
+                   accent: UIColor(red: 1.00, green: 0.62, blue: 0.18, alpha: 1), pattern: .spots),
+        SnakeStyle(base: UIColor(red: 0.10, green: 0.10, blue: 0.12, alpha: 1),
+                   accent: UIColor(red: 0.98, green: 0.88, blue: 0.25, alpha: 1), pattern: .bands),
+        SnakeStyle(base: UIColor(red: 0.92, green: 0.50, blue: 0.10, alpha: 1),
+                   accent: UIColor(red: 0.35, green: 0.18, blue: 0.06, alpha: 1), pattern: .diamonds),
+        SnakeStyle(base: UIColor(red: 0.08, green: 0.55, blue: 0.55, alpha: 1),
+                   accent: UIColor(red: 0.05, green: 0.25, blue: 0.20, alpha: 1), pattern: .spots),
+        SnakeStyle(base: UIColor(red: 0.95, green: 0.80, blue: 0.18, alpha: 1),
+                   accent: UIColor(red: 0.80, green: 0.12, blue: 0.10, alpha: 1), pattern: .zigzag),
+    ]
+
+    static func style(_ index: Int) -> SnakeStyle {
+        all[((index % all.count) + all.count) % all.count]
+    }
+
+    /// One repeat of the skin pattern. `u` (x) runs around the body, with
+    /// the top of the back at x = 0.25 and the belly at x = 0.75; `v` (y)
+    /// runs along the body and repeats.
+    func skinTexture() -> UIImage {
+        let w: CGFloat = 128
+        let h: CGFloat = 128
+        let size = CGSize(width: w, height: h)
+        return UIGraphicsImageRenderer(size: size).image { _ in
+            base.setFill()
+            UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
+            // A paler belly strip, like a real snake's underside.
+            UIColor(white: 1, alpha: 0.3).setFill()
+            UIBezierPath(rect: CGRect(x: w * 0.62, y: 0, width: w * 0.26, height: h)).fill()
+
+            let edge = UIColor(white: 0, alpha: 0.35)
+            switch pattern {
+            case .bands:
+                accent.setFill()
+                let band = UIBezierPath(rect: CGRect(x: 0, y: 0, width: w, height: h * 0.3))
+                band.fill()
+                edge.setFill()
+                UIBezierPath(rect: CGRect(x: 0, y: h * 0.3, width: w, height: 3)).fill()
+                UIBezierPath(rect: CGRect(x: 0, y: 0, width: w, height: 3)).fill()
+            case .diamonds:
+                let diamond = UIBezierPath()
+                diamond.move(to: CGPoint(x: w * 0.25, y: 0))
+                diamond.addLine(to: CGPoint(x: w * 0.45, y: h * 0.5))
+                diamond.addLine(to: CGPoint(x: w * 0.25, y: h))
+                diamond.addLine(to: CGPoint(x: w * 0.05, y: h * 0.5))
+                diamond.close()
+                accent.setFill()
+                diamond.fill()
+                edge.setStroke()
+                diamond.lineWidth = 4
+                diamond.stroke()
+            case .spots:
+                accent.setFill()
+                edge.setStroke()
+                let spots: [(CGFloat, CGFloat, CGFloat)] = [
+                    (0.25, 0.25, 0.14), (0.5, 0.75, 0.10), (0.0, 0.75, 0.10), (1.0, 0.75, 0.10),
+                ]
+                for (x, y, r) in spots {
+                    let spot = UIBezierPath(ovalIn: CGRect(x: x * w - r * w, y: y * h - r * w,
+                                                           width: 2 * r * w, height: 2 * r * w))
+                    spot.fill()
+                    spot.lineWidth = 3
+                    spot.stroke()
+                }
+            case .zigzag:
+                let zig = UIBezierPath()
+                zig.move(to: CGPoint(x: w * 0.12, y: 0))
+                zig.addLine(to: CGPoint(x: w * 0.38, y: h * 0.25))
+                zig.addLine(to: CGPoint(x: w * 0.12, y: h * 0.5))
+                zig.addLine(to: CGPoint(x: w * 0.38, y: h * 0.75))
+                zig.addLine(to: CGPoint(x: w * 0.12, y: h))
+                zig.lineWidth = w * 0.1
+                zig.lineJoinStyle = .miter
+                accent.setStroke()
+                zig.stroke()
+            }
+        }
+    }
+}
+
+/// Geometry and materials built once per board and shared by every snake
+/// and ladder, so ten snakes and nine ladders cost a handful of materials
+/// and textures rather than one of each per node.
+@MainActor
+private final class SnakeLadderSharedParts {
+    let woodMaterial: SCNMaterial
+    let frameMaterial: SCNMaterial
+    let rungGeometry: SCNGeometry
+    let eyeGeometry: SCNGeometry
+    let pupilGeometry: SCNGeometry
+    let tongueGeometry: SCNGeometry
+    private var bodyMaterials: [Int: SCNMaterial] = [:]
+    private var headGeometries: [Int: SCNGeometry] = [:]
+
+    init() {
+        let wood = SCNMaterial()
+        wood.lightingModel = .physicallyBased
+        wood.diffuse.contents = SnakeLadderSharedParts.woodTexture(
+            base: UIColor(red: 0.62, green: 0.38, blue: 0.16, alpha: 1))
+        wood.roughness.contents = 0.65
+        wood.metalness.contents = 0.0
+        woodMaterial = wood
+
+        let frame = SCNMaterial()
+        frame.lightingModel = .physicallyBased
+        frame.diffuse.contents = SnakeLadderSharedParts.woodTexture(
+            base: UIColor(red: 0.36, green: 0.20, blue: 0.09, alpha: 1))
+        frame.roughness.contents = 0.6
+        frameMaterial = frame
+
+        let rung = SCNCylinder(radius: 0.035, height: 0.56)
+        rung.radialSegmentCount = 10
+        rung.materials = [wood]
+        rungGeometry = rung
+
+        let eyeMaterial = SCNMaterial()
+        eyeMaterial.lightingModel = .physicallyBased
+        eyeMaterial.diffuse.contents = UIColor(red: 1.0, green: 0.93, blue: 0.45, alpha: 1)
+        eyeMaterial.emission.contents = UIColor(white: 0.25, alpha: 1)
+        let eye = SCNSphere(radius: 0.055)
+        eye.segmentCount = 12
+        eye.materials = [eyeMaterial]
+        eyeGeometry = eye
+
+        let pupilMaterial = SCNMaterial()
+        pupilMaterial.lightingModel = .physicallyBased
+        pupilMaterial.diffuse.contents = UIColor.black
+        pupilMaterial.roughness.contents = 0.2
+        let pupil = SCNSphere(radius: 0.028)
+        pupil.segmentCount = 10
+        pupil.materials = [pupilMaterial]
+        pupilGeometry = pupil
+
+        let tongueMaterial = SCNMaterial()
+        tongueMaterial.lightingModel = .physicallyBased
+        tongueMaterial.diffuse.contents = UIColor(red: 0.85, green: 0.08, blue: 0.15, alpha: 1)
+        let tongue = SCNBox(width: 0.045, height: 0.014, length: 0.22, chamferRadius: 0)
+        tongue.materials = [tongueMaterial]
+        tongueGeometry = tongue
+    }
+
+    /// The patterned, repeating skin for a snake style.
+    func bodyMaterial(style index: Int) -> SCNMaterial {
+        let key = ((index % SnakeStyle.all.count) + SnakeStyle.all.count) % SnakeStyle.all.count
+        if let cached = bodyMaterials[key] { return cached }
+        let material = SCNMaterial()
+        material.lightingModel = .physicallyBased
+        material.diffuse.contents = SnakeStyle.style(key).skinTexture()
+        material.diffuse.wrapS = .repeat
+        material.diffuse.wrapT = .repeat
+        material.diffuse.mipFilter = .linear
+        material.roughness.contents = 0.35
+        material.metalness.contents = 0.05
+        material.isDoubleSided = true
+        bodyMaterials[key] = material
+        return material
+    }
+
+    /// The (plain, body-colored) head shape for a snake style.
+    func headGeometry(style index: Int) -> SCNGeometry {
+        let key = ((index % SnakeStyle.all.count) + SnakeStyle.all.count) % SnakeStyle.all.count
+        if let cached = headGeometries[key] { return cached }
+        let material = SCNMaterial()
+        material.lightingModel = .physicallyBased
+        material.diffuse.contents = SnakeStyle.style(key).base
+        material.roughness.contents = 0.35
+        let sphere = SCNSphere(radius: 0.26)
+        sphere.segmentCount = 24
+        sphere.materials = [material]
+        headGeometries[key] = sphere
+        return sphere
+    }
+
+    /// Varnished wood: a base tone with darker grain streaks running along
+    /// the image's height (the long axis of a rail/rung box face).
+    private static func woodTexture(base: UIColor) -> UIImage {
+        let size = CGSize(width: 64, height: 256)
+        return UIGraphicsImageRenderer(size: size).image { _ in
+            base.setFill()
+            UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
+            // Fixed grain positions, so every launch looks the same.
+            let grain: [(CGFloat, CGFloat, CGFloat)] = [
+                (6, 2, 0.22), (13, 1, 0.12), (21, 3, 0.18), (30, 1, 0.10),
+                (37, 2, 0.20), (45, 1, 0.14), (52, 3, 0.16), (59, 1, 0.12),
+            ]
+            for (x, width, alpha) in grain {
+                UIColor(red: 0.18, green: 0.09, blue: 0.03, alpha: alpha).setFill()
+                UIBezierPath(rect: CGRect(x: x, y: 0, width: width, height: size.height)).fill()
             }
         }
     }
@@ -879,201 +1308,312 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
 
 // MARK: - Snakes
 
-/// A single serpentine snake, built from chained capsule segments along a
-/// gently wiggling path from its head square to its tail square -- the
-/// "safest bet" construction the task called for: primitive geometry
-/// chained with small per-segment offsets, the same technique
-/// `PokerDealerNode` uses for every limb, rather than `SCNShape`/a custom
-/// bezier-path geometry.
+/// A single snake: one smooth, tapering tube mesh (head to tail) wiggling
+/// in an S-curve between its head square and its tail square, with a
+/// distinct head (eyes, flicking tongue) on the head square and a pointed
+/// tail ending on the tail square. One draw call for the whole body; the
+/// only animation is a couple of `SCNAction` loops on the head.
 @MainActor
 private final class SnakeNode {
     let rootNode = SCNNode()
-    /// The body centerline from head (index 0) to tail (last index), at
-    /// board-surface height -- exposed so the token can be animated
-    /// sliding down it after being "eaten".
+    /// The body centerline from head (index 0) to tail (last index) --
+    /// exposed so the token can be animated sliding down it after being
+    /// "eaten".
     let pathPoints: [SCNVector3]
 
-    private let headNode: SCNNode
+    /// Idle sway/lift lives here...
+    private let swayNode: SCNNode
+    /// ...and the one-shot strike lives here, so neither fights the other.
+    private let gestureNode: SCNNode
+    private let tongueNode: SCNNode
 
-    init(headSquare: Int, tailSquare: Int, squareToPoint: (Int) -> SCNVector3, color: UIColor, bandColor: UIColor) {
-        let head3D = squareToPoint(headSquare)
-        let tail3D = squareToPoint(tailSquare)
-
-        let segments = 10
-        let dx = tail3D.x - head3D.x
-        let dz = tail3D.z - head3D.z
+    init(headSquare: Int, tailSquare: Int, squareToPoint: (Int) -> SCNVector3,
+         boardTopY: Float, styleIndex: Int, parts: SnakeLadderSharedParts) {
+        let head2D = squareToPoint(headSquare)
+        let tail2D = squareToPoint(tailSquare)
+        let dx = tail2D.x - head2D.x
+        let dz = tail2D.z - head2D.z
         let length = sqrt(dx * dx + dz * dz)
         let perp: SCNVector3 = length > 0.0001
             ? SCNVector3(-dz / length, 0, dx / length)
             : SCNVector3(1, 0, 0)
 
-        var points: [SCNVector3] = []
-        for i in 0...segments {
-            let t = Float(i) / Float(segments)
-            let wiggle = sin(t * Float.pi * 2.4) * 0.38
-            points.append(SCNVector3(
-                head3D.x + dx * t + perp.x * wiggle,
-                head3D.y + 0.10,
-                head3D.z + dz * t + perp.z * wiggle
-            ))
+        // An S-curve whose wiggle fades to zero at both ends, so the head
+        // sits exactly on the head square and the tail tip exactly on the
+        // tail square. Alternate snakes bend the opposite way.
+        let samples = max(24, min(64, Int(length / 0.15)))
+        let waves = max(1, (length / 2.4).rounded())
+        let amplitude = min(0.42, 0.2 + length * 0.025) * (styleIndex.isMultiple(of: 2) ? 1 : -1)
+        var centers: [SCNVector3] = []
+        var radii: [Float] = []
+        centers.reserveCapacity(samples + 1)
+        radii.reserveCapacity(samples + 1)
+        for i in 0...samples {
+            let t = Float(i) / Float(samples)
+            let offset = amplitude * sin(2 * Float.pi * waves * t) * sin(Float.pi * t)
+            let r = SnakeNode.radius(at: t)
+            radii.append(r)
+            centers.append(SCNVector3(head2D.x + dx * t + perp.x * offset,
+                                      boardTopY + r * 0.9,
+                                      head2D.z + dz * t + perp.z * offset))
         }
-        pathPoints = points
+        pathPoints = centers
 
-        let bodyMaterial = SCNMaterial()
-        bodyMaterial.lightingModel = .physicallyBased
-        bodyMaterial.diffuse.contents = color
-        bodyMaterial.roughness.contents = 0.45
-        let bandMaterial = SCNMaterial()
-        bandMaterial.lightingModel = .physicallyBased
-        bandMaterial.diffuse.contents = bandColor
-        bandMaterial.roughness.contents = 0.45
+        let skin = parts.bodyMaterial(style: styleIndex)
+        let tube = SnakeNode.tubeGeometry(centers: centers, radii: radii, radialSegments: 10, repeatLength: 0.5)
+        tube.materials = [skin]
+        rootNode.addChildNode(SCNNode(geometry: tube))
 
-        // Tapered, banded body: segments shrink from head to tail so the
-        // snake reads as a creature, not a tube. Alternating bands keep
-        // it unmistakable at TV distance.
-        let segmentCount = points.count - 1
-        for i in 0..<segmentCount {
-            let t = Float(i) / Float(segmentCount)   // 0 at head, 1 at tail
-            let radius = CGFloat(0.20 * (1 - t) + 0.07 * t)
-            let material = i.isMultiple(of: 2) ? bodyMaterial : bandMaterial
-            let segment = SnakeNode.capsuleSegment(from: points[i], to: points[i + 1], radius: radius, material: material)
-            rootNode.addChildNode(segment)
-        }
-
-        // A distinct head: a larger sphere with a flattened, elongated
-        // snout, two eyes, and an open jaw -- the part that lunges in
-        // `playEat`.
-        let head = SCNNode(geometry: SCNSphere(radius: 0.32))
-        head.geometry?.materials = [bodyMaterial]
-        head.scale = SCNVector3(1.0, 0.82, 1.28)   // flattened, elongated snout
-        head.position = points[0]
-        rootNode.addChildNode(head)
-        headNode = head
-
-        let jawMaterial = SCNMaterial()
-        jawMaterial.lightingModel = .physicallyBased
-        jawMaterial.diffuse.contents = UIColor(red: 0.55, green: 0.08, blue: 0.10, alpha: 1)
-        let jaw = SCNNode(geometry: SCNCone(topRadius: 0.03, bottomRadius: 0.16, height: 0.22))
-        jaw.geometry?.materials = [jawMaterial]
-        jaw.eulerAngles = SCNVector3(Float.pi / 2, 0, 0)
-        jaw.position = SCNVector3(0, -0.05, 0.16)
-        head.addChildNode(jaw)
-
-        let eyeMaterial = SCNMaterial()
-        eyeMaterial.diffuse.contents = UIColor.yellow
-        for xSign: Float in [-1, 1] {
-            let eye = SCNNode(geometry: SCNSphere(radius: 0.045))
-            eye.geometry?.materials = [eyeMaterial]
-            eye.position = SCNVector3(xSign * 0.13, 0.10, 0.14)
-            head.addChildNode(eye)
+        // Close the pointed tail tip.
+        if let tipCenter = centers.last, let tipRadius = radii.last {
+            let tip = SCNSphere(radius: CGFloat(tipRadius))
+            tip.segmentCount = 8
+            tip.materials = [skin]
+            let tipNode = SCNNode(geometry: tip)
+            tipNode.position = tipCenter
+            rootNode.addChildNode(tipNode)
         }
 
-        startIdle()
+        // The head faces away from the body.
+        let first = centers[0]
+        let second = centers.count > 1 ? centers[1] : SCNVector3(first.x, first.y, first.z + 1)
+        let forward = SnakeLadderGeometry.normalized(
+            SCNVector3(first.x - second.x, 0, first.z - second.z), fallback: SCNVector3(0, 0, 1))
+        let heading = atan2(forward.x, forward.z)
+
+        let orient = SCNNode()
+        orient.position = SCNVector3(first.x, boardTopY + 0.17, first.z)
+        orient.eulerAngles = SCNVector3(0, heading, 0)
+        let sway = SCNNode()
+        orient.addChildNode(sway)
+        let gesture = SCNNode()
+        sway.addChildNode(gesture)
+
+        let skull = SCNNode(geometry: parts.headGeometry(style: styleIndex))
+        skull.scale = SCNVector3(1.0, 0.68, 1.3)       // flattened, elongated snout
+        skull.position = SCNVector3(0, 0, 0.08)
+        gesture.addChildNode(skull)
+
+        for side: Float in [-1, 1] {
+            let eye = SCNNode(geometry: parts.eyeGeometry)
+            eye.position = SCNVector3(side * 0.13, 0.12, 0.2)
+            gesture.addChildNode(eye)
+            let pupil = SCNNode(geometry: parts.pupilGeometry)
+            pupil.position = SCNVector3(side * 0.145, 0.14, 0.24)
+            gesture.addChildNode(pupil)
+        }
+
+        let tongue = SCNNode(geometry: parts.tongueGeometry)
+        // Pivot at the tongue's back end, so scaling shoots it out of the
+        // mouth rather than growing it in both directions.
+        tongue.pivot = SCNMatrix4MakeTranslation(0, 0, -0.11)
+        tongue.position = SCNVector3(0, -0.04, 0.36)
+        tongue.scale = SCNVector3(0.05, 0.05, 0.05)
+        tongue.castsShadow = false
+        gesture.addChildNode(tongue)
+
+        rootNode.addChildNode(orient)
+        swayNode = sway
+        gestureNode = gesture
+        tongueNode = tongue
+
+        startIdle(phase: Double(styleIndex % 5) * 0.37, restSeconds: 2.4 + Double(styleIndex % 3) * 0.8)
     }
 
-    private static func capsuleSegment(from a: SCNVector3, to b: SCNVector3, radius: CGFloat, material: SCNMaterial) -> SCNNode {
-        let dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z
-        let length = max(sqrt(dx * dx + dy * dy + dz * dz), 0.02)
-        let capsule = SCNCapsule(capRadius: radius, height: CGFloat(length))
-        capsule.materials = [material]
-        let node = SCNNode(geometry: capsule)
-        node.position = SCNVector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2)
-        SnakeLadderGeometry.alignYAxis(of: node, to: SCNVector3(dx, dy, dz))
-        return node
+    /// Body radius along the snake: a slim neck behind the head, the
+    /// thickest point a little way down, tapering to a point at the tail.
+    private static func radius(at t: Float) -> Float {
+        if t < 0.18 {
+            return 0.15 + 0.04 * (t / 0.18)
+        }
+        let rest = (t - 0.18) / 0.82
+        return 0.17 * pow(max(0, 1 - rest), 0.85) + 0.02
     }
 
-    /// Always-running idle loop -- subtle breathing plus a slow head sway,
-    /// the "3 snakes resting with some animation" the user asked for.
-    /// Runs on nodes `playEat()` never touches, so neither fights the
-    /// other, mirroring `PokerDealerNode`'s idle/gesture split.
-    private func startIdle() {
-        let breatheUp = SCNAction.scale(by: 1.05, duration: 1.6)
-        breatheUp.timingMode = .easeInEaseOut
-        rootNode.runAction(.repeatForever(.sequence([breatheUp, breatheUp.reversed()])), forKey: "idleBreathe")
+    /// A tube swept along `centers`: rings of `radialSegments + 1` vertices
+    /// (the seam is duplicated so the texture wraps cleanly), outward
+    /// normals, and texture coordinates with `u` around the body (0.25 =
+    /// top of the back) and `v` along it in repeats of `repeatLength`.
+    private static func tubeGeometry(centers: [SCNVector3], radii: [Float],
+                                     radialSegments: Int, repeatLength: Float) -> SCNGeometry {
+        let ringCount = centers.count
+        let stride = radialSegments + 1
+        var vertices: [SCNVector3] = []
+        var normals: [SCNVector3] = []
+        var uvs: [CGPoint] = []
+        var indices: [Int32] = []
+        vertices.reserveCapacity(ringCount * stride)
+        normals.reserveCapacity(ringCount * stride)
+        uvs.reserveCapacity(ringCount * stride)
+        indices.reserveCapacity(max(0, ringCount - 1) * radialSegments * 6)
 
-        let swayOut = SCNAction.rotate(by: 0.12, around: SCNVector3(0, 1, 0), duration: 1.9)
+        let up = SCNVector3(0, 1, 0)
+        var arc: Float = 0
+        for i in 0..<ringCount {
+            let c = centers[i]
+            if i > 0 { arc += SnakeLadderGeometry.distance(c, centers[i - 1]) }
+            let prev = centers[max(i - 1, 0)]
+            let next = centers[min(i + 1, ringCount - 1)]
+            let tangent = SnakeLadderGeometry.normalized(SnakeLadderGeometry.subtract(next, prev),
+                                                         fallback: SCNVector3(1, 0, 0))
+            let side = SnakeLadderGeometry.normalized(SnakeLadderGeometry.cross(tangent, up),
+                                                      fallback: SCNVector3(0, 0, 1))
+            let lift = SnakeLadderGeometry.cross(side, tangent)
+            let r = i < radii.count ? radii[i] : 0.05
+            for j in 0...radialSegments {
+                let a = Float(j) / Float(radialSegments) * 2 * Float.pi
+                let ca = cos(a)
+                let sa = sin(a)
+                let dir = SCNVector3(side.x * ca + lift.x * sa,
+                                     side.y * ca + lift.y * sa,
+                                     side.z * ca + lift.z * sa)
+                vertices.append(SCNVector3(c.x + dir.x * r, c.y + dir.y * r, c.z + dir.z * r))
+                normals.append(dir)
+                uvs.append(CGPoint(x: CGFloat(j) / CGFloat(radialSegments),
+                                   y: CGFloat(arc / repeatLength)))
+            }
+        }
+        if ringCount > 1 {
+            for i in 0..<(ringCount - 1) {
+                for j in 0..<radialSegments {
+                    let a = Int32(i * stride + j)
+                    let b = Int32((i + 1) * stride + j)
+                    indices.append(contentsOf: [a, b, a + 1, a + 1, b, b + 1])
+                }
+            }
+        }
+
+        let sources = [
+            SCNGeometrySource(vertices: vertices),
+            SCNGeometrySource(normals: normals),
+            SCNGeometrySource(textureCoordinates: uvs),
+        ]
+        let element = SCNGeometryElement(indices: indices, primitiveType: .triangles)
+        return SCNGeometry(sources: sources, elements: [element])
+    }
+
+    /// Always-running, cheap idle: the head sways and lifts a little and
+    /// the tongue flicks every few seconds. Phase-shifted per snake so ten
+    /// snakes never move in lockstep. Pure `SCNAction` loops -- no
+    /// per-frame code.
+    private func startIdle(phase: TimeInterval, restSeconds: TimeInterval) {
+        let axis = SCNVector3(0, 1, 0)
+        let swayOut = SCNAction.rotate(by: 0.24, around: axis, duration: 1.5)
         swayOut.timingMode = .easeInEaseOut
-        headNode.runAction(.repeatForever(.sequence([swayOut, swayOut.reversed()])), forKey: "idleSway")
+        let liftUp = SCNAction.moveBy(x: 0, y: 0.04, z: 0, duration: 1.5)
+        liftUp.timingMode = .easeInEaseOut
+        let out = SCNAction.group([swayOut, liftUp])
+        let back = SCNAction.group([swayOut.reversed(), liftUp.reversed()])
+        swayNode.runAction(.sequence([
+            .wait(duration: phase),
+            .rotate(by: -0.12, around: axis, duration: 0.75),
+            .repeatForever(.sequence([out, back])),
+        ]), forKey: "idleSway")
+
+        tongueNode.runAction(.sequence([
+            .wait(duration: phase + 0.6),
+            .repeatForever(.sequence([
+                SnakeNode.tongueFlick(),
+                .wait(duration: restSeconds),
+            ])),
+        ]), forKey: "idleTongue")
     }
 
-    /// A one-shot lunge-and-gulp at the head when a token lands on it --
-    /// the "effect of eating" the user asked for, distinct from both the
-    /// idle loop above and the normal hop-to-hop token movement.
-    func playEat() {
-        let lunge = SCNAction.scale(by: 1.35, duration: 0.16)
-        lunge.timingMode = .easeOut
-        let tilt = SCNAction.rotate(by: -0.5, around: SCNVector3(1, 0, 0), duration: 0.16)
-        tilt.timingMode = .easeOut
-        let gulp = SCNAction.sequence([
-            .group([lunge, tilt]),
+    /// Two quick in-out flicks of the tongue.
+    private static func tongueFlick() -> SCNAction {
+        .sequence([
+            .scale(to: 1.0, duration: 0.07),
+            .wait(duration: 0.14),
+            .scale(to: 0.05, duration: 0.07),
             .wait(duration: 0.1),
-            .group([lunge.reversed(), tilt.reversed()]),
+            .scale(to: 1.0, duration: 0.07),
+            .wait(duration: 0.14),
+            .scale(to: 0.05, duration: 0.07),
         ])
-        headNode.removeAction(forKey: "gesture")
-        headNode.runAction(gulp, forKey: "gesture")
+    }
+
+    /// A one-shot strike-and-gulp when a token lands on the head: the head
+    /// rears, lunges forward and snaps back, tongue out. Distinct from both
+    /// the idle loop above and the normal square-to-square walk.
+    func playEat() {
+        gestureNode.removeAction(forKey: "eat")
+        gestureNode.scale = SCNVector3(1, 1, 1)
+        gestureNode.eulerAngles = SCNVector3(0, 0, 0)
+        gestureNode.position = SCNVector3(0, 0, 0)
+        let strike = SCNAction.group([
+            .scale(to: 1.4, duration: 0.15),
+            .rotateTo(x: -0.45, y: 0, z: 0, duration: 0.15),
+            .move(to: SCNVector3(0, 0.05, 0.25), duration: 0.15),
+        ])
+        strike.timingMode = .easeOut
+        let settle = SCNAction.group([
+            .scale(to: 1.0, duration: 0.22),
+            .rotateTo(x: 0, y: 0, z: 0, duration: 0.22),
+            .move(to: SCNVector3(0, 0, 0), duration: 0.22),
+        ])
+        settle.timingMode = .easeInEaseOut
+        gestureNode.runAction(.sequence([strike, .wait(duration: 0.12), settle]), forKey: "eat")
+        tongueNode.runAction(SnakeNode.tongueFlick(), forKey: "eatTongue")
     }
 }
 
 // MARK: - Ladders
 
-/// Two rails + evenly spaced rungs, laid diagonally between a ladder's
-/// bottom and top squares -- straight boxes oriented with
-/// `SnakeLadderGeometry`, since a ladder (unlike a snake) is a straight
-/// climb rather than a curve.
+/// A wooden ladder: two rails plus evenly spaced rungs, laid between a
+/// ladder's bottom and top squares. Built from the shared wood material and
+/// a shared rung geometry, then flattened into a single node so each ladder
+/// costs one draw call.
 @MainActor
 private final class LadderNode {
-    let rootNode = SCNNode()
+    let rootNode: SCNNode
     let bottomWorldPosition: SCNVector3
     let topWorldPosition: SCNVector3
+    let rungCount: Int
 
-    init(bottomSquare: Int, topSquare: Int, squareToPoint: (Int) -> SCNVector3) {
+    init(bottomSquare: Int, topSquare: Int, squareToPoint: (Int) -> SCNVector3, parts: SnakeLadderSharedParts) {
         let a = squareToPoint(bottomSquare)
         let b = squareToPoint(topSquare)
-        bottomWorldPosition = SCNVector3(a.x, a.y + 0.10, a.z)
-        topWorldPosition = SCNVector3(b.x, b.y + 0.10, b.z)
+        let bottom = SCNVector3(a.x, a.y + 0.09, a.z)
+        let top = SCNVector3(b.x, b.y + 0.09, b.z)
+        bottomWorldPosition = bottom
+        topWorldPosition = top
 
-        let dx = topWorldPosition.x - bottomWorldPosition.x
-        let dz = topWorldPosition.z - bottomWorldPosition.z
+        let dx = top.x - bottom.x
+        let dz = top.z - bottom.z
         let length = sqrt(dx * dx + dz * dz)
-        let perpLength = length > 0.0001 ? length : 1
-        let perp = SCNVector3(-dz / perpLength, 0, dx / perpLength)
-        let railOffset: Float = 0.24
+        let safeLength = length > 0.0001 ? length : 1
+        let along = SCNVector3(dx / safeLength, 0, dz / safeLength)
+        let perp = SCNVector3(-along.z, 0, along.x)
+        let railOffset: Float = 0.26
+        // The rails overhang the end squares a little, like a real ladder
+        // resting on the board.
+        let overhang: Float = 0.22
 
-        // Warm wood-gold and straight-edged -- the visual opposite of the
-        // thick, winding, banded snakes, so the two never read as the same
-        // kind of thing at a glance. The wooden tone echoes the classic
-        // board game's ladders; the low metalness keeps it matte like
-        // varnished wood rather than metal.
-        let railMaterial = SCNMaterial()
-        railMaterial.lightingModel = .physicallyBased
-        railMaterial.diffuse.contents = UIColor(red: 0.82, green: 0.55, blue: 0.18, alpha: 1)
-        railMaterial.metalness.contents = 0.08
-        railMaterial.roughness.contents = 0.6
-
+        let assembly = SCNNode()
         for sign: Float in [-1, 1] {
-            let railA = SCNVector3(bottomWorldPosition.x + perp.x * railOffset * sign, bottomWorldPosition.y,
-                                    bottomWorldPosition.z + perp.z * railOffset * sign)
-            let railB = SCNVector3(topWorldPosition.x + perp.x * railOffset * sign, topWorldPosition.y,
-                                    topWorldPosition.z + perp.z * railOffset * sign)
-            rootNode.addChildNode(LadderNode.beam(from: railA, to: railB, thickness: 0.10, material: railMaterial))
+            let railA = SCNVector3(bottom.x - along.x * overhang + perp.x * railOffset * sign, bottom.y,
+                                   bottom.z - along.z * overhang + perp.z * railOffset * sign)
+            let railB = SCNVector3(top.x + along.x * overhang + perp.x * railOffset * sign, top.y,
+                                   top.z + along.z * overhang + perp.z * railOffset * sign)
+            assembly.addChildNode(LadderNode.rail(from: railA, to: railB, material: parts.woodMaterial))
         }
 
-        let rungCount = max(4, Int(length / 0.55))
-        for i in 0...rungCount {
-            let t = Float(i) / Float(rungCount)
-            let cx = bottomWorldPosition.x + dx * t
-            let cy = bottomWorldPosition.y + (topWorldPosition.y - bottomWorldPosition.y) * t
-            let cz = bottomWorldPosition.z + dz * t
-            let rungA = SCNVector3(cx - perp.x * railOffset, cy, cz - perp.z * railOffset)
-            let rungB = SCNVector3(cx + perp.x * railOffset, cy, cz + perp.z * railOffset)
-            rootNode.addChildNode(LadderNode.beam(from: rungA, to: rungB, thickness: 0.06, material: railMaterial))
+        let rungs = max(4, Int(length / 0.42))
+        rungCount = rungs
+        for i in 0...rungs {
+            let t = Float(i) / Float(rungs)
+            let rung = SCNNode(geometry: parts.rungGeometry)
+            rung.position = SCNVector3(bottom.x + dx * t, bottom.y, bottom.z + dz * t)
+            SnakeLadderGeometry.alignYAxis(of: rung, to: perp)
+            assembly.addChildNode(rung)
         }
+        rootNode = assembly.flattenedClone()
     }
 
-    private static func beam(from a: SCNVector3, to b: SCNVector3, thickness: CGFloat, material: SCNMaterial) -> SCNNode {
+    private static func rail(from a: SCNVector3, to b: SCNVector3, material: SCNMaterial) -> SCNNode {
         let dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z
         let length = max(sqrt(dx * dx + dy * dy + dz * dz), 0.02)
-        let box = SCNBox(width: thickness, height: CGFloat(length), length: thickness, chamferRadius: 0)
+        let box = SCNBox(width: 0.09, height: CGFloat(length), length: 0.06, chamferRadius: 0.015)
         box.materials = [material]
         let node = SCNNode(geometry: box)
         node.position = SCNVector3((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2)
@@ -1082,18 +1622,43 @@ private final class LadderNode {
     }
 }
 
-/// Shared vector math for orienting a primitive (capsule/box) so its local
-/// +Y axis points along an arbitrary 3D direction -- the standard
-/// "rotate one vector onto another" construction (axis = cross product,
-/// angle = arccos of the dot product). Both `SnakeNode`'s body segments and
-/// `LadderNode`'s rails/rungs use this so neither needs `SCNShape` or a
-/// custom bezier-path geometry to lay a primitive between two arbitrary
-/// points.
+/// Shared vector math. `alignYAxis` orients a primitive (capsule/box/
+/// cylinder) so its local +Y axis points along an arbitrary 3D direction --
+/// the standard "rotate one vector onto another" construction (axis = cross
+/// product, angle = arccos of the dot product). Kept as static functions
+/// rather than `SCNVector3` operator overloads, so nothing here can collide
+/// with helpers declared elsewhere in the app.
 private enum SnakeLadderGeometry {
+    static func subtract(_ a: SCNVector3, _ b: SCNVector3) -> SCNVector3 {
+        SCNVector3(a.x - b.x, a.y - b.y, a.z - b.z)
+    }
+
+    static func cross(_ a: SCNVector3, _ b: SCNVector3) -> SCNVector3 {
+        SCNVector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+    }
+
+    static func length(_ v: SCNVector3) -> Float {
+        sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+    }
+
+    static func distance(_ a: SCNVector3, _ b: SCNVector3) -> Float {
+        length(subtract(a, b))
+    }
+
+    static func normalized(_ v: SCNVector3, fallback: SCNVector3) -> SCNVector3 {
+        let l = length(v)
+        guard l > 0.00001 else { return fallback }
+        return SCNVector3(v.x / l, v.y / l, v.z / l)
+    }
+
+    static func nearlyEqual(_ a: SCNVector3, _ b: SCNVector3) -> Bool {
+        distance(a, b) < 0.001
+    }
+
     static func alignYAxis(of node: SCNNode, to direction: SCNVector3) {
-        let length = sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
-        guard length > 0.0001 else { return }
-        let to = SCNVector3(direction.x / length, direction.y / length, direction.z / length)
+        let len = length(direction)
+        guard len > 0.0001 else { return }
+        let to = SCNVector3(direction.x / len, direction.y / len, direction.z / len)
         let from = SCNVector3(0, 1, 0)
         let dot = max(-1, min(1, from.x * to.x + from.y * to.y + from.z * to.z))
         if dot > 0.9999 { return }
@@ -1101,12 +1666,8 @@ private enum SnakeLadderGeometry {
             node.eulerAngles = SCNVector3(Float.pi, 0, 0)
             return
         }
-        let axis = SCNVector3(
-            from.y * to.z - from.z * to.y,
-            from.z * to.x - from.x * to.z,
-            from.x * to.y - from.y * to.x
-        )
-        let axisLength = sqrt(axis.x * axis.x + axis.y * axis.y + axis.z * axis.z)
+        let axis = cross(from, to)
+        let axisLength = length(axis)
         let angle = acos(dot)
         node.rotation = SCNVector4(axis.x / axisLength, axis.y / axisLength, axis.z / axisLength, angle)
     }
@@ -1126,6 +1687,9 @@ private final class DiceNode {
     let rootNode = SCNNode()
     private let cubeNode: SCNNode
     private let topMaterial = SCNMaterial()
+    /// Bumped on every roll, so a stale settle from an earlier, interrupted
+    /// tumble never overwrites a newer roll's face.
+    private var rollToken = 0
 
     init() {
         let sideMaterial = SCNMaterial()
@@ -1149,6 +1713,8 @@ private final class DiceNode {
     /// face to `value`'s pips and resets orientation, reading as "the die
     /// settled on this number".
     func roll(to value: Int) {
+        rollToken += 1
+        let token = rollToken
         cubeNode.removeAction(forKey: "roll")
         let spinDuration: TimeInterval = 0.85
         let spin = SCNAction.rotateBy(x: CGFloat.pi * 5, y: CGFloat.pi * 3, z: CGFloat.pi * 2, duration: spinDuration)
@@ -1156,7 +1722,7 @@ private final class DiceNode {
         cubeNode.runAction(spin, forKey: "roll")
 
         DispatchQueue.main.asyncAfter(deadline: .now() + spinDuration) { [weak self] in
-            guard let self else { return }
+            guard let self, self.rollToken == token else { return }
             self.topMaterial.diffuse.contents = DiceNode.pipTexture(value: value)
             self.cubeNode.eulerAngles = SCNVector3(0, 0, 0)
         }
@@ -1170,23 +1736,11 @@ private final class DiceNode {
             UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
             UIColor.black.setFill()
             let radius: CGFloat = 12
-            for pip in DiceNode.pipPositions(for: value) {
-                let center = CGPoint(x: pip.0 * size.width, y: pip.1 * size.height)
+            for pip in SnakeLadderDice.pips(for: value) {
+                let center = CGPoint(x: pip.x * size.width, y: pip.y * size.height)
                 UIBezierPath(ovalIn: CGRect(x: center.x - radius, y: center.y - radius,
                                              width: radius * 2, height: radius * 2)).fill()
             }
-        }
-    }
-
-    private static func pipPositions(for value: Int) -> [(CGFloat, CGFloat)] {
-        switch value {
-        case 1: return [(0.5, 0.5)]
-        case 2: return [(0.28, 0.28), (0.72, 0.72)]
-        case 3: return [(0.28, 0.28), (0.5, 0.5), (0.72, 0.72)]
-        case 4: return [(0.28, 0.28), (0.72, 0.28), (0.28, 0.72), (0.72, 0.72)]
-        case 5: return [(0.28, 0.28), (0.72, 0.28), (0.5, 0.5), (0.28, 0.72), (0.72, 0.72)]
-        case 6: return [(0.28, 0.22), (0.72, 0.22), (0.28, 0.5), (0.72, 0.5), (0.28, 0.78), (0.72, 0.78)]
-        default: return []
         }
     }
 }
