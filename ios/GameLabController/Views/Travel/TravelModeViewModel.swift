@@ -47,6 +47,9 @@ final class TravelModeViewModel: ObservableObject {
     @Published private(set) var correct = 0
     @Published private(set) var micReady = false
     @Published private(set) var countdown = 0
+    /// Brain Teasers difficulty, 1-10: up after a right answer, down
+    /// after a miss, so the car always sits at a level it can mostly solve.
+    @Published private(set) var brainLevel = 3
 
     let speech = TravelSpeech()
     private let ear = TravelVoiceListener()
@@ -63,6 +66,11 @@ final class TravelModeViewModel: ObservableObject {
     private var quizQueue: [TravelItem] = []
     private var liveRiddles: [TravelItem] = []
     private var liveQuiz: [TravelItem] = []
+    /// Analogies / odd-one-out words from the server (the generated kinds
+    /// are made on the phone, offline).
+    private var liveBrain: [TravelItem] = []
+    private var brainKindIndex = Int.random(in: 0..<5)
+    private var brainFetching = false
     private var nextKind: TravelItem.Kind = .riddle
     private var fetching: Set<TravelItem.Kind> = []
     private var liveFailures: [TravelItem.Kind: Int] = [:]
@@ -98,7 +106,8 @@ final class TravelModeViewModel: ObservableObject {
             let intro = mic ? Self.introWithMic : Self.introNoMic
             await self.speech.prepare(firstLine: intro)
             guard f == self.flow, self.isActive else { return }
-            for line in Self.wrongLines + Self.silenceLines + [Self.oneMoreGuess] {
+            let extra = style == .brain ? Self.levelUpLines : []
+            for line in Self.wrongLines + Self.silenceLines + [Self.oneMoreGuess] + extra {
                 self.speech.prefetch(line)
             }
             let first = self.prepared(self.dequeue())
@@ -322,7 +331,17 @@ final class TravelModeViewModel: ObservableObject {
         correct += 1
         gotIt = true
         phase = .revealed
-        speech.speak(line) { [weak self] in self?.wrapUp(flow: f) }
+        let levelledUp = adjustBrainLevel(by: 1)
+        speech.speak(line) { [weak self] in
+            guard let self else { return }
+            if levelledUp {
+                self.speech.speak(Self.levelUpLines.randomElement() ?? "Level up!") {
+                    [weak self] in self?.wrapUp(flow: f)
+                }
+            } else {
+                self.wrapUp(flow: f)
+            }
+        }
     }
 
     private func reveal(flow f: Int, lead: String? = nil) {
@@ -330,6 +349,7 @@ final class TravelModeViewModel: ObservableObject {
         ear.stop()
         gotIt = false
         phase = .revealed
+        adjustBrainLevel(by: -1)
         let sayAnswer: () -> Void = { [weak self] in
             guard let self, f == self.flow else { return }
             self.speech.speak(line) { [weak self] in self?.wrapUp(flow: f) }
@@ -359,9 +379,15 @@ final class TravelModeViewModel: ObservableObject {
     // MARK: - Lines
 
     private func prepared(_ item: TravelItem) -> (item: TravelItem, lines: Lines) {
-        let intro = (item.kind == .riddle ? Self.riddleIntros : Self.quizIntros)
-            .randomElement() ?? ""
-        var ask = "\(intro) \(item.prompt)"
+        let intros: [String]
+        switch item.kind {
+        case .riddle: intros = Self.riddleIntros
+        case .quiz:   intros = Self.quizIntros
+        case .brain:  intros = item.spoken == nil ? Self.brainIntros : [""]
+        }
+        let intro = intros.randomElement() ?? ""
+        var ask = "\(intro) \(item.spoken ?? item.prompt)"
+            .trimmingCharacters(in: .whitespaces)
         if let options = item.options { ask += " Is it \(Self.spokenList(options))?" }
         let answer = Self.capitalizedFirst(item.answer)
         let fact = item.fact.map { " \($0)" } ?? ""
@@ -380,7 +406,8 @@ final class TravelModeViewModel: ObservableObject {
         if ratio >= 0.8 { quip = "You lot are way too smart for one car." }
         else if ratio >= 0.5 { quip = "Not bad at all!" }
         else { quip = "Don't worry, I'm blaming the road noise." }
-        return "That's \(asked) questions! You got \(correct) right. \(quip) Keep going!"
+        let level = style == .brain ? " You're on level \(brainLevel)." : ""
+        return "That's \(asked) questions! You got \(correct) right.\(level) \(quip) Keep going!"
     }
 
     private static func spokenList(_ items: [String]) -> String {
@@ -399,6 +426,12 @@ final class TravelModeViewModel: ObservableObject {
         "Hi everyone, I'm your road trip quizmaster! I ask, you shout out the answer, and I'll tell you if you got it after a little thinking time. Let's go!"
 
     private static let riddleIntros = ["Riddle time!", "Here's a riddle.", "Okay, brain teaser."]
+    private static let brainIntros = ["Brain teaser!", "Think fast.", "Here's a tricky one."]
+    private static let levelUpLines = [
+        "Level up! These are getting harder.",
+        "Level up! You lot are on fire.",
+        "Level up! Let's see how you handle this one.",
+    ]
     private static let quizIntros = ["Quiz time!", "Quick question.", "Here's one for the smart people in the car."]
     private static let praise = [
         "Yes! Somebody in this car is a genius.",
@@ -468,6 +501,8 @@ final class TravelModeViewModel: ObservableObject {
     private func dequeue() -> TravelItem {
         let kind: TravelItem.Kind
         switch style {
+        case .brain:
+            return nextBrainPuzzle()
         case .riddles: kind = .riddle
         case .quiz:    kind = .quiz
         case .mix:
@@ -497,6 +532,7 @@ final class TravelModeViewModel: ObservableObject {
         switch style {
         case .riddles: fetchLive(.riddle)
         case .quiz:    fetchLive(.quiz)
+        case .brain:   fetchBrainLibrary()
         case .mix:     fetchLive(.riddle); fetchLive(.quiz)
         }
     }
@@ -528,6 +564,51 @@ final class TravelModeViewModel: ObservableObject {
             } else {
                 self.liveFailures[kind] = 0
                 if kind == .riddle { self.liveRiddles += fresh } else { self.liveQuiz += fresh }
+            }
+        }
+    }
+
+    // MARK: - Brain Teasers
+
+    /// Generated on the phone (offline, endless) at the current level,
+    /// with a server analogy / odd-one-out mixed in now and then.
+    private func nextBrainPuzzle() -> TravelItem {
+        if !liveBrain.isEmpty, Int.random(in: 0..<3) == 0 {
+            return liveBrain.removeFirst()
+        }
+        brainKindIndex += 1
+        return TravelBrain.make(level: brainLevel, kindIndex: brainKindIndex)
+    }
+
+    /// Moves the level one step and, in Brain Teasers, re-makes the queued
+    /// next puzzle at the new level. Returns true when the level went up.
+    @discardableResult
+    private func adjustBrainLevel(by delta: Int) -> Bool {
+        guard style == .brain, item?.kind == .brain else { return false }
+        let old = brainLevel
+        brainLevel = max(1, min(10, brainLevel + delta))
+        guard brainLevel != old else { return false }
+        let next = prepared(nextBrainPuzzle())
+        upcoming = next
+        speech.prefetch(next.lines.ask)
+        return brainLevel > old
+    }
+
+    private func fetchBrainLibrary() {
+        guard !brainFetching, liveBrain.count < 3, liveFailures[.brain, default: 0] < 2 else { return }
+        brainFetching = true
+        let level = brainLevel
+        Task { [weak self] in
+            let items = await fetchBrainLibraryPuzzles(level: level)
+            guard let self, self.isActive else { return }
+            self.brainFetching = false
+            let heard = Set(self.promptHistory)
+            let fresh = items.filter { !heard.contains($0.prompt) }
+            if fresh.isEmpty {
+                self.liveFailures[.brain, default: 0] += 1
+            } else {
+                self.liveFailures[.brain] = 0
+                self.liveBrain += fresh
             }
         }
     }
