@@ -4,6 +4,8 @@ struct JoinRoomView: View {
     let onJoin: (String, String) -> Void
     /// Opens Travel Mode (one phone hosts in the car).
     let onTravel: () -> Void
+    /// Opens Phone Play (one phone, no TV, passed around the group).
+    let onPhonePlay: () -> Void
     /// Pre-filled from an auroraplay://join/<CODE> deep link.
     var initialCode: String? = nil
 
@@ -175,6 +177,41 @@ struct JoinRoomView: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 16)
                                     .strokeBorder(Color.green.opacity(0.35), lineWidth: 1.5)
+                            )
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 32)
+
+                // Phone Play -- party games on this phone alone, no TV.
+                Button(action: onPhonePlay) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "iphone.gen3")
+                            .font(.system(size: 30))
+                            .foregroundStyle(
+                                LinearGradient(colors: [Color(hex: "FF8A3D"), Color(hex: "FF5FC8")],
+                                               startPoint: .top, endPoint: .bottom)
+                            )
+                            .frame(width: 44)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Phone Play")
+                                .font(.headline.bold())
+                                .foregroundColor(.white)
+                            Text("Heads Up, Spy, Mafia and a daily brain challenge. No TV needed")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.5))
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.white.opacity(0.35))
+                    }
+                    .padding(18)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.white.opacity(0.06))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .strokeBorder(Color(hex: "FF5FC8").opacity(0.4), lineWidth: 1.5)
                             )
                     )
                 }
