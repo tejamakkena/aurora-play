@@ -51,6 +51,7 @@ enum GameID: String, Codable, CaseIterable {
     case npat          = "npat"
     case antakshari    = "antakshari"
     case mostLikelyTo  = "most_likely_to"
+    case brainBattle   = "brain_battle"
 
     // MARK: Mid group — roles, deduction and negotiation
     case cipherGrid        = "cipher_grid"
@@ -185,6 +186,10 @@ enum GameID: String, Codable, CaseIterable {
         case .mostLikelyTo:
             return .init(displayName: "Most Likely To", sfSymbol: "hand.thumbsup.fill", category: .party,
                          minPlayers: 3, maxPlayers: 20, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .brainBattle:
+            return .init(displayName: "Brain Battle", sfSymbol: "brain", category: .knowledge,
+                         minPlayers: 2, maxPlayers: 12, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 
         // ---- Mid group -------------------------------------------------

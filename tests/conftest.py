@@ -11,6 +11,8 @@ def isolated_content_service(tmp_path, monkeypatch):
     monkeypatch.setenv("CONTENT_HEARD_PATH", str(tmp_path / "content_heard.json"))
     monkeypatch.setenv("CONTENT_POOL_PATH", str(tmp_path / "content_pool.json"))
     monkeypatch.setenv("CONTENT_AUTO_REFILL", "0")
+    # Brain Battle personal bests (games/native_hub/engines/brain_battle.py).
+    monkeypatch.setenv("BRAIN_SCORES_PATH", str(tmp_path / "brain_scores.json"))
     content_service.reset_for_tests()
     yield
     content_service.reset_for_tests()

@@ -118,6 +118,19 @@ def _policy_most_likely_to(engine, bot_id):
     return ("vote", {"targetID": random.choice(others)})
 
 
+def _policy_brain_battle(engine, bot_id):
+    if getattr(engine, "phase", "") != "answer":
+        return None
+    puzzle = getattr(engine, "puzzle", None) or {}
+    options = list(puzzle.get("options") or [])
+    if not options:
+        return None
+    # A decent but beatable opponent: right a bit more than half the time.
+    if puzzle.get("answer") in options and random.random() < 0.55:
+        return ("answer", {"choice": puzzle["answer"]})
+    return ("answer", {"choice": random.choice(options)})
+
+
 #: game_id -> policy. Deliberately explicit: adding a game here is a
 #: conscious decision that the bot understands that game's protocol.
 #: NOTE: emoji_movie is intentionally excluded -- bot emoji output would be
@@ -129,6 +142,7 @@ POLICIES = {
     "bluff_it": _policy_bluff_it,
     "antakshari": _policy_antakshari,
     "most_likely_to": _policy_most_likely_to,
+    "brain_battle": _policy_brain_battle,
 }
 
 
