@@ -12,32 +12,26 @@ struct RootControllerView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0a0a14").ignoresSafeArea()
+            PhonePlayDesign.bg.ignoresSafeArea()
 
             switch vm.screen {
             case .join:
-                JoinRoomView(onJoin: vm.joinRoom, onTravel: vm.startTravel,
-                             onPhonePlay: vm.startPhonePlay,
-                             initialCode: vm.pendingJoinCode)
-                    .overlay(alignment: .topTrailing) {
-                        ProfileChipButton().padding(.trailing, 16).padding(.top, 8)
-                    }
+                // The app's home: Phone Play's games with a "Play on TV"
+                // hero on top. Joining a TV room happens in a sheet over it
+                // (see the .sheet below), so a deep link or an error retry
+                // just opens that sheet again.
+                PhonePlayRootView(play: vm.phonePlay)
 
             case .travel:
                 if let travel = vm.travelVM {
                     TravelModeRootView(travel: travel)
                 }
 
-            case .phonePlay:
-                if let play = vm.phonePlayVM {
-                    PhonePlayRootView(play: play)
-                }
-
             case .loading:
-                LoadingJoinView()
+                LoadingJoinView(onCancel: vm.returnHome)
 
             case .error(let message):
-                ErrorJoinView(message: message, onRetry: vm.returnToJoin)
+                ErrorJoinView(message: message, onRetry: vm.returnToJoin, onHome: vm.returnHome)
 
             case .waiting(let room):
                 WaitingView(room: room, onReady: vm.markReady, onLeave: vm.leaveRoom)
@@ -57,11 +51,14 @@ struct RootControllerView: View {
                 .safeAreaInset(edge: .top) {
                     HStack {
                         Button { showLeaveConfirm = true } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.white.opacity(0.4))
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white.opacity(0.75))
+                                .frame(width: 36, height: 36)
+                                .background(Circle().fill(Color.white.opacity(0.08)))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PhonePlayPressStyle())
+                        .accessibilityLabel("Leave game")
                         Spacer()
                     }
                     .padding(.horizontal, 16)
@@ -98,6 +95,16 @@ struct RootControllerView: View {
             }
         }
         .environmentObject(vm)
+        // Joining a TV room: room code, name and the QR hint, over the home.
+        .sheet(isPresented: joinSheetBinding) {
+            JoinRoomView(onJoin: vm.joinRoom,
+                         onClose: { vm.showJoinSheet = false },
+                         initialCode: vm.pendingJoinCode)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(PhonePlayDesign.cardRadius + 8)
+                .presentationBackground(PhonePlayDesign.bg)
+        }
         // auroraplay://join/<CODE> from the TV lobby's QR landing page.
         .onOpenURL { vm.handleOpenURL($0) }
         .animation(.easeInOut(duration: 0.3), value: vm.screen.id)
@@ -110,6 +117,17 @@ struct RootControllerView: View {
             Button("Cancel", role: .cancel) {}
         }
     }
+
+    /// The join sheet only ever shows over the home screen; once a join
+    /// moves the app to .loading it goes away with it.
+    private var joinSheetBinding: Binding<Bool> {
+        Binding(
+            get: { vm.showJoinSheet && vm.screen == .join },
+            set: { presented in
+                if !presented { vm.showJoinSheet = false }
+            }
+        )
+    }
 }
 
 // MARK: - Screen enum
@@ -117,7 +135,6 @@ struct RootControllerView: View {
 enum ControllerScreen: Equatable {
     case join
     case travel
-    case phonePlay
     case loading
     case error(String)
     case waiting(Room)
@@ -133,7 +150,6 @@ enum ControllerScreen: Equatable {
         switch self {
         case .join:              return "join"
         case .travel:            return "travel"
-        case .phonePlay:         return "phonePlay"
         case .loading:           return "loading"
         case .error(let msg):    return "error-\(msg)"
         case .waiting(let r):    return "waiting-\(r.code)"
@@ -147,17 +163,46 @@ enum ControllerScreen: Equatable {
 // MARK: - Loading & Error views
 
 struct LoadingJoinView: View {
+    var onCancel: (() -> Void)? = nil
+
     @State private var dotCount = 0
+    @State private var appeared = false
     private let timer = Timer.publish(every: 0.45, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 28) {
             Spacer()
-            ProgressView().scaleEffect(2.2).tint(.cyan)
-            Text("Joining room" + String(repeating: ".", count: dotCount))
-                .font(.title3).foregroundColor(.white.opacity(0.7))
-                .onReceive(timer) { _ in dotCount = (dotCount + 1) % 4 }
+            ZStack {
+                Circle()
+                    .fill(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.indigo]))
+                    .frame(width: 120, height: 120)
+                    .shadow(color: PhonePlayDesign.cyan.opacity(0.45), radius: 24, y: 8)
+                Image(systemName: "tv.fill")
+                    .font(.system(size: 50, weight: .bold))
+                    .foregroundColor(.white)
+                    .phonePlayIdle(dy: 4, scale: 0.05, duration: 0.9)
+            }
+            .scaleEffect(appeared ? 1 : 0.6)
+            .opacity(appeared ? 1 : 0)
+            VStack(spacing: 8) {
+                Text("Joining room" + String(repeating: ".", count: dotCount))
+                    .font(.system(size: 26, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                    .onReceive(timer) { _ in dotCount = (dotCount + 1) % 4 }
+                Text("Finding your seat at the TV")
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+            }
+            ProgressView().tint(PhonePlayDesign.cyan)
             Spacer()
+            if let onCancel {
+                PhonePlayGhostButton(title: "Cancel", symbol: "xmark", action: onCancel)
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 24)
+            }
+        }
+        .onAppear {
+            withAnimation(PhonePlayDesign.pop) { appeared = true }
         }
     }
 }
@@ -165,24 +210,50 @@ struct LoadingJoinView: View {
 struct ErrorJoinView: View {
     let message: String
     let onRetry: () -> Void
+    var onHome: (() -> Void)? = nil
+
+    @State private var appeared = false
 
     var body: some View {
-        VStack(spacing: 28) {
+        VStack(spacing: 24) {
             Spacer()
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 60)).foregroundColor(.red)
-            Text(message)
-                .font(.title3.bold()).foregroundColor(.white)
-                .multilineTextAlignment(.center).padding(.horizontal, 40)
-            Button(action: onRetry) {
-                Label("Try Again", systemImage: "arrow.counterclockwise")
-                    .font(.headline).frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.cyan))
-                    .foregroundColor(.black)
+            ZStack {
+                Circle()
+                    .fill(PhonePlayDesign.gradient([PhonePlayDesign.red, PhonePlayDesign.orange]))
+                    .frame(width: 112, height: 112)
+                    .shadow(color: PhonePlayDesign.red.opacity(0.45), radius: 22, y: 8)
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 48, weight: .bold))
+                    .foregroundColor(.white)
+                    .phonePlayIdle(degrees: 5, duration: 0.8)
             }
-            .buttonStyle(.plain).padding(.horizontal, 40)
+            .scaleEffect(appeared ? 1 : 0.6)
+            .opacity(appeared ? 1 : 0)
+            VStack(spacing: 8) {
+                Text("Could not join")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                Text(message)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
             Spacer()
+            VStack(spacing: 12) {
+                PhonePlayBigButton(title: "Try Again", symbol: "arrow.counterclockwise",
+                                   colors: [PhonePlayDesign.cyan, PhonePlayDesign.indigo],
+                                   action: onRetry)
+                if let onHome {
+                    PhonePlayGhostButton(title: "Back to home", symbol: "house.fill", action: onHome)
+                }
+            }
+            .padding(.horizontal, 32)
+            .padding(.bottom, 24)
+        }
+        .onAppear {
+            PhonePlayHaptics.error()
+            withAnimation(PhonePlayDesign.pop) { appeared = true }
         }
     }
 }
@@ -191,9 +262,27 @@ struct ErrorJoinView: View {
 
 @MainActor
 final class ControllerRootViewModel: ObservableObject {
-    @Published var screen: ControllerScreen = .join
-    /// Room code handed over by a deep link, pre-filled on the join screen.
+    /// `.join` is the app's home: the Phone Play games with the "Play on
+    /// TV" hero; the join form itself is a sheet over it (showJoinSheet).
+    @Published var screen: ControllerScreen = .join {
+        didSet {
+            // Leaving the home for anything else (a join, an incoming room
+            // event) must not leave a Phone Play game talking underneath.
+            if oldValue == .join, screen != .join, phonePlay.active != nil {
+                phonePlay.shutdown()
+            }
+        }
+    }
+    /// Room code handed over by a deep link (or the last attempt, for an
+    /// error retry), pre-filled in the join sheet.
     @Published var pendingJoinCode: String? = nil
+    /// The "Play on TV" join sheet over the home screen. RootControllerView
+    /// only presents it while the screen is .join.
+    @Published var showJoinSheet: Bool = false
+    /// A TV room this phone was seated in when the app last went away
+    /// (killed or crashed mid-game). Drives the home's "Back to your TV
+    /// game" banner; cleared on an explicit leave or a failed rejoin.
+    @Published private(set) var resumableRoomCode: String? = nil
 
     /// Rules interstitial data from the last `game_started` broadcast. Set
     /// on start; cleared on `game_begun` (the host tapped Begin), when the
@@ -224,9 +313,11 @@ final class ControllerRootViewModel: ObservableObject {
     /// room), so none of the socket handlers below involve it.
     @Published var travelVM: TravelModeViewModel? = nil
 
-    /// Non-nil while Phone Play (single-phone, no-TV games) is active. Like
-    /// Travel Mode it is phone-only, so no socket handler involves it.
-    @Published var phonePlayVM: PhonePlayViewModel? = nil
+    /// Phone Play (single-phone, no-TV games) is the home screen, so it
+    /// lives as long as the app. Like Travel Mode it is phone-only, so no
+    /// socket handler involves it; leaving the home (joining a room,
+    /// starting Road Trip Quiz) shuts its current game down.
+    let phonePlay: PhonePlayViewModel
 
     var isHost: Bool {
         currentRoom?.players.first(where: { $0.id == playerID })?.isHost ?? false
@@ -237,6 +328,9 @@ final class ControllerRootViewModel: ObservableObject {
     private var joinTimeoutTask: Task<Void, Never>?
 
     init() {
+        phonePlay = PhonePlayViewModel()
+        resumableRoomCode = Self.loadResumableRoom()
+
         // Server confirms the join (or a reconnect re-seat) -- route by the
         // room's state so a phone that rejoins mid-game stays on its
         // controller instead of flashing back to the lobby.
@@ -244,7 +338,9 @@ final class ControllerRootViewModel: ObservableObject {
             guard let self else { return }
             self.joinTimeoutTask?.cancel()
             self.pendingJoinCode = nil
+            self.showJoinSheet = false
             let room = response.room
+            self.rememberRoom(room.code)
             switch (room.state, self.screen) {
             case (.playing, .playing(_, let data)):
                 self.screen = .playing(room, data)
@@ -326,17 +422,23 @@ final class ControllerRootViewModel: ObservableObject {
             self.joinTimeoutTask?.cancel()
             // Only show error overlay from loading state; in-game errors stay silent
             if case .loading = self.screen {
+                self.forgetResumableRoom(ifCode: self.pendingJoinCode)
                 self.screen = .error(r.message)
             }
         }
     }
 
     func joinRoom(code: String, name: String) {
+        let upper = code.uppercased()
         playerName = name
         pendingRules = nil
+        // Kept until room_joined so an error retry re-opens the sheet with
+        // the same code already filled in.
+        pendingJoinCode = upper
+        showJoinSheet = false
         screen = .loading
         socket.emit(.joinRoom, payload: JoinRoomPayload(
-            roomCode: code.uppercased(),
+            roomCode: upper,
             playerName: name,
             playerID: playerID,
             isTV: false
@@ -354,7 +456,8 @@ final class ControllerRootViewModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 8_000_000_000)
             guard let self, !Task.isCancelled else { return }
             if case .loading = self.screen {
-                self.screen = .error("Couldn't join — check the room code and try again.")
+                self.forgetResumableRoom(ifCode: upper)
+                self.screen = .error("Couldn't join. Check the room code and try again.")
             }
         }
     }
@@ -397,6 +500,8 @@ final class ControllerRootViewModel: ObservableObject {
         ))
     }
 
+    /// Back to the home screen from anywhere: leaves the TV room (if
+    /// seated) or ends Road Trip Quiz.
     func leaveRoom() {
         // A deep link mid-travel (or any other path here) must tear the
         // travel session down, not just switch screens under it.
@@ -404,29 +509,94 @@ final class ControllerRootViewModel: ObservableObject {
             endTravel()
             return
         }
-        if phonePlayVM != nil {
-            endPhonePlay()
-            return
-        }
         switch screen {
         case .playing(let room, _), .waiting(let room), .rules(let room, _):
             socket.emit(.leaveRoom, payload: ["roomCode": room.code, "playerID": playerID])
+            forgetResumableRoom(ifCode: room.code)
+        case .results(let room):
+            // The seat is given up on purpose, so the home must not offer
+            // "Back to your TV game" for it.
+            forgetResumableRoom(ifCode: room.code)
         default:
             break
         }
         pendingRules = nil
+        showJoinSheet = false
         screen = .join
     }
 
+    /// Error "Try Again": back home with the join sheet open again.
     func returnToJoin() {
         pendingRules = nil
         screen = .join
+        showJoinSheet = true
     }
 
-    // MARK: - Travel Mode
+    /// Error "Back to home" / loading "Cancel".
+    func returnHome() {
+        joinTimeoutTask?.cancel()
+        pendingRules = nil
+        showJoinSheet = false
+        screen = .join
+    }
+
+    /// The home's "Play on TV" hero.
+    func openJoinSheet() {
+        showJoinSheet = true
+    }
+
+    // MARK: - Back to your TV game
+
+    private static let lastRoomKey = "aurora_last_room_code"
+    private static let lastRoomAtKey = "aurora_last_room_at"
+    /// A seat older than this is long gone server-side.
+    private static let resumableWindow: TimeInterval = 3 * 60 * 60
+
+    private static func loadResumableRoom() -> String? {
+        let d = UserDefaults.standard
+        guard let code = d.string(forKey: lastRoomKey), code.count == 6 else { return nil }
+        let at = d.double(forKey: lastRoomAtKey)
+        guard at > 0, Date().timeIntervalSince1970 - at < resumableWindow else { return nil }
+        return code
+    }
+
+    private func rememberRoom(_ code: String) {
+        let d = UserDefaults.standard
+        d.set(code, forKey: Self.lastRoomKey)
+        d.set(Date().timeIntervalSince1970, forKey: Self.lastRoomAtKey)
+        // The banner is for the NEXT launch; while seated, no banner.
+        resumableRoomCode = nil
+    }
+
+    /// Forgets the remembered room (only if it is `code`, when given).
+    func forgetResumableRoom(ifCode code: String? = nil) {
+        let d = UserDefaults.standard
+        if let code, d.string(forKey: Self.lastRoomKey) != code { return }
+        d.removeObject(forKey: Self.lastRoomKey)
+        d.removeObject(forKey: Self.lastRoomAtKey)
+        resumableRoomCode = nil
+    }
+
+    /// "Back to your TV game": re-sends join_room for the remembered seat,
+    /// exactly like the reconnect path (rejoinIfSeated). Without a saved
+    /// name it opens the join sheet with the code filled in instead.
+    func resumeTVGame() {
+        guard let code = resumableRoomCode else { return }
+        let name = playerName.trimmingCharacters(in: .whitespaces)
+        if name.isEmpty {
+            pendingJoinCode = code
+            showJoinSheet = true
+        } else {
+            joinRoom(code: code, name: name)
+        }
+    }
+
+    // MARK: - Road Trip Quiz (Travel Mode)
 
     func startTravel() {
         pendingRules = nil
+        showJoinSheet = false
+        phonePlay.shutdown()
         travelVM = TravelModeViewModel()
         screen = .travel
     }
@@ -434,21 +604,6 @@ final class ControllerRootViewModel: ObservableObject {
     func endTravel() {
         travelVM?.shutdown()
         travelVM = nil
-        pendingRules = nil
-        screen = .join
-    }
-
-    // MARK: - Phone Play
-
-    func startPhonePlay() {
-        pendingRules = nil
-        phonePlayVM = PhonePlayViewModel()
-        screen = .phonePlay
-    }
-
-    func endPhonePlay() {
-        phonePlayVM?.shutdown()
-        phonePlayVM = nil
         pendingRules = nil
         screen = .join
     }
@@ -469,10 +624,15 @@ final class ControllerRootViewModel: ObservableObject {
         let parts = ([url.host ?? ""] + url.pathComponents).filter { $0 != "/" && !$0.isEmpty }
         guard let code = parts.last?.uppercased(), code.count == 6 else { return }
         if case .join = screen {
+            // Straight to joining: close any Phone Play game and open the
+            // join sheet with the code filled in.
+            if phonePlay.active != nil { phonePlay.closeGame() }
             pendingJoinCode = code
+            showJoinSheet = true
         } else if currentRoom?.code != code {
             leaveRoom()
             pendingJoinCode = code
+            showJoinSheet = true
         }
     }
 
