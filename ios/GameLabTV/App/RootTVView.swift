@@ -18,6 +18,11 @@ struct RootTVView: View {
         return true
     }
 
+    private var isAmbientAnimated: Bool {
+        if case .playing = vm.screen { return false }
+        return true
+    }
+
     private func handleMenuPress() {
         switch vm.screen {
         case .gameSelection:
@@ -36,13 +41,11 @@ struct RootTVView: View {
 
     var body: some View {
         ZStack {
-            // Background gradient — persists across all screens
-            LinearGradient(
-                colors: [Color(hex: "0d0d1a"), Color(hex: "1a0d2e")],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Ambient background -- persists across all screens. Drifts
+            // slowly on the shell screens; frozen on one frame behind a
+            // running game, whose board draws its own backdrop and should
+            // get the whole GPU budget.
+            ShellAmbientBackground(isAnimated: isAmbientAnimated)
 
             switch vm.screen {
             case .gameSelection:
