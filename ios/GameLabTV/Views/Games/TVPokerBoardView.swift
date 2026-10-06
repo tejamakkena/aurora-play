@@ -1746,7 +1746,7 @@ private struct PKTCalloutSlot: View {
                                             removal: .opacity))
             }
         }
-        .frame(width: 560, height: 80)
+        .frame(width: 520, height: 80)
         .animation(.spring(response: 0.45, dampingFraction: 0.75), value: callout?.id)
     }
 }
@@ -1772,7 +1772,7 @@ private struct PKTCalloutBanner: View {
         .background(Capsule().fill(Color.black.opacity(0.7)))
         .overlay(Capsule().strokeBorder(accent.opacity(0.8), lineWidth: 2))
         .shadow(color: accent.opacity(0.45), radius: 16)
-        .frame(maxWidth: 560)
+        .frame(maxWidth: 520)
     }
 }
 
