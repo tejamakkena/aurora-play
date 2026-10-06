@@ -197,9 +197,6 @@ def _llm_batch(kind: str, topic: str, count: int,
 
     Raises _GenError on any failure so the caller falls back.
     """
-    # High temperature: the same topic must generate *different* questions
-    # game after game. Deterministic output is the enemy here.
-    model = _genai_model(temperature=0.9)
     avoid = "\n".join(f"- {t[:160]}" for t in exclude[:40] if t)
     avoid_block = (
         "\nDo NOT repeat or closely paraphrase any of these recently asked "
@@ -245,23 +242,16 @@ def _llm_batch(kind: str, topic: str, count: int,
     else:
         raise _GenError(f"unknown kind: {kind}")
 
+    # OpenAI first (the key the voice already uses), then Gemini -- the
+    # shared helper in games/llm_json.py. The prompt asks for a bare JSON
+    # array; OpenAI's JSON mode wraps it as {"items": [...]}, which the
+    # helper unwraps.
+    from games import llm_json
     try:
-        response = model.generate_content(instruction)
-        text = response.text.strip()
-    except Exception as exc:
-        raise _GenError(f"model call failed: {exc}")
-
-    if text.startswith("```"):
-        text = text.split("```")[1]
-        if text.startswith("json"):
-            text = text[4:]
-        text = text.strip()
-    try:
-        parsed = json.loads(text)
-    except Exception as exc:
-        raise _GenError(f"could not parse model JSON: {exc}")
-    if not isinstance(parsed, list):
-        raise _GenError("model did not return a JSON array")
+        parsed, _provider = llm_json.json_items(
+            instruction + '\nIf you must return an object, use {"items": [...]}.')
+    except llm_json.LLMError as exc:
+        raise _GenError(str(exc))
     return parsed
 
 

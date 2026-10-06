@@ -163,6 +163,30 @@ def _parse_mc(raw):
     return q if validate_question(q)[0] else None
 
 
+def _parse_analogy(raw):
+    """"a is to b as c is to answer": {"a", "b", "c", "answer", "accepts"}."""
+    if not isinstance(raw, dict):
+        return None
+    parts = {k: _clean(raw.get(k), 30) for k in ("a", "b", "c", "answer")}
+    if not all(parts.values()):
+        return None
+    accepts = [a for a in (_clean(x, 30) for x in raw.get("accepts") or []) if a][:5]
+    return {**parts, "accepts": accepts}
+
+
+def _parse_odd_word(raw):
+    """Four words, one doesn't belong: {"words"[4], "answer", "why"}."""
+    if not isinstance(raw, dict):
+        return None
+    words = [_clean(w, 24) for w in raw.get("words") or []]
+    answer, why = _clean(raw.get("answer"), 24), _clean(raw.get("why"), 120)
+    if len(words) != 4 or not all(words) or not answer or not why:
+        return None
+    if len({norm_key(w) for w in words}) != 4 or norm_key(answer) not in {norm_key(w) for w in words}:
+        return None
+    return {"words": words, "answer": answer, "why": why}
+
+
 KINDS: dict[str, Kind] = {k.name: k for k in [
     _text_kind("herd", _bundled(_C, "HERD_PROMPTS"), 90,
                'short "Name a ..." prompts where everyone tries to give the SAME answer '
@@ -219,7 +243,24 @@ KINDS: dict[str, Kind] = {k.name: k for k in [
     Kind("cipher_word", _bundled(_C, "CIPHER_WORDS"), _parse_word, lambda i: i, norm_key,
          "single common English nouns, 3 to 10 letters, for a Codenames-style word grid",
          '"TIGER"'),
-    Kind("mc", lambda: [], _parse_mc, lambda i: dict(i), lambda i: norm_key(i["question"])),
+    Kind("mc", lambda: [], _parse_mc, lambda i: dict(i), lambda i: norm_key(i["question"]),
+         "fun, family-friendly multiple-choice quiz questions for a game night in India: "
+         "a mix of science, nature, geography, cricket and other sport, Indian and world "
+         "movies and music, food, inventions, history and recent events. Exactly 4 "
+         "options, one correct; correct_answer is its 0-based index",
+         '{"question": "Which planet has the most moons?", '
+         '"options": ["Earth", "Saturn", "Mars", "Venus"], "correct_answer": 1}'),
+    Kind("analogy", lambda: [], _parse_analogy, lambda i: dict(i),
+         lambda i: norm_key(f"{i['a']}|{i['b']}|{i['c']}"),
+         "word analogies for a family brain game (\"Bird is to nest as bee is to ...\"), "
+         "each with one clear, short answer and a few other accepted spoken forms",
+         '{"a": "Bird", "b": "Nest", "c": "Bee", "answer": "Hive", "accepts": ["beehive"]}'),
+    Kind("odd_word", lambda: [], _parse_odd_word, lambda i: dict(i),
+         lambda i: norm_key("|".join(sorted(i["words"]))),
+         "odd-one-out puzzles: four everyday words where exactly one does not belong, "
+         "with a short explanation. The answer must be one of the four words",
+         '{"words": ["Apple", "Banana", "Carrot", "Mango"], "answer": "Carrot", '
+         '"why": "It is a vegetable, the others are fruits."}'),
 ]}
 
 
@@ -486,11 +527,22 @@ def generate(kind: str, count: int = REFILL_BATCH) -> list:
     existing = all_items(kind)
     keys = {spec.key(i) for i in existing}
     if kind == "mc":
-        from games import topic_gen
-        try:
-            raw = topic_gen._opentdb_batch("", random.choice(_OPENTDB_CATEGORIES), count)
-        except Exception:
-            return []
+        # Trivia grows from two sources: the LLM (newest, Indian-flavoured,
+        # current events) when a key is set, and Open Trivia DB (free, no
+        # key) otherwise or when the LLM call fails.
+        from games import llm_json, topic_gen
+        raw = []
+        if llm_json.configured() and random.random() < 0.6:
+            sample = [i["question"] for i in random.sample(existing, min(150, len(existing)))]
+            try:
+                raw, _ = llm_json.json_items(generation_prompt(kind, count, sample))
+            except llm_json.LLMError:
+                raw = []
+        if not raw:
+            try:
+                raw = topic_gen._opentdb_batch("", random.choice(_OPENTDB_CATEGORIES), count)
+            except Exception:
+                return []
     else:
         if spec.ask is None:
             return []
