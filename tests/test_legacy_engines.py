@@ -90,6 +90,28 @@ class TestConnect4:
         new_board = latest(tv, "game_state")["boardState"]
         assert new_board["grid"][5][3] != ""
 
+    def test_four_players_get_a_bigger_board_and_their_own_colours(self, server, tv):
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "connect4", players=4)
+        start_and_settle(socketio, tv, code)
+
+        board = latest(tv, "game_state")["boardState"]
+        assert board["rows"] == 8 and board["cols"] == 10
+        assert len(board["grid"]) == 8 and len(board["grid"][0]) == 10
+        assert sorted(board["colors"].values()) == ["blue", "green", "red", "yellow"]
+        assert len(board["turnOrder"]) == 4
+
+        order = board["turnOrder"]
+        for turn, pid in enumerate(order):
+            actor = phones[int(pid.split("-")[1])]
+            private = latest(actor, "private_state")["privateData"]
+            assert private["isMyTurn"] is True and private["cols"] == 10
+            act(socketio, actor, code, pid, "drop", {"column": 9 - turn})
+        board = latest(tv, "game_state")["boardState"]
+        assert [board["grid"][7][9 - t] for t in range(4)] == [
+            board["colors"][pid] for pid in order]
+        assert board["currentPlayerID"] == order[0]
+
 
 class TestMemory:
     def test_flip_reveals_a_card(self, server, tv):

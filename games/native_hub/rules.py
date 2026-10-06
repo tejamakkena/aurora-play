@@ -134,11 +134,13 @@ RULES: dict[str, dict] = {
     },
     "connect4": {
         "title": "Connect 4",
-        "objective": "Line up four of your discs before your opponent does.",
+        "objective": "Line up four of your discs before anyone else does.",
         "rules": [
+            "2 to 4 players, each with their own disc colour.",
             "Drop your discs into the grid on your turn.",
             "The first line of four -- across, down, or diagonal -- wins.",
-            "Block your opponent's run while building your own.",
+            "More players means a bigger board: 7 x 9 for three, 8 x 10 for four.",
+            "Block your rivals' runs while building your own.",
         ],
         "controls": "Tap a column on your phone.",
     },

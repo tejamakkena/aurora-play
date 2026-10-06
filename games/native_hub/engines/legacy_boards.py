@@ -21,66 +21,115 @@ from games.native_hub.engines._bases import TurnBasedEngine
 
 class Connect4Engine(TurnBasedEngine):
     """Verified against Connect4BoardState/Connect4ControllerView in
-    TVClassicGameBoards.swift and ClassicGameControllers.swift."""
+    TVClassicGameBoards.swift and ClassicGameControllers.swift.
+
+    Plays 2-4 players. The board grows with the table so a crowded game
+    still has room to manoeuvre (``BOARD_SIZES``); the goal stays four in a
+    row. Every player gets their own disc colour in seat order.
+
+    State contract (public -- every key the TV reads):
+      grid               rows x cols of colour ids ("" = empty)
+      rows, cols         board dimensions (2-player games stay 6 x 7)
+      colors             playerID -> colour id
+      turnOrder          playerIDs in seat order
+      currentPlayerID    whose turn it is ("" once the game is over)
+      currentPlayerName
+      currentColor       colour id of the player to move
+      winner             winning player's *name* (kept for older apps)
+      winnerID           winning playerID
+      winnerColor        winning colour id
+      winCells           ["row,col", ...] for the winning four
+      isDraw             board filled with no line of four
+      moveCount          discs dropped so far
+      lastMove           {"row", "col", "color"} or None
+    Private additionally carries: color, fullColumns, rows, cols, colors,
+    turnOrder, currentPlayerID, currentPlayerName, currentColor.
+    """
 
     game_id = "connect4"
     min_players = 2
-    max_players = 2
+    max_players = 4
 
-    ROWS, COLS = 6, 7
-    COLORS = ("red", "yellow")
+    ROWS, COLS = 6, 7                       # the classic 2-player board
+    BOARD_SIZES = {2: (6, 7), 3: (7, 9), 4: (8, 10)}
+    COLORS = ("red", "yellow", "green", "blue")
+    CONNECT = 4
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
-        self.grid = [["" for _ in range(self.COLS)] for _ in range(self.ROWS)]
+        self.rows, self.cols = self.ROWS, self.COLS
+        self.grid = self._empty_grid()
         self.colors: dict[str, str] = {}
         self.win_cells: list[tuple[int, int]] = []
         self.draw = False
+        self.move_count = 0
+        self.last_move: dict | None = None
+
+    def _empty_grid(self):
+        return [["" for _ in range(self.cols)] for _ in range(self.rows)]
 
     def setup(self):
-        self.colors = {pid: self.COLORS[i % 2] for i, pid in enumerate(self.order)}
+        seats = min(max(len(self.order), 2), 4)
+        self.rows, self.cols = self.BOARD_SIZES[seats]
+        self.grid = self._empty_grid()
+        self.colors = {pid: self.COLORS[i % len(self.COLORS)]
+                       for i, pid in enumerate(self.order)}
 
     def _drop(self, col):
-        for row in range(self.ROWS - 1, -1, -1):
+        for row in range(self.rows - 1, -1, -1):
             if self.grid[row][col] == "":
                 return row
         return None
 
+    def _line_through(self, row, col):
+        """The winning four through (row, col), or []. Only the disc just
+        dropped can complete a line, so there is no need to rescan the whole
+        (up to 8 x 10) board after every move."""
+        g = self.grid
+        color = g[row][col]
+        if not color:
+            return []
+        for dr, dc in ((0, 1), (1, 0), (1, 1), (1, -1)):
+            cells = [(row, col)]
+            for sign in (1, -1):
+                r, c = row + dr * sign, col + dc * sign
+                while 0 <= r < self.rows and 0 <= c < self.cols and g[r][c] == color:
+                    cells.append((r, c))
+                    r, c = r + dr * sign, c + dc * sign
+            if len(cells) >= self.CONNECT:
+                cells.sort()
+                # Highlight exactly four, always including the new disc so
+                # the glow reads as "this move won it".
+                idx = cells.index((row, col))
+                begin = max(0, min(idx, len(cells) - self.CONNECT))
+                return cells[begin:begin + self.CONNECT]
+        return []
+
     def _check_winner(self):
-        g, R, C = self.grid, self.ROWS, self.COLS
-        lines = []
-        for r in range(R):
-            for c in range(C - 3):
-                lines.append([(r, c + i) for i in range(4)])
-        for r in range(R - 3):
-            for c in range(C):
-                lines.append([(r + i, c) for i in range(4)])
-        for r in range(R - 3):
-            for c in range(C - 3):
-                lines.append([(r + i, c + i) for i in range(4)])
-        for r in range(R - 3):
-            for c in range(3, C):
-                lines.append([(r + i, c - i) for i in range(4)])
-        for cells in lines:
-            first = g[cells[0][0]][cells[0][1]]
-            if first and all(g[r][c] == first for r, c in cells):
-                return first, cells
+        """Full-board scan; returns (colour, cells) or (None, [])."""
+        for r in range(self.rows):
+            for c in range(self.cols):
+                cells = self._line_through(r, c)
+                if cells:
+                    return self.grid[r][c], cells
         return None, []
 
     def handle_action(self, player_id, action, data):
         if self._finished or action != "drop" or not self.is_my_turn(player_id):
             return
         col = data.get("column")
-        if not isinstance(col, int) or not 0 <= col < self.COLS:
+        if isinstance(col, bool) or not isinstance(col, int) or not 0 <= col < self.cols:
             return
         row = self._drop(col)
         if row is None:
             return
-        color = self.colors.get(player_id, "red")
+        color = self.colors.get(player_id, self.COLORS[0])
         self.grid[row][col] = color
+        self.move_count += 1
+        self.last_move = {"row": row, "col": col, "color": color}
 
-        winner_color, cells = self._check_winner()
-        if winner_color:
+        cells = self._line_through(row, col)
+        if cells:
             self.win_cells = cells
             self.scores[player_id] = 1
             player = self.room.player(player_id)
@@ -88,31 +137,66 @@ class Connect4Engine(TurnBasedEngine):
                 player.score = 1
             self.finish(winner=player_id)
             return
-        if all(self.grid[0][c] != "" for c in range(self.COLS)):
+        if all(self.grid[0][c] != "" for c in range(self.cols)):
             self.draw = True
             self.finish(winner=None)
             return
         self.next_turn()
 
+    def current_player_id(self):
+        # The base rotation only skips absent seats when the turn passes, so
+        # a seat whose phone dropped without an ``on_player_leave`` (or that
+        # left while it was already queued) could otherwise stall a 3-4
+        # player table. Hop forward to the next connected player instead.
+        current = super().current_player_id()
+        if current is None or self._finished or self._is_live(current):
+            return current
+        for step in range(1, len(self.order) + 1):
+            idx = (self.turn_index + step) % len(self.order)
+            if self._is_live(self.order[idx]):
+                self.turn_index = idx
+                self.reset_turn_clock()
+                return self.order[idx]
+        return current
+
     def _full_columns(self):
-        return [c for c in range(self.COLS) if self.grid[0][c] != ""]
+        return [c for c in range(self.cols) if self.grid[0][c] != ""]
+
+    def _shared_state(self):
+        current = None if self._finished else self.current_player_id()
+        return current, {
+            "rows": self.rows,
+            "cols": self.cols,
+            "colors": dict(self.colors),
+            "turnOrder": list(self.order),
+            "currentPlayerID": current or "",
+            "currentPlayerName": self.player_name(current) if current else "",
+            "currentColor": self.colors.get(current, "") if current else "",
+        }
 
     def public_state(self):
         state = self.base_public()
-        current = self.current_player_id()
+        _current, shared = self._shared_state()
+        state.update(shared)
         state.update({
             "grid": [row[:] for row in self.grid],
-            "currentPlayerID": current or "",
-            "currentPlayerName": self.player_name(current) if current else "",
             "winner": self.player_name(self.winner) if self.winner else None,
+            "winnerID": self.winner,
+            "winnerColor": self.colors.get(self.winner, "") if self.winner else "",
             "winCells": [f"{r},{c}" for r, c in self.win_cells],
+            "isDraw": self.draw,
+            "moveCount": self.move_count,
+            "lastMove": dict(self.last_move) if self.last_move else None,
         })
         return state
 
     def private_state(self, player_id):
         state = self.base_private(player_id)
+        current, shared = self._shared_state()
+        state.update(shared)
         state.update({
-            "color": self.colors.get(player_id, "red"),
+            "isMyTurn": current is not None and current == player_id,
+            "color": self.colors.get(player_id, self.COLORS[0]),
             "fullColumns": self._full_columns(),
         })
         return state

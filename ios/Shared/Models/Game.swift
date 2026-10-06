@@ -130,7 +130,7 @@ enum GameID: String, Codable, CaseIterable {
                          phoneInputStyle: .tilt, supportsRemote: false, soloPlayable: false)
         case .connectFour:
             return .init(displayName: "Connect 4", sfSymbol: "square.grid.3x3.fill", category: .strategy,
-                         minPlayers: 2, maxPlayers: 2, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .chess:
             return .init(displayName: "Chess", sfSymbol: "checkerboard.rectangle", category: .strategy,
