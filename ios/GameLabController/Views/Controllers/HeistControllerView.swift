@@ -55,21 +55,29 @@ private struct GuardControllerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            roleBadge
+            HeistHeader(symbol: "shield.fill",
+                        title: "You are the Guard",
+                        detail: "Only YOU can see camera positions",
+                        tint: PhonePlayDesign.red,
+                        round: currentRound)
 
             Spacer()
 
             if phase == .guardSets {
                 guardSetPhase
+                    .transition(.opacity)
             } else {
                 watchingPhase
+                    .transition(.scale(scale: 0.9).combined(with: .opacity))
             }
 
             Spacer()
         }
-        .background(Color(hex: "140000").ignoresSafeArea())
+        .background(HeistBackdrop(tint: PhonePlayDesign.red))
+        .animation(PhonePlayDesign.pop, value: phase)
+        .animation(PhonePlayDesign.pop, value: hasSubmitted)
         // Reset per round so Guard picks cameras fresh each round
-        .onChange(of: currentRound) { newRound in
+        .onChange(of: currentRound) { _, newRound in
             guard newRound != trackedRound else { return }
             trackedRound = newRound
             hasSubmitted = false
@@ -81,13 +89,21 @@ private struct GuardControllerView: View {
     // MARK: - Phases
 
     private var guardSetPhase: some View {
-        VStack(spacing: 28) {
-            Text("Choose cameras to activate")
-                .font(.headline).foregroundColor(.white.opacity(0.6))
-            Text("Max 2 cameras per round")
-                .font(.caption).foregroundColor(.white.opacity(0.3))
+        VStack(spacing: 22) {
+            VStack(spacing: 4) {
+                Text("Choose cameras to activate")
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                Text("Max 2 cameras per round · \(activeCameras.count)/2")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text3)
+                    .contentTransition(.numericText())
+            }
+            .padding(.horizontal, 20)
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)],
+                      spacing: 14) {
                 ForEach(cameraSlots) { slot in
                     CameraToggleTile(
                         slot: slot,
@@ -96,60 +112,89 @@ private struct GuardControllerView: View {
                     ) { toggleCamera(slot.id) }
                 }
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 20)
 
-            Button(action: submitCameras) {
-                HStack(spacing: 8) {
-                    Image(systemName: hasSubmitted ? "checkmark.shield.fill" : "shield.fill")
-                    Text(hasSubmitted ? "Cameras Locked" : "Lock Cameras")
-                        .font(.headline)
+            if hasSubmitted {
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.system(size: 19, weight: .bold))
+                    Text("Cameras Locked")
+                        .font(.system(size: 19, weight: .heavy, design: .rounded))
                 }
-                .frame(maxWidth: .infinity).padding(.vertical, 18)
-                .background(RoundedRectangle(cornerRadius: 16)
-                    .fill(hasSubmitted ? Color.green.opacity(0.3) : Color.red.opacity(0.8)))
-                .foregroundColor(.white)
+                .foregroundColor(PhonePlayDesign.green)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                        .fill(PhonePlayDesign.green.opacity(0.14))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                        .strokeBorder(PhonePlayDesign.green.opacity(0.5), lineWidth: 1.5)
+                )
+                .padding(.horizontal, 20)
+                .transition(.scale(scale: 0.9).combined(with: .opacity))
+            } else {
+                BigButton(title: "Lock Cameras", systemImage: "shield.fill", tint: PhonePlayDesign.red) {
+                    submitCameras()
+                }
+                .transition(.opacity)
             }
-            .buttonStyle(.plain).disabled(hasSubmitted).padding(.horizontal, 24)
         }
     }
 
     private var watchingPhase: some View {
-        VStack(spacing: 16) {
+        let active: [CameraSlot] = cameraSlots.filter { activeCameras.contains($0.id) }
+        return VStack(spacing: 16) {
+            HeistHero(systemImage: "video.fill", tint: PhonePlayDesign.red)
             Text("Cameras Active")
-                .font(.title3.bold()).foregroundColor(.red)
+                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                .foregroundColor(PhonePlayDesign.red)
             Text("Watching for thieves…")
-                .foregroundColor(.white.opacity(0.5))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
 
             VStack(spacing: 10) {
-                ForEach(cameraSlots.filter { activeCameras.contains($0.id) }) { slot in
-                    HStack {
-                        Text(slot.direction).font(.title2)
-                        Text(slot.label).foregroundColor(.white)
+                if active.isEmpty {
+                    Text("No cameras switched on this round")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text3)
+                }
+                ForEach(active) { slot in
+                    HStack(spacing: 12) {
+                        Text(slot.direction)
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                        Text(slot.label)
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
                         Spacer()
-                        Text("ACTIVE").font(.caption.bold()).foregroundColor(.red)
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(PhonePlayDesign.red)
+                                .frame(width: 8, height: 8)
+                            Text("ACTIVE")
+                        }
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.red)
                     }
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.15)))
-                    .padding(.horizontal, 24)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                            .fill(PhonePlayDesign.red.opacity(0.14))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                            .strokeBorder(PhonePlayDesign.red.opacity(0.35), lineWidth: 1)
+                    )
+                    .padding(.horizontal, 20)
                 }
             }
+            .padding(.top, 4)
         }
     }
 
-    // MARK: - Subviews & helpers
-
-    private var roleBadge: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "shield.fill").font(.system(size: 28)).foregroundColor(.red)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("You are the Guard").font(.headline).foregroundColor(.red)
-                Text("Only YOU can see camera positions").font(.caption).foregroundColor(.white.opacity(0.5))
-            }
-            Spacer()
-            Text("Round \(currentRound)").font(.caption.bold()).foregroundColor(.white.opacity(0.4))
-        }
-        .padding(20).background(Color.red.opacity(0.1))
-    }
+    // MARK: - Helpers
 
     private func toggleCamera(_ id: String) {
         if activeCameras.contains(id) { activeCameras.remove(id) }
@@ -188,26 +233,36 @@ private struct ThiefControllerView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            roleBadge
+            HeistHeader(symbol: "person.fill",
+                        title: "You are a Thief",
+                        detail: "Reach the vault, then escape",
+                        tint: PhonePlayDesign.cyan,
+                        round: currentRound)
 
             Spacer()
 
             if isCaught {
                 caughtView
+                    .transition(.scale(scale: 0.85).combined(with: .opacity))
             } else {
-                VStack(spacing: 28) {
+                VStack(spacing: 24) {
                     positionIndicator
                     dpad
                     statusLabel
                 }
+                .transition(.opacity)
             }
 
             Spacer()
 
             cameraWarning
         }
-        .background(Color(hex: "000d14").ignoresSafeArea())
-        .onChange(of: currentRound) { newRound in
+        .background(HeistBackdrop(tint: PhonePlayDesign.cyan))
+        .animation(PhonePlayDesign.pop, value: isCaught)
+        .animation(PhonePlayDesign.pop, value: hasMoved)
+        .animation(PhonePlayDesign.pop, value: isMovingPhase)
+        .animation(PhonePlayDesign.pop, value: hasReachedVault)
+        .onChange(of: currentRound) { _, newRound in
             guard newRound != trackedRound else { return }
             trackedRound = newRound
             hasMoved = false
@@ -216,16 +271,40 @@ private struct ThiefControllerView: View {
     }
 
     private var positionIndicator: some View {
-        HStack(spacing: 12) {
-            Text("Position").foregroundColor(.white.opacity(0.5)).font(.subheadline)
-            Spacer()
-            Text("Col \(myPosition.col)  Row \(myPosition.row)")
-                .font(.system(.body, design: .monospaced)).foregroundColor(.cyan)
+        VStack(spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "location.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(PhonePlayDesign.cyan)
+                Text("Position")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                Spacer()
+                Text("Col \(myPosition.col)  Row \(myPosition.row)")
+                    .font(.system(size: 17, weight: .heavy, design: .monospaced))
+                    .foregroundColor(PhonePlayDesign.cyan)
+                    .contentTransition(.numericText())
+            }
             if hasReachedVault {
-                Text("VAULT REACHED").font(.caption.bold()).foregroundColor(.yellow)
+                HStack(spacing: 6) {
+                    Image(systemName: "star.fill")
+                    Text("VAULT REACHED")
+                        .tracking(1)
+                }
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .foregroundColor(.black)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(PhonePlayDesign.yellow))
+                .transition(.scale.combined(with: .opacity))
             }
         }
-        .padding(.horizontal, 24)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
+        )
+        .padding(.horizontal, 20)
     }
 
     private var dpad: some View {
@@ -244,43 +323,40 @@ private struct ThiefControllerView: View {
     private var statusLabel: some View {
         Group {
             if hasMoved {
-                Label("Move sent — waiting for round end", systemImage: "hourglass")
-                    .font(.subheadline).foregroundColor(.cyan.opacity(0.7))
+                HeistPill(text: "Move sent — waiting for round end", systemImage: "hourglass",
+                          tint: PhonePlayDesign.cyan)
             } else if !isMovingPhase {
-                Label("Guard is setting cameras…", systemImage: "eye")
-                    .font(.subheadline).foregroundColor(.white.opacity(0.4))
+                HeistPill(text: "Guard is setting cameras…", systemImage: "eye")
             }
         }
     }
 
     private var caughtView: some View {
         VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 56)).foregroundColor(.red)
-            Text("You were caught!").font(.title2.bold()).foregroundColor(.red)
-            Text("Watch the TV to see how it ends.").foregroundColor(.white.opacity(0.5))
+            HeistHero(systemImage: "exclamationmark.triangle.fill", tint: PhonePlayDesign.red)
+            Text("You were caught!")
+                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                .foregroundColor(PhonePlayDesign.red)
+            Text("Watch the TV to see how it ends.")
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
         }
     }
 
     private var cameraWarning: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.yellow)
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(PhonePlayDesign.yellow)
             Text("Avoid red-lit tiles on the TV!")
-                .font(.caption).foregroundColor(.white.opacity(0.5))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
         }
-        .padding(.horizontal, 24).padding(.bottom, 32)
-    }
-
-    private var roleBadge: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "person.fill").font(.system(size: 28)).foregroundColor(.cyan)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("You are a Thief").font(.headline).foregroundColor(.cyan)
-                Text("Reach the vault, then escape").font(.caption).foregroundColor(.white.opacity(0.5))
-            }
-            Spacer()
-            Text("Round \(currentRound)").font(.caption.bold()).foregroundColor(.white.opacity(0.4))
-        }
-        .padding(20).background(Color.cyan.opacity(0.08))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(Capsule().fill(PhonePlayDesign.yellow.opacity(0.1)))
+        .padding(.horizontal, 24)
+        .padding(.bottom, 24)
     }
 
     private func move(_ direction: String) {
@@ -292,6 +368,115 @@ private struct ThiefControllerView: View {
 
 // MARK: - Shared subviews
 
+/// The role card at the top of both screens, in the ControllerShell style.
+private struct HeistHeader: View {
+    let symbol: String
+    let title: String
+    let detail: String
+    let tint: Color
+    let round: Int
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(PhonePlayDesign.gradient([tint.opacity(0.75), tint.opacity(0.3)]))
+                    .frame(width: 48, height: 48)
+                Image(systemName: symbol)
+                    .font(.system(size: 21, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            .phonePlayIdle(dy: 2, scale: 0.03, duration: 1.6)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 20, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(detail)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+            Spacer(minLength: 8)
+            Text("Round \(round)")
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .foregroundColor(tint)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(tint.opacity(0.15)))
+                .fixedSize()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
+                .padding(.horizontal, 10)
+        )
+        .padding(.top, 6)
+    }
+}
+
+/// The Phone Play backdrop with a faint wash of the role colour.
+private struct HeistBackdrop: View {
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            PhonePlayDesign.bg
+            LinearGradient(colors: [tint.opacity(0.14), Color.clear],
+                           startPoint: .top, endPoint: .center)
+        }
+        .ignoresSafeArea()
+    }
+}
+
+/// The big gently-bobbing icon for "watching" and "caught".
+private struct HeistHero: View {
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(PhonePlayDesign.gradient([tint.opacity(0.6), tint.opacity(0.25)]))
+                .frame(width: 110, height: 110)
+            Image(systemName: systemImage)
+                .font(.system(size: 46, weight: .bold))
+                .foregroundColor(.white)
+        }
+        .shadow(color: tint.opacity(0.35), radius: 18, y: 8)
+        .phonePlayIdle(dy: 4, scale: 0.03, duration: 1.6)
+    }
+}
+
+/// A rounded status capsule.
+private struct HeistPill: View {
+    let text: String
+    var systemImage: String? = nil
+    var tint: Color = PhonePlayDesign.text2
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .bold))
+            }
+            Text(text)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+        }
+        .foregroundColor(tint)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(tint.opacity(0.14)))
+        .padding(.horizontal, 20)
+    }
+}
+
 private struct CameraToggleTile: View {
     let slot: CameraSlot
     let isActive: Bool
@@ -299,27 +484,45 @@ private struct CameraToggleTile: View {
     let onToggle: () -> Void
 
     var body: some View {
-        Button(action: onToggle) {
+        Button(action: {
+            PhonePlayHaptics.tap()
+            onToggle()
+        }) {
             VStack(spacing: 10) {
-                Text(slot.direction).font(.system(size: 36))
-                Text(slot.label).font(.caption).foregroundColor(isActive ? .white : .white.opacity(0.5))
+                Text(slot.direction)
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundColor(isActive ? .white : .white.opacity(0.6))
+                Text(slot.label)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(isActive ? .white : PhonePlayDesign.text2)
                     .multilineTextAlignment(.center)
-                Text(isActive ? "ACTIVE" : "OFF").font(.caption2.bold())
-                    .foregroundColor(isActive ? .red : .white.opacity(0.3))
+                Text(isActive ? "ACTIVE" : "OFF")
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .tracking(1)
+                    .foregroundColor(isActive ? .white : PhonePlayDesign.text3)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Capsule().fill(isActive ? PhonePlayDesign.red : Color.white.opacity(0.05)))
             }
-            .frame(maxWidth: .infinity).padding(.vertical, 20)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(isActive ? Color.red.opacity(0.25) : Color.white.opacity(0.06))
-                    .overlay(RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(isActive ? Color.red.opacity(0.6) : Color.white.opacity(0.08),
-                                      lineWidth: isActive ? 2 : 1))
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .fill(isActive
+                          ? PhonePlayDesign.gradient([PhonePlayDesign.red.opacity(0.38), PhonePlayDesign.red.opacity(0.14)])
+                          : PhonePlayDesign.gradient([PhonePlayDesign.surface, PhonePlayDesign.surface]))
             )
+            .overlay(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .strokeBorder(isActive ? PhonePlayDesign.red.opacity(0.7) : Color.white.opacity(0.06),
+                                  lineWidth: isActive ? 2 : 1)
+            )
+            .shadow(color: PhonePlayDesign.red.opacity(isActive ? 0.3 : 0), radius: 12, y: 5)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
         .opacity(canActivate ? 1 : 0.4).disabled(!canActivate && !isActive)
         .scaleEffect(isActive ? 1.04 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isActive)
+        .animation(PhonePlayDesign.pop, value: isActive)
     }
 }
 
@@ -329,16 +532,26 @@ private struct DirectionButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            PhonePlayHaptics.tap()
+            action()
+        }) {
             VStack(spacing: 4) {
-                Image(systemName: symbol).font(.system(size: 28, weight: .semibold))
-                Text(label).font(.caption2)
+                Image(systemName: symbol)
+                    .font(.system(size: 26, weight: .heavy))
+                Text(label)
+                    .font(.system(size: 11, weight: .heavy, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
             }
-            .foregroundColor(.white).frame(width: 80, height: 80)
-            .background(Circle().fill(Color.white.opacity(0.1))
-                .overlay(Circle().strokeBorder(Color.cyan.opacity(0.3), lineWidth: 1)))
+            .foregroundColor(.white)
+            .frame(width: 84, height: 84)
+            .background(
+                Circle().fill(PhonePlayDesign.gradient([PhonePlayDesign.surface2, PhonePlayDesign.surface]))
+                    .overlay(Circle().strokeBorder(PhonePlayDesign.cyan.opacity(0.35), lineWidth: 1.5))
+            )
+            .shadow(color: PhonePlayDesign.cyan.opacity(0.12), radius: 10, y: 4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
