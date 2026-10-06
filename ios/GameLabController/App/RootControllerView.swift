@@ -19,6 +19,9 @@ struct RootControllerView: View {
                 JoinRoomView(onJoin: vm.joinRoom, onTravel: vm.startTravel,
                              onPhonePlay: vm.startPhonePlay,
                              initialCode: vm.pendingJoinCode)
+                    .overlay(alignment: .topTrailing) {
+                        ProfileChipButton().padding(.trailing, 16).padding(.top, 8)
+                    }
 
             case .travel:
                 if let travel = vm.travelVM {
@@ -263,7 +266,11 @@ final class ControllerRootViewModel: ObservableObject {
             guard let self else { return }
             switch room.state {
             case .lobby:
-                if case .waiting = self.screen { self.screen = .waiting(room) }
+                // results -> lobby is Game Night's next_game moving the room on.
+                switch self.screen {
+                case .waiting, .results: self.screen = .waiting(room)
+                default: break
+                }
             case .results:
                 self.screen = .results(room)
             case .playing:

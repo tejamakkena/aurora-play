@@ -1029,7 +1029,13 @@ struct ResultsControllerView: View {
             // Play Again (TVRootViewModel.playAgain) -- start_game with the
             // same room code -- and the existing privateState handler moves
             // this phone results -> playing when the restart pumps.
-            if vm.isHost {
+            // During a Game Night the night panel replaces Play Again: the
+            // host moves the room to the next game (or ends the night)
+            // instead of replaying this one (Views/OneStop/GameNightViews).
+            if let night = room.night {
+                GameNightResultsPanel(room: room, night: night, isHost: vm.isHost)
+                    .padding(.horizontal, 24).padding(.bottom, 12)
+            } else if vm.isHost {
                 Button(action: onPlayAgain) {
                     Label("Play Again", systemImage: "arrow.clockwise")
                         .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
