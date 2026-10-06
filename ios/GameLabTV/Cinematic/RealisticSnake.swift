@@ -43,9 +43,10 @@ final class RealisticSnakeNode {
     private let bodyRadius: Float
 
     /// The board's existing initializer: the (body, band) color pair picks a
-    /// natural species palette (red -> coral snake, orange -> corn snake,
-    /// yellow -> python, green -> green tree snake, blue -> king snake,
-    /// purple -> diamondback rattlesnake).
+    /// natural species palette. The board's `SnakeStyle` body colors map to
+    /// fixed species (see `RealSnakeSpecies.matching`); any other color goes
+    /// by hue (red -> coral snake, orange -> corn snake, yellow -> python,
+    /// green -> green tree snake, blue -> king snake, purple -> diamondback).
     convenience init(headSquare: Int, tailSquare: Int, squareToPoint: (Int) -> SCNVector3,
                      color: UIColor, bandColor: UIColor) {
         self.init(headSquare: headSquare, tailSquare: tailSquare, squareToPoint: squareToPoint,
@@ -278,9 +279,41 @@ enum RealSnakeSpecies: Int, CaseIterable {
     /// Maps the board's per-snake color pair onto a species by hue, so each
     /// of the board's six pairs lands on a different species.
     static func matching(color: UIColor, bandColor: UIColor) -> RealSnakeSpecies {
+        if let species = byKnownColor(color) { return species }
         if let species = byHue(color) { return species }
         if let species = byHue(bandColor) { return species }
         return .kingSnake
+    }
+
+    /// The board's own `SnakeStyle` body colors, each pinned to the closest
+    /// natural species so a style keeps its character (rattlesnakes stay
+    /// diamondbacks, the black krait becomes a banded king snake).
+    private static let knownColors: [(red: CGFloat, green: CGFloat, blue: CGFloat, species: RealSnakeSpecies)] = [
+        (0.27, 0.50, 0.16, .greenTreeSnake),   // green python
+        (0.70, 0.56, 0.36, .diamondback),      // tan rattlesnake
+        (0.07, 0.07, 0.07, .kingSnake),        // black-and-yellow krait
+        (0.78, 0.13, 0.08, .coralSnake),       // red coral style
+        (0.45, 0.46, 0.21, .cornSnake),        // olive viper
+        (0.56, 0.40, 0.22, .burmesePython),    // brown python
+        (0.08, 0.48, 0.26, .greenTreeSnake),   // emerald tree snake
+        (0.56, 0.52, 0.45, .diamondback),      // grey-brown rattlesnake
+    ]
+
+    private static func byKnownColor(_ color: UIColor) -> RealSnakeSpecies? {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
+        for entry in knownColors {
+            let dr = red - entry.red
+            let dg = green - entry.green
+            let db = blue - entry.blue
+            if abs(dr) < 0.03 && abs(dg) < 0.03 && abs(db) < 0.03 {
+                return entry.species
+            }
+        }
+        return nil
     }
 
     private static func byHue(_ color: UIColor) -> RealSnakeSpecies? {
@@ -562,8 +595,11 @@ struct RealSnakeHeadShape {
         -0.45 * length + s * length
     }
 
+    /// Closes the back of the skull to a point, but with a full, rounded
+    /// dome (square root of a quarter sine) so the skull still overhangs
+    /// the neck instead of tapering away from it.
     func backClosure(_ s: Float) -> Float {
-        sin(min(s / 0.16, 1) * Float.pi / 2)
+        sqrt(sin(min(s / 0.16, 1) * Float.pi / 2))
     }
 
     func frontClosure(_ s: Float) -> Float {
@@ -1665,9 +1701,9 @@ enum RealSnakeTextures {
         return image(width: w, height: h, rgba: pixels, space: linearSpace, alphaInfo: .noneSkipLast)
     }
 
-    /// Species albedo. 70% of each pixel's colour comes from its scale's
+    /// Species albedo. 80% of each pixel's colour comes from its scale's
     /// centre (so pattern edges follow scale outlines, as on a real snake),
-    /// 30% from the pixel itself (soft edges); then per-scale brightness and
+    /// 20% from the pixel itself (soft edges); then per-scale brightness and
     /// warmth variation and a little crevice darkening.
     static func albedo(species: RealSnakeSpecies, lattice: RealSnakeLattice, head: Bool) -> UIImage? {
         let w = RealSnakeLattice.width
@@ -1694,7 +1730,7 @@ enum RealSnakeTextures {
                     fromCentre = RealSnakePattern.body(species, a: centreA, t: centreT, n: n)
                     fromPixel = RealSnakePattern.body(species, a: pixelA, t: pixelT, n: n)
                 }
-                let mixed: SIMD3<Float> = fromCentre * 0.7 + fromPixel * 0.3
+                let mixed: SIMD3<Float> = fromCentre * 0.8 + fromPixel * 0.2
                 let crevice: Float = 1 - 0.20 * RealSnakeMath.smoothstep(0.7, 1.0, lattice.edge[idx])
                 let shade: Float = (0.80 + 0.20 * lattice.heightField[idx]) * crevice
                 let variation: Float = 0.92 + 0.16 * n
