@@ -161,6 +161,7 @@ RULES: dict[str, dict] = {
         "rules": [
             "Roll the dice on your turn to move forward.",
             "Climb ladders to jump ahead; snakes slide you back down.",
+            "Roll a 6 and you roll again (up to three times in a row).",
             "You need the exact roll to land on square 100.",
             "The first token home wins.",
         ],
