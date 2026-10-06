@@ -111,6 +111,26 @@ def finish_game(socketio, room) -> None:
         room.state = RoomState.RESULTS
         room.generation += 1          # stop the pump
         room.touch()
+        # Game Night totals and player profiles (best-effort: neither may
+        # ever break the end of a game).
+        try:
+            from games import game_night
+            game_night.record_game(room, results)
+        except Exception:
+            logger.exception("game night record failed room=%s", room.code)
+        try:
+            from games import teams
+            teams.record_game(room, results)
+        except Exception:
+            logger.exception("teams record failed room=%s", room.code)
+        players = list(room.players)
+        game_id = room.game_id
+
+    try:
+        from games import profiles
+        profiles.record_results(game_id, results, players)
+    except Exception:
+        logger.exception("profile record failed room=%s", room.code)
 
     broadcast_state(socketio, room)
     socketio.emit("game_ended", {"roomCode": room.code, "results": results},
