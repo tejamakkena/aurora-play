@@ -701,14 +701,19 @@ class TestSnakeLadder:
 
 
 class TestTrivia:
-    def test_trivia_plays_through_the_whole_question_bank(self):
-        # Used to hardcode 8 rounds regardless of bank size, cutting the
-        # game off partway through -- reported directly as "scoring is only
-        # for 10 questions."
-        from games.native_hub.engines.legacy_social import TRIVIA_QUESTIONS
+    @staticmethod
+    def _to(engine, phase, limit=200):
+        for _ in range(limit):
+            if engine.phase == phase:
+                return
+            engine.deadline = 0.0
+            engine.tick(1 / 30)
+        raise AssertionError(f"never reached {phase}")
+
+    def test_trivia_plays_nine_questions_in_three_rounds(self):
         engine, _ = make("trivia", players=2)
-        assert engine.TOTAL_ROUNDS == len(TRIVIA_QUESTIONS)
-        assert engine.TOTAL_ROUNDS > 8
+        assert engine.total_rounds == engine.MAIN_QUESTIONS == 9
+        assert engine.total_round_groups == 3
 
     def test_trivia_hides_the_correct_answer_until_reveal(self):
         # correctIndex used to be sent on every single push, including the
@@ -717,7 +722,7 @@ class TestTrivia:
         # directly as "answers are getting revealed way before the
         # questions."
         engine, _ = make("trivia", players=2)
-        assert engine.phase == "answering"
+        self._to(engine, "question")
         assert "correctIndex" not in engine.public_state()
 
         engine.deadline = 0.0             # force the round timer to expire
@@ -727,18 +732,17 @@ class TestTrivia:
 
     def test_trivia_holds_the_reveal_before_advancing(self):
         engine, _ = make("trivia", players=2)
+        self._to(engine, "question")
         first_question_id = engine.question_id
         engine.deadline = 0.0
         engine.tick(1 / 30)
         assert engine.phase == "reveal"
 
-        # reveal_until is still in the future -- ticking again shouldn't
-        # jump straight to the next question.
+        # The reveal deadline is still in the future -- ticking again
+        # shouldn't jump straight to the next question.
         engine.tick(1 / 30)
         assert engine.phase == "reveal"
         assert engine.question_id == first_question_id
 
-        engine.reveal_until = 0.0
-        engine.tick(1 / 30)
-        assert engine.phase == "answering"
+        self._to(engine, "question")
         assert engine.question_id != first_question_id

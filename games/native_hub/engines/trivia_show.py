@@ -330,7 +330,8 @@ class TriviaEngine(NativeGameEngine):
         if self._finished:
             return
         now = time.time()
-        if self.deadline and now >= self.deadline:
+        # Every phase sets a deadline, so 0 only ever means "expire now".
+        if now >= self.deadline:
             self._advance()
             return
         active = self.active_ids()

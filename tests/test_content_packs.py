@@ -179,15 +179,18 @@ def test_kbc_engine_uses_telugu_pack_when_configured():
 
 
 def test_trivia_engine_defaults_to_english_pool():
+    # The game show draws its category rounds and finale from the whole
+    # (fresh) pack, so the pool is the pack itself, de-duplicated.
     engine, _ = _make("trivia")
-    assert len(engine.pool) == min(engine.TOTAL_ROUNDS, len(TRIVIA_QUESTIONS))
+    assert len(engine.pool) == len(TRIVIA_QUESTIONS)
     assert all(q in TRIVIA_QUESTIONS for q in engine.pool)
+    assert engine.total_rounds == min(engine.MAIN_QUESTIONS, len(engine.pool))
 
 
 def test_trivia_engine_uses_hindi_pack_when_configured():
     engine, _ = _make("trivia", pack="hi")
     pool = questions_for("hi", "trivia")
-    assert len(engine.pool) == min(engine.TOTAL_ROUNDS, len(pool))
+    assert len(engine.pool) == len(pool)
     assert all(q in pool for q in engine.pool)
 
 
