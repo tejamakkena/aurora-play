@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// Brain Battle on the phone: four big coloured answer buttons (the same
 /// colours as the TV tiles), drawn shapes for rotation puzzles, a lock-in
@@ -61,22 +60,33 @@ struct BrainBattleControllerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .padding(.top, 12)
+            .animation(PhonePlayDesign.pop, value: phase)
+            .animation(PhonePlayDesign.pop, value: locked)
         }
     }
 
     private var scoreLine: some View {
-        HStack {
+        HStack(spacing: 10) {
+            Image(systemName: "star.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(PhonePlayDesign.yellow)
             Text("SCORE")
-                .font(.caption.bold()).tracking(2)
-                .foregroundColor(.white.opacity(0.45))
+                .font(.system(size: 12, weight: .heavy, design: .rounded)).tracking(2)
+                .foregroundColor(PhonePlayDesign.text3)
+            Spacer()
             Text("\(myScore)")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(.system(size: 22, weight: .heavy, design: .rounded).monospacedDigit())
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
-                .animation(.default, value: myScore)
-            Spacer()
+                .animation(PhonePlayDesign.pop, value: myScore)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
+        )
+        .padding(.horizontal, 16)
     }
 
     @ViewBuilder
@@ -122,8 +132,9 @@ struct BrainBattleControllerView: View {
         let rows: Int = (opts.count + 1) / 2
         return VStack(spacing: 12) {
             Text(kind == "rotation" ? "Which shape is the first one turned?" : "Pick your answer")
-                .font(.subheadline.bold())
-                .foregroundColor(.white.opacity(0.6))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
+                .multilineTextAlignment(.center)
             ForEach(0..<rows, id: \.self) { row in
                 HStack(spacing: 12) {
                     buttonOrSpacer(row * 2, options: opts)
@@ -153,8 +164,7 @@ struct BrainBattleControllerView: View {
         guard !locked else { return }
         pendingChoice = option
         pendingPuzzle = puzzleID
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
+        PhonePlayHaptics.rigid()
         onAction("answer", ["choice": option])
     }
 
@@ -163,11 +173,18 @@ struct BrainBattleControllerView: View {
         let index: Int = options.firstIndex(of: answer) ?? 0
         let tint: Color = color(index)
         return VStack(spacing: 18) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 54, weight: .bold))
-                .foregroundColor(tint)
+            ZStack {
+                Circle()
+                    .fill(PhonePlayDesign.gradient([tint.opacity(0.6), tint.opacity(0.25)]))
+                    .frame(width: 100, height: 100)
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 44, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            .shadow(color: tint.opacity(0.4), radius: 16, y: 6)
+            .phonePlayIdle(dy: 4, scale: 0.03, duration: 1.6)
             Text("Locked in")
-                .font(.title.bold())
+                .font(.system(size: 30, weight: .black, design: .rounded))
                 .foregroundColor(.white)
             HStack(spacing: 12) {
                 Text(letter(index))
@@ -180,19 +197,24 @@ struct BrainBattleControllerView: View {
                         .frame(width: 120, height: 80)
                 } else {
                     Text(answer)
-                        .font(.title2.bold())
+                        .font(.system(size: 22, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
                         .lineLimit(2)
                         .minimumScaleFactor(0.6)
                 }
             }
             .padding(.horizontal, 22).padding(.vertical, 14)
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(tint.opacity(0.85)))
+            .background(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .fill(PhonePlayDesign.gradient([tint, tint.opacity(0.7)]))
+            )
+            .shadow(color: tint.opacity(0.35), radius: 14, y: 6)
             Text("Waiting for everyone else...")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.5))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
         }
         .padding(24)
+        .transition(.scale(scale: 0.85).combined(with: .opacity))
     }
 
     private func color(_ index: Int) -> Color {
@@ -239,23 +261,14 @@ private struct BrainAnswerButton: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(LinearGradient(colors: [color, color.opacity(0.65)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                    .fill(PhonePlayDesign.gradient([color, color.opacity(0.65)]))
             )
-            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.25), lineWidth: 1.5))
-            .shadow(color: color.opacity(0.45), radius: 10, y: 4)
+            .overlay(RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.25), lineWidth: 1.5))
+            .shadow(color: color.opacity(0.45), radius: 12, y: 5)
         }
-        .buttonStyle(BrainPressStyle())
-    }
-}
-
-private struct BrainPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
@@ -270,7 +283,7 @@ private struct BrainRevealFeedback: View {
     @State private var popped: Bool = false
 
     private var correct: Bool { wasCorrect ?? false }
-    private var tint: Color { correct ? Color(hex: "22C77A") : Color(hex: "F43F5E") }
+    private var tint: Color { correct ? PhonePlayDesign.green : PhonePlayDesign.red }
 
     private var headline: String {
         if correct { return "Correct!" }
@@ -297,23 +310,32 @@ private struct BrainRevealFeedback: View {
                     Image(systemName: "bolt.fill")
                     Text("FASTEST IN THE ROOM").tracking(1)
                 }
-                .font(.subheadline.bold())
+                .font(.system(size: 14, weight: .heavy, design: .rounded))
                 .foregroundColor(.black)
                 .padding(.horizontal, 14).padding(.vertical, 8)
-                .background(Capsule().fill(Color(hex: "FDE047")))
+                .background(Capsule().fill(PhonePlayDesign.yellow))
             }
             if !correct && !correctAnswer.isEmpty {
                 Text("Answer: \(correctAnswer)")
-                    .font(.title3.bold())
-                    .foregroundColor(.white.opacity(0.75))
+                    .font(.system(size: 20, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white.opacity(0.85))
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                            .fill(PhonePlayDesign.surface)
+                    )
             }
         }
         .padding(24)
         .onAppear {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.5)) { popped = true }
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(correct ? .success : .error)
+            if correct {
+                PhonePlayHaptics.success()
+            } else {
+                PhonePlayHaptics.error()
+            }
         }
     }
 }
@@ -332,26 +354,27 @@ private struct BrainFinalCard: View {
             if rank > 0 {
                 Text(rank == 1 ? "YOU WON!" : "You placed #\(rank)")
                     .font(.system(size: 30, weight: .black, design: .rounded))
-                    .foregroundColor(rank == 1 ? Color(hex: "FDE047") : .white)
+                    .foregroundColor(rank == 1 ? PhonePlayDesign.yellow : .white)
             }
             Image(systemName: "brain")
                 .font(.system(size: 64, weight: .bold))
-                .foregroundStyle(LinearGradient(colors: [Color(hex: "F0ABFC"), Color(hex: "67E8F9")],
-                                                startPoint: .topLeading, endPoint: .bottomTrailing))
+                .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.pink, PhonePlayDesign.cyan]))
+                .phonePlayIdle(dy: 4, scale: 0.04, duration: 1.6)
             Text(title)
                 .font(.system(size: 32, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-            HStack(spacing: 24) {
+            HStack(spacing: 12) {
                 stat("BRAIN SCORE", "\(brainScore)")
                 stat("POINTS", "\(score)")
             }
             if personalBest {
                 Label("New personal best!", systemImage: "star.fill")
-                    .font(.headline)
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .foregroundColor(.black)
                     .padding(.horizontal, 16).padding(.vertical, 10)
-                    .background(Capsule().fill(Color(hex: "22C77A")))
+                    .background(Capsule().fill(PhonePlayDesign.green))
+                    .shadow(color: PhonePlayDesign.green.opacity(0.4), radius: 10, y: 4)
             }
         }
         .padding(24)
@@ -363,10 +386,16 @@ private struct BrainFinalCard: View {
                 .font(.system(size: 30, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
             Text(label)
-                .font(.caption.bold()).tracking(2)
-                .foregroundColor(.white.opacity(0.5))
+                .font(.system(size: 11, weight: .heavy, design: .rounded)).tracking(2)
+                .foregroundColor(PhonePlayDesign.text3)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .padding(.horizontal, 18).padding(.vertical, 12)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.07)))
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 12).padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
+        )
     }
 }
