@@ -11,8 +11,8 @@ import UIKit
 /// myVote, chosenCategory, powers, rivals, myPower, hitBy, shieldBlocked,
 /// questionID, questionText, choices, category, showChoices, myAnswer,
 /// locked, rung, towerHeight, finaleNumber, finaleTotal, winnerID,
-/// winnerName, youWon, placement, and during a reveal correctIndex, wasCorrect, pointsEarned,
-/// rungMove.
+/// winnerName, youWon, placement, and during a reveal correctIndex,
+/// wasCorrect, pointsEarned, rungMove.
 struct TriviaControllerView: View {
     let privateData: [String: Any]
     let onAction: (String, [String: Any]) -> Void
@@ -333,15 +333,16 @@ struct TriviaControllerView: View {
             .padding(.horizontal, 20)
             .padding(.top, 14)
 
-            if let answer = myAnswer {
-                QuizPadLockedCard(index: answer,
-                                  text: answer >= 0 && answer < choices.count ? choices[answer] : "")
+            if let lockedIndex = myAnswer {
+                QuizPadLockedCard(index: lockedIndex,
+                                  text: lockedIndex >= 0 && lockedIndex < choices.count
+                                      ? choices[lockedIndex] : "")
                     .padding(.horizontal, 20)
                 Spacer(minLength: 0)
             } else if privateData.bool("showChoices") && !choices.isEmpty {
                 QuizPadAnswerPanel(choices: choices,
                                    powers: activePowers,
-                                   onAnswer: answer)
+                                   onAnswer: { index in submitAnswer(index) })
                     .id(questionID)
             } else {
                 QuizPadMessage(symbol: "eye.fill",
@@ -353,7 +354,7 @@ struct TriviaControllerView: View {
         }
     }
 
-    private func answer(_ index: Int) {
+    private func submitAnswer(_ index: Int) {
         guard myAnswer == nil, !questionID.isEmpty else { return }
         pendingAnswer = index
         pendingAnswerID = questionID
