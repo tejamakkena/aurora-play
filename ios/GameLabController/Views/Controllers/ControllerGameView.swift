@@ -1,12 +1,24 @@
 import SwiftUI
 
 /// Routes the phone to the correct controller UI based on the game.
+///
+/// Every controller sits on the Phone Play backdrop, so a screen that does
+/// not paint its own background (or is still appearing during a
+/// transition) never flashes a different shade.
 struct ControllerGameView: View {
     let room: Room
     let privateData: [String: Any]
     let onAction: (String, [String: Any]) -> Void
 
     var body: some View {
+        ZStack {
+            PhonePlayDesign.bg.ignoresSafeArea()
+            controller
+        }
+    }
+
+    @ViewBuilder
+    private var controller: some View {
         switch room.gameID {
         // Invented games
         case .heist:         HeistControllerView(privateData: privateData, onAction: onAction)
@@ -98,17 +110,8 @@ private struct TravelModeNoticeControllerView: View {
     let gameID: GameID
 
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: gameID.sfSymbol)
-                .font(.system(size: 60))
-                .foregroundColor(.white.opacity(0.7))
-            Text(gameID.displayName)
-                .font(.title2.bold())
-                .foregroundColor(.white)
-            Text("This game isn't available in a TV room. Pick another game on the TV.")
-                .foregroundColor(.white.opacity(0.5))
-                .multilineTextAlignment(.center)
-        }
-        .padding(32)
+        WaitingState(systemIcon: gameID.sfSymbol,
+                     text: gameID.displayName,
+                     detail: "This game isn't available in a TV room. Pick another game on the TV.")
     }
 }
