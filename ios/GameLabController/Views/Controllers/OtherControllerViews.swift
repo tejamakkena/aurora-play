@@ -19,7 +19,13 @@ struct ShakeToRollControllerView: View {
     /// engine keeps `lastSlide` in private state until the player's next
     /// move, so without this every re-broadcast would buzz again.
     @State private var lastBuzzedSlideSeq: Int? = nil
+    /// True between a tap and the roll being sent, so a double tap can
+    /// never send two rolls (a 6 keeps `isMyTurn` true for the bonus roll).
+    @State private var isRolling = false
     private var isMyTurn: Bool { (privateData["isMyTurn"] as? Bool) ?? false }
+    /// The engine says this player just rolled a 6 and goes again
+    /// (`SnakeLadderEngine.private_state`'s `rollAgain`).
+    private var rollAgain: Bool { (privateData["rollAgain"] as? Bool) ?? false }
 
     /// This player's own latest slide event, if their last roll landed on
     /// a snake head or ladder bottom (`SnakeLadderEngine.private_state`).
@@ -54,6 +60,14 @@ struct ShakeToRollControllerView: View {
             if let roll = lastRoll {
                 Text("You rolled \(roll)!")
                     .font(.largeTitle.bold()).foregroundColor(.white)
+            }
+
+            if rollAgain && isMyTurn {
+                Label("Rolled a 6, roll again!", systemImage: "arrow.counterclockwise.circle.fill")
+                    .font(.title2.bold())
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 20).padding(.vertical, 10)
+                    .background(Capsule().fill(Color.yellow))
             }
 
             Text(isMyTurn ? "Shake or tap the die to roll!" : "Not your turn…")
@@ -91,7 +105,8 @@ struct ShakeToRollControllerView: View {
     }
 
     private func roll() {
-        guard isMyTurn else { return }
+        guard isMyTurn, !isRolling else { return }
+        isRolling = true
         withAnimation(.spring(response: 0.22, dampingFraction: 0.35)) { diceScale = 1.28 }
         withAnimation(.easeOut(duration: 0.55)) { diceRotation += 360 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
@@ -99,6 +114,9 @@ struct ShakeToRollControllerView: View {
             let value = Int.random(in: 1...6)
             lastRoll = value
             onAction("roll", ["value": value])
+            // Leave a beat for the server's reply before the die can be
+            // rolled again (only possible after a 6).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { isRolling = false }
         }
     }
 }
