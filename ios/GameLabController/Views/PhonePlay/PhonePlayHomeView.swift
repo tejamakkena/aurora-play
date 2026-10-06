@@ -143,13 +143,7 @@ private struct PhonePlayGameCard: View {
                         .font(.system(size: 34, weight: .bold))
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-                        .phaseAnimator([false, true]) { content, phase in
-                            content
-                                .offset(y: phase ? -3 : 3)
-                                .rotationEffect(.degrees(phase ? -4 : 4))
-                        } animation: { _ in
-                            .easeInOut(duration: 1.4 + Double(index) * 0.15)
-                        }
+                        .phonePlayIdle(dy: 3, degrees: 4, duration: 1.4 + Double(index) * 0.15)
                     Spacer(minLength: 4)
                     if let text = badge {
                         Text(text)

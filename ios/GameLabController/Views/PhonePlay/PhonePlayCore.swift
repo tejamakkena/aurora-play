@@ -44,29 +44,26 @@ enum PhonePlayDesign {
 
 // MARK: - Haptics
 
+/// Callable from any context: each one hops to the main actor, where
+/// UIKit's feedback generators live, so no call site has to be isolated.
 enum PhonePlayHaptics {
-    static func tap() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    static func tap() { impact(.light) }
+    static func thump() { impact(.heavy) }
+    static func rigid() { impact(.rigid) }
+    static func success() { notify(.success) }
+    static func warning() { notify(.warning) }
+    static func error() { notify(.error) }
+
+    private static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        Task { @MainActor in
+            UIImpactFeedbackGenerator(style: style).impactOccurred()
+        }
     }
 
-    static func thump() {
-        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-    }
-
-    static func rigid() {
-        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
-    }
-
-    static func success() {
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-    }
-
-    static func warning() {
-        UINotificationFeedbackGenerator().notificationOccurred(.warning)
-    }
-
-    static func error() {
-        UINotificationFeedbackGenerator().notificationOccurred(.error)
+    private static func notify(_ kind: UINotificationFeedbackGenerator.FeedbackType) {
+        Task { @MainActor in
+            UINotificationFeedbackGenerator().notificationOccurred(kind)
+        }
     }
 }
 

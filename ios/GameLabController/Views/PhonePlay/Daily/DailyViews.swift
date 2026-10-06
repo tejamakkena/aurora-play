@@ -62,7 +62,8 @@ private struct DailyStreakBadge: View {
         .padding(.vertical, large ? 14 : 10)
         .background(Capsule().fill(PhonePlayDesign.orange.opacity(0.14)))
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 400_000_000)
                 bump += 1
             }
         }
@@ -459,7 +460,7 @@ private struct DailyFinishedView: View {
         .transition(.opacity)
     }
 
-    private static func untilTomorrow(from now: Date) -> String {
+    nonisolated private static func untilTomorrow(from now: Date) -> String {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: now)
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: start) ?? now.addingTimeInterval(86_400)

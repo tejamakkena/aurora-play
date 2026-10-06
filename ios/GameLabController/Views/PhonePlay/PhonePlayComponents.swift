@@ -134,28 +134,63 @@ struct PhonePlaySectionLabel: View {
 
 // MARK: - Card flip
 
-/// Two faces on one card. `angle` 0 shows the front, 180 the back; the
-/// faces swap at 90 degrees so neither is ever drawn mirrored.
-struct PhonePlayFlip<Front: View, Back: View>: View, Animatable {
-    var angle: Double
+/// Two faces on one card, turned about the vertical axis. The faces swap
+/// exactly halfway through the turn (a near-instant opacity change delayed
+/// to the midpoint of an ease-in-out turn), so neither face is ever seen
+/// mirrored. No Animatable conformance needed.
+struct PhonePlayFlip<Front: View, Back: View>: View {
+    let flipped: Bool
     let front: Front
     let back: Back
-
-    var animatableData: Double {
-        get { angle }
-        set { angle = newValue }
-    }
+    var duration: Double = 0.45
 
     var body: some View {
-        let showBack: Bool = angle >= 90
-        return ZStack {
+        ZStack {
             front
-                .opacity(showBack ? 0 : 1)
+                .opacity(flipped ? 0 : 1)
+                .animation(.linear(duration: 0.01).delay(duration / 2), value: flipped)
+                .rotation3DEffect(.degrees(flipped ? 180 : 0), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
             back
-                .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
-                .opacity(showBack ? 1 : 0)
+                .opacity(flipped ? 1 : 0)
+                .animation(.linear(duration: 0.01).delay(duration / 2), value: flipped)
+                .rotation3DEffect(.degrees(flipped ? 0 : -180), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
         }
-        .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), perspective: 0.45)
+        .animation(.easeInOut(duration: duration), value: flipped)
+    }
+}
+
+// MARK: - Idle motion
+
+/// A gentle forever back-and-forth (bob, sway, tilt, breathe) for icons.
+struct PhonePlayIdleMotion: ViewModifier {
+    var dx: CGFloat = 0
+    var dy: CGFloat = 0
+    var degrees: Double = 0
+    var tilt: Double = 0
+    var scale: CGFloat = 0
+    var duration: Double = 1.4
+
+    @State private var on: Bool = false
+
+    func body(content: Content) -> some View {
+        content
+            .rotation3DEffect(.degrees(on ? tilt : -tilt), axis: (x: 1, y: 0, z: 0))
+            .rotationEffect(.degrees(on ? degrees : -degrees))
+            .scaleEffect(on ? 1 + scale : 1 - scale)
+            .offset(x: on ? dx : -dx, y: on ? dy : -dy)
+            .onAppear {
+                withAnimation(.easeInOut(duration: duration).repeatForever(autoreverses: true)) {
+                    on = true
+                }
+            }
+    }
+}
+
+extension View {
+    func phonePlayIdle(dx: CGFloat = 0, dy: CGFloat = 0, degrees: Double = 0, tilt: Double = 0,
+                       scale: CGFloat = 0, duration: Double = 1.4) -> some View {
+        modifier(PhonePlayIdleMotion(dx: dx, dy: dy, degrees: degrees, tilt: tilt,
+                                     scale: scale, duration: duration))
     }
 }
 
@@ -180,7 +215,7 @@ struct HoldToRevealCard<Secret: View>: View {
     }
 
     var body: some View {
-        PhonePlayFlip(angle: holding ? 180 : 0, front: frontFace, back: backFace)
+        PhonePlayFlip(flipped: holding, front: frontFace, back: backFace, duration: 0.36)
             .frame(maxWidth: .infinity)
             .frame(height: 320)
             .contentShape(Rectangle())
@@ -197,7 +232,6 @@ struct HoldToRevealCard<Secret: View>: View {
                         holding = false
                     }
             )
-            .animation(.spring(response: 0.42, dampingFraction: 0.78), value: holding)
     }
 
     private var frontFace: some View {
@@ -288,11 +322,7 @@ struct PassAndRevealView<Secret: View>: View {
             Image(systemName: "iphone.and.arrow.forward")
                 .font(.system(size: 64, weight: .bold))
                 .foregroundStyle(PhonePlayDesign.gradient([accent, .white]))
-                .phaseAnimator([false, true]) { content, phase in
-                    content.offset(x: phase ? 10 : -10)
-                } animation: { _ in
-                    .easeInOut(duration: 0.9)
-                }
+                .phonePlayIdle(dx: 10, duration: 0.9)
             VStack(spacing: 6) {
                 Text("Pass the phone to")
                     .font(.system(size: 20, weight: .semibold, design: .rounded))

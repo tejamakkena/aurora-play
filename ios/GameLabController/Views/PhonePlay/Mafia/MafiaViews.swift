@@ -108,11 +108,7 @@ private struct MafiaSetupView: View {
                     Image(systemName: "theatermasks.fill")
                         .font(.system(size: 54, weight: .bold))
                         .foregroundStyle(PhonePlayDesign.gradient(MafiaStyle.colors))
-                        .phaseAnimator([false, true]) { content, phase in
-                            content.rotationEffect(.degrees(phase ? 8 : -8))
-                        } animation: { _ in
-                            .easeInOut(duration: 1.2)
-                        }
+                        .phonePlayIdle(degrees: 8, duration: 1.2)
                     Text("Mafia")
                         .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundColor(.white)
@@ -225,13 +221,8 @@ private struct MafiaHandoffView: View {
             Image(systemName: "moon.stars.fill")
                 .font(.system(size: 80, weight: .bold))
                 .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.yellow, .white]))
-                .phaseAnimator([false, true]) { content, phase in
-                    content
-                        .scaleEffect(phase ? 1.06 : 0.96)
-                        .shadow(color: PhonePlayDesign.yellow.opacity(phase ? 0.6 : 0.2), radius: phase ? 30 : 10)
-                } animation: { _ in
-                    .easeInOut(duration: 1.6)
-                }
+                .shadow(color: PhonePlayDesign.yellow.opacity(0.4), radius: 22)
+                .phonePlayIdle(scale: 0.05, duration: 1.6)
             VStack(spacing: 8) {
                 Text("Roles are dealt")
                     .font(.system(size: 32, weight: .black, design: .rounded))
@@ -650,11 +641,13 @@ private struct MafiaGameOverView: View {
 
     private func revealRows() {
         let count: Int = game.players.count
-        for i in 0..<count {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3 + Double(i) * 0.12) {
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            for i in 0..<count {
                 withAnimation(PhonePlayDesign.pop) {
                     shown = i + 1
                 }
+                try? await Task.sleep(nanoseconds: 120_000_000)
             }
         }
     }

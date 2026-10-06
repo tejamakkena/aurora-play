@@ -149,11 +149,7 @@ private struct HeadsUpReadyView: View {
                     Image(systemName: "iphone.landscape")
                         .font(.system(size: 80, weight: .regular))
                         .foregroundStyle(PhonePlayDesign.gradient(game.deck.colors))
-                        .phaseAnimator([-22.0, 22.0]) { content, angle in
-                            content.rotation3DEffect(.degrees(angle), axis: (x: 1, y: 0, z: 0))
-                        } animation: { _ in
-                            .easeInOut(duration: 0.7)
-                        }
+                        .phonePlayIdle(tilt: 22, duration: 0.7)
                         .padding(.top, 20)
 
                     Text("Hold it to your forehead")
@@ -235,20 +231,18 @@ private struct HeadsUpCountdownView: View {
                 Text("Place on forehead")
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
-                Text("\(game.countdown)")
-                    .font(.system(size: 160, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                    .contentTransition(.numericText(countsDown: true))
-                    .keyframeAnimator(initialValue: 1.0, trigger: game.countdown) { content, scale in
-                        content.scaleEffect(scale)
-                    } keyframes: { _ in
-                        KeyframeTrack {
-                            CubicKeyframe(1.35, duration: 0.12)
-                            SpringKeyframe(1.0, duration: 0.45)
-                        }
-                    }
+                ZStack {
+                    Text("\(game.countdown)")
+                        .font(.system(size: 160, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .id(game.countdown)
+                        .transition(.asymmetric(insertion: .scale(scale: 1.8).combined(with: .opacity),
+                                                removal: .scale(scale: 0.4).combined(with: .opacity)))
+                }
+                .frame(height: 200)
             }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.6), value: game.countdown)
         .statusBarHidden(true)
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
     }

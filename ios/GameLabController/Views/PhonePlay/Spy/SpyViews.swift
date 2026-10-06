@@ -415,9 +415,8 @@ private struct SpyResultView: View {
                             .multilineTextAlignment(.center)
                     }
 
-                    PhonePlayFlip(angle: flipped ? 180 : 0, front: cardFront, back: cardBack)
+                    PhonePlayFlip(flipped: flipped, front: cardFront, back: cardBack, duration: 0.7)
                         .frame(height: 230)
-                        .animation(.spring(response: 0.7, dampingFraction: 0.7), value: flipped)
 
                     if game.spyCaught {
                         Text("Last chance: \(game.spyName), name the location to steal the win.")
@@ -458,7 +457,8 @@ private struct SpyResultView: View {
         }
         .animation(PhonePlayDesign.pop, value: showPlace)
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 500_000_000)
                 flipped = true
                 PhonePlayHaptics.thump()
             }
