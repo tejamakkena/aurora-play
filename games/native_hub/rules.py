@@ -286,6 +286,18 @@ RULES: dict[str, dict] = {
         ],
         "controls": "Tap a player on your phone to vote.",
     },
+    "brain_battle": {
+        "title": "Brain Battle",
+        "objective": "Out-think the room across twelve brain puzzles.",
+        "rules": [
+            "Each round the TV shows a puzzle: patterns, maths, memory, logic, words or shapes.",
+            "Memory rounds flash digits on the TV first -- watch closely before they vanish.",
+            "Lock in one of four answers on your phone; your first tap is final.",
+            "Correct answers score 500 plus up to 500 more for speed.",
+            "Puzzles get harder as the game goes on; the top brain wins a title.",
+        ],
+        "controls": "Tap A, B, C or D on your phone.",
+    },
     # ---- Travel Mode (voice-first, one phone, car speakers) ------------
     "story_chain": {
         "title": "Story Chain",
