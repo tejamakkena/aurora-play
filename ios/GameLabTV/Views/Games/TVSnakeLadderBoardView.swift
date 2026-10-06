@@ -602,7 +602,7 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             guard !boardBuilt, !state.snakes.isEmpty || !state.ladders.isEmpty else { return }
             boardBuilt = true
 
-            let parts = SnakeLadderSharedParts()
+            let parts = SnakeLadderSharedParts.shared
 
             let topMaterial = SCNMaterial()
             topMaterial.lightingModel = .physicallyBased
@@ -627,8 +627,12 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
             // Sorted so each snake keeps the same style on every launch.
             for (index, head) in state.snakes.keys.sorted().enumerated() {
                 guard let tail = state.snakes[head] else { continue }
+                // Keep this call to the original snake initializer shape:
+                // a drop-in snake class with the same API can replace
+                // `SnakeNode` here by name alone.
+                let style = SnakeStyle.style(index)
                 let snake = SnakeNode(headSquare: head, tailSquare: tail, squareToPoint: squareToPoint,
-                                      boardTopY: boardTopY, styleIndex: index, parts: parts)
+                                      color: style.base, bandColor: style.accent)
                 scene.rootNode.addChildNode(snake.rootNode)
                 snakeNodes[head] = snake
             }
@@ -1396,6 +1400,10 @@ private struct SnakeStyle {
 /// and textures rather than one of each per node.
 @MainActor
 private final class SnakeLadderSharedParts {
+    /// One set for the app's lifetime: a handful of small textures and
+    /// materials, reused by every board this TV ever shows.
+    static let shared = SnakeLadderSharedParts()
+
     let woodMaterial: SCNMaterial
     let rungGeometry: SCNGeometry
     let eyeGeometry: SCNGeometry
@@ -1608,9 +1616,18 @@ private final class SnakeNode {
     /// Height of the body's cross-section relative to its width.
     private static let flatten: Float = 0.72
 
+    /// Same initializer shape as the original capsule snake (and the
+    /// drop-in `RealisticSnakeNode`), so the two are interchangeable at the
+    /// one call site. `color`/`bandColor` pick the matching `SnakeStyle`
+    /// (pattern, belly and outline included); colors that match no style
+    /// fall back to the first style's pattern in the given colors.
     init(headSquare: Int, tailSquare: Int, squareToPoint: (Int) -> SCNVector3,
-         boardTopY: Float, styleIndex: Int, parts: SnakeLadderSharedParts) {
+         color: UIColor, bandColor: UIColor) {
+        let parts = SnakeLadderSharedParts.shared
+        let styleIndex = SnakeStyle.all.firstIndex { $0.base == color && $0.accent == bandColor } ?? 0
         let head2D = squareToPoint(headSquare)
+        // `squareToPoint` returns points on the board's top surface.
+        let boardTopY = head2D.y
         let tail2D = squareToPoint(tailSquare)
         let dx = tail2D.x - head2D.x
         let dz = tail2D.z - head2D.z
