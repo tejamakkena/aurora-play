@@ -819,6 +819,8 @@ class TriviaEngine(NativeGameEngine):
             "winnerID": self.winner_id if self.phase == "summary" else None,
             "winnerName": (self.player_name(self.winner_id)
                            if self.phase == "summary" and self.winner_id else ""),
+            "youWon": self.phase == "summary" and self.winner_id == player_id,
+            "placement": self._placement_of(player_id) if self.phase == "summary" else 0,
         }
         if self._is_reveal() and self.question is not None:
             correct = self.question[3]
@@ -830,6 +832,10 @@ class TriviaEngine(NativeGameEngine):
             state["pointsEarned"] = row["points"] if row else 0
             state["rungMove"] = self.finale_moves.get(player_id, 0)
         return state
+
+    def _placement_of(self, player_id: str) -> int:
+        order = self._placement()
+        return order.index(player_id) + 1 if player_id in order else 0
 
     def is_over(self):
         return self._finished

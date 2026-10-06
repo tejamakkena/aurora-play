@@ -496,3 +496,19 @@ class TestBots:
         verb, data = bots._policy_trivia(engine, bot.id)
         engine.handle_action(bot.id, verb, data)
         assert bot.id in engine.answered
+
+
+def test_summary_tells_each_phone_its_placing():
+    engine, roster = make(players=3)
+    engine.scores.update({"p0": 100, "p1": 900, "p2": 500})
+    engine.question_no = engine.total_rounds
+    to_phase(engine, "finale_intro")
+    engine.rungs.update({"p0": 0, "p1": 0, "p2": engine.TOWER_HEIGHT - 1})
+    to_phase(engine, "finale_question")
+    answer(engine, "p2", engine.question[3])
+    to_phase(engine, "summary")
+    assert engine.private_state("p2")["youWon"] is True
+    assert engine.private_state("p2")["placement"] == 1
+    assert engine.private_state("p1")["youWon"] is False
+    assert engine.private_state("p1")["winnerName"] == "P2"
+    assert {engine.private_state(p.id)["placement"] for p in roster} == {1, 2, 3}
