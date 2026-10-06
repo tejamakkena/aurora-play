@@ -16,6 +16,12 @@ enum ClientEvent: String {
     case addBot         = "add_bot"          // TV or host, lobby only
     case removeBot      = "remove_bot"
     case setContentPack = "set_content_pack" // question language (Trivia/KBC)
+    case setTopic       = "set_topic"        // free-text quiz topic (lobby)
+    case setCustomQuestions = "set_custom_questions" // make-your-own quiz
+    // Game Night (TV or host, between games)
+    case startNight     = "start_night"
+    case nextGame       = "next_game"
+    case endNight       = "end_night"
     // Voice quizmaster (TV speaks, one phone listens)
     case claimMic       = "claim_mic"       // phone -> server: I hold the mic
     case voiceState      = "voice_state"     // TV/mic -> room: ask/listen/lock/grade

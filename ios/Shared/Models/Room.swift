@@ -13,6 +13,8 @@ struct Room: Codable, Equatable {
     var contentPack: String? = nil
     var botsAllowed: Bool? = nil
     var usesContentPack: Bool? = nil
+    // Game Night (games/game_night.py). nil outside a Game Night.
+    var night: GameNight? = nil
 
     var hostPlayerID: String { players.first?.id ?? "" }
 }
