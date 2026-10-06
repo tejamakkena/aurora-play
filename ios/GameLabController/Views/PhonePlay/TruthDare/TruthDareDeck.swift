@@ -1,0 +1,343 @@
+import Foundation
+
+// MARK: - Truth or Dare cards
+//
+// Bundled and offline: 40 truths and 40 dares per level. A level also
+// deals every card from the levels below it, so Teens gets the Family
+// cards too and Adults gets everything. Adults is a party level, never
+// explicit: embarrassing, cheeky and loud, nothing sexual or dangerous.
+
+enum TruthDareLevel: Int, CaseIterable, Identifiable {
+    case family = 0
+    case teens = 1
+    case adults = 2
+
+    var id: Int { rawValue }
+
+    var title: String {
+        switch self {
+        case .family: return "Family"
+        case .teens:  return "Teens"
+        case .adults: return "Adults"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .family: return "All ages"
+        case .teens:  return "Cheeky"
+        case .adults: return "Party"
+        }
+    }
+
+    /// Sent to the server so the AI keeps the tone of the level.
+    var familySafe: Bool {
+        switch self {
+        case .family, .teens: return true
+        case .adults:         return false
+        }
+    }
+
+    var aiTopic: String {
+        switch self {
+        case .family: return "a family games night with kids and grandparents"
+        case .teens:  return "teenagers hanging out with friends, school, phones and crushes"
+        case .adults: return "a lively grown-up house party, cheeky but never explicit"
+        }
+    }
+}
+
+enum TruthDareKind: String, Identifiable {
+    case truth
+    case dare
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .truth: return "Truth"
+        case .dare:  return "Dare"
+        }
+    }
+}
+
+enum TruthDareDeck {
+
+    static func truths(upTo level: TruthDareLevel) -> [String] {
+        pick(truthsByLevel, upTo: level)
+    }
+
+    static func dares(upTo level: TruthDareLevel) -> [String] {
+        pick(daresByLevel, upTo: level)
+    }
+
+    private static func pick(_ table: [(TruthDareLevel, [String])], upTo level: TruthDareLevel) -> [String] {
+        var out: [String] = []
+        for (cardLevel, cards) in table where cardLevel.rawValue <= level.rawValue {
+            out.append(contentsOf: cards)
+        }
+        return out
+    }
+
+    // MARK: Truths
+
+    private static let truthsByLevel: [(TruthDareLevel, [String])] = [
+        (.family, [
+            "What is the silliest thing you were scared of as a little kid?",
+            "Which food could you eat every single day without getting bored?",
+            "What is the funniest thing that has ever happened to you at school?",
+            "If you could swap lives with anyone in this room for a day, who would it be?",
+            "What is a song you secretly love but would never play in public?",
+            "What was the last thing that made you laugh until you cried?",
+            "Which cartoon character are you most like?",
+            "What is the worst present you have ever been given?",
+            "If you could have any superpower for one day, what would you do with it?",
+            "What is the strangest dream you can remember?",
+            "Who in this room is most likely to become famous, and why?",
+            "What is one thing you are really proud of?",
+            "What is the messiest room in your home right now?",
+            "Have you ever blamed something on a brother, sister or pet?",
+            "What is your most used emoji or sticker when you text?",
+            "What is a habit of yours that drives other people crazy?",
+            "What is the most embarrassing thing you have said to a teacher?",
+            "If you were an animal, which one would you be?",
+            "What is the longest you have ever gone without a shower?",
+            "Which family member are you most like?",
+            "What is the best thing you have ever cooked?",
+            "What job did you want when you were five years old?",
+            "What is one rule at home you have broken without anyone knowing?",
+            "Who was your favourite teacher and why?",
+            "What is a word you always spell wrong?",
+            "What would you buy first if you won a lot of money?",
+            "What is the scariest film you have ever watched?",
+            "What is your guilty pleasure snack?",
+            "If you could only keep one app on your phone, which would it be?",
+            "Have you ever pretended to be sick to stay home?",
+            "What is the funniest nickname anyone has ever called you?",
+            "Which celebrity would you most like to have dinner with?",
+            "What is something everyone loves that you secretly do not?",
+            "What is the most trouble you have ever been in?",
+            "What is your weirdest food combination that you actually enjoy?",
+            "Who here gives the best hugs?",
+            "What is one thing you would change about your daily routine?",
+            "What is the bravest thing you have ever done?",
+            "What do you always forget to do?",
+            "If your life were a film, what would it be called?",
+        ]),
+        (.teens, [
+            "Who was your first crush?",
+            "What is the most embarrassing thing in your search history?",
+            "Have you ever had a crush on a teacher?",
+            "What is the last lie you told?",
+            "Who in this room would you call first in an emergency?",
+            "What is the most embarrassing thing your parents have caught you doing?",
+            "Have you ever read someone else's messages without them knowing?",
+            "What is the longest you have spent scrolling your phone in one go?",
+            "Which person here would survive longest in a zombie apocalypse?",
+            "What is the pettiest reason you have stopped talking to someone?",
+            "Have you ever pretended to like a gift? Which one?",
+            "What is your most embarrassing social media post?",
+            "Who is the last person you stalked online?",
+            "Have you ever been caught talking to yourself?",
+            "What is the worst excuse you have given for not doing homework?",
+            "What is something you have done that you hope your parents never find out?",
+            "If you had to date someone from a cartoon, who would it be?",
+            "What is the cringiest thing you did to impress someone?",
+            "Which teacher would you least like to be stuck in a lift with?",
+            "What is a secret talent nobody here knows about?",
+            "Have you ever laughed so hard something came out of your nose?",
+            "Who here do you think has the best style?",
+            "What is your biggest fear about growing up?",
+            "Have you ever sent a message to the wrong person? What did it say?",
+            "Which group chat would you be most embarrassed for people to read?",
+            "What is a rumour you once believed that turned out to be false?",
+            "Have you ever cheated in a game? Which one?",
+            "What is the most money you have spent on something useless?",
+            "What would you do if you were invisible for a day?",
+            "Who was the last person you said you love to?",
+            "What is your most irrational fear?",
+            "Have you ever faked laughing at a joke you did not get?",
+            "What do you do when you are home alone?",
+            "Who in this room is the worst at keeping secrets?",
+            "What is the most awkward moment you have had with a crush?",
+            "If you could delete one memory, what would it be?",
+            "What is something you are secretly insecure about?",
+            "What is the weirdest thing you have ever eaten on a dare?",
+            "Have you ever had a nickname you hated?",
+            "Which celebrity crush would you never admit to?",
+        ]),
+        (.adults, [
+            "What is the most embarrassing thing you have done at a wedding?",
+            "What is the worst date you have ever been on?",
+            "What is the most childish thing you still do?",
+            "What is your biggest pet peeve about the person on your left?",
+            "What is the worst job you have ever had?",
+            "Have you ever been caught pretending to work?",
+            "What is a lie you tell all the time?",
+            "What is the most embarrassing thing you have done in front of your boss?",
+            "Who here would you trust to plan your wedding?",
+            "What is the pettiest argument you have ever had with a partner?",
+            "What is the most money you have lost or wasted in one go?",
+            "Have you ever regifted a present? Who to?",
+            "What is your most embarrassing late-night purchase?",
+            "Who was your most awkward ex, and why?",
+            "What is the worst haircut you have ever had?",
+            "What is a secret you kept from your parents until you were an adult?",
+            "Have you ever ghosted someone? Why?",
+            "What is the most ridiculous thing you have argued about online?",
+            "What would your browser history say about you?",
+            "What is your most used excuse to leave a party early?",
+            "What is the worst thing you have ever cooked for guests?",
+            "Who in this room would make the worst flatmate?",
+            "What is the most embarrassing nickname a partner has called you?",
+            "What is the longest you have gone without doing the laundry?",
+            "Have you ever pretended not to see someone you knew in public?",
+            "What is the silliest thing you have cried about as an adult?",
+            "What is the most embarrassing thing on your phone right now?",
+            "What is a hobby you started and gave up within a week?",
+            "Who here would you call to help you hide a bad haircut?",
+            "What is the worst advice you have ever followed?",
+            "What is the biggest lie on your CV?",
+            "Have you ever fallen asleep somewhere you really should not have?",
+            "What is your most embarrassing moment on a video call?",
+            "Who was the last person you sent a voice note to, and what was it about?",
+            "What is the most dramatic thing you have done to get someone's attention?",
+            "What is one thing you would never tell your in-laws?",
+            "What do you pretend to understand but really do not?",
+            "What is the most rebellious thing you did as a teenager?",
+            "Have you ever been kicked out of somewhere? Where?",
+            "What would you do with a completely free week and no phone?",
+        ]),
+    ]
+
+    // MARK: Dares
+
+    private static let daresByLevel: [(TruthDareLevel, [String])] = [
+        (.family, [
+            "Do your best impression of someone in this room until they guess who it is.",
+            "Speak only in rhymes until your next turn.",
+            "Do ten jumping jacks while singing the alphabet.",
+            "Talk like a robot for the next two rounds.",
+            "Balance a spoon on your nose for ten seconds.",
+            "Do your best animal impression and let everyone guess the animal.",
+            "Walk across the room like a penguin.",
+            "Sing the chorus of any song in the style of an opera singer.",
+            "Hold a plank for thirty seconds.",
+            "Tell a joke. If nobody laughs, tell another one.",
+            "Say the alphabet backwards as fast as you can.",
+            "Pretend to be a news reader and announce what everyone is wearing.",
+            "Do your best dance move for fifteen seconds with no music.",
+            "Hop on one foot until your next turn comes around, or for one minute.",
+            "Make the funniest face you can and hold it for ten seconds.",
+            "Act out brushing your teeth in slow motion.",
+            "Give a dramatic speech about your favourite vegetable.",
+            "Try to lick your elbow.",
+            "Do an impression of a famous cricketer celebrating a wicket.",
+            "Say a tongue twister three times fast: red lorry, yellow lorry.",
+            "Pretend you are a waiter and take everyone's order.",
+            "Draw a self-portrait with your eyes closed and show everyone.",
+            "Speak in a whisper until your next turn.",
+            "Walk like a crab from one side of the room to the other.",
+            "Do your best superhero landing.",
+            "Try to make the person on your right laugh within thirty seconds.",
+            "Pretend to be a tour guide describing this room.",
+            "Sing happy birthday to the person on your left, loudly.",
+            "Act like a chicken until someone says stop.",
+            "Name ten fruits in ten seconds.",
+            "Spin around five times and then try to walk in a straight line.",
+            "Do your best evil villain laugh.",
+            "Keep a straight face while everyone tries to make you laugh for thirty seconds.",
+            "Hum a song and let everyone guess what it is.",
+            "Pretend the floor is lava until your next turn.",
+            "Do a slow-motion replay of how you got up this morning.",
+            "Make up a short poem about the person on your right.",
+            "Act out your favourite film scene without speaking.",
+            "Do your best impression of a baby learning to walk.",
+            "Wear a sock on one hand as a puppet and introduce it to everyone.",
+        ]),
+        (.teens, [
+            "Show the last photo in your camera roll.",
+            "Read your last three notifications out loud as if they were a poem.",
+            "Do your best catwalk strut across the room.",
+            "Text a friend 'I know what you did' and do not reply for five minutes.",
+            "Read the last message you sent out loud in a dramatic voice.",
+            "Let the person on your left style your hair however they want.",
+            "Do your best impression of a famous influencer.",
+            "Call a friend and sing them a song for ten seconds.",
+            "Show everyone your most used app and how long you spent on it this week.",
+            "Speak in a fake accent until your next turn.",
+            "Let someone draw a moustache on you with an eyeliner pencil or washable pen.",
+            "Do twenty squats while saying the name of everyone in the room.",
+            "Let the group choose a word you must say in every sentence until your next turn.",
+            "Pretend to be a teacher and give the group a one-minute lesson on anything.",
+            "Do your best rap about the snacks in this room.",
+            "Show the last thing you searched for online.",
+            "Talk with your tongue sticking out until your next turn.",
+            "Do an impression of how your parents tell you off.",
+            "Let the group look through your photos for thirty seconds.",
+            "Send a voice note to a friend saying only 'banana' in a serious voice.",
+            "Pose like a statue every time someone says your name, until your next turn.",
+            "Eat a spoonful of something the group picks from the kitchen.",
+            "Do your best dance from a music video.",
+            "Act out a breakup scene with a pillow.",
+            "Keep your eyes closed until your next turn.",
+            "Describe your crush without saying their name.",
+            "Let the person on your right post a harmless story on your account.",
+            "Do a dramatic reading of a shampoo bottle.",
+            "Pretend to be a cricket commentator describing what the group is doing.",
+            "Wear your shirt inside out until the end of the game.",
+            "Give someone in the room a heartfelt compliment in a sports-announcer voice.",
+            "Try to juggle three things the group chooses.",
+            "Let the group choose your profile picture for the next hour.",
+            "Do an impression of the person to your left until someone guesses who it is.",
+            "Sing everything you say until your next turn.",
+            "Do a one-minute stand-up comedy routine.",
+            "Change your phone wallpaper to a photo the group picks for a day.",
+            "Text your best friend a compliment the group writes.",
+            "Hold an ice cube in your hand until it melts or for one minute.",
+            "Do a dramatic slow-motion fall onto the sofa.",
+        ]),
+        (.adults, [
+            "Do your best impression of yourself after a long day at work.",
+            "Show the group the most embarrassing photo on your phone you are willing to share.",
+            "Let the group write a one-line text you must send to the third contact in your phone.",
+            "Give a wedding toast for the two people on your left.",
+            "Do your best impression of someone's relative at a family function.",
+            "Let the person on your right do your makeup or hair in one minute.",
+            "Read your last sent email out loud in a movie trailer voice.",
+            "Call a family member and tell them you love their cooking, then hang up.",
+            "Dance with a mop or broom as your partner for thirty seconds.",
+            "Sing a love song to the nearest piece of furniture.",
+            "Let the group choose a ringtone or alarm sound you keep for a day.",
+            "Do your best impression of a dramatic soap opera character finding out a secret.",
+            "Post a harmless story the group writes, and leave it up for an hour.",
+            "Speak like a nature documentary narrator describing the group for one minute.",
+            "Let the group scroll through your playlist and play the most embarrassing song.",
+            "Do a slow, dramatic interpretive dance of your morning commute.",
+            "Give a motivational speech to the person on your left about their next week.",
+            "Recreate a famous dance step from a film the group picks.",
+            "Let someone send a voice note from your phone saying 'I miss you' to a friend of your choice.",
+            "Talk only in questions until your next turn.",
+            "Do your best impression of a strict aunty or uncle meeting a new partner.",
+            "Act out how you behave when the delivery is late.",
+            "Let the group rename one of your contacts for a week.",
+            "Read the oldest message in your inbox out loud.",
+            "Do your best karaoke performance of a song the group picks.",
+            "Propose to the person on your right with an object from the room.",
+            "Show everyone your screen time for today.",
+            "Pretend to be a game show host and introduce everyone.",
+            "Do an impression of your boss in a meeting.",
+            "Let the group choose a silly nickname you must answer to for the rest of the game.",
+            "Put on three extra layers of clothing and keep them on for two rounds.",
+            "Eat a snack without using your hands.",
+            "Do a dramatic reading of the last thing you posted online.",
+            "Let the group pick something for you to cook or make for everyone later.",
+            "Call a friend and ask them for advice on a completely made-up problem.",
+            "Do your best catwalk with a cushion on your head.",
+            "Describe your dream date like a property advert.",
+            "Sing the national anthem in the style of a lullaby.",
+            "Let the group take a silly selfie on your phone and keep it as your wallpaper for a day.",
+            "Act out your best excuse for missing a deadline.",
+        ]),
+    ]
+}

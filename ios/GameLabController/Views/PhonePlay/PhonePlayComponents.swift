@@ -494,6 +494,115 @@ struct PhonePlayNamesEditor: View {
     }
 }
 
+// MARK: - Choice chip
+
+/// One option in a row of mutually exclusive choices (levels, modes).
+struct PhonePlayChip: View {
+    let title: String
+    var subtitle: String? = nil
+    let selected: Bool
+    let colors: [Color]
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            PhonePlayHaptics.tap()
+            action()
+        } label: {
+            VStack(spacing: 2) {
+                Text(title)
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .opacity(0.8)
+                }
+            }
+            .foregroundColor(selected ? .white : PhonePlayDesign.text2)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, subtitle == nil ? 14 : 10)
+            .padding(.horizontal, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(selected ? PhonePlayDesign.gradient(colors)
+                                   : PhonePlayDesign.gradient([PhonePlayDesign.surface,
+                                                               PhonePlayDesign.surface]))
+            )
+        }
+        .buttonStyle(PhonePlayPressStyle())
+        .animation(PhonePlayDesign.pop, value: selected)
+    }
+}
+
+// MARK: - Fresh AI cards button
+
+/// Asks the server for a few AI-written cards. Offline it just spins for
+/// a moment and settles back; the bundled cards always work.
+struct PhonePlayAIButton: View {
+    let state: PhonePlayAIState
+    let accent: Color
+    var title: String = "Fresh AI cards"
+    let action: () -> Void
+
+    private var label: String {
+        switch state {
+        case .idle:           return title
+        case .loading:        return "Writing new cards..."
+        case .added(let n):   return n == 1 ? "1 new card added" : "\(n) new cards added"
+        }
+    }
+
+    private var symbol: String {
+        switch state {
+        case .idle:    return "sparkles"
+        case .loading: return "hourglass"
+        case .added:   return "checkmark.seal.fill"
+        }
+    }
+
+    var body: some View {
+        Button {
+            guard state != .loading else { return }
+            PhonePlayHaptics.tap()
+            action()
+        } label: {
+            HStack(spacing: 8) {
+                if state == .loading {
+                    ProgressView()
+                        .tint(accent)
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: symbol)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(accent)
+                }
+                Text(label)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(accent.opacity(0.1))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(accent.opacity(0.35), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(PhonePlayPressStyle())
+        .disabled(state == .loading)
+        .animation(PhonePlayDesign.smooth, value: state)
+    }
+}
+
 // MARK: - Time formatting
 
 enum PhonePlayTime {

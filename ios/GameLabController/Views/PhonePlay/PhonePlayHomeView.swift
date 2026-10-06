@@ -26,6 +26,16 @@ struct PhonePlayRootView: View {
             MafiaRootView(game: game, onExit: play.closeGame)
         } else if play.active == .daily, let game = play.daily {
             DailyRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .truthOrDare, let game = play.truthOrDare {
+            TruthDareRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .wouldYouRather, let game = play.wouldYouRather {
+            WouldRatherRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .hotPotato, let game = play.hotPotato {
+            HotPotatoRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .wordOfDay, let game = play.wordOfDay {
+            WordDayRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .arcade, let game = play.arcade {
+            PocketArcadeRootView(game: game, onExit: play.closeGame)
         } else {
             PhonePlayHomeView(play: play, onExit: vm.endPhonePlay)
         }
@@ -39,6 +49,10 @@ struct PhonePlayHomeView: View {
     @State private var appeared: Bool = false
     @State private var dailyDone: Bool = false
     @State private var dailyStreak: Int = 0
+    @State private var wordSeen: Bool = false
+
+    private let partyGames: [PhonePlayGame] = PhonePlayGame.allCases.filter { !$0.isSolo }
+    private let soloGames: [PhonePlayGame] = PhonePlayGame.allCases.filter { $0.isSolo }
 
     private let columns: [GridItem] = [
         GridItem(.flexible(), spacing: 14),
@@ -52,8 +66,10 @@ struct PhonePlayHomeView: View {
                 VStack(spacing: 22) {
                     header
 
+                    PhonePlaySectionLabel(text: "Party games")
+
                     LazyVGrid(columns: columns, spacing: 14) {
-                        ForEach(Array(PhonePlayGame.allCases.enumerated()), id: \.element.id) { pair in
+                        ForEach(Array(partyGames.enumerated()), id: \.element.id) { pair in
                             PhonePlayGameCard(game: pair.element,
                                               badge: badge(for: pair.element),
                                               index: pair.offset,
@@ -63,16 +79,17 @@ struct PhonePlayHomeView: View {
                         }
                     }
 
-                    PhonePlaySectionLabel(text: "Coming soon")
+                    PhonePlaySectionLabel(text: "Solo")
                         .padding(.top, 6)
 
-                    LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(Array(PhonePlayComingSoon.all.enumerated()), id: \.element.id) { pair in
-                            PhonePlaySoonCard(item: pair.element)
-                                .opacity(appeared ? 1 : 0)
-                                .offset(y: appeared ? 0 : 24)
-                                .animation(PhonePlayDesign.smooth.delay(0.3 + Double(pair.offset) * 0.05),
-                                           value: appeared)
+                    LazyVGrid(columns: columns, spacing: 14) {
+                        ForEach(Array(soloGames.enumerated()), id: \.element.id) { pair in
+                            PhonePlayGameCard(game: pair.element,
+                                              badge: badge(for: pair.element),
+                                              index: partyGames.count + pair.offset,
+                                              appeared: appeared) {
+                                play.open(pair.element)
+                            }
                         }
                     }
 
@@ -110,10 +127,16 @@ struct PhonePlayHomeView: View {
     }
 
     private func badge(for game: PhonePlayGame) -> String? {
-        guard game == .daily else { return nil }
-        if dailyDone { return "Done today" }
-        if dailyStreak > 0 { return "\(dailyStreak) day streak" }
-        return "New today"
+        switch game {
+        case .daily:
+            if dailyDone { return "Done today" }
+            if dailyStreak > 0 { return "\(dailyStreak) day streak" }
+            return "New today"
+        case .wordOfDay:
+            return wordSeen ? nil : "New word"
+        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .arcade:
+            return nil
+        }
     }
 
     private func refreshDaily() {
@@ -123,6 +146,7 @@ struct PhonePlayHomeView: View {
         let yesterday = DailyBrain.dateKey(for: before)
         dailyDone = DailyStore.result(for: today) != nil
         dailyStreak = DailyStore.currentStreak(today: today, yesterday: yesterday)
+        wordSeen = WordDayStore.seen(today)
     }
 }
 
@@ -160,8 +184,9 @@ private struct PhonePlayGameCard: View {
                 Text(game.title)
                     .font(.system(size: 23, weight: .black, design: .rounded))
                     .foregroundColor(.white)
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .minimumScaleFactor(0.7)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(game.blurb)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
@@ -188,42 +213,5 @@ private struct PhonePlayGameCard: View {
         .opacity(appeared ? 1 : 0)
         .rotation3DEffect(.degrees(appeared ? 0 : 25), axis: (x: 1, y: 0, z: 0))
         .animation(PhonePlayDesign.pop.delay(Double(index) * 0.07), value: appeared)
-    }
-}
-
-private struct PhonePlaySoonCard: View {
-    let item: PhonePlayComingSoon
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: item.symbol)
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(PhonePlayDesign.text2)
-                .frame(width: 40, height: 40)
-                .background(Circle().fill(PhonePlayDesign.surface2))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.system(size: 15, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(item.blurb)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundColor(PhonePlayDesign.text3)
-                    .lineLimit(2)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 74, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(PhonePlayDesign.surface)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.08),
-                                      style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
-                )
-        )
     }
 }
