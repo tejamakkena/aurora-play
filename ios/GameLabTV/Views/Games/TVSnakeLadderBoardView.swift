@@ -524,7 +524,7 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
         /// as-is; until then every update is treated as a first paint, so
         /// a TV that joins mid-game never replays old moves.
         private var adoptedState = false
-        private var snakeNodes: [Int: SnakeNode] = [:]
+        private var snakeNodes: [Int: RealisticSnakeNode] = [:]
         private var ladderNodes: [Int: LadderNode] = [:]
         private var lastAnnouncedWinner: String?
         /// Slide-event seqs already played, per player -- `lastSlide`
@@ -631,7 +631,7 @@ private struct SnakeLadderCinematicBoardSceneView: UIViewRepresentable {
                 // a drop-in snake class with the same API can replace
                 // `SnakeNode` here by name alone.
                 let style = SnakeStyle.style(index)
-                let snake = SnakeNode(headSquare: head, tailSquare: tail, squareToPoint: squareToPoint,
+                let snake = RealisticSnakeNode(headSquare: head, tailSquare: tail, squareToPoint: squareToPoint,
                                       color: style.base, bandColor: style.accent)
                 scene.rootNode.addChildNode(snake.rootNode)
                 snakeNodes[head] = snake
