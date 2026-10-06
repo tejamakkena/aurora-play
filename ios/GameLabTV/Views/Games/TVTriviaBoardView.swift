@@ -1109,9 +1109,9 @@ private struct TShowTypewriter: View {
         let characters: [Character] = Array(text)
         let count: Int = min(visible, characters.count)
         var shown = AttributedString(String(characters.prefix(count)))
-        shown.foregroundColor = .white
+        shown.foregroundColor = Color.white
         var hidden = AttributedString(String(characters.dropFirst(count)))
-        hidden.foregroundColor = .clear
+        hidden.foregroundColor = Color.clear
         return shown + hidden
     }
 
