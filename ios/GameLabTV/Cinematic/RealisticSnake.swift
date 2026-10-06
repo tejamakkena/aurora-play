@@ -980,3 +980,746 @@ enum RealSnakeMesh {
         return node
     }
 }
+
+// MARK: - Scale lattice (species independent)
+
+/// The scale layout of the skin texture: 16 columns of staggered,
+/// overlapping dorsal scales around (u, image x) by 88 rows along (v,
+/// image y), with wide ventral scutes across the belly at both x edges.
+/// Built once and shared by every species: it yields the height field
+/// (normal map), the per-pixel edge factor (roughness), and for each pixel
+/// the scale it belongs to (so colour patterns follow scale boundaries).
+/// The image tiles seamlessly in both directions.
+struct RealSnakeLattice {
+    static let width = 256
+    static let height = 1024
+    static let columns = 16
+    static let rows = 88
+    /// The head texture uses the first 256 pixel rows, exactly 22 lattice
+    /// rows (an even count, so the stagger lines up with the body maps).
+    static let headPixelRows = 256
+
+    /// 0 in the crevices, up to 1 at a scale's raised free edge.
+    let heightField: [Float]
+    /// 0 at a scale's centre, 1 at its rim.
+    let edge: [Float]
+    /// Stable 0...1 random value per scale.
+    let scaleHash: [Float]
+    /// Pixel-space centre of the scale each pixel belongs to (unwrapped, so
+    /// it can sit slightly outside the image near the borders).
+    let centreX: [Float]
+    let centreY: [Float]
+
+    init() {
+        let w = RealSnakeLattice.width
+        let h = RealSnakeLattice.height
+        let columns = RealSnakeLattice.columns
+        let rows = RealSnakeLattice.rows
+        let count = w * h
+        let su = Float(w) / Float(columns)
+        let sv = Float(h) / Float(rows)
+        let lengthRadius: Float = 1.25 * sv
+        let widthRadius: Float = 0.62 * su
+        let halfW = Float(w) * 0.5
+
+        var heights = [Float](repeating: 0, count: count)
+        var edges = [Float](repeating: 1, count: count)
+        var hashes = [Float](repeating: 0, count: count)
+        var centresX = [Float](repeating: 0, count: count)
+        var centresY = [Float](repeating: 0, count: count)
+
+        for y in 0..<h {
+            let fy = Float(y) + 0.5
+            let r0 = Int(floor(fy / sv))
+            for x in 0..<w {
+                let fx = Float(x) + 0.5
+                let idx = y * w + x
+                var pixelHeight: Float = 0
+                var pixelEdge: Float = 1
+                var pixelHash = RealSnakeMath.hash(RealSnakeMath.mod(r0, rows), RealSnakeMath.mod(Int(fx / su), columns))
+                var pixelCentreX = fx
+                var pixelCentreY = fy
+
+                // Rows toward the head (smaller y) overlap the next row, so
+                // the first row that covers this pixel is the visible scale.
+                for r in (r0 - 1)...(r0 + 1) {
+                    let cy = Float(r) * sv
+                    let dy = fy - cy
+                    if abs(dy) >= lengthRadius { continue }
+                    let offset: Float = RealSnakeMath.mod(r, 2) == 1 ? 0.5 : 0
+                    let nearest = Int((fx / su - 0.5 - offset).rounded())
+                    // Narrower toward the free (tail-side) edge: a rounded
+                    // lozenge rather than a plain ellipse.
+                    let along = RealSnakeMath.clamp01(dy / lengthRadius)
+                    let halfWidth: Float = widthRadius * (1 - 0.35 * along)
+                    let qy: Float = dy / lengthRadius
+                    var bestQ: Float = 1
+                    var bestColumn = nearest
+                    for c in (nearest - 1)...(nearest + 1) {
+                        let cx = (Float(c) + 0.5 + offset) * su
+                        let qx: Float = (fx - cx) / halfWidth
+                        let q: Float = qx * qx + qy * qy
+                        if q < bestQ {
+                            bestQ = q
+                            bestColumn = c
+                        }
+                    }
+                    if bestQ < 1 {
+                        // Domed, and rising toward the free edge so the
+                        // overlap reads as a step in the normal map.
+                        let ramp: Float = (qy + 1) * 0.5
+                        pixelHeight = sqrt(1 - bestQ) * (0.45 + 0.55 * ramp)
+                        pixelEdge = bestQ
+                        pixelHash = RealSnakeMath.hash(RealSnakeMath.mod(r, rows), RealSnakeMath.mod(bestColumn, columns))
+                        pixelCentreX = (Float(bestColumn) + 0.5 + offset) * su
+                        pixelCentreY = cy
+                        break
+                    }
+                }
+
+                // Ventral scutes: one wide plate per row across the belly.
+                let lateral = abs(fx - halfW) / halfW
+                let bellyWeight = RealSnakeMath.smoothstep(0.78, 0.88, lateral)
+                if bellyWeight > 0 {
+                    let rowPosition = fy / sv
+                    let row = Int(floor(rowPosition))
+                    let fraction = rowPosition - Float(row)
+                    let scuteHeight: Float
+                    if fraction < 0.9 {
+                        scuteHeight = 0.15 + 0.75 * pow(fraction / 0.9, 1.5)
+                    } else {
+                        scuteHeight = 0.9 - 0.75 * RealSnakeMath.smoothstep(0.9, 1.0, fraction)
+                    }
+                    let scuteEdge = RealSnakeMath.smoothstep(0.80, 1.0, fraction)
+                    pixelHeight += (scuteHeight - pixelHeight) * bellyWeight
+                    pixelEdge += (scuteEdge - pixelEdge) * bellyWeight
+                    if bellyWeight > 0.5 {
+                        pixelHash = RealSnakeMath.hash(RealSnakeMath.mod(row, rows), 997)
+                        pixelCentreX = fx
+                        pixelCentreY = (Float(row) + 0.5) * sv
+                    }
+                }
+
+                heights[idx] = pixelHeight
+                edges[idx] = pixelEdge
+                hashes[idx] = pixelHash
+                centresX[idx] = pixelCentreX
+                centresY[idx] = pixelCentreY
+            }
+        }
+
+        self.heightField = heights
+        self.edge = edges
+        self.scaleHash = hashes
+        self.centreX = centresX
+        self.centreY = centresY
+    }
+}
+
+// MARK: - Species colour patterns
+
+/// Colour as a function of skin position. `a` is lateral (-1 and +1 at the
+/// belly midline, 0 on the spine, about +-0.5 at the widest point of the
+/// flank) and `t` runs along the texture. Body patterns repeat a whole
+/// number of times per tile so the texture wraps without a seam. `n` is the
+/// owning scale's random value, for per-scale speckles.
+enum RealSnakePattern {
+    typealias RGB = SIMD3<Float>
+
+    private static func periodic(_ t: Float, count: Int) -> (index: Int, f: Float) {
+        let ft = t * Float(count)
+        let whole = floor(ft)
+        return (RealSnakeMath.mod(Int(whole), count), ft - whole)
+    }
+
+    static func body(_ species: RealSnakeSpecies, a rawA: Float, t: Float, n: Float) -> RGB {
+        let a = RealSnakeMath.wrapLateral(rawA)
+        let aa = abs(a)
+        let belly = RealSnakeMath.smoothstep(0.58, 0.82, aa)
+        switch species {
+        case .burmesePython: return python(aa: aa, t: t, belly: belly)
+        case .diamondback: return diamondback(aa: aa, t: t, n: n, belly: belly)
+        case .coralSnake: return coral(a: a, t: t, n: n, belly: belly)
+        case .cornSnake: return corn(a: a, aa: aa, t: t, belly: belly)
+        case .greenTreeSnake: return greenTree(aa: aa, n: n, belly: belly)
+        case .kingSnake: return king(a: a, aa: aa, t: t, belly: belly)
+        }
+    }
+
+    /// Burmese python: big dark-brown saddles rimmed in black on a tan
+    /// ground, smaller light-centred blotches low on the flanks.
+    private static func python(aa: Float, t: Float, belly: Float) -> RGB {
+        let ground = RGB(0.76, 0.63, 0.42)
+        let blotch = RGB(0.33, 0.23, 0.13)
+        let outline = RGB(0.11, 0.08, 0.06)
+        let lightCentre = RGB(0.64, 0.54, 0.36)
+        let bellyColour = RGB(0.90, 0.86, 0.74)
+        let p = periodic(t, count: 8)
+        let h1 = RealSnakeMath.hash(p.index, 11)
+        let h2 = RealSnakeMath.hash(p.index, 23)
+        let centre: Float = 0.5 + (h1 - 0.5) * 0.12
+        let df = abs(p.f - centre)
+        let halfLength: Float = 0.30 + 0.08 * h2
+        let wobble: Float = 0.03 * sin(p.f * 12.566 + Float(p.index))
+        let halfWidth: Float = 0.30 + 0.06 * h1 + wobble
+        let m: Float = pow(df / halfLength, 3) + pow(aa / halfWidth, 3)
+        var c = ground
+        if m < 0.80 {
+            c = blotch
+        } else if m < 1.25 {
+            c = outline
+        }
+        let gap: Float = min(p.f, 1 - p.f) / 0.18
+        let low: Float = (aa - 0.47) / 0.09
+        let ml: Float = low * low + gap * gap
+        if ml < 0.35 {
+            c = lightCentre
+        } else if ml < 1.0 {
+            c = blotch
+        } else if ml < 1.45 {
+            c = outline
+        }
+        return RealSnakeMath.lerp(c, bellyColour, belly)
+    }
+
+    /// Western diamondback: a chain of dark diamonds with pale borders down
+    /// the spine on a dusty grey-brown, finely speckled flanks.
+    private static func diamondback(aa: Float, t: Float, n: Float, belly: Float) -> RGB {
+        let ground = RGB(0.57, 0.49, 0.37)
+        let dark = RGB(0.27, 0.20, 0.14)
+        let centre = RGB(0.45, 0.37, 0.27)
+        let border = RGB(0.88, 0.84, 0.68)
+        let bellyColour = RGB(0.88, 0.84, 0.70)
+        let p = periodic(t, count: 8)
+        let dm: Float = abs(p.f - 0.5) / 0.5 + aa / 0.42
+        var c = ground
+        if dm < 0.42 {
+            c = centre
+        } else if dm < 0.80 {
+            c = dark
+        } else if dm < 0.97 {
+            c = border
+        } else if aa > 0.36 && n > 0.72 {
+            c = ground * 0.72
+        }
+        return RealSnakeMath.lerp(c, bellyColour, belly)
+    }
+
+    /// Coral snake: red, yellow, black, yellow rings all the way round
+    /// ("red touches yellow"), the red scales tipped black here and there.
+    private static func coral(a: Float, t: Float, n: Float, belly: Float) -> RGB {
+        let red = RGB(0.78, 0.13, 0.08)
+        let yellow = RGB(0.97, 0.80, 0.28)
+        let black = RGB(0.05, 0.045, 0.045)
+        let p = periodic(t, count: 6)
+        let f: Float = p.f + 0.012 * sin(a * 9.42)
+        var c: RGB
+        if f < 0.40 {
+            c = n > 0.72 ? RealSnakeMath.lerp(red, black, 0.6) : red
+        } else if f < 0.47 {
+            c = yellow
+        } else if f < 0.93 {
+            c = black
+        } else {
+            c = yellow
+        }
+        c *= 1 + 0.12 * belly
+        return c
+    }
+
+    /// Corn snake: black-edged red saddles on orange, a checkerboard belly.
+    private static func corn(a: Float, aa: Float, t: Float, belly: Float) -> RGB {
+        let ground = RGB(0.86, 0.49, 0.26)
+        let saddle = RGB(0.74, 0.20, 0.10)
+        let border = RGB(0.10, 0.06, 0.04)
+        let white = RGB(0.95, 0.92, 0.84)
+        let check = RGB(0.10, 0.09, 0.09)
+        let p = periodic(t, count: 9)
+        let df = abs(p.f - 0.5)
+        let ms: Float = pow(df / 0.27, 4) + pow(aa / 0.30, 4)
+        var c = ground
+        if ms < 1 {
+            c = saddle
+        } else if ms < 1.7 {
+            c = border
+        }
+        let gap: Float = min(p.f, 1 - p.f) / 0.14
+        let low: Float = (aa - 0.48) / 0.08
+        let ml: Float = low * low + gap * gap
+        if ml < 1 {
+            c = saddle
+        } else if ml < 1.5 {
+            c = border
+        }
+        let row = Int(floor(t * Float(RealSnakeLattice.rows)))
+        let sideBit = a > 0 ? 1 : 0
+        let isCheck = RealSnakeMath.mod(row + sideBit * 2, 4) == 0
+        return RealSnakeMath.lerp(c, isCheck ? check : white, belly)
+    }
+
+    /// Green tree snake: plain leaf green, brighter flanks, a pale yellow
+    /// belly and a few white flecks along the spine.
+    private static func greenTree(aa: Float, n: Float, belly: Float) -> RGB {
+        let dorsal = RGB(0.17, 0.52, 0.14)
+        let flank = RGB(0.34, 0.66, 0.19)
+        let bellyColour = RGB(0.80, 0.86, 0.42)
+        let fleck = RGB(0.90, 0.94, 0.78)
+        var c = RealSnakeMath.lerp(dorsal, flank, RealSnakeMath.smoothstep(0.08, 0.50, aa))
+        if aa < 0.12 && n > 0.86 {
+            c = fleck
+        }
+        return RealSnakeMath.lerp(c, bellyColour, belly)
+    }
+
+    /// California king snake: glossy black with cream rings that widen
+    /// toward the belly.
+    private static func king(a: Float, aa: Float, t: Float, belly: Float) -> RGB {
+        let dark = RGB(0.07, 0.06, 0.055)
+        let cream = RGB(0.92, 0.88, 0.74)
+        let p = periodic(t, count: 10)
+        let wobble: Float = 0.02 * sin(a * 9 + Float(p.index))
+        let width: Float = 0.16 + 0.12 * aa + wobble
+        let c = p.f < width ? cream : dark
+        let lighter: RGB = c * 1.15 + RGB(0.03, 0.03, 0.03)
+        return RealSnakeMath.lerp(c, lighter, belly * 0.5)
+    }
+
+    /// Head colouring. Here `t` runs from the snout (0) to the back of the
+    /// skull (1); `aa` is 0 on top, ~0.35 at the eyes, 0.5 at the lips and
+    /// beyond 0.5 under the jaw.
+    static func head(_ species: RealSnakeSpecies, a rawA: Float, t rawT: Float, n: Float) -> RGB {
+        let aa = abs(RealSnakeMath.wrapLateral(rawA))
+        let t = RealSnakeMath.clamp01(rawT)
+        let lip = RealSnakeMath.smoothstep(0.40, 0.52, aa)
+        switch species {
+        case .burmesePython:
+            let ground = RGB(0.76, 0.63, 0.42)
+            let blotch = RGB(0.33, 0.23, 0.13)
+            let outline = RGB(0.11, 0.08, 0.06)
+            let cream = RGB(0.90, 0.86, 0.74)
+            var c = ground
+            let spear: Float = 0.04 + 0.20 * t
+            if t > 0.12 && aa < spear {
+                c = blotch
+            } else if t > 0.10 && aa < spear + 0.05 {
+                c = outline
+            }
+            if t > 0.18 && abs(aa - 0.35) < 0.04 {
+                c = outline
+            }
+            return RealSnakeMath.lerp(c, cream, lip)
+        case .diamondback:
+            let ground = RGB(0.57, 0.49, 0.37)
+            let band = RGB(0.36, 0.28, 0.20)
+            let cream = RGB(0.88, 0.84, 0.68)
+            var c = ground
+            let stripe: Float = 0.30 + 0.18 * t
+            if abs(aa - stripe) < 0.04 {
+                c = cream
+            } else if aa > stripe && aa < stripe + 0.10 {
+                c = band
+            }
+            return RealSnakeMath.lerp(c, cream, lip)
+        case .coralSnake:
+            let yellow = RGB(0.97, 0.80, 0.28)
+            let black = RGB(0.05, 0.045, 0.045)
+            var c = black
+            if t > 0.46 && t < 0.80 {
+                c = yellow
+            }
+            c *= 1 + 0.10 * lip
+            return c
+        case .cornSnake:
+            let ground = RGB(0.86, 0.49, 0.26)
+            let saddle = RGB(0.74, 0.20, 0.10)
+            let border = RGB(0.10, 0.06, 0.04)
+            let white = RGB(0.95, 0.92, 0.84)
+            var c = ground
+            let spear: Float = 0.22 * max(0, t - 0.15) / 0.85
+            if aa < spear {
+                c = saddle
+            } else if t > 0.15 && aa < spear + 0.04 {
+                c = border
+            }
+            if t > 0.25 && abs(aa - (0.33 + 0.12 * t)) < 0.045 {
+                c = saddle
+            }
+            return RealSnakeMath.lerp(c, white, lip)
+        case .greenTreeSnake:
+            let dorsal = RGB(0.17, 0.52, 0.14)
+            let flank = RGB(0.34, 0.66, 0.19)
+            let bellyColour = RGB(0.80, 0.86, 0.42)
+            let c = RealSnakeMath.lerp(dorsal, flank, RealSnakeMath.smoothstep(0.10, 0.45, aa))
+            return RealSnakeMath.lerp(c, bellyColour, lip)
+        case .kingSnake:
+            let dark = RGB(0.07, 0.06, 0.055)
+            let cream = RGB(0.92, 0.88, 0.74)
+            var c = dark
+            if t < 0.10 && n > 0.55 {
+                c = cream * 0.9
+            }
+            let lipColour: RGB = n > 0.6 ? cream * 0.82 : cream
+            return RealSnakeMath.lerp(c, lipColour, lip)
+        }
+    }
+}
+
+// MARK: - Textures (Core Graphics, built once)
+
+@MainActor
+enum RealSnakeTextures {
+    static var sRGBSpace: CGColorSpace {
+        CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+    }
+
+    /// Data maps (normal, roughness) are tagged linear so SceneKit samples
+    /// the stored values as-is instead of sRGB-decoding them.
+    static var linearSpace: CGColorSpace {
+        CGColorSpace(name: CGColorSpace.linearSRGB) ?? CGColorSpaceCreateDeviceRGB()
+    }
+
+    static func image(width: Int, height: Int, rgba: [UInt8], space: CGColorSpace,
+                      alphaInfo: CGImageAlphaInfo) -> UIImage? {
+        let data = Data(rgba) as CFData
+        guard let provider = CGDataProvider(data: data) else { return nil }
+        guard let cgImage = CGImage(width: width,
+                                    height: height,
+                                    bitsPerComponent: 8,
+                                    bitsPerPixel: 32,
+                                    bytesPerRow: width * 4,
+                                    space: space,
+                                    bitmapInfo: CGBitmapInfo(rawValue: alphaInfo.rawValue),
+                                    provider: provider,
+                                    decode: nil,
+                                    shouldInterpolate: true,
+                                    intent: .defaultIntent) else { return nil }
+        return UIImage(cgImage: cgImage)
+    }
+
+    /// Tangent-space normal map from the scale height field (Sobel), +y up.
+    static func normalMap(from lattice: RealSnakeLattice) -> UIImage? {
+        let w = RealSnakeLattice.width
+        let h = RealSnakeLattice.height
+        let field = lattice.heightField
+        let strength: Float = 0.45
+        var pixels = [UInt8](repeating: 255, count: w * h * 4)
+        for y in 0..<h {
+            let rowUp = RealSnakeMath.mod(y - 1, h) * w
+            let rowMid = y * w
+            let rowDown = RealSnakeMath.mod(y + 1, h) * w
+            for x in 0..<w {
+                let xl = RealSnakeMath.mod(x - 1, w)
+                let xr = RealSnakeMath.mod(x + 1, w)
+                let tl = field[rowUp + xl]
+                let tc = field[rowUp + x]
+                let tr = field[rowUp + xr]
+                let ml = field[rowMid + xl]
+                let mr = field[rowMid + xr]
+                let bl = field[rowDown + xl]
+                let bc = field[rowDown + x]
+                let br = field[rowDown + xr]
+                let right: Float = tr + 2 * mr + br
+                let left: Float = tl + 2 * ml + bl
+                let below: Float = bl + 2 * bc + br
+                let above: Float = tl + 2 * tc + tr
+                let gx: Float = right - left
+                let gy: Float = below - above
+                let nx: Float = -gx * strength
+                // Image y runs down, tangent-space +y runs up.
+                let ny: Float = gy * strength
+                let inv: Float = 1 / sqrt(nx * nx + ny * ny + 1)
+                let o = (rowMid + x) * 4
+                pixels[o] = RealSnakeMath.byte(nx * inv * 0.5 + 0.5)
+                pixels[o + 1] = RealSnakeMath.byte(ny * inv * 0.5 + 0.5)
+                pixels[o + 2] = RealSnakeMath.byte(inv * 0.5 + 0.5)
+                pixels[o + 3] = 255
+            }
+        }
+        return image(width: w, height: h, rgba: pixels, space: linearSpace, alphaInfo: .noneSkipLast)
+    }
+
+    /// Scale faces slightly glossy, rims and crevices rougher.
+    static func roughnessMap(from lattice: RealSnakeLattice) -> UIImage? {
+        let w = RealSnakeLattice.width
+        let h = RealSnakeLattice.height
+        var pixels = [UInt8](repeating: 255, count: w * h * 4)
+        for idx in 0..<(w * h) {
+            let rim = RealSnakeMath.smoothstep(0.55, 1.0, lattice.edge[idx])
+            let jitter: Float = 0.10 * (lattice.scaleHash[idx] - 0.5)
+            let value = RealSnakeMath.byte(0.30 + 0.30 * rim + jitter)
+            let o = idx * 4
+            pixels[o] = value
+            pixels[o + 1] = value
+            pixels[o + 2] = value
+            pixels[o + 3] = 255
+        }
+        return image(width: w, height: h, rgba: pixels, space: linearSpace, alphaInfo: .noneSkipLast)
+    }
+
+    /// Species albedo. 70% of each pixel's colour comes from its scale's
+    /// centre (so pattern edges follow scale outlines, as on a real snake),
+    /// 30% from the pixel itself (soft edges); then per-scale brightness and
+    /// warmth variation and a little crevice darkening.
+    static func albedo(species: RealSnakeSpecies, lattice: RealSnakeLattice, head: Bool) -> UIImage? {
+        let w = RealSnakeLattice.width
+        let h = head ? RealSnakeLattice.headPixelRows : RealSnakeLattice.height
+        let halfW = Float(w) * 0.5
+        let tileHeight = Float(h)
+        var pixels = [UInt8](repeating: 255, count: w * h * 4)
+        for y in 0..<h {
+            let fy = Float(y) + 0.5
+            for x in 0..<w {
+                let idx = y * w + x
+                let fx = Float(x) + 0.5
+                let pixelA: Float = (fx - halfW) / halfW
+                let centreA: Float = (lattice.centreX[idx] - halfW) / halfW
+                let pixelT: Float = fy / tileHeight
+                let centreT: Float = lattice.centreY[idx] / tileHeight
+                let n = lattice.scaleHash[idx]
+                let fromCentre: SIMD3<Float>
+                let fromPixel: SIMD3<Float>
+                if head {
+                    fromCentre = RealSnakePattern.head(species, a: centreA, t: centreT, n: n)
+                    fromPixel = RealSnakePattern.head(species, a: pixelA, t: pixelT, n: n)
+                } else {
+                    fromCentre = RealSnakePattern.body(species, a: centreA, t: centreT, n: n)
+                    fromPixel = RealSnakePattern.body(species, a: pixelA, t: pixelT, n: n)
+                }
+                let mixed: SIMD3<Float> = fromCentre * 0.7 + fromPixel * 0.3
+                let crevice: Float = 1 - 0.20 * RealSnakeMath.smoothstep(0.7, 1.0, lattice.edge[idx])
+                let shade: Float = (0.80 + 0.20 * lattice.heightField[idx]) * crevice
+                let variation: Float = 0.92 + 0.16 * n
+                let warmth: Float = 0.05 * (RealSnakeMath.hash(Int(n * 65535), 5) - 0.5)
+                let tint = SIMD3<Float>(1 + warmth, 1, 1 - warmth)
+                let colour: SIMD3<Float> = mixed * tint * (shade * variation)
+                let o = idx * 4
+                pixels[o] = RealSnakeMath.byte(colour.x)
+                pixels[o + 1] = RealSnakeMath.byte(colour.y)
+                pixels[o + 2] = RealSnakeMath.byte(colour.z)
+                pixels[o + 3] = 255
+            }
+        }
+        return image(width: w, height: h, rgba: pixels, space: sRGBSpace, alphaInfo: .noneSkipLast)
+    }
+
+    /// Soft dark falloff across u (black, premultiplied alpha), for the
+    /// contact-shadow ribbon.
+    static func contactShadowImage() -> UIImage? {
+        let w = 64
+        let h = 4
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        for y in 0..<h {
+            for x in 0..<w {
+                let u = (Float(x) + 0.5) / Float(w)
+                let distance = abs(u - 0.5)
+                let alpha: Float = 0.62 * (1 - RealSnakeMath.smoothstep(0.16, 0.5, distance))
+                let o = (y * w + x) * 4
+                pixels[o] = 0
+                pixels[o + 1] = 0
+                pixels[o + 2] = 0
+                pixels[o + 3] = RealSnakeMath.byte(alpha)
+            }
+        }
+        return image(width: w, height: h, rgba: pixels, space: sRGBSpace, alphaInfo: .premultipliedLast)
+    }
+}
+
+// MARK: - Materials (shared per species)
+
+/// Every material one snake needs. One instance per species, shared by all
+/// snakes of that species; the eye/mouth/tongue/shadow materials that do
+/// not vary are shared across species too.
+@MainActor
+final class RealSnakeSkin {
+    let bodyMaterial: SCNMaterial
+    let headMaterial: SCNMaterial
+    let mouthMaterial: SCNMaterial
+    let eyeMaterial: SCNMaterial
+    let pupilMaterial: SCNMaterial
+    let catchlightMaterial: SCNMaterial
+    let tongueMaterial: SCNMaterial
+    let fangMaterial: SCNMaterial
+    let contactShadowMaterial: SCNMaterial
+
+    init(bodyMaterial: SCNMaterial, headMaterial: SCNMaterial, mouthMaterial: SCNMaterial,
+         eyeMaterial: SCNMaterial, pupilMaterial: SCNMaterial, catchlightMaterial: SCNMaterial,
+         tongueMaterial: SCNMaterial, fangMaterial: SCNMaterial, contactShadowMaterial: SCNMaterial) {
+        self.bodyMaterial = bodyMaterial
+        self.headMaterial = headMaterial
+        self.mouthMaterial = mouthMaterial
+        self.eyeMaterial = eyeMaterial
+        self.pupilMaterial = pupilMaterial
+        self.catchlightMaterial = catchlightMaterial
+        self.tongueMaterial = tongueMaterial
+        self.fangMaterial = fangMaterial
+        self.contactShadowMaterial = contactShadowMaterial
+    }
+}
+
+/// Main-actor caches: the scale lattice and the shared normal/roughness
+/// maps are built on first use, each species' skin on first request.
+@MainActor
+enum RealSnakeAssets {
+    private static var lattice: RealSnakeLattice?
+    private static var sharedMapsBuilt = false
+    private static var normalMap: UIImage?
+    private static var roughnessMap: UIImage?
+    private static var skins: [RealSnakeSpecies: RealSnakeSkin] = [:]
+    private static var mouthCache: SCNMaterial?
+    private static var pupilCache: SCNMaterial?
+    private static var catchlightCache: SCNMaterial?
+    private static var fangCache: SCNMaterial?
+    private static var shadowCache: SCNMaterial?
+    private static var tongueCache: [RealSnakeSpecies: SCNMaterial] = [:]
+
+    static func skin(for species: RealSnakeSpecies) -> RealSnakeSkin {
+        if let cached = skins[species] { return cached }
+
+        let latticeValue: RealSnakeLattice
+        if let existing = lattice {
+            latticeValue = existing
+        } else {
+            let built = RealSnakeLattice()
+            lattice = built
+            latticeValue = built
+        }
+        if !sharedMapsBuilt {
+            normalMap = RealSnakeTextures.normalMap(from: latticeValue)
+            roughnessMap = RealSnakeTextures.roughnessMap(from: latticeValue)
+            sharedMapsBuilt = true
+        }
+
+        let bodyAlbedo = RealSnakeTextures.albedo(species: species, lattice: latticeValue, head: false)
+        let headAlbedo = RealSnakeTextures.albedo(species: species, lattice: latticeValue, head: true)
+        let headScale = Float(RealSnakeLattice.headPixelRows) / Float(RealSnakeLattice.height)
+        let skin = RealSnakeSkin(
+            bodyMaterial: scaledSkinMaterial(albedo: bodyAlbedo, fallback: species.fallbackColor, vScale: 1),
+            headMaterial: scaledSkinMaterial(albedo: headAlbedo, fallback: species.fallbackColor, vScale: headScale),
+            mouthMaterial: mouthMaterial(),
+            eyeMaterial: eyeMaterial(species),
+            pupilMaterial: pupilMaterial(),
+            catchlightMaterial: catchlightMaterial(),
+            tongueMaterial: tongueMaterial(species),
+            fangMaterial: fangMaterial(),
+            contactShadowMaterial: contactShadowMaterial()
+        )
+        skins[species] = skin
+        // Every species built: the lattice's working arrays can go.
+        if skins.count == RealSnakeSpecies.allCases.count {
+            lattice = nil
+        }
+        return skin
+    }
+
+    /// The scaly skin: PBR albedo + shared normal and roughness maps and a
+    /// thin clear coat. `vScale` maps the head's 0...1 v range onto the
+    /// first 256 rows of the shared maps, matching its albedo.
+    private static func scaledSkinMaterial(albedo: UIImage?, fallback: UIColor, vScale: Float) -> SCNMaterial {
+        let m = SCNMaterial()
+        m.lightingModel = .physicallyBased
+        if let albedo {
+            m.diffuse.contents = albedo
+        } else {
+            m.diffuse.contents = fallback
+        }
+        if let normals = normalMap {
+            m.normal.contents = normals
+            m.normal.intensity = 0.85
+        }
+        if let roughness = roughnessMap {
+            m.roughness.contents = roughness
+        } else {
+            m.roughness.contents = NSNumber(value: 0.45)
+        }
+        m.metalness.contents = NSNumber(value: 0.0)
+        m.clearCoat.contents = NSNumber(value: 0.22)
+        m.clearCoatRoughness.contents = NSNumber(value: 0.28)
+        for property in [m.diffuse, m.normal, m.roughness] {
+            property.wrapS = .repeat
+            property.wrapT = .repeat
+            property.minificationFilter = .linear
+            property.magnificationFilter = .linear
+            property.mipFilter = .linear
+        }
+        if vScale != 1 {
+            let transform = SCNMatrix4MakeScale(1, vScale, 1)
+            m.normal.contentsTransform = transform
+            m.roughness.contentsTransform = transform
+        }
+        return m
+    }
+
+    private static func plainMaterial(_ color: UIColor, roughness: Double) -> SCNMaterial {
+        let m = SCNMaterial()
+        m.lightingModel = .physicallyBased
+        m.diffuse.contents = color
+        m.roughness.contents = NSNumber(value: roughness)
+        m.metalness.contents = NSNumber(value: 0.0)
+        return m
+    }
+
+    private static func mouthMaterial() -> SCNMaterial {
+        if let cached = mouthCache { return cached }
+        let m = plainMaterial(UIColor(red: 0.80, green: 0.45, blue: 0.48, alpha: 1), roughness: 0.35)
+        m.clearCoat.contents = NSNumber(value: 0.3)
+        mouthCache = m
+        return m
+    }
+
+    /// Dark, very glossy eyeball: low roughness plus a full clear coat for
+    /// a crisp specular highlight.
+    private static func eyeMaterial(_ species: RealSnakeSpecies) -> SCNMaterial {
+        let m = plainMaterial(species.irisColor, roughness: 0.08)
+        m.clearCoat.contents = NSNumber(value: 1.0)
+        m.clearCoatRoughness.contents = NSNumber(value: 0.03)
+        return m
+    }
+
+    private static func pupilMaterial() -> SCNMaterial {
+        if let cached = pupilCache { return cached }
+        let m = plainMaterial(UIColor(white: 0.01, alpha: 1), roughness: 0.05)
+        pupilCache = m
+        return m
+    }
+
+    /// A tiny always-lit glint so the eyes read as wet even when the key
+    /// light's highlight falls elsewhere.
+    private static func catchlightMaterial() -> SCNMaterial {
+        if let cached = catchlightCache { return cached }
+        let m = SCNMaterial()
+        m.lightingModel = .constant
+        m.diffuse.contents = UIColor(white: 0.92, alpha: 1)
+        catchlightCache = m
+        return m
+    }
+
+    private static func tongueMaterial(_ species: RealSnakeSpecies) -> SCNMaterial {
+        if let cached = tongueCache[species] { return cached }
+        let m = plainMaterial(species.tongueColor, roughness: 0.3)
+        tongueCache[species] = m
+        return m
+    }
+
+    private static func fangMaterial() -> SCNMaterial {
+        if let cached = fangCache { return cached }
+        let m = plainMaterial(UIColor(red: 0.95, green: 0.93, blue: 0.86, alpha: 1), roughness: 0.25)
+        fangCache = m
+        return m
+    }
+
+    private static func contactShadowMaterial() -> SCNMaterial {
+        if let cached = shadowCache { return cached }
+        let m = SCNMaterial()
+        m.lightingModel = .constant
+        if let image = RealSnakeTextures.contactShadowImage() {
+            m.diffuse.contents = image
+        } else {
+            m.diffuse.contents = UIColor(white: 0, alpha: 0.35)
+        }
+        m.blendMode = .alpha
+        m.writesToDepthBuffer = false
+        m.isDoubleSided = false
+        shadowCache = m
+        return m
+    }
+}
