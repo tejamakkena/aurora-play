@@ -17,11 +17,20 @@ struct RootControllerView: View {
             switch vm.screen {
             case .join:
                 JoinRoomView(onJoin: vm.joinRoom, onTravel: vm.startTravel,
+                             onPhonePlay: vm.startPhonePlay,
                              initialCode: vm.pendingJoinCode)
+                    .overlay(alignment: .topTrailing) {
+                        ProfileChipButton().padding(.trailing, 16).padding(.top, 8)
+                    }
 
             case .travel:
                 if let travel = vm.travelVM {
                     TravelModeRootView(travel: travel)
+                }
+
+            case .phonePlay:
+                if let play = vm.phonePlayVM {
+                    PhonePlayRootView(play: play)
                 }
 
             case .loading:
@@ -108,6 +117,7 @@ struct RootControllerView: View {
 enum ControllerScreen: Equatable {
     case join
     case travel
+    case phonePlay
     case loading
     case error(String)
     case waiting(Room)
@@ -123,6 +133,7 @@ enum ControllerScreen: Equatable {
         switch self {
         case .join:              return "join"
         case .travel:            return "travel"
+        case .phonePlay:         return "phonePlay"
         case .loading:           return "loading"
         case .error(let msg):    return "error-\(msg)"
         case .waiting(let r):    return "waiting-\(r.code)"
@@ -213,6 +224,10 @@ final class ControllerRootViewModel: ObservableObject {
     /// room), so none of the socket handlers below involve it.
     @Published var travelVM: TravelModeViewModel? = nil
 
+    /// Non-nil while Phone Play (single-phone, no-TV games) is active. Like
+    /// Travel Mode it is phone-only, so no socket handler involves it.
+    @Published var phonePlayVM: PhonePlayViewModel? = nil
+
     var isHost: Bool {
         currentRoom?.players.first(where: { $0.id == playerID })?.isHost ?? false
     }
@@ -251,7 +266,11 @@ final class ControllerRootViewModel: ObservableObject {
             guard let self else { return }
             switch room.state {
             case .lobby:
-                if case .waiting = self.screen { self.screen = .waiting(room) }
+                // results -> lobby is Game Night's next_game moving the room on.
+                switch self.screen {
+                case .waiting, .results: self.screen = .waiting(room)
+                default: break
+                }
             case .results:
                 self.screen = .results(room)
             case .playing:
@@ -385,6 +404,10 @@ final class ControllerRootViewModel: ObservableObject {
             endTravel()
             return
         }
+        if phonePlayVM != nil {
+            endPhonePlay()
+            return
+        }
         switch screen {
         case .playing(let room, _), .waiting(let room), .rules(let room, _):
             socket.emit(.leaveRoom, payload: ["roomCode": room.code, "playerID": playerID])
@@ -411,6 +434,21 @@ final class ControllerRootViewModel: ObservableObject {
     func endTravel() {
         travelVM?.shutdown()
         travelVM = nil
+        pendingRules = nil
+        screen = .join
+    }
+
+    // MARK: - Phone Play
+
+    func startPhonePlay() {
+        pendingRules = nil
+        phonePlayVM = PhonePlayViewModel()
+        screen = .phonePlay
+    }
+
+    func endPhonePlay() {
+        phonePlayVM?.shutdown()
+        phonePlayVM = nil
         pendingRules = nil
         screen = .join
     }

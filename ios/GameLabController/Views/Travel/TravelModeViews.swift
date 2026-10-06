@@ -143,6 +143,7 @@ private struct TravelStyleCard: View {
         switch style {
         case .riddles: return TravelDesign.riddle
         case .quiz:    return TravelDesign.info
+        case .brain:   return TravelDesign.warning
         case .mix:     return TravelDesign.primary
         }
     }
@@ -219,19 +220,34 @@ struct TravelPlayView: View {
         }
     }
 
+    private func chipText(_ kind: TravelItem.Kind) -> String {
+        switch kind {
+        case .riddle: return "RIDDLE"
+        case .quiz:   return "QUIZ"
+        case .brain:  return "BRAIN \u{00B7} LEVEL \(travel.brainLevel)"
+        }
+    }
+
+    private func chipColor(_ kind: TravelItem.Kind) -> Color {
+        switch kind {
+        case .riddle: return TravelDesign.riddle
+        case .quiz:   return TravelDesign.info
+        case .brain:  return TravelDesign.warning
+        }
+    }
+
     // MARK: Header
 
     private var header: some View {
         HStack {
             if let item = travel.item {
-                Text(item.kind == .riddle ? "RIDDLE" : "QUIZ")
+                Text(chipText(item.kind))
                     .font(.caption.bold())
                     .tracking(2)
                     .foregroundColor(.black)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Capsule().fill(item.kind == .riddle
-                                               ? TravelDesign.riddle : TravelDesign.info))
+                    .background(Capsule().fill(chipColor(item.kind)))
             }
             Spacer()
             if travel.micReady && travel.asked > 0 {

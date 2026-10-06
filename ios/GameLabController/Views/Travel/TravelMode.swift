@@ -23,6 +23,7 @@ enum TravelCopy {
 enum TravelPlayStyle: String, CaseIterable, Identifiable {
     case riddles
     case quiz
+    case brain
     case mix
 
     var id: String { rawValue }
@@ -31,6 +32,7 @@ enum TravelPlayStyle: String, CaseIterable, Identifiable {
         switch self {
         case .riddles: return "Riddles"
         case .quiz:    return "Quiz"
+        case .brain:   return "Brain Teasers"
         case .mix:     return "Mix it up"
         }
     }
@@ -39,6 +41,7 @@ enum TravelPlayStyle: String, CaseIterable, Identifiable {
         switch self {
         case .riddles: return "Brain teasers and silly puzzlers"
         case .quiz:    return "Fun facts about animals, space and the world"
+        case .brain:   return "Patterns, quick maths, memory and logic. Gets harder as you go"
         case .mix:     return "A riddle, then a quiz question, and so on"
         }
     }
@@ -47,6 +50,7 @@ enum TravelPlayStyle: String, CaseIterable, Identifiable {
         switch self {
         case .riddles: return "puzzlepiece.fill"
         case .quiz:    return "lightbulb.fill"
+        case .brain:   return "brain.head.profile"
         case .mix:     return "shuffle"
         }
     }
@@ -57,7 +61,7 @@ enum TravelPlayStyle: String, CaseIterable, Identifiable {
 /// One riddle or quiz question. Every item is open-answer: the car says
 /// the answer out loud and `accepts` lists the phrasings that count.
 struct TravelItem: Identifiable, Equatable {
-    enum Kind { case riddle, quiz }
+    enum Kind { case riddle, quiz, brain }
 
     let kind: Kind
     let prompt: String
@@ -71,11 +75,16 @@ struct TravelItem: Identifiable, Equatable {
     /// Server quiz questions arrive multiple-choice; the choices are read
     /// out with the question so it stays answerable.
     let options: [String]?
+    /// What the quizmaster SAYS when it differs from what's shown: a
+    /// memory test speaks the digits but must not print them.
+    let spoken: String?
 
-    var id: String { prompt }
+    var id: String { prompt + (spoken ?? "") }
 
     init(kind: Kind, prompt: String, answer: String, accepts: [String] = [],
-         hint: String, fact: String? = nil, options: [String]? = nil) {
+         hint: String, fact: String? = nil, options: [String]? = nil,
+         spoken: String? = nil) {
+        self.spoken = spoken
         self.kind = kind
         self.prompt = prompt
         self.answer = answer

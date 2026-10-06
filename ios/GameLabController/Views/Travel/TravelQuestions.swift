@@ -89,3 +89,38 @@ func fetchTravelItems(kind: TravelItem.Kind, count: Int = 8,
                           hint: hint, fact: raw["fact"] as? String)
     }
 }
+
+// MARK: - Brain Teasers library puzzles (games/brain_puzzles.py)
+//
+//   GET {serverURL}/api/brain/puzzles?kinds=analogy,odd_word&level=&count=&device=
+//
+// Analogies and odd-one-out words live on the server (an LLM-grown
+// library, no repeats per device). Everything else in Brain Teasers is
+// generated on the phone (TravelBrain), so an empty result is harmless.
+
+func fetchBrainLibraryPuzzles(level: Int, count: Int = 6) async -> [TravelItem] {
+    var components = URLComponents(
+        url: AppConstants.serverURL.appendingPathComponent("api/brain/puzzles"),
+        resolvingAgainstBaseURL: false)
+    components?.queryItems = [
+        URLQueryItem(name: "kinds", value: "analogy,odd_word"),
+        URLQueryItem(name: "level", value: String(level)),
+        URLQueryItem(name: "count", value: String(count)),
+        URLQueryItem(name: "device", value: AppConstants.deviceID),
+    ]
+    guard let url = components?.url else { return [] }
+    var request = URLRequest(url: url)
+    request.timeoutInterval = 30
+    guard let (data, response) = try? await URLSession.shared.data(for: request),
+          (response as? HTTPURLResponse)?.statusCode == 200,
+          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+          let list = json["puzzles"] as? [[String: Any]] else { return [] }
+    return list.compactMap { raw -> TravelItem? in
+        guard let prompt = raw["prompt"] as? String, !prompt.isEmpty,
+              let answer = raw["answer"] as? String, !answer.isEmpty else { return nil }
+        return TravelItem(kind: .brain, prompt: prompt, answer: answer,
+                          accepts: raw["accepts"] as? [String] ?? [],
+                          hint: raw["hint"] as? String ?? "Think it through.",
+                          fact: raw["explain"] as? String)
+    }
+}

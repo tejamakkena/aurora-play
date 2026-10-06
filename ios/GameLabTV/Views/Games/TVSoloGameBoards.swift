@@ -28,9 +28,7 @@ private struct SoloHUD: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("SCORE").font(.caption.bold()).tracking(3)
                     .foregroundColor(.white.opacity(0.4))
-                Text("\(score)")
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
-                    .foregroundColor(.cyan)
+                TVPopNumber(value: score, size: 40, color: .cyan)
             }
         }
         .padding(.horizontal, 80)
@@ -48,16 +46,14 @@ private struct RemoteHint: View {
     }
 }
 
+/// The solo games' end card: the shared TVWinnerBanner (3D swing-in glass
+/// panel, glowing score, confetti when there is anything to celebrate).
 private struct GameOverBanner: View {
     let score: Int
     var body: some View {
-        VStack(spacing: 10) {
-            Text("GAME OVER").font(.system(size: 44, weight: .heavy)).tracking(4)
-                .foregroundColor(.red)
-            Text("Final score \(score)").font(.title2).foregroundColor(.white.opacity(0.7))
-        }
-        .padding(40)
-        .background(RoundedRectangle(cornerRadius: 24).fill(.black.opacity(0.75)))
+        TVWinnerBanner(title: "Game over", headline: "\(score)", detail: "final score",
+                       symbol: "flag.checkered", accent: TVTheme.aurora.accent2,
+                       celebrate: score > 0)
     }
 }
 
@@ -199,6 +195,17 @@ struct TVNeonSnakeBoardView: View {
     @EnvironmentObject private var root: TVRootViewModel
     @StateObject private var vm = SnakeBoardViewModel()
 
+    /// Bumped every time the score goes up (food eaten) to fire a spark
+    /// burst at `eatCell`, the grid cell the food was sitting on.
+    @State private var eatCount = 0
+    @State private var eatCell = CGPoint(x: 0, y: 0)
+
+    /// Food position and score in one Equatable value, so a single change
+    /// handler sees where the food *was* when the score ticked up.
+    private var feedKey: [Double] {
+        [Double(vm.state.food.x), Double(vm.state.food.y), Double(vm.state.score)]
+    }
+
     var body: some View {
         // Reported directly as "not full screen", still true after the grid
         // was widened to a landscape 32x18: stacking SoloHUD and RemoteHint
@@ -212,6 +219,8 @@ struct TVNeonSnakeBoardView: View {
         // full-bleed board instead, rather than sharing layout flow with it,
         // means the GeometryReader measures the true full-screen area.
         ZStack {
+            TVAnimatedBackground(palette: TVTheme.neon, intensity: 0.7)
+
             GeometryReader { geo in
                 let margin: CGFloat = 28
                 let unitW = CGFloat(max(vm.state.width, 1))
@@ -240,6 +249,11 @@ struct TVNeonSnakeBoardView: View {
             // server recognizes.
             guard root.isSolo, let dir = event.directionName else { return }
             root.sendAction("turn", ["direction": dir])
+        }
+        .onChange(of: feedKey) { oldValue, newValue in
+            guard oldValue.count == 3, newValue.count == 3, newValue[2] > oldValue[2] else { return }
+            eatCell = CGPoint(x: oldValue[0], y: oldValue[1])
+            eatCount += 1
         }
         .onAppear { vm.bind(roomCode: room.code) }
     }
@@ -280,6 +294,12 @@ struct TVNeonSnakeBoardView: View {
                 .stroke(Color.cyan.opacity(0.3), lineWidth: 3)
         )
         .shadow(color: .cyan.opacity(0.18), radius: 30)
+        .shadow(color: Color(hex: "a78bfa").opacity(0.16), radius: 60)
+        .overlay {
+            TVParticleBurst(trigger: eatCount,
+                            origin: CGPoint(x: (eatCell.x + 0.5) * scale, y: (eatCell.y + 0.5) * scale),
+                            color: .yellow, count: 22, reach: max(80, scale * 3.2))
+        }
         .overlay { if vm.state.finished { GameOverBanner(score: vm.state.score) } }
     }
 
@@ -350,7 +370,7 @@ struct TVNeonSnakeBoardView: View {
                 }
                 ctx.stroke(spine, with: .linearGradient(
                     Gradient(colors: [headColor.opacity(0.95), bodyColor.opacity(alive ? 0.85 : 0.4)]),
-                    startPoint: points.first!, endPoint: points.last!),
+                    startPoint: points[0], endPoint: points[points.count - 1]),
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
             }
 
@@ -1280,46 +1300,121 @@ struct TVAtlasBoardView: View {
     let room: Room
     @StateObject private var vm = AtlasViewModel()
 
+    private let palette = TVTheme.jungle
+
     var body: some View {
-        VStack(spacing: 0) {
-            SoloHUD(title: "Atlas", score: vm.state.chainLength,
-                    subtitle: vm.state.currentName.isEmpty ? nil : "\(vm.state.currentName)'s turn")
-            Spacer()
-            VStack(spacing: 34) {
-                VStack(spacing: 8) {
+        ZStack {
+            TVAnimatedBackground(palette: palette)
+
+            VStack(spacing: 0) {
+                SoloHUD(title: "Atlas", score: vm.state.chainLength,
+                        subtitle: vm.state.currentName.isEmpty ? nil : "\(vm.state.currentName)'s turn")
+                Spacer()
+                VStack(spacing: 30) {
                     Text("NEXT PLACE STARTS WITH")
-                        .font(.caption.bold()).tracking(4)
-                        .foregroundColor(.white.opacity(0.4))
-                    Text(vm.state.letter)
-                        .font(.system(size: 150, weight: .heavy, design: .rounded))
-                        .foregroundColor(.cyan)
-                }
-
-                TimerRing(secondsLeft: vm.state.secondsLeft, total: 20)
-                    .frame(width: 120, height: 120)
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 14) {
-                        ForEach(Array(vm.state.chain.enumerated()), id: \.offset) { _, entry in
-                            VStack(spacing: 4) {
-                                Text(entry.place).font(.title3.bold()).foregroundColor(.white)
-                                Text(entry.name).font(.caption)
-                                    .foregroundColor(.white.opacity(0.4))
-                            }
-                            .padding(.horizontal, 22).padding(.vertical, 14)
-                            .background(RoundedRectangle(cornerRadius: 14)
-                                .fill(.white.opacity(0.07)))
-                        }
+                        .font(.caption.bold()).tracking(5)
+                        .foregroundColor(TVTheme.textSecondary)
+                    HStack(spacing: 70) {
+                        TVHeroLetter(letter: vm.state.letter, palette: palette, tileSize: 220)
+                        AtlasTimerRing(secondsLeft: vm.state.secondsLeft, total: 20, palette: palette)
                     }
-                    .padding(.horizontal, 80)
+                    chainStrip
                 }
+                Spacer()
+                // "...or pass the remote around" used to sit here too, but the
+                // remote has no text entry at all -- that half of the hint was
+                // never actually possible. A phone is the only way to answer.
+                RemoteHint(text: "Type the next place on your phone")
             }
-            Spacer()
-            // "...or pass the remote around" used to sit here too, but the
-            // remote has no text entry at all -- that half of the hint was
-            // never actually possible. A phone is the only way to answer.
-            RemoteHint(text: "Type the next place on your phone")
+
+            if vm.state.finished {
+                GameOverBanner(score: vm.state.chainLength)
+            }
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    /// The journey so far: a row of glass stops joined by arrows; each new
+    /// stop rises in and the strip follows it.
+    private var chainStrip: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(Array(vm.state.chain.enumerated()), id: \.offset) { index, entry in
+                        if index > 0 {
+                            Image(systemName: "chevron.right")
+                                .font(.headline.bold())
+                                .foregroundColor(palette.accent.opacity(0.6))
+                        }
+                        AtlasStop(place: entry.place, name: entry.name,
+                                  isLatest: index == vm.state.chain.count - 1, palette: palette)
+                            .id(index)
+                            .tvStaggeredAppear(index: 0)
+                    }
+                }
+                .padding(.horizontal, 80)
+                .padding(.vertical, 30)
+            }
+            .onChange(of: vm.state.chain.count) { _, newCount in
+                guard newCount > 0 else { return }
+                withAnimation(.easeInOut(duration: 0.5)) {
+                    proxy.scrollTo(newCount - 1, anchor: .trailing)
+                }
+            }
+        }
+    }
+}
+
+private struct AtlasStop: View {
+    let place: String
+    let name: String
+    let isLatest: Bool
+    let palette: TVPalette
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 22, tint: palette.accent, glow: isLatest ? palette.accent : nil, padding: 0) {
+            VStack(spacing: 4) {
+                Text(place).font(.title3.bold()).foregroundColor(.white)
+                    .lineLimit(1)
+                Text(name).font(.caption).foregroundColor(TVTheme.textSecondary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 24).padding(.vertical, 14)
+        }
+        .scaleEffect(isLatest ? 1.08 : 1)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: isLatest)
+    }
+}
+
+/// A glowing countdown ring with the seconds popping in the middle.
+private struct AtlasTimerRing: View {
+    let secondsLeft: Int
+    let total: Int
+    let palette: TVPalette
+
+    private var progress: CGFloat {
+        guard total > 0 else { return 0 }
+        return CGFloat(min(1, max(0, Double(secondsLeft) / Double(total))))
+    }
+
+    private var tint: Color { secondsLeft <= 5 ? TVTheme.danger : palette.accent }
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(Color.white.opacity(0.1), lineWidth: 14)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(AngularGradient(colors: [tint.opacity(0.4), tint], center: .center,
+                                        startAngle: .degrees(0), endAngle: .degrees(360)),
+                        style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .shadow(color: tint.opacity(0.8), radius: 12)
+                .animation(.linear(duration: 1), value: secondsLeft)
+            VStack(spacing: 0) {
+                TVPopNumber(value: secondsLeft, size: 58, color: tint)
+                Text("SEC").font(.caption.bold()).tracking(3).foregroundColor(TVTheme.textTertiary)
+            }
+        }
+        .frame(width: 170, height: 170)
     }
 }

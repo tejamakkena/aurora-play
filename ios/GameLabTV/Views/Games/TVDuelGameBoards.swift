@@ -749,51 +749,188 @@ struct TVBattleshipBoardView: View {
     let room: Room
     @StateObject private var vm = TVBoardModel(initial: BattleshipState()) { $0.update(from: $1) }
 
+    private var currentName: String? {
+        guard let id = vm.state.currentPlayerID else { return nil }
+        return vm.state.players.first { $0.id == id }?.name
+    }
+
+    private var winnerName: String? {
+        guard let winner = vm.state.winner else { return nil }
+        return vm.state.players.first { $0.id == winner }?.name
+    }
+
+    private var phaseLabel: String {
+        if vm.state.winner != nil { return "game over" }
+        if let currentName { return "\(currentName) fires" }
+        return "fire!"
+    }
+
+    private var cellSize: CGFloat {
+        let n = CGFloat(max(vm.state.size, 1))
+        return min(58, 500 / n)
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            TVRoundHeader(symbol: "sailboat.fill", title: "Battleship",
-                          round: 0, totalRounds: 0, secondsLeft: 0,
-                          phaseLabel: vm.state.winner != nil ? "game over" : "fire!")
-            Spacer()
-            HStack(spacing: 90) {
-                ForEach(Array(vm.state.boards.enumerated()), id: \.offset) { _, board in
-                    VStack(spacing: 16) {
-                        Text(board.ownerName).font(.title2.bold()).foregroundColor(.white)
-                        Text("\(board.sunk) ships sunk").font(.callout)
-                            .foregroundColor(.cyan)
-                        // Only hits and misses — fleet positions stay on the phones.
-                        LazyVGrid(columns: Array(repeating: GridItem(.fixed(52), spacing: 5),
-                                                 count: vm.state.size), spacing: 5) {
-                            ForEach(0..<(vm.state.size * vm.state.size), id: \.self) { cell in
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(board.shots[cell] == "hit" ? Color.red
-                                          : board.shots[cell] == "miss" ? Color.white.opacity(0.22)
-                                          : Color.blue.opacity(0.28))
-                                    .frame(width: 52, height: 52)
-                                    .overlay(
-                                        Group {
-                                            if board.shots[cell] == "hit" {
-                                                Image(systemName: "xmark").font(.title3)
-                                            } else if board.shots[cell] == "miss" {
-                                                Text("·")
-                                            }
-                                        }
-                                    )
-                            }
-                        }
+        ZStack {
+            TVAnimatedBackground(palette: TVTheme.ocean)
+
+            VStack(spacing: 0) {
+                TVRoundHeader(symbol: "sailboat.fill", title: "Battleship",
+                              round: 0, totalRounds: 0, secondsLeft: 0,
+                              phaseLabel: phaseLabel)
+                Spacer()
+                HStack(alignment: .top, spacing: 70) {
+                    ForEach(Array(vm.state.boards.enumerated()), id: \.offset) { index, board in
+                        BattleshipFleetCard(ownerName: board.ownerName, shots: board.shots,
+                                            sunk: board.sunk, size: vm.state.size, cellSize: cellSize,
+                                            isTarget: isTarget(board.ownerName))
+                            .tvStaggeredAppear(index: index, step: 0.15)
                     }
                 }
+                Spacer()
+                TVScoreStrip(players: vm.state.players)
             }
-            if let winner = vm.state.winner,
-               let name = vm.state.players.first(where: { $0.id == winner })?.name {
-                Text("\(name) wins")
-                    .font(.system(size: 44, weight: .heavy)).foregroundColor(.yellow)
-                    .padding(.top, 26)
+
+            if let winnerName {
+                TVWinnerBanner(title: "Admiral of the fleet", headline: winnerName,
+                               symbol: "flag.checkered", accent: TVTheme.ocean.accent)
             }
-            Spacer()
-            TVScoreStrip(players: vm.state.players)
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    /// The board under fire is the one that isn't the shooter's own.
+    private func isTarget(_ ownerName: String) -> Bool {
+        guard vm.state.winner == nil, let currentName else { return false }
+        return ownerName != currentName
+    }
+}
+
+private struct BattleshipFleetCard: View {
+    let ownerName: String
+    let shots: [Int: String]
+    let sunk: Int
+    let size: Int
+    let cellSize: CGFloat
+    let isTarget: Bool
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 30, tint: TVTheme.ocean.accent,
+                    glow: isTarget ? TVTheme.ocean.accent2 : nil, padding: 28) {
+            VStack(spacing: 18) {
+                header
+                grid
+                    .rotation3DEffect(.degrees(18), axis: (x: 1, y: 0, z: 0),
+                                      anchor: .center, perspective: 0.55)
+            }
+        }
+        .animation(.easeInOut(duration: 0.4), value: isTarget)
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 14) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(isTarget ? "UNDER FIRE" : "FLEET").font(.caption.bold()).tracking(3)
+                    .foregroundColor(isTarget ? TVTheme.ocean.accent2 : TVTheme.textSecondary)
+                Text(ownerName).font(.title2.bold()).foregroundColor(.white)
+                    .lineLimit(1).truncationMode(.tail)
+            }
+            Spacer()
+            TVPopNumber(value: sunk, size: 40, color: TVTheme.ocean.accent)
+            Text(sunk == 1 ? "ship sunk" : "ships sunk").font(.callout)
+                .foregroundColor(TVTheme.textSecondary)
+        }
+    }
+
+    private var grid: some View {
+        // Only hits and misses -- fleet positions stay on the phones.
+        let spacing: CGFloat = 6
+        let columns: [GridItem] = Array(repeating: GridItem(.fixed(cellSize), spacing: spacing),
+                                        count: max(size, 1))
+        return LazyVGrid(columns: columns, spacing: spacing) {
+            ForEach(0..<(size * size), id: \.self) { cell in
+                BattleshipCell(result: shots[cell], size: cellSize)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(LinearGradient(colors: [Color(hex: "0c4a6e"), Color(hex: "082f49")],
+                                     startPoint: .top, endPoint: .bottom))
+        )
+        .overlay(OceanSheen().clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous)))
+        .shadow(color: Color.black.opacity(0.5), radius: 24, x: 0, y: 18)
+    }
+}
+
+private struct BattleshipCell: View {
+    let result: String?
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
+                .fill(waterFill)
+            RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+            if result == "hit" {
+                hitMarker.transition(.scale(scale: 0.2).combined(with: .opacity))
+            } else if result == "miss" {
+                missMarker.transition(.scale(scale: 1.8).combined(with: .opacity))
+            }
+        }
+        .frame(width: size, height: size)
+        .animation(.spring(response: 0.45, dampingFraction: 0.55), value: result)
+    }
+
+    private var waterFill: LinearGradient {
+        if result == "hit" {
+            return LinearGradient(colors: [Color(hex: "7f1d1d"), Color(hex: "450a0a")],
+                                  startPoint: .top, endPoint: .bottom)
+        }
+        return LinearGradient(colors: [Color(hex: "0e7490").opacity(0.75), Color(hex: "0c4a6e").opacity(0.6)],
+                              startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    private var hitMarker: some View {
+        ZStack {
+            Circle()
+                .fill(RadialGradient(colors: [Color(hex: "fde047"), Color(hex: "f97316"), Color(hex: "dc2626")],
+                                     center: .center, startRadius: 0, endRadius: size * 0.4))
+                .frame(width: size * 0.72, height: size * 0.72)
+                .shadow(color: Color(hex: "f97316").opacity(0.9), radius: size * 0.3)
+            Image(systemName: "flame.fill")
+                .font(.system(size: size * 0.36, weight: .bold))
+                .foregroundColor(.white)
+        }
+    }
+
+    private var missMarker: some View {
+        ZStack {
+            Circle().strokeBorder(Color.white.opacity(0.55), lineWidth: 2)
+                .frame(width: size * 0.6, height: size * 0.6)
+            Circle().fill(Color.white.opacity(0.75))
+                .frame(width: size * 0.18, height: size * 0.18)
+        }
+    }
+}
+
+/// A slow diagonal glint sweeping across the water.
+private struct OceanSheen: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            GeometryReader { geo in
+                let t: Double = timeline.date.timeIntervalSinceReferenceDate
+                let phase: CGFloat = CGFloat((t * 0.12).truncatingRemainder(dividingBy: 1))
+                let travel: CGFloat = geo.size.width * 2
+                LinearGradient(colors: [Color.white.opacity(0), Color.white.opacity(0.12), Color.white.opacity(0)],
+                               startPoint: .leading, endPoint: .trailing)
+                    .frame(width: geo.size.width * 0.5, height: geo.size.height * 1.6)
+                    .rotationEffect(.degrees(20))
+                    .offset(x: -geo.size.width * 0.5 + travel * phase, y: -geo.size.height * 0.3)
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 
@@ -827,84 +964,92 @@ struct TVAirHockeyBoardView: View {
     let room: Room
     @StateObject private var vm = TVBoardModel(initial: AirHockeyState()) { $0.update(from: $1) }
 
+    private static let colors: [Color] = [Color(hex: "22d3ee"), Color(hex: "fb5c8c")]
+
+    private var leaderName: String {
+        let sorted = vm.state.paddles.sorted { $0.score > $1.score }
+        guard let top = sorted.first else { return "Game over" }
+        if sorted.count > 1 && sorted[1].score == top.score { return "Draw" }
+        return top.name
+    }
+
     var body: some View {
         ZStack {
-            VStack(spacing: 0) {
-                HStack {
-                    ForEach(Array(vm.state.paddles.enumerated()), id: \.offset) { i, p in
-                        VStack(spacing: 2) {
-                            Text(p.name).font(.headline).foregroundColor(.white.opacity(0.6))
-                            Text("\(p.score)").font(.system(size: 54, weight: .heavy))
-                                .foregroundColor(i == 0 ? .cyan : .pink)
-                        }
-                        if i == 0 { Spacer() }
-                    }
-                }
-                .padding(.horizontal, 120).padding(.top, 40)
+            // A real lit 3D table (AirHockeySceneView), driven by the same
+            // AirHockeyState: puck and mallets glide between server updates,
+            // strikes spark, goals flash the goal mouth and shake the camera.
+            AirHockeySceneView(state: vm.state)
+                .ignoresSafeArea()
+
+            VStack {
+                LinearGradient(colors: [Color.black.opacity(0.55), Color.clear],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 230)
                 Spacer()
             }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
 
-            // Reported alongside Neon Snake/Brick Breaker: a fixed 6pt scale
-            // sized the rink purely off its own default 100x160 unit grid,
-            // regardless of how much bigger the actual TV screen is. Deriving
-            // the scale from the space actually available here instead lets
-            // the rink fill it (preserving its aspect ratio).
-            GeometryReader { geo in
-                let margin: CGFloat = 40
-                let availableWidth = max(geo.size.width - margin * 2, 1)
-                let availableHeight = max(geo.size.height - margin * 2, 1)
-                let scale = max(1, min(availableWidth / CGFloat(max(vm.state.width, 1)),
-                                        availableHeight / CGFloat(max(vm.state.height, 1))))
+            VStack {
+                scoreRow
+                    .padding(.horizontal, 70)
+                    .padding(.top, 40)
+                Spacer()
+            }
+            .allowsHitTesting(false)
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 18)
-                        .stroke(.white.opacity(0.25), lineWidth: 3)
-                        .background(RoundedRectangle(cornerRadius: 18).fill(.black.opacity(0.45)))
-
-                    Canvas { ctx, size in
-                        // Centre line and circle
-                        var line = Path()
-                        line.move(to: CGPoint(x: 0, y: size.height / 2))
-                        line.addLine(to: CGPoint(x: size.width, y: size.height / 2))
-                        ctx.stroke(line, with: .color(.white.opacity(0.15)), lineWidth: 2)
-                        ctx.stroke(Path(ellipseIn: CGRect(x: size.width / 2 - 60,
-                                                          y: size.height / 2 - 60,
-                                                          width: 120, height: 120)),
-                                   with: .color(.white.opacity(0.15)), lineWidth: 2)
-
-                        // Paddles. state fields decode as Double (server JSON), scale is
-                        // CGFloat -- Swift has no automatic Double<->CGFloat conversion,
-                        // so each Double sub-expression is wrapped once before scaling.
-                        for (i, p) in vm.state.paddles.enumerated() {
-                            let y: CGFloat = i == 0 ? 6 * scale : CGFloat(vm.state.height - 6) * scale
-                            ctx.fill(
-                                Path(roundedRect: CGRect(
-                                    x: CGFloat(p.x - vm.state.paddleWidth / 2) * scale, y: y - 8,
-                                    width: CGFloat(vm.state.paddleWidth) * scale, height: 16),
-                                     cornerRadius: 8),
-                                with: .color(i == 0 ? .cyan : .pink))
-                        }
-
-                        ctx.fill(
-                            Path(ellipseIn: CGRect(x: CGFloat(vm.state.puck.x - 3) * scale,
-                                                   y: CGFloat(vm.state.puck.y - 3) * scale,
-                                                   width: 6 * scale, height: 6 * scale)),
-                            with: .color(.white))
-                    }
-                    .frame(width: CGFloat(vm.state.width) * scale, height: CGFloat(vm.state.height) * scale)
-
-                    if vm.state.finished {
-                        Text("GAME OVER").font(.system(size: 54, weight: .heavy)).tracking(5)
-                            .foregroundColor(.yellow)
-                            .padding(34)
-                            .background(RoundedRectangle(cornerRadius: 20).fill(.black.opacity(0.8)))
-                    }
-                }
-                .frame(width: CGFloat(vm.state.width) * scale + 8, height: CGFloat(vm.state.height) * scale + 8)
-                .frame(width: geo.size.width, height: geo.size.height)
+            if vm.state.finished {
+                TVWinnerBanner(title: "Game over", headline: leaderName,
+                               detail: "first to \(vm.state.winScore)",
+                               symbol: "trophy.fill", accent: TVTheme.gold)
             }
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    private var scoreRow: some View {
+        HStack(alignment: .top) {
+            ForEach(Array(vm.state.paddles.enumerated()), id: \.offset) { i, p in
+                AirHockeyScorePanel(name: p.name, score: p.score,
+                                    color: TVAirHockeyBoardView.colors[i % 2],
+                                    alignTrailing: i == 1)
+                if i == 0 {
+                    Spacer()
+                    VStack(spacing: 4) {
+                        TVGlowText(text: "AIR HOCKEY", size: 40, color: Color(hex: "7dd3fc"))
+                        Text("FIRST TO \(vm.state.winScore)").font(.caption.bold()).tracking(4)
+                            .foregroundColor(TVTheme.textSecondary)
+                    }
+                    .padding(.top, 10)
+                    Spacer()
+                }
+            }
+        }
+    }
+}
+
+private struct AirHockeyScorePanel: View {
+    let name: String
+    let score: Int
+    let color: Color
+    let alignTrailing: Bool
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 26, tint: color, glow: color, padding: 0) {
+            HStack(spacing: 22) {
+                if alignTrailing { TVPopNumber(value: score, size: 64, color: color) }
+                VStack(alignment: alignTrailing ? .trailing : .leading, spacing: 4) {
+                    Text(alignTrailing ? "RIGHT GOAL" : "LEFT GOAL").font(.caption.bold()).tracking(3)
+                        .foregroundColor(color.opacity(0.9))
+                    Text(name).font(.title2.bold()).foregroundColor(.white)
+                        .lineLimit(1).truncationMode(.tail)
+                }
+                if !alignTrailing { TVPopNumber(value: score, size: 64, color: color) }
+            }
+            .padding(.horizontal, 30)
+            .padding(.vertical, 16)
+        }
+        .frame(maxWidth: 520, alignment: alignTrailing ? .trailing : .leading)
     }
 }
 
@@ -1606,75 +1751,106 @@ struct TVCarromBoardView: View {
     let room: Room
     @StateObject private var vm = TVBoardModel(initial: CarromState()) { $0.update(from: $1) }
 
+    private var phaseText: String {
+        if let left = vm.state.shotsLeft {
+            return "first to \(vm.state.targetScore)  -  \(left) shots left"
+        }
+        return "first to \(vm.state.targetScore)"
+    }
+
+    private var winnerName: String? {
+        guard let id = vm.state.winner else { return nil }
+        return vm.state.players.first { $0.id == id }?.name
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            TVRoundHeader(symbol: "circle.dashed", title: "Carrom", round: 0, totalRounds: 0, secondsLeft: 0,
-                          phaseLabel: vm.state.shotsLeft.map { "first to \(vm.state.targetScore)  -  \($0) shots left" }
-                                      ?? "first to \(vm.state.targetScore)")
-            // Same fix as Neon Snake/Brick Breaker/Air Hockey: a fixed 8pt
-            // scale sized the board purely off its own default 100x100 unit
-            // grid, regardless of how much bigger the actual TV screen is.
-            // Deriving the scale from the space actually available here
-            // instead lets the board (square, so width and height agree)
-            // fill it.
-            GeometryReader { geo in
-                let margin: CGFloat = 40
-                let availableWidth = max(geo.size.width - margin * 2, 1)
-                let availableHeight = max(geo.size.height - margin * 2, 1)
-                let scale = max(1, min(availableWidth / CGFloat(max(vm.state.board, 1)),
-                                        availableHeight / CGFloat(max(vm.state.board, 1))))
+        ZStack {
+            // A real lit 3D board (CarromSceneView): lacquered surface,
+            // PBR coins that slide to rest after each shot, pockets that
+            // flare and spark when a coin drops. Same CarromState as before.
+            CarromSceneView(state: vm.state)
+                .ignoresSafeArea()
 
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(Color(hex: "d9b382"))
-                        .frame(width: CGFloat(vm.state.board) * scale, height: CGFloat(vm.state.board) * scale)
-                        .overlay(RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color(hex: "6b4f2a"), lineWidth: 10))
-
-                    Canvas { ctx, size in
-                        // Pockets, coins and striker are drawn at the same radii
-                        // the server's shot physics uses (CarromEngine POCKET_R,
-                        // COIN_R, STRIKER_R, STRIKER_Y), so what looks like it
-                        // should drop does.
-                        let pocketR = 8 * scale
-                        for p in [CGPoint(x: 0, y: 0), CGPoint(x: size.width, y: 0),
-                                  CGPoint(x: 0, y: size.height),
-                                  CGPoint(x: size.width, y: size.height)] {
-                            ctx.fill(Path(ellipseIn: CGRect(x: p.x - pocketR, y: p.y - pocketR,
-                                                            width: pocketR * 2, height: pocketR * 2)),
-                                     with: .color(.black))
-                        }
-                        ctx.stroke(Path(ellipseIn: CGRect(x: size.width / 2 - 45,
-                                                          y: size.height / 2 - 45,
-                                                          width: 90, height: 90)),
-                                   with: .color(Color(hex: "6b4f2a").opacity(0.5)), lineWidth: 3)
-
-                        // coin.x/y and strikerX decode as Double (server JSON); scale is
-                        // CGFloat, so each is wrapped before scaling -- see AirHockey above.
-                        for coin in vm.state.coins {
-                            let color: Color = coin.kind == "queen" ? .red
-                                             : coin.kind == "black" ? .black
-                                             : Color(hex: "f5e6c8")
-                            let coinR = 2.5 * scale
-                            ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(coin.x) * scale - coinR,
-                                                            y: CGFloat(coin.y) * scale - coinR,
-                                                            width: coinR * 2, height: coinR * 2)),
-                                     with: .color(color))
-                        }
-                        // Striker
-                        let strikerR = 3.2 * scale
-                        ctx.fill(Path(ellipseIn: CGRect(x: CGFloat(vm.state.strikerX) * scale - strikerR,
-                                                        y: 88 * scale - strikerR,
-                                                        width: strikerR * 2, height: strikerR * 2)),
-                                 with: .color(.cyan))
-                    }
-                    .frame(width: CGFloat(vm.state.board) * scale, height: CGFloat(vm.state.board) * scale)
-                }
-                .frame(width: geo.size.width, height: geo.size.height)
+            HStack {
+                LinearGradient(colors: [Color.black.opacity(0.6), Color.clear],
+                               startPoint: .leading, endPoint: .trailing)
+                    .frame(width: 520)
+                Spacer()
             }
-            TVScoreStrip(players: vm.state.players)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+
+            VStack(spacing: 0) {
+                TVRoundHeader(symbol: "circle.dashed", title: "Carrom", round: 0, totalRounds: 0,
+                              secondsLeft: 0, phaseLabel: phaseText)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ForEach(Array(vm.state.players.enumerated()), id: \.element.id) { index, player in
+                            CarromPlayerRow(player: player,
+                                            isCurrent: player.id == vm.state.currentPlayerID,
+                                            target: vm.state.targetScore)
+                                .tvStaggeredAppear(index: index)
+                        }
+                    }
+                    .frame(width: 400)
+                    .padding(.leading, 70)
+                    .padding(.top, 30)
+                    Spacer()
+                }
+                Spacer()
+            }
+            .allowsHitTesting(false)
+
+            if let winnerName {
+                TVWinnerBanner(title: "Winner", headline: winnerName,
+                               detail: "first to \(vm.state.targetScore)")
+            }
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+}
+
+private struct CarromPlayerRow: View {
+    let player: BoardPlayer
+    let isCurrent: Bool
+    let target: Int
+
+    private var progress: CGFloat {
+        guard target > 0 else { return 0 }
+        return CGFloat(min(1, Double(player.score) / Double(target)))
+    }
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 22, tint: isCurrent ? TVTheme.gold : Color.white,
+                    glow: isCurrent ? TVTheme.gold : nil, padding: 0) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    if isCurrent {
+                        Image(systemName: "scope").foregroundColor(TVTheme.gold)
+                    }
+                    Text(player.name).font(.title3.bold()).foregroundColor(.white)
+                        .lineLimit(1).truncationMode(.tail)
+                    Spacer()
+                    TVPopNumber(value: player.score, size: 40,
+                                color: isCurrent ? TVTheme.gold : Color(hex: "fde68a"))
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.12))
+                        Capsule()
+                            .fill(LinearGradient(colors: [Color(hex: "f59e0b"), Color(hex: "fde68a")],
+                                                 startPoint: .leading, endPoint: .trailing))
+                            .frame(width: geo.size.width * progress)
+                            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
+                    }
+                }
+                .frame(height: 8)
+            }
+            .padding(.horizontal, 24)
+            .padding(.vertical, 18)
+        }
+        .scaleEffect(isCurrent ? 1.04 : 1, anchor: .leading)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: isCurrent)
     }
 }
 
@@ -1719,10 +1895,228 @@ struct TVTeenPattiBoardView: View {
     @StateObject private var vm = TVBoardModel(initial: TeenPattiState()) { $0.update(from: $1) }
 
     private func rankName(_ r: Int) -> String {
-        ["", "High Card", "Pair", "Colour", "Sequence", "Pure Sequence", "Trail"][min(r, 6)]
+        ["", "High Card", "Pair", "Colour", "Sequence", "Pure Sequence", "Trail"][min(max(r, 0), 6)]
     }
 
-    private func cardLabel(_ rank: Int) -> String {
+    private var winnerName: String? {
+        guard let id = vm.state.winner else { return nil }
+        return vm.state.players.first { $0.id == id }?.name
+    }
+
+    var body: some View {
+        ZStack {
+            TVAnimatedBackground(palette: TVTheme.ember)
+
+            VStack(spacing: 0) {
+                header
+                Spacer()
+                if vm.state.showdown.isEmpty {
+                    seatsTable
+                } else {
+                    showdownTable
+                }
+                Spacer()
+                TVScoreStrip(players: vm.state.players)
+            }
+
+            if winnerName != nil {
+                TVConfettiBurst(trigger: 1, fireOnAppear: true)
+                    .ignoresSafeArea()
+            }
+        }
+        .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 30) {
+            TVGlowText(text: "Teen Patti", size: 52, color: TVTheme.gold)
+            Spacer()
+            TPChipBadge(label: "STAKE", value: vm.state.currentStake, color: Color(hex: "fda4af"), glows: false)
+            TPChipBadge(label: "POT", value: vm.state.pot, color: TVTheme.gold, glows: true)
+        }
+        .padding(.horizontal, 70).padding(.top, 44)
+    }
+
+    /// Cards stay on the phones until showdown; seats show fanned backs.
+    private var seatsTable: some View {
+        ZStack {
+            TPFeltTable()
+                .frame(width: 1500, height: 560)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 24), count: 4), spacing: 24) {
+                ForEach(Array(vm.state.seats.enumerated()), id: \.offset) { index, seat in
+                    TPSeatCard(name: seat.name, chips: seat.chips, stake: seat.stake,
+                               folded: seat.folded, blind: seat.blind,
+                               isCurrent: seat.id == vm.state.currentPlayerID)
+                        .tvStaggeredAppear(index: index)
+                }
+            }
+            .padding(.horizontal, 110)
+        }
+    }
+
+    /// Card height for the showdown, shrinking so every hand still fits
+    /// between the header and the score strip in a full room.
+    private var showdownCardHeight: CGFloat {
+        let n = CGFloat(max(vm.state.showdown.count, 1))
+        let fit: CGFloat = (700 - 14 * (n - 1)) / n - 28
+        return min(130, max(56, fit))
+    }
+
+    private var showdownTable: some View {
+        VStack(spacing: 14) {
+            ForEach(Array(vm.state.showdown.enumerated()), id: \.offset) { index, hand in
+                TPShowdownRow(name: hand.name, cards: hand.cards, rankName: rankName(hand.rank),
+                              isWinner: hand.name == winnerName, rowIndex: index,
+                              cardHeight: showdownCardHeight)
+                    .tvStaggeredAppear(index: index, step: 0.12)
+            }
+        }
+        .padding(.horizontal, 160)
+    }
+}
+
+private struct TPChipBadge: View {
+    let label: String
+    let value: Int
+    let color: Color
+    let glows: Bool
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 24, tint: color, glow: glows ? color : nil, padding: 0) {
+            HStack(spacing: 14) {
+                chip
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(label).font(.caption.bold()).tracking(3).foregroundColor(TVTheme.textSecondary)
+                    TVPopNumber(value: value, size: 40, color: color)
+                }
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+        }
+    }
+
+    private var chip: some View {
+        ZStack {
+            Circle().fill(RadialGradient(colors: [color, color.opacity(0.45)],
+                                         center: .topLeading, startRadius: 2, endRadius: 40))
+            Circle().strokeBorder(Color.white.opacity(0.75),
+                                  style: StrokeStyle(lineWidth: 4, dash: [6, 5]))
+                .padding(5)
+        }
+        .frame(width: 46, height: 46)
+        .shadow(color: color.opacity(0.6), radius: 10)
+    }
+}
+
+/// An oval felt table, tilted back in 3D so the seats sit "on" it.
+private struct TPFeltTable: View {
+    var body: some View {
+        ZStack {
+            Ellipse()
+                .fill(LinearGradient(colors: [Color(hex: "a16207"), Color(hex: "78350f"), Color(hex: "451a03")],
+                                     startPoint: .top, endPoint: .bottom))
+            Ellipse()
+                .fill(RadialGradient(colors: [Color(hex: "15803d"), Color(hex: "14532d"), Color(hex: "052e16")],
+                                     center: .center, startRadius: 40, endRadius: 760))
+                .padding(28)
+            Ellipse()
+                .strokeBorder(TVTheme.gold.opacity(0.45), lineWidth: 3)
+                .padding(56)
+        }
+        .rotation3DEffect(.degrees(42), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.4)
+        .shadow(color: Color.black.opacity(0.6), radius: 40, x: 0, y: 30)
+        .allowsHitTesting(false)
+    }
+}
+
+private struct TPSeatCard: View {
+    let name: String
+    let chips: Int
+    let stake: Int
+    let folded: Bool
+    let blind: Bool
+    let isCurrent: Bool
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 24, tint: isCurrent ? TVTheme.gold : Color.white,
+                    glow: isCurrent ? TVTheme.gold : nil, padding: 0) {
+            VStack(spacing: 12) {
+                fan
+                Text(name).font(.title3.bold())
+                    .foregroundColor(folded ? Color.white.opacity(0.35) : Color.white)
+                    .lineLimit(1).truncationMode(.tail)
+                HStack(spacing: 8) {
+                    Image(systemName: "circle.hexagongrid.fill").foregroundColor(TVTheme.gold)
+                    TVPopNumber(value: chips, size: 28, color: Color(hex: "fde68a"), glow: false)
+                }
+                badge
+            }
+            .padding(.vertical, 18)
+            .frame(maxWidth: .infinity)
+        }
+        .scaleEffect(isCurrent ? 1.06 : 1)
+        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: isCurrent)
+    }
+
+    private var fan: some View {
+        ZStack {
+            ForEach(0..<3, id: \.self) { i in
+                TPCardBack(width: 52, height: 74)
+                    .rotationEffect(.degrees(Double(i - 1) * (folded ? 4 : 12)), anchor: .bottom)
+                    .offset(x: CGFloat(i - 1) * (folded ? 6 : 16), y: folded ? 14 : 0)
+            }
+        }
+        .frame(height: 92)
+        .opacity(folded ? 0.35 : 1)
+        .saturation(folded ? 0 : 1)
+        .rotation3DEffect(.degrees(folded ? 55 : 0), axis: (x: 1, y: 0, z: 0), perspective: 0.5)
+        .animation(.spring(response: 0.6, dampingFraction: 0.7), value: folded)
+    }
+
+    @ViewBuilder private var badge: some View {
+        if folded {
+            Text("FOLDED").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.textTertiary)
+        } else if blind {
+            Text("BLIND").font(.caption.bold()).tracking(2).foregroundColor(Color(hex: "fb923c"))
+        } else if stake > 0 {
+            Text("IN FOR \(stake)").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.textSecondary)
+        } else {
+            Text("SEEN").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.textSecondary)
+        }
+    }
+}
+
+private struct TPCardBack: View {
+    let width: CGFloat
+    let height: CGFloat
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: width * 0.12, style: .continuous)
+                .fill(Color.white)
+            RoundedRectangle(cornerRadius: width * 0.09, style: .continuous)
+                .fill(LinearGradient(colors: [Color(hex: "9f1239"), Color(hex: "4c0519")],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+                .padding(width * 0.07)
+            RoundedRectangle(cornerRadius: width * 0.06, style: .continuous)
+                .strokeBorder(TVTheme.gold.opacity(0.8), lineWidth: 1.5)
+                .padding(width * 0.14)
+            Image(systemName: "suit.diamond.fill")
+                .font(.system(size: width * 0.34))
+                .foregroundColor(TVTheme.gold.opacity(0.85))
+        }
+        .frame(width: width, height: height)
+        .shadow(color: Color.black.opacity(0.45), radius: 6, x: 0, y: 4)
+    }
+}
+
+private struct TPCardFace: View {
+    let rank: Int
+    let suit: String
+    let width: CGFloat
+    let height: CGFloat
+
+    private var label: String {
         switch rank {
         case 14: return "A"
         case 13: return "K"
@@ -1732,77 +2126,104 @@ struct TVTeenPattiBoardView: View {
         }
     }
 
+    /// Hearts (U+2665) and diamonds (U+2666) print red.
+    private var ink: Color {
+        if suit == "\u{2665}" || suit == "\u{2666}" { return Color(hex: "dc2626") }
+        return Color(hex: "111827")
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("Teen Patti").font(.system(size: 38, weight: .bold))
-                    .foregroundColor(.white)
-                Spacer()
-                VStack(spacing: 2) {
-                    Text("POT").font(.caption.bold()).tracking(3)
-                        .foregroundColor(.white.opacity(0.4))
-                    Text("\(vm.state.pot)").font(.system(size: 46, weight: .heavy))
-                        .foregroundColor(.yellow)
-                }
-            }
-            .padding(.horizontal, 70).padding(.top, 44)
-
-            Spacer()
-
-            if vm.state.showdown.isEmpty {
-                // Cards stay on the phones until showdown.
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 20) {
-                    ForEach(Array(vm.state.seats.enumerated()), id: \.offset) { _, seat in
-                        VStack(spacing: 8) {
-                            Text(seat.name).font(.title3.bold())
-                                .foregroundColor(seat.folded ? .white.opacity(0.3) : .white)
-                            HStack(spacing: 5) {
-                                ForEach(0..<3, id: \.self) { _ in
-                                    RoundedRectangle(cornerRadius: 5)
-                                        .fill(seat.folded ? Color.white.opacity(0.07)
-                                                          : Color.purple.opacity(0.55))
-                                        .frame(width: 40, height: 58)
-                                }
-                            }
-                            Text("\(seat.chips)").font(.headline).foregroundColor(.cyan)
-                            if seat.blind && !seat.folded {
-                                Text("BLIND").font(.caption.bold()).tracking(2)
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                        .padding(.vertical, 18).frame(maxWidth: .infinity)
-                        .background(RoundedRectangle(cornerRadius: 14)
-                            .fill(seat.id == vm.state.currentPlayerID
-                                  ? Color.white.opacity(0.14) : Color.white.opacity(0.04)))
-                    }
-                }
-                .padding(.horizontal, 80)
-            } else {
-                VStack(spacing: 18) {
-                    ForEach(Array(vm.state.showdown.enumerated()), id: \.offset) { _, s in
-                        HStack(spacing: 18) {
-                            Text(s.name).font(.title2.bold()).foregroundColor(.white)
-                                .frame(width: 200, alignment: .leading)
-                            HStack(spacing: 8) {
-                                ForEach(Array(s.cards.enumerated()), id: \.offset) { _, c in
-                                    VStack(spacing: 0) {
-                                        Text(cardLabel(c.rank)).font(.title3.bold())
-                                        Text(c.suit).font(.title3)
-                                    }
-                                    .foregroundColor(c.suit == "♥" || c.suit == "♦" ? .red : .black)
-                                    .frame(width: 54, height: 76)
-                                    .background(RoundedRectangle(cornerRadius: 6).fill(.white))
-                                }
-                            }
-                            Text(rankName(s.rank)).font(.headline).foregroundColor(.yellow)
-                        }
-                    }
-                }
-            }
-
-            Spacer()
-            TVScoreStrip(players: vm.state.players)
+        ZStack {
+            RoundedRectangle(cornerRadius: width * 0.12, style: .continuous)
+                .fill(LinearGradient(colors: [Color.white, Color(hex: "f5f0e6")],
+                                     startPoint: .top, endPoint: .bottom))
+            RoundedRectangle(cornerRadius: width * 0.12, style: .continuous)
+                .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
+            Text(suit).font(.system(size: width * 0.5)).foregroundColor(ink)
+            corner
         }
-        .onAppear { vm.bind(roomCode: room.code) }
+        .frame(width: width, height: height)
+        .shadow(color: Color.black.opacity(0.45), radius: 8, x: 0, y: 6)
+    }
+
+    private var corner: some View {
+        VStack(spacing: -4) {
+            Text(label).font(.system(size: width * 0.27, weight: .heavy, design: .rounded))
+            Text(suit).font(.system(size: width * 0.2))
+        }
+        .foregroundColor(ink)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(width * 0.08)
+    }
+}
+
+/// One revealed card: arrives face down and flips over in 3D after `delay`.
+private struct TPRevealCard: View {
+    let rank: Int
+    let suit: String
+    let delay: Double
+    let height: CGFloat
+
+    @State private var faceUp = false
+
+    var body: some View {
+        TVFlipCard(isFaceUp: faceUp) {
+            TPCardFace(rank: rank, suit: suit, width: height * 0.7, height: height)
+        } back: {
+            TPCardBack(width: height * 0.7, height: height)
+        }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                withAnimation(.spring(response: 0.7, dampingFraction: 0.72)) { faceUp = true }
+            }
+        }
+    }
+}
+
+private struct TPShowdownRow: View {
+    let name: String
+    let cards: [(rank: Int, suit: String)]
+    let rankName: String
+    let isWinner: Bool
+    let rowIndex: Int
+    let cardHeight: CGFloat
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 26, tint: isWinner ? TVTheme.gold : Color.white,
+                    glow: isWinner ? TVTheme.gold : nil, padding: 0) {
+            HStack(spacing: 28) {
+                nameLabel
+                HStack(spacing: 14) {
+                    ForEach(Array(cards.enumerated()), id: \.offset) { i, card in
+                        TPRevealCard(rank: card.rank, suit: card.suit,
+                                     delay: 0.35 + Double(rowIndex) * 0.45 + Double(i) * 0.15,
+                                     height: cardHeight)
+                    }
+                }
+                Spacer()
+                rankPill
+            }
+            .padding(.horizontal, 30)
+            .padding(.vertical, 14)
+        }
+    }
+
+    private var nameLabel: some View {
+        HStack(spacing: 10) {
+            if isWinner {
+                Image(systemName: "crown.fill").foregroundColor(TVTheme.gold)
+            }
+            Text(name).font(.title2.bold()).foregroundColor(.white)
+                .lineLimit(1).truncationMode(.tail)
+        }
+        .frame(width: 280, alignment: .leading)
+    }
+
+    private var rankPill: some View {
+        Text(rankName.uppercased())
+            .font(.headline.weight(.heavy)).tracking(2)
+            .foregroundColor(isWinner ? Color.black : TVTheme.gold)
+            .padding(.horizontal, 18).padding(.vertical, 10)
+            .background(Capsule().fill(isWinner ? TVTheme.gold : TVTheme.gold.opacity(0.14)))
     }
 }

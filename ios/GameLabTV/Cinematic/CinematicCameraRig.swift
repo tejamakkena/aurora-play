@@ -128,7 +128,12 @@ final class CinematicCameraRig {
         camera.vignettingPower = 1.4
         camera.grainIntensity = 0.015
         camera.contrast = 0.02
-        camera.saturation = 0.02
+        // SCNCamera.saturation is a multiplier where 1 means unchanged.
+        // It used to be 0.02, which drained nearly all colour from every
+        // 3D board (Snake & Ladder, Poker, Defuse, Heist, Blast Runners),
+        // so they rendered almost black and grey. Slightly above 1 gives a
+        // rich, game-like grade.
+        camera.saturation = 1.1
 
         camera.zNear = 0.05
         camera.zFar = 100

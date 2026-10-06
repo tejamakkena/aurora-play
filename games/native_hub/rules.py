@@ -134,11 +134,13 @@ RULES: dict[str, dict] = {
     },
     "connect4": {
         "title": "Connect 4",
-        "objective": "Line up four of your discs before your opponent does.",
+        "objective": "Line up four of your discs before anyone else does.",
         "rules": [
+            "2 to 4 players, each with their own disc colour.",
             "Drop your discs into the grid on your turn.",
             "The first line of four -- across, down, or diagonal -- wins.",
-            "Block your opponent's run while building your own.",
+            "More players means a bigger board: 7 x 9 for three, 8 x 10 for four.",
+            "Block your rivals' runs while building your own.",
         ],
         "controls": "Tap a column on your phone.",
     },
@@ -285,6 +287,18 @@ RULES: dict[str, dict] = {
             "The most-voted players take the round's crown.",
         ],
         "controls": "Tap a player on your phone to vote.",
+    },
+    "brain_battle": {
+        "title": "Brain Battle",
+        "objective": "Out-think the room across twelve brain puzzles.",
+        "rules": [
+            "Each round the TV shows a puzzle: patterns, maths, memory, logic, words or shapes.",
+            "Memory rounds flash digits on the TV first -- watch closely before they vanish.",
+            "Lock in one of four answers on your phone; your first tap is final.",
+            "Correct answers score 500 plus up to 500 more for speed.",
+            "Puzzles get harder as the game goes on; the top brain wins a title.",
+        ],
+        "controls": "Tap A, B, C or D on your phone.",
     },
     # ---- Travel Mode (voice-first, one phone, car speakers) ------------
     "story_chain": {

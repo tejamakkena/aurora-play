@@ -1,6 +1,11 @@
 import SwiftUI
 
 /// Displayed on TV while players join via their phones.
+///
+/// Layout: a glass "join" card on the left (the room code as floating 3D
+/// letter tiles, the QR code and the join link), and the room on the right
+/// (the game, everyone who has joined as hopping avatar tokens, open seats as
+/// breathing ghost tokens, lobby options and a prominent Start button).
 struct TVLobbyView: View {
     let room: Room
     /// Whether *this* room was created via the solo path (TVRootViewModel's
@@ -31,212 +36,610 @@ struct TVLobbyView: View {
         (room.botsAllowed ?? false) && room.players.count < room.gameID.maxPlayers
     }
 
+    /// A solo room has one synthetic player and no phones to wait for.
+    private var canStart: Bool {
+        isSolo || room.players.count >= room.gameID.minPlayers
+    }
+
+    private var style: TVCategoryStyle { room.gameID.category.tvStyle }
+
+    /// Game Night room (created from the home screen's Game Night card)
+    /// that has not started its night yet: offer the setup panel.
+    private var showsNightSetup: Bool {
+        vm.isNightSetup && room.night == nil && !isSolo
+    }
+
+    /// Any Game Night panel on the left: the join card shrinks to make room.
+    private var showsNightPanel: Bool {
+        showsNightSetup || room.night != nil
+    }
+
+    /// Suggested Trivia topics the topic chip cycles through ("" = mixed).
+    private static let quizTopics: [String] = ["", "Bollywood", "Cricket", "Science", "Telugu cinema", "Space"]
+
     var body: some View {
-        HStack(spacing: 80) {
-            // Left — room code + QR
-            VStack(spacing: 32) {
-                VStack(spacing: 8) {
-                    Text("Join on your phone")
-                        .font(.title2)
-                        .foregroundColor(.white.opacity(0.6))
-
-                    Text(room.code)
-                        .font(.system(size: 96, weight: .black, design: .monospaced))
-                        .foregroundStyle(
-                            LinearGradient(colors: [.cyan, .purple], startPoint: .leading, endPoint: .trailing)
-                        )
-                        .kerning(12)
-
-                    Text("Open Aurora Play and enter the code")
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.4))
-
-                    Text("or scan to join")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.4))
-                }
-
-                // Scannable QR for zero-typing join, served by /native/qr/<code>.
-                ZStack {
-                    Circle()
-                        .stroke(Color.purple.opacity(0.2), lineWidth: 2)
-                        .frame(width: 220, height: 220)
-                    Circle()
-                        .stroke(Color.cyan.opacity(0.15), lineWidth: 1)
-                        .frame(width: 270, height: 270)
-                        .scaleEffect(1.05)
-                        .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true), value: true)
-
-                    AsyncImage(url: AppConstants.serverURL
-                        .appendingPathComponent("native/qr/\(room.code)")) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image.resizable().scaledToFit()
-                        default:
-                            Image(systemName: "qrcode")
-                                .font(.system(size: 80))
-                                .foregroundColor(.white.opacity(0.4))
-                        }
-                    }
-                    .frame(width: 170, height: 170)
-                    .background(Color.white)
-                    .cornerRadius(16)
-                }
-
-                // The same link the QR encodes, for anyone who'd rather type
-                // it into a browser (or when hosting on a LAN address).
-                Text(joinLinkText)
-                    .font(.system(.callout, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.55))
+        // Small outer padding: tvOS adds its own overscan safe area.
+        HStack(alignment: .center, spacing: 48) {
+            VStack(spacing: 22) {
+                joinPanel
+                nightPanel
             }
-            .frame(maxWidth: 520)
+            .frame(width: 700)
+            .focusSection()
 
-            // Right — player list + start
-            VStack(alignment: .leading, spacing: 24) {
-                Text(room.gameID.displayName)
-                    .font(.system(size: 48, weight: .bold))
-                    .foregroundColor(.white)
-
-                // A solo room now genuinely sits here with zero players
-                // until Start is pressed (see TVRootViewModel's own comment
-                // on why) -- "0 / 4 players" read as broken rather than
-                // optional, so solo gets its own, clearer line instead.
-                if isSolo && room.players.isEmpty {
-                    Text("Playing solo — invite friends with the code, or just press Start")
-                        .font(.title3)
-                        .foregroundColor(.white.opacity(0.5))
-                } else {
-                    Text("\(room.players.count) / \(room.gameID.maxPlayers) players")
-                        .font(.title3)
-                        .foregroundColor(.white.opacity(0.5))
-                }
-
-                ScrollView {
-                    VStack(spacing: 12) {
-                        ForEach(room.players) { player in
-                            PlayerRow(player: player)
-                        }
-                        // Empty slots. Clamped because a range whose lower bound
-                        // exceeds its upper bound traps at runtime, and the player
-                        // count is server-supplied.
-                        ForEach(0..<max(0, room.gameID.maxPlayers - room.players.count), id: \.self) { _ in
-                            EmptySlotRow()
-                        }
-                    }
-                }
-
-                lobbyOptions
-
-                Spacer()
-
-                // A solo room has one synthetic player and no phones to wait for.
-                let canStart = isSolo || room.players.count >= room.gameID.minPlayers
-                Button(action: onStart) {
-                    Label(canStart ? "Start Game" : "Waiting for \(room.gameID.minPlayers - room.players.count) more…",
-                          systemImage: canStart ? "play.fill" : "hourglass")
-                        .font(.title3.bold())
-                        .foregroundColor(canStart ? .black : .white.opacity(0.4))
-                        .padding(.horizontal, 40)
-                        .padding(.vertical, 18)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(canStart ? Color.cyan : Color.white.opacity(0.1))
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(!canStart)
-                .prefersDefaultFocus(true, in: lobbyFocus)
-            }
-            .frame(maxWidth: 520)
+            roomPanel
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .focusSection()
         }
-        .padding(80)
+        .padding(.horizontal, 40)
+        .padding(.vertical, 40)
         .focusScope(lobbyFocus)
     }
 
-    /// Question language (Trivia/KBC) and bot seat-fillers. Focusable with
-    /// the Siri Remote, so the host can set these up without a phone.
+    // MARK: Left -- join card
+
+    @ViewBuilder
+    private var joinPanel: some View {
+        if showsNightPanel {
+            compactJoinPanel
+        } else {
+            fullJoinPanel
+        }
+    }
+
+    /// The join card with less air, so a Game Night panel fits below it.
+    private var compactJoinPanel: some View {
+        ShellGlassCard(cornerRadius: 40, tint: ShellTheme.cyan, padding: 30) {
+            VStack(spacing: 18) {
+                Text("JOIN ON YOUR PHONE")
+                    .font(ShellTheme.eyebrow(20))
+                    .tracking(6)
+                    .foregroundColor(ShellTheme.textSecondary)
+
+                RoomCodeTiles(code: room.code)
+
+                HStack(alignment: .center, spacing: 24) {
+                    LobbyQRCode(code: room.code, side: 112)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Open Aurora Play and enter the code, or scan")
+                            .font(.system(size: 21, weight: .medium, design: .rounded))
+                            .foregroundColor(ShellTheme.textSecondary)
+                            .lineLimit(2)
+                        Text(joinLinkText)
+                            .font(.system(size: 18, weight: .medium, design: .monospaced))
+                            .foregroundColor(ShellTheme.cyan.opacity(0.85))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.6)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var nightPanel: some View {
+        if showsNightSetup {
+            TVNightSetupPanel(playerCount: room.players.count,
+                              focusNamespace: lobbyFocus) { minutes, kids, playlist in
+                vm.startNight(minutes: minutes, kids: kids, playlist: playlist)
+            }
+        } else if let night = room.night {
+            TVNightLobbyPanel(night: night)
+        }
+    }
+
+    private var fullJoinPanel: some View {
+        ShellGlassCard(cornerRadius: 44, tint: ShellTheme.cyan, padding: 44) {
+            VStack(spacing: 30) {
+                Text("JOIN ON YOUR PHONE")
+                    .font(ShellTheme.eyebrow(24))
+                    .tracking(6)
+                    .foregroundColor(ShellTheme.textSecondary)
+
+                RoomCodeTiles(code: room.code)
+
+                Text("Open Aurora Play and enter the code")
+                    .font(.system(size: 26, weight: .medium, design: .rounded))
+                    .foregroundColor(ShellTheme.textSecondary)
+
+                Capsule()
+                    .fill(Color.white.opacity(0.1))
+                    .frame(height: 2)
+
+                HStack(alignment: .center, spacing: 34) {
+                    LobbyQRCode(code: room.code)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("or scan to join")
+                            .font(ShellTheme.display(30, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("Point your phone camera at the code")
+                            .font(.system(size: 21, weight: .regular, design: .rounded))
+                            .foregroundColor(ShellTheme.textTertiary)
+                        // The same link the QR encodes, for anyone who'd
+                        // rather type it into a browser (or when hosting on a
+                        // LAN address).
+                        Text(joinLinkText)
+                            .font(.system(size: 20, weight: .medium, design: .monospaced))
+                            .foregroundColor(ShellTheme.cyan.opacity(0.85))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.6)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    // MARK: Right -- the room
+
+    private var roomPanel: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            HStack(spacing: 24) {
+                ShellIconOrb(symbol: room.gameID.sfSymbol,
+                             top: style.top,
+                             bottom: style.bottom,
+                             accent: style.accent,
+                             size: 96,
+                             isLit: true)
+                    .phaseAnimator([false, true]) { content, phase in
+                        content
+                            .rotation3DEffect(.degrees(phase ? 12 : -12),
+                                              axis: (x: 0, y: 1, z: 0),
+                                              perspective: 0.5)
+                    } animation: { _ in
+                        Animation.easeInOut(duration: 2.4)
+                    }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(room.gameID.category.rawValue.uppercased())
+                        .font(ShellTheme.eyebrow(20))
+                        .tracking(4)
+                        .foregroundColor(style.accent)
+                    Text(room.gameID.displayName)
+                        .font(ShellTheme.display(52))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                }
+            }
+
+            // A solo room now genuinely sits here with zero players
+            // until Start is pressed (see TVRootViewModel's own comment
+            // on why) -- "0 / 4 players" read as broken rather than
+            // optional, so solo gets its own, clearer line instead.
+            if isSolo && room.players.isEmpty {
+                Text("Playing solo — invite friends with the code, or just press Start")
+                    .font(.system(size: 26, weight: .medium, design: .rounded))
+                    .foregroundColor(ShellTheme.textSecondary)
+            } else {
+                HStack(spacing: 14) {
+                    Text("\(room.players.count) / \(room.gameID.maxPlayers) players")
+                        .font(.system(size: 28, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                    if !canStart {
+                        WaitingPulse(text: "Waiting for players")
+                    }
+                }
+            }
+
+            ShellGlassCard(cornerRadius: 36, tint: style.accent, padding: 28) {
+                if let teams = room.teams {
+                    TVTeamsRoster(teams: teams, players: room.players)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    LobbyRoster(players: room.players, maxPlayers: room.gameID.maxPlayers)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+
+            lobbyOptions
+
+            Spacer(minLength: 0)
+
+            Button(action: onStart) {
+                Label(canStart ? "Start Game" : "Waiting for \(room.gameID.minPlayers - room.players.count) more…",
+                      systemImage: canStart ? "play.fill" : "hourglass")
+            }
+            .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.cyan))
+            .disabled(!canStart)
+            // In a Game Night room still being set up, "Start the night"
+            // (in TVNightSetupPanel) takes the initial focus instead.
+            .prefersDefaultFocus(!showsNightSetup, in: lobbyFocus)
+        }
+    }
+
+    /// Quiz topic (Trivia), question language (Trivia/KBC) and bot
+    /// seat-fillers. Focusable with the Siri Remote, so the host can set
+    /// these up without a phone. One row when it fits, else two.
     @ViewBuilder
     private var lobbyOptions: some View {
+        if (room.usesContentPack ?? false) || (room.botsAllowed ?? false) || room.gameID == .trivia
+            || allowsTeams {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 14) {
+                    questionOptions
+                    botOptions
+                    teamOptions
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 14) {
+                        questionOptions
+                    }
+                    HStack(spacing: 14) {
+                        botOptions
+                        teamOptions
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var questionOptions: some View {
+        if room.gameID == .trivia {
+            // Cycles a few suggested topics; the server writes fresh
+            // questions on the chosen one (set_topic).
+            let currentTopic: String = room.topic ?? ""
+            let topicLabel: String = currentTopic.isEmpty ? "Mixed" : currentTopic
+            Button {
+                vm.setTopic(Self.nextTopic(after: currentTopic))
+            } label: {
+                Label("Topic: \(topicLabel)", systemImage: "text.bubble.fill")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.violet, fontSize: 22))
+        }
         if room.usesContentPack ?? false {
-            // One button that cycles English -> Telugu -> Hindi: three side
-            // by side do not fit this column at tvOS button sizes.
+            // One button that cycles English -> Telugu -> Hindi: three
+            // side by side do not fit this column at tvOS sizes.
             let current = ContentPack(rawValue: room.contentPack ?? "en") ?? .en
             Button {
                 vm.setContentPack(current.next)
             } label: {
                 Label("Questions: \(current.label)", systemImage: "character.bubble.fill")
             }
-            .font(.callout.bold())
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.cyan, fontSize: 22))
         }
+    }
+
+    @ViewBuilder
+    private var botOptions: some View {
         if room.botsAllowed ?? false {
-            HStack(spacing: 14) {
-                Button {
-                    vm.addBot()
-                } label: {
-                    Label("Add Bot", systemImage: "cpu")
-                }
-                .disabled(!canAddBot)
-                if let bot = room.players.last(where: { $0.isBot }) {
-                    Button {
-                        vm.removeBot(bot.id)
-                    } label: {
-                        Label("Remove Bot", systemImage: "minus.circle")
-                    }
-                }
+            Button {
+                vm.addBot()
+            } label: {
+                Label("Add Bot", systemImage: "cpu")
             }
-            .font(.callout.bold())
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.orange, fontSize: 22))
+            .disabled(!canAddBot)
+            if let bot = room.players.last(where: { $0.isBot }) {
+                Button {
+                    vm.removeBot(bot.id)
+                } label: {
+                    Label("Remove Bot", systemImage: "minus.circle")
+                }
+                .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.pink, fontSize: 22))
+            }
         }
+    }
+
+    /// Teams need at least two players to split.
+    private var allowsTeams: Bool {
+        !isSolo && room.players.count >= 2
+    }
+
+    /// Teams: Off -> 2 -> 3 -> 4 -> Off (never more teams than players),
+    /// plus a reshuffle while teams are on.
+    @ViewBuilder
+    private var teamOptions: some View {
+        if allowsTeams {
+            let current: Int = room.teams?.teams.count ?? 0
+            let most: Int = min(4, room.players.count)
+            let next: Int = current == 0 ? 2 : (current + 1 > most ? 0 : current + 1)
+            Button {
+                vm.setTeams(count: next)
+            } label: {
+                Label(current == 0 ? "Teams: Off" : "Teams: \(current)",
+                      systemImage: "person.3.fill")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.gold, fontSize: 22))
+            if current > 0 {
+                Button {
+                    vm.setTeams(count: current)
+                } label: {
+                    Label("Shuffle", systemImage: "shuffle")
+                }
+                .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.gold, fontSize: 22))
+            }
+        }
+    }
+
+    /// The suggested topic after `current`; a topic typed on a phone (not
+    /// in the list) goes back to the start, "Mixed".
+    static func nextTopic(after current: String) -> String {
+        let topics: [String] = quizTopics
+        guard !topics.isEmpty else { return "" }
+        let index: Int? = topics.firstIndex { $0.lowercased() == current.lowercased() }
+        guard let index else { return topics[0] }
+        return topics[(index + 1) % topics.count]
     }
 }
 
-private struct PlayerRow: View {
-    let player: Player
+// MARK: - Room code
+
+/// The room code as one floating 3D tile per character, bobbing in a slow
+/// wave. Read by VoiceOver as a single "Room code ABCD" element.
+private struct RoomCodeTiles: View {
+    let code: String
 
     var body: some View {
-        HStack(spacing: 16) {
-            Circle()
-                .fill(Color.purple.opacity(0.4))
-                .frame(width: 40, height: 40)
-                .overlay(Text(String(player.name.prefix(1))).foregroundColor(.white))
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
+            RoomCodeTileRow(code: code, time: context.date.timeIntervalSinceReferenceDate)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Room code \(code)")
+    }
+}
+
+private struct RoomCodeTileRow: View {
+    let code: String
+    let time: Double
+
+    private var characters: [String] { code.map { String($0) } }
+
+    /// Six tiles fit the card at full size; longer codes shrink to fit.
+    private var tileWidth: CGFloat { characters.count > 6 ? 74 : 88 }
+
+    private static let accents: [Color] = [
+        ShellTheme.cyan, ShellTheme.violet, ShellTheme.pink,
+        ShellTheme.blue, ShellTheme.mint, ShellTheme.gold
+    ]
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ForEach(Array(characters.enumerated()), id: \.offset) { index, character in
+                RoomCodeTile(character: character,
+                             accent: accent(at: index),
+                             width: tileWidth)
+                    .offset(y: CGFloat(sin(phase(at: index))) * 7)
+                    .rotation3DEffect(.degrees(sin(phase(at: index)) * 10),
+                                      axis: (x: 1, y: 0, z: 0),
+                                      perspective: 0.5)
+            }
+        }
+    }
+
+    private func phase(at index: Int) -> Double {
+        time.truncatingRemainder(dividingBy: 10_000) * 2.0 + Double(index) * 0.7
+    }
+
+    private func accent(at index: Int) -> Color {
+        let palette: [Color] = Self.accents
+        return palette[index % palette.count]
+    }
+}
+
+private struct RoomCodeTile: View {
+    let character: String
+    let accent: Color
+    let width: CGFloat
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: width * 0.22, style: .continuous)
+    }
+
+    var body: some View {
+        ZStack {
+            // Thickness.
+            shape
+                .fill(accent)
+                .overlay { shape.fill(Color.black.opacity(0.55)) }
+                .offset(y: 8)
+            shape.fill(Color(hex: "1B1440"))
+            shape.fill(LinearGradient(colors: [Color.white.opacity(0.24), Color.white.opacity(0.04)],
+                                      startPoint: .top,
+                                      endPoint: .bottom))
+            shape.strokeBorder(LinearGradient(colors: [accent, accent.opacity(0.2)],
+                                              startPoint: .top,
+                                              endPoint: .bottom),
+                               lineWidth: 2.5)
+            Text(character)
+                .font(ShellTheme.mono(width * 0.78, weight: .heavy))
+                .foregroundStyle(LinearGradient(colors: [Color.white, accent],
+                                                startPoint: .top,
+                                                endPoint: .bottom))
+                .shadow(color: accent.opacity(0.75), radius: 10)
+        }
+        .frame(width: width, height: width * 1.27)
+        .compositingGroup()
+        .shadow(color: Color.black.opacity(0.45), radius: 12, x: 0, y: 12)
+    }
+}
+
+// MARK: - QR
+
+/// Scannable QR for zero-typing join, served by /native/qr/<code>, on a white
+/// card tilted slightly in 3D with a breathing glow behind it.
+private struct LobbyQRCode: View {
+    let code: String
+    /// Edge length of the QR image itself; the glow and card scale with it.
+    var side: CGFloat = 180
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 40, style: .continuous)
+                .fill(RadialGradient(colors: [ShellTheme.cyan.opacity(0.55), ShellTheme.cyan.opacity(0)],
+                                     center: .center,
+                                     startRadius: side * 0.22,
+                                     endRadius: side * 0.95))
+                .frame(width: side * 1.67, height: side * 1.67)
+                .phaseAnimator([false, true]) { content, phase in
+                    content
+                        .scaleEffect(phase ? 1.06 : 0.92)
+                        .opacity(phase ? 1.0 : 0.45)
+                } animation: { _ in
+                    Animation.easeInOut(duration: 1.6)
+                }
+
+            AsyncImage(url: AppConstants.serverURL
+                .appendingPathComponent("native/qr/\(code)")) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().interpolation(.none).scaledToFit()
+                default:
+                    Image(systemName: "qrcode")
+                        .font(.system(size: side * 0.44))
+                        .foregroundColor(Color.black.opacity(0.35))
+                }
+            }
+            .frame(width: side, height: side)
+            .padding(side * 0.09)
+            .background {
+                RoundedRectangle(cornerRadius: side * 0.145, style: .continuous).fill(Color.white)
+            }
+            .compositingGroup()
+            .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 14)
+            .rotation3DEffect(.degrees(-8), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+        }
+        .frame(width: side * 1.45, height: side * 1.45)
+    }
+}
+
+// MARK: - Roster
+
+/// Everyone in the room as avatar tokens, plus ghost tokens for open seats.
+/// Up to 10 tokens at full size; bigger rooms (Tambola seats 20) switch to a
+/// compact grid so the column never overflows the screen.
+private struct LobbyRoster: View {
+    let players: [Player]
+    let maxPlayers: Int
+
+    private var isCompact: Bool { players.count > 10 }
+    private var tokenSize: CGFloat { isCompact ? 60 : 88 }
+    private var cellWidth: CGFloat { isCompact ? 108 : 140 }
+    private var columnCount: Int { isCompact ? 7 : 5 }
+
+    /// Ghost seats fill the grid up to 10 tokens (or the game's max, if
+    /// smaller); the exact count of open seats is in the line above.
+    /// Clamped because a range whose lower bound exceeds its upper bound
+    /// traps at runtime, and the player count is server-supplied.
+    private var ghostCount: Int {
+        let open: Int = max(0, maxPlayers - players.count)
+        let space: Int = max(0, 10 - players.count)
+        return min(open, space)
+    }
+
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.fixed(cellWidth), spacing: 12), count: columnCount)
+    }
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: isCompact ? 10 : 22) {
+            ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
+                LobbyPlayerCell(player: player, tokenSize: tokenSize, isCompact: isCompact)
+                    .frame(width: cellWidth)
+                    .shellHopIn(delay: Double(min(index, 6)) * 0.09, height: isCompact ? 36 : 56)
+            }
+            ForEach(0..<ghostCount, id: \.self) { _ in
+                LobbyGhostCell(tokenSize: tokenSize, isCompact: isCompact)
+                    .frame(width: cellWidth)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: players.count)
+    }
+}
+
+private struct LobbyPlayerCell: View {
+    let player: Player
+    let tokenSize: CGFloat
+    let isCompact: Bool
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ShellAvatarToken(id: player.id,
+                             name: player.name,
+                             size: tokenSize,
+                             isHost: player.isHost,
+                             isBot: player.isBot,
+                             isReady: player.isReady)
+                .padding(.top, tokenSize * 0.2)
 
             Text(player.name)
+                .font(.system(size: isCompact ? 18 : 22, weight: .semibold, design: .rounded))
                 .foregroundColor(.white)
-                .font(.body)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
 
-            if player.isHost { Text("HOST").font(.caption2).foregroundColor(.cyan) }
-            if player.isBot {
-                Text("BOT")
-                    .font(.caption2)
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.orange.opacity(0.2)))
+            if player.isHost {
+                LobbyTag(text: "HOST", color: ShellTheme.cyan)
+            } else if player.isBot {
+                LobbyTag(text: "BOT", color: ShellTheme.orange)
             }
-
-            Spacer()
-
-            Image(systemName: player.isReady ? "checkmark.circle.fill" : "circle")
-                .foregroundColor(player.isReady ? .green : .white.opacity(0.3))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)))
     }
 }
 
-private struct EmptySlotRow: View {
+private struct LobbyGhostCell: View {
+    let tokenSize: CGFloat
+    let isCompact: Bool
+
     var body: some View {
-        HStack {
-            Circle()
-                .strokeBorder(Color.white.opacity(0.15), lineWidth: 1, antialiased: true)
-                .frame(width: 40, height: 40)
-            Text("Waiting…")
-                .foregroundColor(.white.opacity(0.2))
-                .font(.body)
-            Spacer()
+        VStack(spacing: 8) {
+            ShellGhostToken(size: tokenSize)
+                .padding(.top, tokenSize * 0.2)
+            Text("Open")
+                .font(.system(size: isCompact ? 18 : 22, weight: .medium, design: .rounded))
+                .foregroundColor(Color.white.opacity(0.25))
+        }
+    }
+}
+
+private struct LobbyTag: View {
+    let text: String
+    let color: Color
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 14, weight: .heavy, design: .rounded))
+            .tracking(2)
+            .foregroundColor(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background { Capsule().fill(color.opacity(0.18)) }
+    }
+}
+
+/// Three dots pulsing in a wave next to a label.
+private struct WaitingPulse: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 7) {
+                ForEach(0..<3, id: \.self) { index in
+                    Circle()
+                        .fill(ShellTheme.cyan)
+                        .frame(width: 11, height: 11)
+                        .phaseAnimator([false, true]) { content, phase in
+                            content
+                                .scaleEffect(phase ? 1.0 : 0.45)
+                                .opacity(phase ? 1.0 : 0.3)
+                        } animation: { phase in
+                            Animation.easeInOut(duration: 0.6).delay(phase ? Double(index) * 0.18 : 0)
+                        }
+                }
+            }
+            Text(text)
+                .font(.system(size: 24, weight: .medium, design: .rounded))
+                .foregroundColor(ShellTheme.cyan.opacity(0.9))
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.03)))
+        .padding(.vertical, 8)
+        .background { Capsule().fill(ShellTheme.cyan.opacity(0.1)) }
     }
 }
