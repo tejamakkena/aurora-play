@@ -86,6 +86,11 @@ class Player:
         }
 
 
+def _night_json(room):
+    from games import game_night
+    return game_night.to_json(room)
+
+
 @dataclass
 class Room:
     code: str
@@ -134,6 +139,9 @@ class Room:
     # in the same room don't replay the same questions. Additive only --
     # safe for any engine that never heard of it.
     question_history: dict = field(default_factory=dict)
+    #: Game Night (games/game_night.py): the playlist, which game is up,
+    #: and the running night scoreboard. None outside a Game Night.
+    night: dict | None = None
     # Bumped on start and on finish. A background pump captures the value it was
     # spawned with and exits as soon as it no longer matches, so a pump from a
     # previous round can never double-broadcast into the next one.
@@ -179,6 +187,7 @@ class Room:
             "micPlayerID": self.mic_player_id,
             "botsAllowed": self.game_id in POLICIES,
             "usesContentPack": self.game_id in PACK_GAMES,
+            "night": _night_json(self),
         }
 
     # ---- mutations (callers hold self.lock) --------------------------------
