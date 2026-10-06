@@ -47,71 +47,73 @@ struct TVPongBoardView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            // The arena is a real lit SceneKit scene (PongArenaSceneView):
+            // glossy table, emissive paddles and ball, spark bursts on hits,
+            // a goal flash and camera shake on points. Paddle and ball
+            // positions come straight from the same PongState as before.
+            PongArenaSceneView(state: vm.state)
+                .ignoresSafeArea()
 
-            // Centre divider
-            VStack(spacing: 8) {
-                ForEach(0..<12, id: \.self) { _ in
-                    Rectangle().fill(Color.white.opacity(0.3)).frame(width: 4, height: 24)
+            VStack {
+                LinearGradient(colors: [Color.black.opacity(0.55), Color.clear],
+                               startPoint: .top, endPoint: .bottom)
+                    .frame(height: 220)
+                Spacer()
+            }
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+
+            VStack {
+                HStack(alignment: .top) {
+                    PongScorePanel(name: vm.state.leftPlayerName, score: vm.state.scoreLeft,
+                                   color: Color(hex: "22d3ee"), alignTrailing: false)
+                    Spacer()
+                    TVGlowText(text: "PONG", size: 46, color: Color(hex: "a78bfa"))
+                        .padding(.top, 14)
+                    Spacer()
+                    PongScorePanel(name: vm.state.rightPlayerName, score: vm.state.scoreRight,
+                                   color: Color(hex: "f472b6"), alignTrailing: true)
                 }
-            }
-
-            // Left paddle
-            //
-            // The gyro-driven paddle position only updates at the phone's
-            // throttled send rate (~12/sec, see PongControllerView), well
-            // below this board's own 30Hz state pump -- with no animation
-            // at all, every accepted update popped the paddle straight to
-            // its new position, which read as jittery even once the phone
-            // side was smoothed. Easing each hop closes that visible gap.
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color.white)
-                .frame(width: 12, height: 80)
-                .position(x: 60, y: paddleY(vm.state.leftPaddlePos))
-                .animation(.linear(duration: 0.08), value: vm.state.leftPaddlePos)
-
-            // Right paddle
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color.white)
-                .frame(width: 12, height: 80)
-                .position(x: UIScreen.main.bounds.width - 60, y: paddleY(vm.state.rightPaddlePos))
-                .animation(.linear(duration: 0.08), value: vm.state.rightPaddlePos)
-
-            // Ball
-            Circle().fill(Color.white).frame(width: 20, height: 20)
-                .position(x: vm.state.ballX * UIScreen.main.bounds.width,
-                          y: vm.state.ballY * UIScreen.main.bounds.height)
-                .shadow(color: .cyan, radius: 8)
-
-            // Scores
-            HStack {
-                Text("\(vm.state.scoreLeft)")
-                    .font(.system(size: 72, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.4))
+                .padding(.horizontal, 70)
+                .padding(.top, 40)
                 Spacer()
-                Text("\(vm.state.scoreRight)")
-                    .font(.system(size: 72, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.4))
             }
-            .padding(.horizontal, 120)
-            .frame(maxHeight: .infinity, alignment: .top)
-            .padding(.top, 60)
-
-            // Player labels
-            HStack {
-                Text(vm.state.leftPlayerName).font(.title3).foregroundColor(.white.opacity(0.4))
-                Spacer()
-                Text(vm.state.rightPlayerName).font(.title3).foregroundColor(.white.opacity(0.4))
-            }
-            .padding(.horizontal, 60)
-            .frame(maxHeight: .infinity, alignment: .bottom)
-            .padding(.bottom, 40)
+            .allowsHitTesting(false)
         }
         .onAppear { vm.bind(roomCode: room.code) }
     }
+}
 
-    private func paddleY(_ normalized: Double) -> CGFloat {
-        CGFloat(normalized) * UIScreen.main.bounds.height
+private struct PongScorePanel: View {
+    let name: String
+    let score: Int
+    let color: Color
+    let alignTrailing: Bool
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 26, tint: color, glow: color, padding: 0) {
+            HStack(spacing: 22) {
+                if alignTrailing { scoreView }
+                VStack(alignment: alignTrailing ? .trailing : .leading, spacing: 4) {
+                    Text("PLAYER").font(.caption.bold()).tracking(3)
+                        .foregroundColor(color.opacity(0.9))
+                    Text(name)
+                        .font(.title2.bold())
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                if !alignTrailing { scoreView }
+            }
+            .padding(.horizontal, 30)
+            .padding(.vertical, 16)
+        }
+        .frame(maxWidth: 520, alignment: alignTrailing ? .trailing : .leading)
+    }
+
+    private var scoreView: some View {
+        TVPopNumber(value: score, size: 64, color: color)
+            .frame(minWidth: 70)
     }
 }
 
@@ -1454,74 +1456,158 @@ struct TVHotGridBoardView: View {
     @StateObject private var vm = HotGridBoardViewModel()
 
     private let gridSize = 5
+    private let tileSize: CGFloat = 110
+    private let gap: CGFloat = 12
 
     var body: some View {
-        VStack(spacing: 32) {
-            HStack {
-                Text("Hot Grid").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
-                Spacer()
-                Text("\(vm.state.currentPlayerName)'s turn").font(.title3).foregroundColor(.yellow)
+        ZStack {
+            TVAnimatedBackground(palette: TVTheme.ember)
+
+            VStack(spacing: 28) {
+                header
+                TVScoreHeader(players: room.players, currentPlayerID: vm.state.currentPlayerID)
+                Spacer(minLength: 0)
+                grid
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 60).padding(.top, 40)
+            .padding(.bottom, 40)
+        }
+        .onAppear { vm.bind(roomCode: room.code) }
+    }
 
-            TVScoreHeader(players: room.players, currentPlayerID: vm.state.currentPlayerID)
-
-            // 5×5 grid
-            VStack(spacing: 12) {
-                ForEach(0..<gridSize, id: \.self) { row in
+    private var header: some View {
+        HStack(alignment: .center) {
+            TVGlowText(text: "Hot Grid", size: 54, color: TVTheme.ember.accent)
+            Spacer()
+            if !vm.state.currentPlayerName.isEmpty {
+                TVGlassCard(cornerRadius: 22, tint: TVTheme.gold, glow: TVTheme.gold, padding: 0) {
                     HStack(spacing: 12) {
-                        ForEach(0..<gridSize, id: \.self) { col in
-                            let idx = row * gridSize + col
-                            let tile = vm.state.tiles[safe: idx]
-                            HotGridTileView(tile: tile)
-                        }
+                        Image(systemName: "hand.point.up.left.fill").foregroundColor(TVTheme.gold)
+                        Text("\(vm.state.currentPlayerName)'s turn")
+                            .font(.title3.bold()).foregroundColor(.white)
+                            .lineLimit(1).truncationMode(.tail)
+                    }
+                    .padding(.horizontal, 24).padding(.vertical, 12)
+                }
+                .id(vm.state.currentPlayerName)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: vm.state.currentPlayerName)
+        .padding(.horizontal, 60).padding(.top, 40)
+    }
+
+    // 5x5 grid of flip tiles on a tilted, glowing tray.
+    private var grid: some View {
+        VStack(spacing: gap) {
+            ForEach(0..<gridSize, id: \.self) { row in
+                HStack(spacing: gap) {
+                    ForEach(0..<gridSize, id: \.self) { col in
+                        HotGridTileView(tile: vm.state.tiles[safe: row * gridSize + col], size: tileSize)
                     }
                 }
             }
-
-            Spacer()
         }
-        .background(Color(hex: "0a0a0a").ignoresSafeArea())
-        .onAppear { vm.bind(roomCode: room.code) }
+        .padding(26)
+        .background(
+            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .fill(LinearGradient(colors: [Color(hex: "2a1206"), Color(hex: "120703")],
+                                     startPoint: .top, endPoint: .bottom))
+                .overlay(RoundedRectangle(cornerRadius: 34, style: .continuous)
+                    .strokeBorder(LinearGradient(colors: [TVTheme.gold.opacity(0.6), Color(hex: "b45309").opacity(0.2)],
+                                                 startPoint: .top, endPoint: .bottom),
+                                  lineWidth: 2))
+        )
+        .shadow(color: Color(hex: "f97316").opacity(0.25), radius: 40)
+        .shadow(color: Color.black.opacity(0.6), radius: 30, x: 0, y: 26)
+        .rotation3DEffect(.degrees(16), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.5)
     }
 }
 
 enum HotGridTileContent { case hidden, coin(Int), trap, teleport }
 
+/// A tile that flips over in 3D the moment it is revealed.
 private struct HotGridTileView: View {
     let tile: HotGridTileContent?
+    let size: CGFloat
+
+    private var revealed: Bool {
+        switch tile {
+        case .hidden, .none: return false
+        default: return true
+        }
+    }
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(tileFill)
-                .frame(width: 100, height: 100)
-            tileContent
+        TVFlipCard(isFaceUp: revealed) {
+            face
+        } back: {
+            back
         }
+        .frame(width: size, height: size)
+        .animation(.spring(response: 0.65, dampingFraction: 0.7), value: revealed)
     }
 
-    @ViewBuilder private var tileContent: some View {
+    private var back: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(LinearGradient(colors: [Color(hex: "3f2a1e"), Color(hex: "1c120c")],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(LinearGradient(colors: [Color.white.opacity(0.28), Color.white.opacity(0.04)],
+                                             startPoint: .top, endPoint: .bottom),
+                              lineWidth: 1.5)
+            Text("?")
+                .font(TVTheme.display(size * 0.38))
+                .foregroundColor(Color.white.opacity(0.28))
+        }
+        .frame(width: size, height: size)
+        .shadow(color: Color.black.opacity(0.5), radius: 8, x: 0, y: 8)
+    }
+
+    private var face: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(LinearGradient(colors: [faceColors.0, faceColors.1],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(LinearGradient(colors: [Color.white.opacity(0.3), Color.white.opacity(0)],
+                                     startPoint: .top, endPoint: .center))
+            faceContent
+        }
+        .frame(width: size, height: size)
+        .shadow(color: faceColors.0.opacity(0.7), radius: 18)
+    }
+
+    @ViewBuilder private var faceContent: some View {
         switch tile {
-        case .hidden, .none:
-            Text("?").font(.system(size: 36, weight: .bold)).foregroundColor(.white.opacity(0.3))
         case .coin(let v):
             VStack(spacing: 2) {
-                Image(systemName: "dollarsign.circle.fill").font(.system(size: 34)).foregroundColor(.yellow)
-                Text("+\(v)").font(.caption.bold()).foregroundColor(.yellow)
+                Image(systemName: "dollarsign.circle.fill")
+                    .font(.system(size: size * 0.36))
+                    .foregroundStyle(LinearGradient(colors: [Color.white, Color(hex: "fde047")],
+                                                    startPoint: .top, endPoint: .bottom))
+                Text("+\(v)").font(TVTheme.display(size * 0.18)).foregroundColor(.white)
             }
         case .trap:
-            Image(systemName: "burst.fill").font(.system(size: 36)).foregroundColor(.red)
+            Image(systemName: "burst.fill")
+                .font(.system(size: size * 0.42))
+                .foregroundColor(.white)
         case .teleport:
-            Image(systemName: "tornado").font(.system(size: 36)).foregroundColor(.cyan)
+            Image(systemName: "tornado")
+                .font(.system(size: size * 0.42))
+                .foregroundColor(.white)
+        case .hidden, .none:
+            EmptyView()
         }
     }
 
-    private var tileFill: Color {
+    private var faceColors: (Color, Color) {
         switch tile {
-        case .hidden, .none: return Color(hex: "1a1a1a")
-        case .coin:          return Color.yellow.opacity(0.2)
-        case .trap:          return Color.red.opacity(0.25)
-        case .teleport:      return Color.purple.opacity(0.25)
+        case .coin: return (Color(hex: "f59e0b"), Color(hex: "92400e"))
+        case .trap: return (Color(hex: "ef4444"), Color(hex: "7f1d1d"))
+        case .teleport: return (Color(hex: "a855f7"), Color(hex: "4c1d95"))
+        case .hidden, .none: return (Color(hex: "3f2a1e"), Color(hex: "1c120c"))
         }
     }
 }

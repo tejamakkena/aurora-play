@@ -182,36 +182,39 @@ struct TVBluffItBoardView: View {
                                     : vm.state.base.phase == "pick" ? "find the truth" : "reveal")
             Spacer()
             VStack(spacing: 34) {
-                Text(vm.state.prompt)
-                    .font(.system(size: 46, weight: .semibold))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 120)
+                // The reveal view carries the prompt as its own headline.
+                if vm.state.base.phase != "reveal" {
+                    PartyPromptCard(text: vm.state.prompt, size: 46, accent: TVTheme.festival.accent)
+                }
 
                 if vm.state.base.phase == "write" {
-                    Text("\(vm.state.base.submitted.count) of \(vm.state.base.players.count) have written")
-                        .font(.title3).foregroundColor(.white.opacity(0.45))
+                    PartySubmissionTracker(players: vm.state.base.players,
+                                           submitted: vm.state.base.submitted,
+                                           verb: "have written", accent: TVTheme.festival.accent)
                 } else if vm.state.base.phase == "reveal" {
                     stagedReveal
                 } else {
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                        ForEach(Array(vm.state.options.enumerated()), id: \.offset) { idx, text in
-                            VStack(spacing: 6) {
-                                Text(text).font(.title3.bold()).foregroundColor(.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 22)
-                            .background(RoundedRectangle(cornerRadius: 14)
-                                .fill(Color.white.opacity(0.07)))
-                        }
-                    }
-                    .padding(.horizontal, 120)
+                    optionsGrid
                 }
             }
             Spacer()
             TVScoreStrip(players: vm.state.base.players, highlight: vm.state.base.submitted)
         }
+        .background(TVAnimatedBackground(palette: TVTheme.festival))
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    /// The answers to pick from, dealt in one by one as lettered glass cards.
+    private var optionsGrid: some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 22), GridItem(.flexible(), spacing: 22)],
+                  spacing: 22) {
+            ForEach(Array(vm.state.options.enumerated()), id: \.offset) { idx, text in
+                BluffOptionCard(index: idx, text: text)
+                    .tvStaggeredAppear(index: idx, step: 0.1)
+            }
+        }
+        .padding(.horizontal, 120)
+        .id("options-\(vm.state.base.round)-\(vm.state.prompt)")
     }
 
     /// The staged big-screen reveal: each lie appears one by one with its
@@ -360,20 +363,21 @@ struct TVHerdBoardView: View {
                           phaseLabel: "match the majority")
             Spacer()
             VStack(spacing: 32) {
-                Text(vm.state.prompt)
-                    .font(.system(size: 52, weight: .bold)).foregroundColor(.white)
-                    .multilineTextAlignment(.center).padding(.horizontal, 120)
-
                 if vm.state.base.phase == "answer" {
-                    Text("\(vm.state.base.submitted.count) of \(vm.state.base.players.count) answered")
-                        .font(.title2).foregroundColor(.white.opacity(0.45))
+                    HerdFlock(count: vm.state.base.players.count, answered: vm.state.base.submitted.count)
+                    PartyPromptCard(text: vm.state.prompt, size: 52, accent: TVTheme.aurora.accent)
+                    PartySubmissionTracker(players: vm.state.base.players,
+                                           submitted: vm.state.base.submitted,
+                                           verb: "answered", accent: TVTheme.aurora.accent)
                 } else {
+                    // The reveal view carries the prompt as its own headline.
                     stagedReveal
                 }
             }
             Spacer()
             TVScoreStrip(players: vm.state.base.players, highlight: vm.state.base.submitted)
         }
+        .background(TVAnimatedBackground(palette: TVTheme.aurora))
         .onAppear { vm.bind(roomCode: room.code) }
     }
 
@@ -518,14 +522,14 @@ struct TVNPATBoardView: View {
                           secondsLeft: vm.state.base.secondsLeft)
             Spacer()
             if vm.state.base.phase == "fill" {
-                VStack(spacing: 20) {
+                VStack(spacing: 26) {
                     Text("LETTER").font(.caption.bold()).tracking(5)
-                        .foregroundColor(.white.opacity(0.4))
-                    Text(vm.state.letter)
-                        .font(.system(size: 210, weight: .heavy, design: .rounded))
-                        .foregroundColor(.cyan)
-                    Text("\(vm.state.base.submitted.count) of \(vm.state.base.players.count) submitted")
-                        .font(.title3).foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(TVTheme.textSecondary)
+                    TVHeroLetter(letter: vm.state.letter, palette: TVTheme.aurora, tileSize: 230)
+                    categoryChips
+                    PartySubmissionTracker(players: vm.state.base.players,
+                                           submitted: vm.state.base.submitted,
+                                           verb: "submitted", accent: TVTheme.aurora.accent)
                 }
             } else {
                 stagedReveal
@@ -533,7 +537,31 @@ struct TVNPATBoardView: View {
             Spacer()
             TVScoreStrip(players: vm.state.base.players, highlight: vm.state.base.submitted)
         }
+        .background(TVAnimatedBackground(palette: TVTheme.aurora))
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    private static let categories: [(title: String, symbol: String)] = [
+        ("Name", "person.fill"), ("Place", "mappin.and.ellipse"),
+        ("Animal", "pawprint.fill"), ("Thing", "cube.fill"),
+    ]
+
+    /// The four columns everyone is filling in, dealt in per round.
+    private var categoryChips: some View {
+        HStack(spacing: 22) {
+            ForEach(Array(TVNPATBoardView.categories.enumerated()), id: \.offset) { index, category in
+                TVGlassCard(cornerRadius: 22, tint: TVTheme.aurora.blobs[index % 3], padding: 0) {
+                    HStack(spacing: 12) {
+                        Image(systemName: category.symbol)
+                            .foregroundColor(TVTheme.aurora.accent)
+                        Text(category.title).font(.title3.bold()).foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 26).padding(.vertical, 14)
+                }
+                .tvStaggeredAppear(index: index, step: 0.1)
+            }
+        }
+        .id("npat-chips-\(vm.state.base.round)")
     }
 
     /// The staged big-screen reveal: each player's answers appear one by
@@ -562,6 +590,152 @@ struct TVNPATBoardView: View {
             rows: rows,
             spotlight: spotlight,
             emptyMessage: "Nobody submitted this round")
+    }
+}
+
+// MARK: - Party chrome (Bluff It, Herd, NPAT)
+
+/// The round's question on a frosted card that swings in whenever the
+/// prompt changes.
+private struct PartyPromptCard: View {
+    let text: String
+    let size: CGFloat
+    let accent: Color
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 32, tint: accent, padding: 0) {
+            Text(text)
+                .font(.system(size: size, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .shadow(color: accent.opacity(0.35), radius: 14)
+                .padding(.horizontal, 56)
+                .padding(.vertical, 36)
+                .frame(maxWidth: .infinity)
+        }
+        .padding(.horizontal, 110)
+        .tvStaggeredAppear(index: 0)
+        // Outermost, so a new prompt is a new view and the entrance replays.
+        .id(text)
+    }
+}
+
+/// "3 of 6 answered", with the count popping and one chip per player that
+/// lights up the moment they lock in.
+private struct PartySubmissionTracker: View {
+    let players: [BoardPlayer]
+    let submitted: Set<String>
+    let verb: String
+    let accent: Color
+
+    private var doneCount: Int {
+        players.filter { submitted.contains($0.id) }.count
+    }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                TVPopNumber(value: doneCount, size: 44, color: accent)
+                Text("of \(players.count) \(verb)")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(TVTheme.textSecondary)
+            }
+            // Wraps onto a second row for a big room instead of running off
+            // the screen.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 200, maximum: 300), spacing: 14)], spacing: 14) {
+                ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
+                    PartyPlayerChip(name: player.name, done: submitted.contains(player.id), accent: accent)
+                        .tvStaggeredAppear(index: index, step: 0.05)
+                }
+            }
+            .padding(.horizontal, 120)
+        }
+    }
+}
+
+private struct PartyPlayerChip: View {
+    let name: String
+    let done: Bool
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: done ? "checkmark.circle.fill" : "ellipsis.circle")
+                .foregroundColor(done ? accent : TVTheme.textTertiary)
+            Text(name)
+                .font(.headline)
+                .foregroundColor(done ? Color.white : TVTheme.textSecondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(
+            Capsule().fill(done ? accent.opacity(0.22) : Color.white.opacity(0.06))
+        )
+        .overlay(Capsule().strokeBorder(done ? accent.opacity(0.8) : Color.white.opacity(0.1), lineWidth: 1.5))
+        .shadow(color: done ? accent.opacity(0.55) : Color.clear, radius: 12)
+        .scaleEffect(done ? 1.06 : 1)
+        .animation(.spring(response: 0.45, dampingFraction: 0.6), value: done)
+    }
+}
+
+/// A lettered answer card for Bluff It's pick phase.
+private struct BluffOptionCard: View {
+    let index: Int
+    let text: String
+
+    private var letter: String {
+        let letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]
+        return index < letters.count ? letters[index] : "\(index + 1)"
+    }
+
+    var body: some View {
+        TVGlassCard(cornerRadius: 24, tint: TVTheme.festival.blobs[index % 3], padding: 0) {
+            HStack(spacing: 18) {
+                Text(letter)
+                    .font(TVTheme.display(30))
+                    .foregroundColor(.black)
+                    .frame(width: 54, height: 54)
+                    .background(Circle().fill(TVTheme.festival.accent2))
+                    .shadow(color: TVTheme.festival.accent2.opacity(0.6), radius: 10)
+                Text(text)
+                    .font(.title3.bold())
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 24).padding(.vertical, 18)
+        }
+    }
+}
+
+/// Herd's mascot row: one glowing figure per player that fills in as they
+/// answer, bobbing gently so the waiting screen is never static.
+private struct HerdFlock: View {
+    let count: Int
+    let answered: Int
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+            let t: Double = timeline.date.timeIntervalSinceReferenceDate
+            HStack(spacing: 18) {
+                ForEach(0..<max(count, 0), id: \.self) { i in
+                    figure(index: i, time: t)
+                }
+            }
+        }
+        .frame(height: 70)
+    }
+
+    private func figure(index: Int, time: Double) -> some View {
+        let lit: Bool = index < answered
+        let bob: CGFloat = CGFloat(sin(time * 2.2 + Double(index) * 0.7)) * 5
+        let tint: Color = lit ? TVTheme.aurora.accent : Color.white.opacity(0.22)
+        return Image(systemName: "figure.stand")
+            .font(.system(size: 44, weight: .bold))
+            .foregroundColor(tint)
+            .shadow(color: lit ? tint.opacity(0.8) : Color.clear, radius: 10)
+            .offset(y: lit ? bob : 0)
+            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: lit)
     }
 }
 
