@@ -43,7 +43,7 @@ def start(game_id, room=None, roster=None, players=4):
 # the library
 # --------------------------------------------------------------------------
 
-@pytest.mark.parametrize("kind", [k for k, s in cs.KINDS.items() if s.ask])
+@pytest.mark.parametrize("kind", [k for k, s in cs.KINDS.items() if s.ask and k != "mc"])
 def test_library_files_are_valid_and_add_real_variety(kind):
     raw = json.loads(cs.library_path(kind).read_text(encoding="utf-8"))
     parsed = [cs.KINDS[kind].parse(r) for r in raw]
@@ -56,7 +56,7 @@ def test_library_files_are_valid_and_add_real_variety(kind):
 
 def test_every_library_string_is_speech_and_tv_safe():
     for kind, spec in cs.KINDS.items():
-        if not spec.ask:
+        if not spec.ask or kind == "mc":
             continue
         for item in cs.all_items(kind):
             text = json.dumps(spec.dump(item), ensure_ascii=False)
@@ -260,3 +260,27 @@ def test_trivia_skips_questions_a_device_saw_in_another_room():
     again = fresh_questions(other, "en", "trivia")
     asked = {q[1] for q in pool[:50]}
     assert asked.isdisjoint({q[1] for q in again})
+
+
+def test_trivia_pool_also_grows_from_the_llm(monkeypatch):
+    q = {"question": "Which city hosted the 2024 Summer Olympics?",
+         "options": ["Tokyo", "Paris", "London", "Rio"], "correct_answer": 1}
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setattr(cs.random, "random", lambda: 0.0)       # take the LLM path
+    monkeypatch.setattr(llm_json, "json_items", lambda prompt, system=None: ([q], "openai"))
+    assert cs.refill("mc") == 1
+    assert q["question"] in {i["question"] for i in cs.all_items("mc")}
+
+
+def test_trivia_falls_back_to_open_trivia_db_when_the_llm_fails(monkeypatch):
+    from games import topic_gen
+    q = {"question": "What is the boiling point of water at sea level in Celsius?",
+         "options": ["90", "100", "110", "120"], "correct_answer": 1}
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setattr(cs.random, "random", lambda: 0.0)
+
+    def boom(prompt, system=None):
+        raise llm_json.LLMError("down")
+    monkeypatch.setattr(llm_json, "json_items", boom)
+    monkeypatch.setattr(topic_gen, "_opentdb_batch", lambda topic, cat, count, exclude=(): [q])
+    assert cs.refill("mc") == 1

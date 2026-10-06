@@ -39,7 +39,9 @@ All sources are merged and de-duplicated per kind:
 | `draw_prompt` | Speed Sculptor | 10 | 150 |
 | `hot_take` | Hot Takes | 20 | 96 |
 | `cipher_word` | Cipher Grid | 50 | 192 |
-| `mc` | Trivia / KBC (English) | 206 / 321 | + Open Trivia DB, growing |
+| `mc` | Trivia / KBC (English) | 206 / 321 | + AI (OpenAI/Gemini) and Open Trivia DB, growing |
+| `analogy` | Brain puzzles | 0 | 60 |
+| `odd_word` | Brain puzzles | 0 | 60 |
 
 ## What stops repeats
 
@@ -74,3 +76,23 @@ it.
 | `GEMINI_API_KEY` | Fallback generator. |
 | `CONTENT_AUTO_REFILL=0` | Turns off background generation. |
 | `CONTENT_POOL_PATH`, `CONTENT_HEARD_PATH` | Where the pool and histories are saved. |
+
+## AI everywhere questions are asked
+
+- **Trivia and KBC (English):** the live pool grows from the LLM (60% of
+  refills when a key is set: newer, India-flavoured, current events) and from
+  Open Trivia DB (free) otherwise or on failure.
+- **Topic trivia, 20 Questions secrets, Hot Takes topics**
+  (`games/topic_gen.py`): now OpenAI first, then Gemini, via
+  `games/llm_json.py`. Before, these were Gemini only.
+- **Travel Mode riddles/quiz:** `games/travel_items.py` (OpenAI, then Gemini).
+- **Every prompt game** (Herd, Most Likely To, Bluff It, ...): background LLM
+  refill, as described above.
+
+## Brain puzzles
+
+`games/brain_puzzles.py` generates sequences, mental maths, memory chains,
+ordering logic, calendar logic and shape rotation. Because they're computed,
+every answer is right and the supply is endless, with difficulty set by
+`level` 1-10. Analogies and odd-one-out words come from the library above.
+`GET /api/brain/puzzles?level=&count=&kinds=&device=` serves Travel Mode.

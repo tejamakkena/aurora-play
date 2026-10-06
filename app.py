@@ -129,6 +129,10 @@ def create_app(config_name='default'):
     from games.voice import voice_bp
     app.register_blueprint(voice_bp, url_prefix='/api/voice')
 
+    # Brain puzzles (Travel Mode Brain Teasers; Brain Battle uses the module).
+    from games.brain_puzzles import brain_bp
+    app.register_blueprint(brain_bp, url_prefix='/api/brain')
+
     # Apply rate limiting to all game blueprints (configurable via RATE_LIMIT env var, default: 100/hour)
     game_rate_limit = app.config.get('RATELIMIT_DEFAULT', '100 per hour')
     limiter.limit(game_rate_limit)(tictactoe_bp)

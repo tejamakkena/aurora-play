@@ -1,0 +1,488 @@
+[
+ {
+  "a": "Bird",
+  "b": "Nest",
+  "c": "Bee",
+  "answer": "Hive",
+  "accepts": [
+   "beehive"
+  ]
+ },
+ {
+  "a": "Puppy",
+  "b": "Dog",
+  "c": "Kitten",
+  "answer": "Cat",
+  "accepts": []
+ },
+ {
+  "a": "Hot",
+  "b": "Cold",
+  "c": "Up",
+  "answer": "Down",
+  "accepts": []
+ },
+ {
+  "a": "Fish",
+  "b": "Water",
+  "c": "Bird",
+  "answer": "Air",
+  "accepts": [
+   "sky"
+  ]
+ },
+ {
+  "a": "Hand",
+  "b": "Glove",
+  "c": "Foot",
+  "answer": "Sock",
+  "accepts": [
+   "shoe"
+  ]
+ },
+ {
+  "a": "Day",
+  "b": "Night",
+  "c": "Summer",
+  "answer": "Winter",
+  "accepts": []
+ },
+ {
+  "a": "Pen",
+  "b": "Write",
+  "c": "Knife",
+  "answer": "Cut",
+  "accepts": []
+ },
+ {
+  "a": "Cow",
+  "b": "Milk",
+  "c": "Hen",
+  "answer": "Eggs",
+  "accepts": [
+   "egg"
+  ]
+ },
+ {
+  "a": "Teacher",
+  "b": "School",
+  "c": "Doctor",
+  "answer": "Hospital",
+  "accepts": []
+ },
+ {
+  "a": "Eye",
+  "b": "See",
+  "c": "Ear",
+  "answer": "Hear",
+  "accepts": []
+ },
+ {
+  "a": "Car",
+  "b": "Road",
+  "c": "Train",
+  "answer": "Track",
+  "accepts": [
+   "tracks",
+   "rails"
+  ]
+ },
+ {
+  "a": "Bread",
+  "b": "Baker",
+  "c": "Furniture",
+  "answer": "Carpenter",
+  "accepts": []
+ },
+ {
+  "a": "Cub",
+  "b": "Lion",
+  "c": "Calf",
+  "answer": "Cow",
+  "accepts": []
+ },
+ {
+  "a": "Paint",
+  "b": "Artist",
+  "c": "Words",
+  "answer": "Writer",
+  "accepts": [
+   "author",
+   "poet"
+  ]
+ },
+ {
+  "a": "Ice",
+  "b": "Cold",
+  "c": "Fire",
+  "answer": "Hot",
+  "accepts": []
+ },
+ {
+  "a": "Book",
+  "b": "Read",
+  "c": "Song",
+  "answer": "Sing",
+  "accepts": []
+ },
+ {
+  "a": "Rain",
+  "b": "Umbrella",
+  "c": "Sun",
+  "answer": "Sunglasses",
+  "accepts": [
+   "sunscreen",
+   "hat"
+  ]
+ },
+ {
+  "a": "Tree",
+  "b": "Forest",
+  "c": "Star",
+  "answer": "Galaxy",
+  "accepts": [
+   "constellation"
+  ]
+ },
+ {
+  "a": "Wheel",
+  "b": "Car",
+  "c": "Wing",
+  "answer": "Plane",
+  "accepts": [
+   "airplane",
+   "bird"
+  ]
+ },
+ {
+  "a": "Bee",
+  "b": "Buzz",
+  "c": "Dog",
+  "answer": "Bark",
+  "accepts": []
+ },
+ {
+  "a": "Spider",
+  "b": "Web",
+  "c": "Bird",
+  "answer": "Nest",
+  "accepts": []
+ },
+ {
+  "a": "Kitchen",
+  "b": "Cook",
+  "c": "Bedroom",
+  "answer": "Sleep",
+  "accepts": []
+ },
+ {
+  "a": "Grape",
+  "b": "Raisin",
+  "c": "Plum",
+  "answer": "Prune",
+  "accepts": []
+ },
+ {
+  "a": "Petal",
+  "b": "Flower",
+  "c": "Page",
+  "answer": "Book",
+  "accepts": []
+ },
+ {
+  "a": "Keyboard",
+  "b": "Type",
+  "c": "Mouse",
+  "answer": "Click",
+  "accepts": []
+ },
+ {
+  "a": "Ocean",
+  "b": "Wave",
+  "c": "Desert",
+  "answer": "Dune",
+  "accepts": [
+   "sand"
+  ]
+ },
+ {
+  "a": "Moon",
+  "b": "Night",
+  "c": "Sun",
+  "answer": "Day",
+  "accepts": []
+ },
+ {
+  "a": "Hungry",
+  "b": "Eat",
+  "c": "Tired",
+  "answer": "Sleep",
+  "accepts": [
+   "rest"
+  ]
+ },
+ {
+  "a": "Pilot",
+  "b": "Plane",
+  "c": "Captain",
+  "answer": "Ship",
+  "accepts": [
+   "boat"
+  ]
+ },
+ {
+  "a": "Chick",
+  "b": "Hen",
+  "c": "Foal",
+  "answer": "Horse",
+  "accepts": [
+   "mare"
+  ]
+ },
+ {
+  "a": "Thermometer",
+  "b": "Temperature",
+  "c": "Clock",
+  "answer": "Time",
+  "accepts": []
+ },
+ {
+  "a": "Glove",
+  "b": "Hand",
+  "c": "Hat",
+  "answer": "Head",
+  "accepts": []
+ },
+ {
+  "a": "Feather",
+  "b": "Bird",
+  "c": "Scale",
+  "answer": "Fish",
+  "accepts": [
+   "snake"
+  ]
+ },
+ {
+  "a": "Lock",
+  "b": "Key",
+  "c": "Question",
+  "answer": "Answer",
+  "accepts": []
+ },
+ {
+  "a": "Leaf",
+  "b": "Tree",
+  "c": "Finger",
+  "answer": "Hand",
+  "accepts": []
+ },
+ {
+  "a": "Seed",
+  "b": "Plant",
+  "c": "Egg",
+  "answer": "Bird",
+  "accepts": [
+   "chicken",
+   "chick"
+  ]
+ },
+ {
+  "a": "Library",
+  "b": "Books",
+  "c": "Museum",
+  "answer": "Art",
+  "accepts": [
+   "paintings",
+   "exhibits"
+  ]
+ },
+ {
+  "a": "Cricket",
+  "b": "Bat",
+  "c": "Tennis",
+  "answer": "Racket",
+  "accepts": [
+   "racquet"
+  ]
+ },
+ {
+  "a": "Water",
+  "b": "Thirst",
+  "c": "Food",
+  "answer": "Hunger",
+  "accepts": []
+ },
+ {
+  "a": "Snow",
+  "b": "White",
+  "c": "Grass",
+  "answer": "Green",
+  "accepts": []
+ },
+ {
+  "a": "Frog",
+  "b": "Tadpole",
+  "c": "Butterfly",
+  "answer": "Caterpillar",
+  "accepts": []
+ },
+ {
+  "a": "Ship",
+  "b": "Harbour",
+  "c": "Plane",
+  "answer": "Airport",
+  "accepts": [
+   "hangar"
+  ]
+ },
+ {
+  "a": "Brush",
+  "b": "Paint",
+  "c": "Pen",
+  "answer": "Ink",
+  "accepts": []
+ },
+ {
+  "a": "Ten",
+  "b": "Decade",
+  "c": "Hundred",
+  "answer": "Century",
+  "accepts": []
+ },
+ {
+  "a": "Morning",
+  "b": "Breakfast",
+  "c": "Evening",
+  "answer": "Dinner",
+  "accepts": [
+   "supper"
+  ]
+ },
+ {
+  "a": "Second",
+  "b": "Minute",
+  "c": "Minute",
+  "answer": "Hour",
+  "accepts": []
+ },
+ {
+  "a": "Wool",
+  "b": "Sheep",
+  "c": "Silk",
+  "answer": "Silkworm",
+  "accepts": [
+   "worm"
+  ]
+ },
+ {
+  "a": "Sculptor",
+  "b": "Statue",
+  "c": "Poet",
+  "answer": "Poem",
+  "accepts": [
+   "poems"
+  ]
+ },
+ {
+  "a": "Square",
+  "b": "Four",
+  "c": "Triangle",
+  "answer": "Three",
+  "accepts": [
+   "3"
+  ]
+ },
+ {
+  "a": "Elephant",
+  "b": "Trunk",
+  "c": "Bird",
+  "answer": "Beak",
+  "accepts": []
+ },
+ {
+  "a": "Inch",
+  "b": "Foot",
+  "c": "Centimetre",
+  "answer": "Metre",
+  "accepts": [
+   "meter"
+  ]
+ },
+ {
+  "a": "Mouse",
+  "b": "Cheese",
+  "c": "Rabbit",
+  "answer": "Carrot",
+  "accepts": [
+   "carrots",
+   "lettuce"
+  ]
+ },
+ {
+  "a": "Doctor",
+  "b": "Patient",
+  "c": "Teacher",
+  "answer": "Student",
+  "accepts": [
+   "pupil"
+  ]
+ },
+ {
+  "a": "Bark",
+  "b": "Tree",
+  "c": "Skin",
+  "answer": "Body",
+  "accepts": [
+   "person"
+  ]
+ },
+ {
+  "a": "Shoe",
+  "b": "Lace",
+  "c": "Gift",
+  "answer": "Ribbon",
+  "accepts": [
+   "bow"
+  ]
+ },
+ {
+  "a": "North",
+  "b": "South",
+  "c": "East",
+  "answer": "West",
+  "accepts": []
+ },
+ {
+  "a": "Loud",
+  "b": "Quiet",
+  "c": "Fast",
+  "answer": "Slow",
+  "accepts": []
+ },
+ {
+  "a": "Captain",
+  "b": "Team",
+  "c": "Conductor",
+  "answer": "Orchestra",
+  "accepts": [
+   "band"
+  ]
+ },
+ {
+  "a": "Eagle",
+  "b": "Fly",
+  "c": "Fish",
+  "answer": "Swim",
+  "accepts": []
+ },
+ {
+  "a": "Baker",
+  "b": "Oven",
+  "c": "Farmer",
+  "answer": "Tractor",
+  "accepts": [
+   "farm",
+   "field"
+  ]
+ }
+]

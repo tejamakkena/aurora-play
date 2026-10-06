@@ -1,0 +1,602 @@
+[
+ {
+  "words": [
+   "Apple",
+   "Banana",
+   "Carrot",
+   "Mango"
+  ],
+  "answer": "Carrot",
+  "why": "It is a vegetable, the others are fruits."
+ },
+ {
+  "words": [
+   "Dog",
+   "Cat",
+   "Eagle",
+   "Cow"
+  ],
+  "answer": "Eagle",
+  "why": "It is a bird, the others are mammals."
+ },
+ {
+  "words": [
+   "Red",
+   "Blue",
+   "Square",
+   "Green"
+  ],
+  "answer": "Square",
+  "why": "It is a shape, the others are colours."
+ },
+ {
+  "words": [
+   "Mercury",
+   "Venus",
+   "Moon",
+   "Mars"
+  ],
+  "answer": "Moon",
+  "why": "It is a moon, the others are planets."
+ },
+ {
+  "words": [
+   "Piano",
+   "Guitar",
+   "Violin",
+   "Drum"
+  ],
+  "answer": "Drum",
+  "why": "You hit it, the others have strings."
+ },
+ {
+  "words": [
+   "Monday",
+   "Friday",
+   "June",
+   "Sunday"
+  ],
+  "answer": "June",
+  "why": "It is a month, the others are days."
+ },
+ {
+  "words": [
+   "Shark",
+   "Dolphin",
+   "Whale",
+   "Seal"
+  ],
+  "answer": "Shark",
+  "why": "It is a fish, the others are mammals."
+ },
+ {
+  "words": [
+   "Two",
+   "Four",
+   "Seven",
+   "Eight"
+  ],
+  "answer": "Seven",
+  "why": "It is odd, the others are even."
+ },
+ {
+  "words": [
+   "Tokyo",
+   "Paris",
+   "India",
+   "Cairo"
+  ],
+  "answer": "India",
+  "why": "It is a country, the others are cities."
+ },
+ {
+  "words": [
+   "Spoon",
+   "Fork",
+   "Plate",
+   "Knife"
+  ],
+  "answer": "Plate",
+  "why": "It is not cutlery."
+ },
+ {
+  "words": [
+   "Rose",
+   "Tulip",
+   "Oak",
+   "Lily"
+  ],
+  "answer": "Oak",
+  "why": "It is a tree, the others are flowers."
+ },
+ {
+  "words": [
+   "Penguin",
+   "Ostrich",
+   "Sparrow",
+   "Emu"
+  ],
+  "answer": "Sparrow",
+  "why": "It can fly, the others cannot."
+ },
+ {
+  "words": [
+   "Football",
+   "Cricket",
+   "Chess",
+   "Tennis"
+  ],
+  "answer": "Chess",
+  "why": "It is not played with a ball."
+ },
+ {
+  "words": [
+   "Car",
+   "Bus",
+   "Boat",
+   "Bike"
+  ],
+  "answer": "Boat",
+  "why": "It travels on water, the others on roads."
+ },
+ {
+  "words": [
+   "Ice",
+   "Steam",
+   "Water",
+   "Fire"
+  ],
+  "answer": "Fire",
+  "why": "The others are all forms of water."
+ },
+ {
+  "words": [
+   "Three",
+   "Five",
+   "Nine",
+   "Eleven"
+  ],
+  "answer": "Nine",
+  "why": "It is not a prime number."
+ },
+ {
+  "words": [
+   "Spider",
+   "Ant",
+   "Bee",
+   "Beetle"
+  ],
+  "answer": "Spider",
+  "why": "It has eight legs, the others are insects with six."
+ },
+ {
+  "words": [
+   "Hammer",
+   "Saw",
+   "Spanner",
+   "Pillow"
+  ],
+  "answer": "Pillow",
+  "why": "It is not a tool."
+ },
+ {
+  "words": [
+   "Jupiter",
+   "Saturn",
+   "Sun",
+   "Neptune"
+  ],
+  "answer": "Sun",
+  "why": "It is a star, the others are planets."
+ },
+ {
+  "words": [
+   "Circle",
+   "Triangle",
+   "Cube",
+   "Square"
+  ],
+  "answer": "Cube",
+  "why": "It is 3D, the others are flat shapes."
+ },
+ {
+  "words": [
+   "Lion",
+   "Tiger",
+   "Leopard",
+   "Wolf"
+  ],
+  "answer": "Wolf",
+  "why": "It is not a big cat."
+ },
+ {
+  "words": [
+   "Cheese",
+   "Milk",
+   "Butter",
+   "Bread"
+  ],
+  "answer": "Bread",
+  "why": "It is not made from milk."
+ },
+ {
+  "words": [
+   "Hand",
+   "Foot",
+   "Elbow",
+   "Shirt"
+  ],
+  "answer": "Shirt",
+  "why": "It is clothing, the others are body parts."
+ },
+ {
+  "words": [
+   "Rain",
+   "Snow",
+   "Hail",
+   "Wind"
+  ],
+  "answer": "Wind",
+  "why": "It does not fall from the sky as water."
+ },
+ {
+  "words": [
+   "Eight",
+   "Sixteen",
+   "Twenty",
+   "Thirty two"
+  ],
+  "answer": "Twenty",
+  "why": "The others double each time."
+ },
+ {
+  "words": [
+   "Frog",
+   "Snake",
+   "Lizard",
+   "Turtle"
+  ],
+  "answer": "Frog",
+  "why": "It is an amphibian, the others are reptiles."
+ },
+ {
+  "words": [
+   "Nose",
+   "Ear",
+   "Eye",
+   "Knee"
+  ],
+  "answer": "Knee",
+  "why": "It is not on your head."
+ },
+ {
+  "words": [
+   "Tennis",
+   "Badminton",
+   "Golf",
+   "Squash"
+  ],
+  "answer": "Golf",
+  "why": "It is not played with a net or wall rally."
+ },
+ {
+  "words": [
+   "Gold",
+   "Silver",
+   "Iron",
+   "Wood"
+  ],
+  "answer": "Wood",
+  "why": "It is not a metal."
+ },
+ {
+  "words": [
+   "Pencil",
+   "Crayon",
+   "Marker",
+   "Eraser"
+  ],
+  "answer": "Eraser",
+  "why": "It removes marks, the others make them."
+ },
+ {
+  "words": [
+   "Kangaroo",
+   "Koala",
+   "Panda",
+   "Wombat"
+  ],
+  "answer": "Panda",
+  "why": "It is not from Australia."
+ },
+ {
+  "words": [
+   "Winter",
+   "Summer",
+   "Autumn",
+   "Morning"
+  ],
+  "answer": "Morning",
+  "why": "It is a time of day, the others are seasons."
+ },
+ {
+  "words": [
+   "Doctor",
+   "Nurse",
+   "Surgeon",
+   "Pilot"
+  ],
+  "answer": "Pilot",
+  "why": "It is not a medical job."
+ },
+ {
+  "words": [
+   "Salt",
+   "Sugar",
+   "Honey",
+   "Jam"
+  ],
+  "answer": "Salt",
+  "why": "It is not sweet."
+ },
+ {
+  "words": [
+   "Ant",
+   "Elephant",
+   "Whale",
+   "Giraffe"
+  ],
+  "answer": "Ant",
+  "why": "It is tiny, the others are giants."
+ },
+ {
+  "words": [
+   "Paris",
+   "London",
+   "Rome",
+   "Sydney"
+  ],
+  "answer": "Sydney",
+  "why": "It is not a capital city."
+ },
+ {
+  "words": [
+   "Pacific",
+   "Atlantic",
+   "Sahara",
+   "Indian"
+  ],
+  "answer": "Sahara",
+  "why": "It is a desert, the others are oceans."
+ },
+ {
+  "words": [
+   "Violin",
+   "Trumpet",
+   "Flute",
+   "Clarinet"
+  ],
+  "answer": "Violin",
+  "why": "It has strings, the others are blown."
+ },
+ {
+  "words": [
+   "Hexagon",
+   "Pentagon",
+   "Octagon",
+   "Circle"
+  ],
+  "answer": "Circle",
+  "why": "It has no straight sides."
+ },
+ {
+  "words": [
+   "Bat",
+   "Owl",
+   "Eagle",
+   "Parrot"
+  ],
+  "answer": "Bat",
+  "why": "It is a mammal, the others are birds."
+ },
+ {
+  "words": [
+   "Cotton",
+   "Silk",
+   "Wool",
+   "Plastic"
+  ],
+  "answer": "Plastic",
+  "why": "It is not a natural fibre."
+ },
+ {
+  "words": [
+   "Hundred",
+   "Thousand",
+   "Million",
+   "Dozen"
+  ],
+  "answer": "Dozen",
+  "why": "It means twelve, the others are powers of ten."
+ },
+ {
+  "words": [
+   "Mango",
+   "Papaya",
+   "Apple",
+   "Pineapple"
+  ],
+  "answer": "Apple",
+  "why": "It is not a tropical fruit."
+ },
+ {
+  "words": [
+   "Sun",
+   "Bulb",
+   "Candle",
+   "Mirror"
+  ],
+  "answer": "Mirror",
+  "why": "It reflects light, the others make it."
+ },
+ {
+  "words": [
+   "Cricket",
+   "Grasshopper",
+   "Ladybug",
+   "Worm"
+  ],
+  "answer": "Worm",
+  "why": "It is not an insect."
+ },
+ {
+  "words": [
+   "Bus",
+   "Train",
+   "Plane",
+   "Bicycle"
+  ],
+  "answer": "Bicycle",
+  "why": "It has no engine."
+ },
+ {
+  "words": [
+   "Tea",
+   "Coffee",
+   "Juice",
+   "Bread"
+  ],
+  "answer": "Bread",
+  "why": "It is not a drink."
+ },
+ {
+  "words": [
+   "Kite",
+   "Balloon",
+   "Rocket",
+   "Brick"
+  ],
+  "answer": "Brick",
+  "why": "It cannot go up in the air."
+ },
+ {
+  "words": [
+   "Twenty five",
+   "Thirty six",
+   "Forty",
+   "Forty nine"
+  ],
+  "answer": "Forty",
+  "why": "It is not a square number."
+ },
+ {
+  "words": [
+   "Ear",
+   "Antenna",
+   "Microphone",
+   "Lens"
+  ],
+  "answer": "Lens",
+  "why": "It works with light, the others with sound."
+ },
+ {
+  "words": [
+   "Lemon",
+   "Banana",
+   "Sunflower",
+   "Tomato"
+  ],
+  "answer": "Tomato",
+  "why": "It is red, the others are yellow."
+ },
+ {
+  "words": [
+   "Keyboard",
+   "Mouse",
+   "Monitor",
+   "Sofa"
+  ],
+  "answer": "Sofa",
+  "why": "It is not part of a computer."
+ },
+ {
+  "words": [
+   "Saturn",
+   "Pluto",
+   "Mars",
+   "Earth"
+  ],
+  "answer": "Pluto",
+  "why": "It is a dwarf planet, the others are planets."
+ },
+ {
+  "words": [
+   "Rice",
+   "Wheat",
+   "Corn",
+   "Potato"
+  ],
+  "answer": "Potato",
+  "why": "It is a root vegetable, the others are grains."
+ },
+ {
+  "words": [
+   "Sparrow",
+   "Pigeon",
+   "Crow",
+   "Butterfly"
+  ],
+  "answer": "Butterfly",
+  "why": "It is an insect, the others are birds."
+ },
+ {
+  "words": [
+   "Six",
+   "Twelve",
+   "Eighteen",
+   "Twenty"
+  ],
+  "answer": "Twenty",
+  "why": "The others are in the six times table."
+ },
+ {
+  "words": [
+   "Elephant",
+   "Rhino",
+   "Hippo",
+   "Leopard"
+  ],
+  "answer": "Leopard",
+  "why": "It is a hunter, the others eat plants."
+ },
+ {
+  "words": [
+   "Teacher",
+   "Student",
+   "Principal",
+   "Chef"
+  ],
+  "answer": "Chef",
+  "why": "The others are found in a school."
+ },
+ {
+  "words": [
+   "Thunder",
+   "Lightning",
+   "Rainbow",
+   "Earthquake"
+  ],
+  "answer": "Earthquake",
+  "why": "It is not weather in the sky."
+ },
+ {
+  "words": [
+   "Diamond",
+   "Ruby",
+   "Emerald",
+   "Marble"
+  ],
+  "answer": "Marble",
+  "why": "It is not a precious gem."
+ }
+]
