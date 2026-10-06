@@ -105,11 +105,11 @@ struct TriviaControllerView: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("TRIVIA SHOWDOWN")
-                    .font(.system(size: 17, weight: .black, design: .rounded))
+                    .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundColor(QuizPadStyle.gold)
                 Text(subtitle)
-                    .font(.caption.bold())
-                    .foregroundColor(.white.opacity(0.6))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 0) {
@@ -119,23 +119,24 @@ struct TriviaControllerView: View {
                     .contentTransition(.numericText(value: Double(score)))
                     .animation(.easeOut(duration: 0.6), value: score)
                 Text("POINTS")
-                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .font(.system(size: 10, weight: .heavy, design: .rounded))
                     .tracking(2)
-                    .foregroundColor(.white.opacity(0.5))
+                    .foregroundColor(PhonePlayDesign.text3)
             }
             if showsTimer {
-                Text("\(seconds)")
-                    .font(.system(size: 24, weight: .black, design: .rounded))
-                    .foregroundColor(seconds <= 5 ? Color(hex: "FF3D7F") : .white)
-                    .frame(width: 48, height: 48)
-                    .background(Circle().fill(Color.white.opacity(0.12)))
-                    .contentTransition(.numericText(countsDown: true))
-                    .animation(.default, value: seconds)
+                ControllerTimerChip(secondsLeft: seconds)
+                    .transition(.scale.combined(with: .opacity))
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-        .background(Color.black.opacity(0.25))
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
+                .padding(.horizontal, 10)
+        )
+        .padding(.top, 6)
+        .animation(PhonePlayDesign.pop, value: showsTimer)
     }
 
     // MARK: Phases
@@ -205,8 +206,9 @@ struct TriviaControllerView: View {
                     .font(.system(size: 30, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                 Text(voted == nil ? "The most votes opens. Ties are a coin flip." : "Waiting for everyone else...")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.6))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .multilineTextAlignment(.center)
                 ForEach(Array(categories.enumerated()), id: \.offset) { index, name in
                     QuizPadDoorButton(index: index,
                                       name: name,
@@ -238,14 +240,14 @@ struct TriviaControllerView: View {
             QuizPadTargetPicker(power: power,
                                 rivals: privateData.dicts("rivals"),
                                 onPick: { target in send(power: power, target: target) },
-                                onBack: { withAnimation(.spring()) { chosenPower = nil } })
+                                onBack: { withAnimation(PhonePlayDesign.pop) { chosenPower = nil } })
         } else {
             QuizPadPowerGrid(hasRivals: !privateData.dicts("rivals").isEmpty) { power in
                 if power == "shield" {
                     send(power: power, target: nil)
                 } else {
                     QuizPadHaptics.tap(.light)
-                    withAnimation(.spring()) { chosenPower = power }
+                    withAnimation(PhonePlayDesign.pop) { chosenPower = power }
                 }
             }
         }
@@ -318,7 +320,7 @@ struct TriviaControllerView: View {
                     Text(category.uppercased())
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                         .tracking(2)
-                        .foregroundColor(Color(hex: "1A0640"))
+                        .foregroundColor(QuizPadStyle.ink)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 5)
                         .background(Capsule().fill(QuizPadStyle.gold))
@@ -382,13 +384,20 @@ struct TriviaControllerView: View {
 
 // MARK: - Style
 
+/// Phone Play tokens throughout; the answer and door colours keep the same
+/// hue order as the TV's tiles (red, blue, amber, green) so players can
+/// match them across the room.
 enum QuizPadStyle {
-    static let gold = Color(hex: "FACC15")
+    static let gold: Color = PhonePlayDesign.yellow
+    /// Dark ink for text and icons sitting on the gold.
+    static let ink: Color = PhonePlayDesign.bg
     static let tileColors: [Color] = [
-        Color(hex: "FF3D7F"), Color(hex: "3D8BFF"), Color(hex: "FFB020"), Color(hex: "22C77A"),
+        PhonePlayDesign.red, PhonePlayDesign.blue, PhonePlayDesign.yellow, PhonePlayDesign.green,
     ]
     static let tileShapes: [String] = ["triangle.fill", "diamond.fill", "circle.fill", "square.fill"]
-    static let doorColors: [Color] = [Color(hex: "FF4D8D"), Color(hex: "3DA5FF"), Color(hex: "FFB020")]
+    static let doorColors: [Color] = [PhonePlayDesign.pink, PhonePlayDesign.blue, PhonePlayDesign.yellow]
+    /// Not Phone Play tokens on purpose: these must match the TV's avatar
+    /// palette exactly.
     static let avatarColors: [Color] = [
         Color(hex: "F43F5E"), Color(hex: "F97316"), Color(hex: "EAB308"), Color(hex: "22C55E"),
         Color(hex: "14B8A6"), Color(hex: "06B6D4"), Color(hex: "3B82F6"), Color(hex: "6366F1"),
@@ -434,11 +443,11 @@ enum QuizPadStyle {
 
     static func powerColor(_ power: String) -> Color {
         switch power {
-        case "freeze": return Color(hex: "38BDF8")
-        case "scramble": return Color(hex: "F472B6")
-        case "fog": return Color(hex: "8B8FD8")
-        case "shield": return Color(hex: "FACC15")
-        default: return Color(hex: "22D3EE")
+        case "freeze": return PhonePlayDesign.cyan
+        case "scramble": return PhonePlayDesign.pink
+        case "fog": return PhonePlayDesign.purple
+        case "shield": return PhonePlayDesign.yellow
+        default: return PhonePlayDesign.cyan
         }
     }
 
@@ -472,26 +481,35 @@ enum QuizPadStyle {
     }
 }
 
+/// Routes Trivia's haptics through PhonePlayHaptics, so they feel the same
+/// as every other phone screen.
 enum QuizPadHaptics {
     static func tap(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.impactOccurred()
+        switch style {
+        case .heavy: PhonePlayHaptics.thump()
+        case .rigid: PhonePlayHaptics.rigid()
+        default: PhonePlayHaptics.tap()
+        }
     }
 
     static func notify(_ type: UINotificationFeedbackGenerator.FeedbackType) {
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(type)
+        switch type {
+        case .success: PhonePlayHaptics.success()
+        case .warning: PhonePlayHaptics.warning()
+        case .error: PhonePlayHaptics.error()
+        @unknown default: PhonePlayHaptics.tap()
+        }
     }
 }
 
 // MARK: - Pieces
 
+/// The Phone Play backdrop with a soft game-show glow at the top.
 private struct QuizPadBackground: View {
     var body: some View {
-        LinearGradient(colors: [Color(hex: "2A0B5C"), Color(hex: "16052F"), Color(hex: "0B0220")],
-                       startPoint: .top, endPoint: .bottom)
+        PhonePlayDesign.bg
             .overlay(
-                RadialGradient(colors: [Color(hex: "A855F7").opacity(0.35), Color.clear],
+                RadialGradient(colors: [PhonePlayDesign.purple.opacity(0.28), Color.clear],
                                center: .top, startRadius: 0, endRadius: 420)
             )
             .ignoresSafeArea()
@@ -515,6 +533,7 @@ private struct QuizPadMessage: View {
                 .background(Circle().fill(tint.opacity(0.85)))
                 .shadow(color: tint.opacity(0.6), radius: 18)
                 .scaleEffect(popped ? 1 : 0.4)
+                .phonePlayIdle(dy: 4, scale: 0.03, duration: 1.6)
             Text(title)
                 .font(.system(size: 30, weight: .black, design: .rounded))
                 .foregroundColor(.white)
@@ -522,14 +541,14 @@ private struct QuizPadMessage: View {
             if let detail {
                 Text(detail)
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(PhonePlayDesign.text2)
                     .multilineTextAlignment(.center)
             }
         }
         .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.55)) { popped = true }
+            withAnimation(PhonePlayDesign.pop) { popped = true }
         }
     }
 }
@@ -566,34 +585,24 @@ private struct QuizPadDoorButton: View {
             .frame(maxWidth: .infinity, minHeight: 104)
             .background(
                 ZStack {
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                         .fill(color.opacity(0.55))
                         .offset(y: 6)
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                         .fill(LinearGradient(colors: [color, color.opacity(0.8)],
                                              startPoint: .top, endPoint: .bottom))
                 }
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .strokeBorder(Color.white, lineWidth: isPicked ? 4 : 0)
             )
         }
-        .buttonStyle(QuizPadPressStyle())
+        .buttonStyle(PhonePlayPressStyle())
         .disabled(isPicked || isDimmed)
         .opacity(isDimmed ? 0.35 : 1)
         .scaleEffect(isPicked ? 1.03 : 1)
-        .animation(.spring(response: 0.35, dampingFraction: 0.6), value: isPicked)
-    }
-}
-
-/// Pushes a button down a little while pressed: chunky and tactile.
-private struct QuizPadPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-            .offset(y: configuration.isPressed ? 3 : 0)
-            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
+        .animation(PhonePlayDesign.pop, value: isPicked)
     }
 }
 
@@ -611,8 +620,8 @@ private struct QuizPadPowerGrid: View {
                     .font(.system(size: 30, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                 Text("Throw one at a rival, or shield yourself.")
-                    .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.65))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
                 LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(powers, id: \.self) { power in
                         let usable: Bool = power == "shield" || hasRivals
@@ -631,22 +640,22 @@ private struct QuizPadPowerGrid: View {
                                     .foregroundColor(.white)
                                 Text(QuizPadStyle.powerDetail(power))
                                     .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.65))
+                                    .foregroundColor(PhonePlayDesign.text2)
                                     .multilineTextAlignment(.center)
                                     .fixedSize(horizontal: false, vertical: true)
                             }
                             .padding(14)
                             .frame(maxWidth: .infinity, minHeight: 190)
                             .background(
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(Color.white.opacity(0.08))
+                                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                                    .fill(PhonePlayDesign.surface)
                             )
                             .overlay(
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                                     .strokeBorder(QuizPadStyle.powerColor(power).opacity(0.7), lineWidth: 2)
                             )
                         }
-                        .buttonStyle(QuizPadPressStyle())
+                        .buttonStyle(PhonePlayPressStyle())
                         .disabled(!usable)
                         .opacity(usable ? 1 : 0.35)
                     }
@@ -679,11 +688,22 @@ private struct QuizPadTargetPicker: View {
         ScrollView {
             VStack(spacing: 14) {
                 HStack {
-                    Button(action: onBack) {
-                        Label("Back", systemImage: "chevron.left")
-                            .font(.headline)
-                            .foregroundColor(.white.opacity(0.8))
+                    Button(action: {
+                        PhonePlayHaptics.tap()
+                        onBack()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 15, weight: .bold))
+                            Text("Back")
+                                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundColor(.white.opacity(0.75))
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Capsule().fill(Color.white.opacity(0.08)))
                     }
+                    .buttonStyle(PhonePlayPressStyle())
                     Spacer()
                 }
                 Image(systemName: QuizPadStyle.powerSymbol(power))
@@ -717,11 +737,15 @@ private struct QuizPadTargetPicker: View {
                         .padding(14)
                         .frame(maxWidth: .infinity, minHeight: 76)
                         .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Color.white.opacity(0.1))
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                .fill(PhonePlayDesign.surface)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                .strokeBorder(QuizPadStyle.powerColor(power).opacity(0.35), lineWidth: 1)
                         )
                     }
-                    .buttonStyle(QuizPadPressStyle())
+                    .buttonStyle(PhonePlayPressStyle())
                 }
             }
             .padding(20)
@@ -908,16 +932,16 @@ private struct QuizPadAnswerButton: View {
             .frame(maxWidth: .infinity, minHeight: 78)
             .background(
                 ZStack {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(color.opacity(0.5))
                         .offset(y: 5)
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(LinearGradient(colors: [color, color.opacity(0.82)],
                                              startPoint: .top, endPoint: .bottom))
                 }
             )
         }
-        .buttonStyle(QuizPadPressStyle())
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
@@ -931,7 +955,7 @@ private struct QuizPadLockedCard: View {
         VStack(spacing: 16) {
             Image(systemName: "lock.fill")
                 .font(.system(size: 40, weight: .bold))
-                .foregroundColor(Color(hex: "1A0640"))
+                .foregroundColor(QuizPadStyle.ink)
                 .frame(width: 84, height: 84)
                 .background(Circle().fill(QuizPadStyle.gold))
                 .scaleEffect(popped ? 1 : 0.3)
@@ -951,14 +975,17 @@ private struct QuizPadLockedCard: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 18).fill(QuizPadStyle.tile(index).opacity(0.85)))
+            .background(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .fill(QuizPadStyle.tile(index).opacity(0.85))
+            )
             Text("Fingers crossed. Watch the TV!")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.6))
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
         }
         .padding(.top, 20)
         .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) { popped = true }
+            withAnimation(PhonePlayDesign.pop) { popped = true }
         }
     }
 }
@@ -976,8 +1003,8 @@ private struct QuizPadRevealCard: View {
     @State private var popped: Bool = false
 
     private var tint: Color {
-        if wasCorrect { return Color(hex: "22C77A") }
-        return answered ? Color(hex: "FF3D7F") : Color(hex: "8B8FD8")
+        if wasCorrect { return PhonePlayDesign.green }
+        return answered ? PhonePlayDesign.red : PhonePlayDesign.purple
     }
 
     private var title: String {
@@ -1006,8 +1033,8 @@ private struct QuizPadRevealCard: View {
             if !wasCorrect && !correctText.isEmpty {
                 VStack(spacing: 8) {
                     Text("The answer was")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
                     HStack(spacing: 10) {
                         Image(systemName: QuizPadStyle.shape(correctIndex))
                             .font(.system(size: 16, weight: .black))
@@ -1020,14 +1047,17 @@ private struct QuizPadRevealCard: View {
                             .lineLimit(2)
                     }
                     .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(QuizPadStyle.tile(correctIndex).opacity(0.8)))
+                    .background(
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                            .fill(QuizPadStyle.tile(correctIndex).opacity(0.8))
+                    )
                 }
             }
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.5)) { popped = true }
+            withAnimation(PhonePlayDesign.pop) { popped = true }
             QuizPadHaptics.notify(wasCorrect ? .success : .error)
         }
         .task {
@@ -1054,11 +1084,12 @@ private struct QuizPadSummary: View {
         VStack(spacing: 18) {
             Image(systemName: isWinner ? "crown.fill" : "star.fill")
                 .font(.system(size: 64, weight: .bold))
-                .foregroundColor(isWinner ? Color(hex: "1A0640") : .white)
+                .foregroundColor(isWinner ? QuizPadStyle.ink : .white)
                 .frame(width: 140, height: 140)
-                .background(Circle().fill(isWinner ? QuizPadStyle.gold : Color(hex: "A855F7")))
+                .background(Circle().fill(isWinner ? QuizPadStyle.gold : PhonePlayDesign.purple))
                 .shadow(color: QuizPadStyle.gold.opacity(isWinner ? 0.8 : 0.2), radius: 24)
                 .scaleEffect(popped ? 1 : 0.3)
+                .phonePlayIdle(dy: 4, degrees: isWinner ? 4 : 0, scale: 0.03, duration: 1.4)
             Text(isWinner ? "You win the show!" : (winnerName.isEmpty ? "What a show!" : "\(winnerName) wins!"))
                 .font(.system(size: 32, weight: .black, design: .rounded))
                 .foregroundColor(.white)
@@ -1066,13 +1097,13 @@ private struct QuizPadSummary: View {
             if rank > 0 {
                 Text("You finished #\(rank) with \(score) points")
                     .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(PhonePlayDesign.text2)
             }
         }
         .padding(28)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.5)) { popped = true }
+            withAnimation(PhonePlayDesign.pop) { popped = true }
             QuizPadHaptics.notify(isWinner ? .success : .warning)
         }
     }
