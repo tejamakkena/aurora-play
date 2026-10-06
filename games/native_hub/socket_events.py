@@ -353,6 +353,205 @@ def register_native_events(socketio):
             room.touch()
         push_room(socketio, room)
 
+    def _lobby_controller(room, sid, what: str) -> bool:
+        """TV board or host phone may change lobby settings (callers hold
+        room.lock). Pushes a NOT_HOST error otherwise."""
+        if sid in room.tv_sids:
+            return True
+        actor = room.player_by_sid(sid)
+        if actor is None or not actor.is_host:
+            push_error(socketio, sid, f"Only the host can {what}", "NOT_HOST")
+            return False
+        return True
+
+    # ---- set_custom_questions -------------------------------------------
+    # "Make your own quiz": the host phone sends questions it wrote or had
+    # the AI write (POST /api/decks/generate kind=quiz); Trivia then plays
+    # them first (room.seed_questions, the same path create_room's
+    # seedQuestions uses). An empty list clears them.
+    @socketio.on("set_custom_questions", namespace=NAMESPACE)
+    def handle_set_custom_questions(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "set the questions"):
+                return
+            if room.state is RoomState.PLAYING:
+                return
+            room.seed_questions = _valid_seed_questions(data.get("questions"))
+            room.touch()
+        push_room(socketio, room)
+
+    # ---- Game Night ------------------------------------------------------
+    # start_night: a playlist (given, or built by the smart picker for the
+    # players in the room) with one running scoreboard (games/game_night.py).
+    # next_game: after a game's results, move the room to the next game's
+    # lobby. end_night: stop early. The night rides along in room_updated.
+    @socketio.on("start_night", namespace=NAMESPACE)
+    def handle_start_night(data):
+        from games import game_night
+        from games.native_hub.registry import ENGINES
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "start a Game Night"):
+                return
+            if room.state is RoomState.PLAYING:
+                return
+            raw = data.get("playlist")
+            playlist = [g for g in raw if isinstance(g, str) and g in ENGINES][:10] \
+                if isinstance(raw, list) else []
+            if not playlist:
+                try:
+                    minutes = int(data.get("minutes") or 45)
+                except (TypeError, ValueError):
+                    minutes = 45
+                playlist = game_night.build_playlist(
+                    max(1, len(room.connected_players())), bool(data.get("kids")),
+                    max(10, min(minutes, 180)))
+            if not playlist:
+                push_error(socketio, sid, "No games fit this group", "NO_GAMES")
+                return
+            game_night.start(room, playlist)
+            room.state = RoomState.LOBBY
+            room.engine = None
+            room.phase = "play"
+            room.touch()
+        push_room(socketio, room)
+
+    @socketio.on("next_game", namespace=NAMESPACE)
+    def handle_next_game(data):
+        from games import game_night, profiles
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        finished = None
+        with room.lock:
+            if not _lobby_controller(room, sid, "move to the next game"):
+                return
+            if room.state is RoomState.PLAYING or not getattr(room, "night", None):
+                return
+            if game_night.advance(room) is None:
+                finished = game_night.standings(room)
+            else:
+                room.state = RoomState.LOBBY
+                room.engine = None
+                room.phase = "play"
+                for p in room.players:
+                    p.is_ready = False
+            room.touch()
+        if finished is not None:
+            try:
+                profiles.record_night(finished)
+            except Exception:
+                logger.exception("night profile record failed room=%s", code)
+        push_room(socketio, room)
+
+    @socketio.on("end_night", namespace=NAMESPACE)
+    def handle_end_night(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "end the Game Night"):
+                return
+            room.night = None
+            room.touch()
+        push_room(socketio, room)
+
+    # ---- Teams mode ------------------------------------------------------
+    # set_teams {roomCode, count?, teams?: [[playerID]], names?: [str]}:
+    # auto-split into 2-4 teams (or use the lists given). move_to_team
+    # {roomCode, playerID, teamID}: the host/TV moves anyone; a phone may
+    # move itself. clear_teams: back to everyone-for-themselves.
+    # Team points are awarded in broadcast.finish_game (games/teams.py).
+    @socketio.on("set_teams", namespace=NAMESPACE)
+    def handle_set_teams(data):
+        from games import teams
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "set up teams"):
+                return
+            if room.state is RoomState.PLAYING:
+                return
+            try:
+                count = int(data.get("count") or 2)
+            except (TypeError, ValueError):
+                count = 2
+            teams.set_teams(room, count, data.get("teams"), data.get("names"))
+            room.touch()
+        push_room(socketio, room)
+
+    @socketio.on("move_to_team", namespace=NAMESPACE)
+    def handle_move_to_team(data):
+        from games import teams
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        pid = v.player_id(data.get("playerID"))
+        team_id = data.get("teamID")
+        if room is None or pid is None or not isinstance(team_id, str):
+            return
+        with room.lock:
+            if room.state is RoomState.PLAYING:
+                return
+            actor = room.player_by_sid(sid)
+            self_move = actor is not None and actor.id == pid
+            if not self_move and not _lobby_controller(room, sid, "move players"):
+                return
+            if not teams.move(room, pid, team_id):
+                return
+            room.touch()
+        push_room(socketio, room)
+
+    @socketio.on("clear_teams", namespace=NAMESPACE)
+    def handle_clear_teams(data):
+        from games import teams
+        data = v.as_dict(data)
+        sid = request.sid
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "clear the teams"):
+                return
+            if room.state is RoomState.PLAYING:
+                return
+            teams.clear(room)
+            room.touch()
+        push_room(socketio, room)
+
     # ---- player_ready --------------------------------------------------
     @socketio.on("player_ready", namespace=NAMESPACE)
     def handle_player_ready(data):
