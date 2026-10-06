@@ -854,10 +854,10 @@ private struct ShellPillButtonBody: View {
 
     var body: some View {
         configuration.label
-            .font(.system(size: 25, weight: .semibold, design: .rounded))
+            .font(.system(size: 24, weight: .semibold, design: .rounded))
             .foregroundColor(textColor)
             .padding(.horizontal, 18)
-            .padding(.vertical, 9)
+            .padding(.vertical, 8)
             .background { Capsule().fill(fill) }
             .overlay {
                 Capsule().strokeBorder(accent.opacity(isSelected && !isFocused ? 0.9 : 0), lineWidth: 1.5)

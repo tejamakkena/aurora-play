@@ -50,7 +50,8 @@ struct RootTVView: View {
             switch vm.screen {
             case .gameSelection:
                 TVGameSelectionView(onSelect: vm.createRoom,
-                                    onSelectSolo: vm.createSoloRoom)
+                                    onSelectSolo: vm.createSoloRoom,
+                                    onGameNight: vm.createNightRoom)
 
             case .lobby(let room):
                 TVLobbyView(room: room, isSolo: vm.isSolo, onStart: vm.startGame)
@@ -78,7 +79,12 @@ struct RootTVView: View {
                 }
 
             case .results(let room):
-                TVResultsView(room: room, onPlayAgain: vm.playAgain, onBackToGames: vm.quitToSelection)
+                TVResultsView(room: room,
+                              onPlayAgain: vm.playAgain,
+                              onBackToGames: vm.quitToSelection,
+                              nightTotalsBefore: vm.nightTotalsBeforeGame,
+                              onNextGame: vm.nextGame,
+                              onEndNight: vm.endNight)
             }
         }
         .environmentObject(vm)
@@ -130,6 +136,16 @@ final class TVRootViewModel: ObservableObject {
     /// True while a remote-only game is running with no phones connected.
     @Published private(set) var isSolo = false
 
+    /// The room was created from the home screen's Game Night card: the
+    /// lobby shows the night setup panel until `start_night` lands (after
+    /// which `Room.night` drives everything).
+    @Published private(set) var isNightSetup = false
+
+    /// Each player's Game Night total as it stood when the current game
+    /// started, so the results screen can animate the points just earned.
+    /// (The server's night JSON carries totals only, not per-game history.)
+    @Published private(set) var nightTotalsBeforeGame: [String: Int] = [:]
+
     private let socket = GameSocketManager.shared
 
     init() {
@@ -167,7 +183,15 @@ final class TVRootViewModel: ObservableObject {
                 // so a single Select still starts it immediately for anyone
                 // who just wants to play with the remote alone.
                 self.screen = .lobby(response)
-            case .playing: self.screen = .playing(response)
+            case .playing:
+                // Snapshot night totals on the way into a game (not on
+                // every room_updated during it).
+                let wasPlaying: Bool
+                if case .playing = self.screen { wasPlaying = true } else { wasPlaying = false }
+                if !wasPlaying {
+                    self.nightTotalsBeforeGame = TVRootViewModel.nightTotals(response.night)
+                }
+                self.screen = .playing(response)
             case .results: self.screen = .results(response)
             }
         }
@@ -214,6 +238,7 @@ final class TVRootViewModel: ObservableObject {
 
     func createRoom(game: GameID) {
         isSolo = false
+        isNightSetup = false
         let payload = CreateRoomPayload(
             gameID: game.rawValue,
             hostName: "TV",
@@ -226,6 +251,7 @@ final class TVRootViewModel: ObservableObject {
     /// Siri Remote is the controller.
     func createSoloRoom(game: GameID) {
         isSolo = true
+        isNightSetup = false
         socket.emit(.createRoom, payload: SoloRoomPayload(
             gameID: game.rawValue,
             hostName: "Player 1",
@@ -289,8 +315,64 @@ final class TVRootViewModel: ObservableObject {
         ))
     }
 
+    // MARK: Game Night
+
+    /// Home screen's Game Night card: a normal room (Trivia, through the
+    /// usual create_room path) whose lobby then offers the night setup.
+    /// start_night swaps the room's game for the playlist's first one.
+    func createNightRoom() {
+        createRoom(game: .trivia)
+        isNightSetup = true
+    }
+
+    /// `playlist` is the previewed lineup the lobby showed, so the night
+    /// plays exactly what was on screen; empty lets the server's picker
+    /// build one from `minutes` and `kids`.
+    func startNight(minutes: Int, kids: Bool, playlist: [String]) {
+        guard case .lobby(let room) = screen else { return }
+        socket.emit(.startNight, payload: StartNightPayload(
+            roomCode: room.code,
+            playlist: playlist.isEmpty ? nil : playlist,
+            minutes: minutes,
+            kids: kids
+        ))
+    }
+
+    /// After a night game's results: on to the next game's lobby, or (after
+    /// the last one) the night is marked finished and results shows the
+    /// champion.
+    func nextGame() {
+        guard case .results(let room) = screen else { return }
+        pendingRules = nil
+        socket.emit(.nextGame, payload: RoomCodePayload(roomCode: room.code))
+    }
+
+    /// Stops the night early (or closes a finished one); the room stays.
+    func endNight() {
+        guard let code = currentRoomCode else { return }
+        isNightSetup = false
+        socket.emit(.endNight, payload: RoomCodePayload(roomCode: code))
+    }
+
+    /// Trivia's question topic ("" = the usual mixed questions).
+    func setTopic(_ topic: String) {
+        guard case .lobby(let room) = screen else { return }
+        let payload: [String: String] = ["roomCode": room.code, "topic": topic]
+        socket.emit(.setTopic, payload: payload)
+    }
+
+    nonisolated static func nightTotals(_ night: GameNight?) -> [String: Int] {
+        var totals: [String: Int] = [:]
+        for standing in night?.standings ?? [] {
+            totals[standing.playerID] = standing.points
+        }
+        return totals
+    }
+
     func returnToSelection() {
         isSolo = false
+        isNightSetup = false
+        nightTotalsBeforeGame = [:]
         pendingRules = nil
         screen = .gameSelection
     }
