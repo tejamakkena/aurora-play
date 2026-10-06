@@ -4,6 +4,9 @@ struct TVGameSelectionView: View {
     let onSelect: (GameID) -> Void
     /// Starts a game with no phones at all — the Siri Remote is the controller.
     var onSelectSolo: ((GameID) -> Void)? = nil
+    /// Starts a Game Night room (a playlist with one scoreboard). The card
+    /// is hidden when nil.
+    var onGameNight: (() -> Void)? = nil
 
     @State private var selectedCategory: GameCategory? = nil
     @FocusState private var focusedGame: GameID?
@@ -176,7 +179,7 @@ struct TVGameSelectionView: View {
     // MARK: Sidebar
 
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             AuroraLogo()
 
             Text("Pick a game")
@@ -187,9 +190,29 @@ struct TVGameSelectionView: View {
                 .fill(ShellTheme.brandGradient)
                 .frame(width: 120, height: 4)
                 .opacity(0.8)
-                .padding(.vertical, 4)
+                .padding(.vertical, 2)
 
-            VStack(alignment: .leading, spacing: 8) {
+            // Game Night: a playlist of games with one running scoreboard.
+            // Not part of the grid (and never handed initial focus), so the
+            // grid's first-card focus and GameLabTVUITests are unaffected.
+            if let onGameNight {
+                Button(action: onGameNight) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Game Night")
+                            .font(ShellTheme.display(28, weight: .heavy))
+                        Text("A playlist, one scoreboard")
+                            .font(.system(size: 17, weight: .medium, design: .rounded))
+                            .foregroundColor(Color.white.opacity(0.8))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                }
+                .buttonStyle(TVGameNightCardStyle())
+                .accessibilityIdentifier("gameNightCard")
+                .padding(.bottom, 4)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
                 CategoryPill(label: "All", accent: ShellTheme.cyan, isSelected: selectedCategory == nil) {
                     selectCategory(nil)
                 }

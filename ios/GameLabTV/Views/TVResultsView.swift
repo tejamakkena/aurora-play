@@ -4,44 +4,80 @@ import SwiftUI
 // only RootTVView shows it, and its 3D shell styling uses the TV-only
 // ShellTheme kit in Views/Theme/TVShellTheme.swift.
 
+/// One name on the podium or the ranking list: a player's score for this
+/// game, or (on the Game Night champion screen) their night total.
+struct TVResultsEntry: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let score: Int
+    let isBot: Bool
+
+    init(player: Player) {
+        id = player.id
+        name = player.name
+        score = player.score
+        isBot = player.isBot
+    }
+
+    init(standing: NightStanding) {
+        id = standing.playerID
+        name = standing.name
+        score = standing.points
+        isBot = standing.isBot ?? false
+    }
+}
+
 /// End-of-game results: a 3D podium whose blocks rise in sequence (3rd, 2nd,
 /// then 1st with a confetti burst), the rest of the ranking sliding in as
 /// cards, and Play Again / Back to Games.
+///
+/// During a Game Night (room.night) the podium is followed by the night's
+/// standings, totals counting up by the points just earned, and the main
+/// button moves the room to the next game. When the night is finished the
+/// whole screen becomes the Champion screen: the night's podium, everyone's
+/// total, confetti, and End night.
 struct TVResultsView: View {
     let room: Room
     let onPlayAgain: () -> Void
     let onBackToGames: () -> Void
+    /// Night totals from before this game (TVRootViewModel's snapshot), for
+    /// the "+N" animation. Empty outside a night.
+    var nightTotalsBefore: [String: Int] = [:]
+    var onNextGame: (() -> Void)? = nil
+    var onEndNight: (() -> Void)? = nil
 
     /// Reveal sequence: 0 nothing, 1 third place, 2 second, 3 first +
-    /// confetti, 4 the rest of the ranking.
+    /// confetti, 4 the rest of the ranking, 5 (night games only) the night
+    /// standings.
     @State private var stage: Int = 0
-    @State private var hasStartedReveal: Bool = false
+    /// Bumped to replay the reveal (when the champion screen takes over).
+    @State private var revealRun: Int = 0
     @Namespace private var resultsFocus
 
-    private var ranked: [Player] {
-        room.players.sorted { $0.score > $1.score }
+    private var isChampion: Bool { room.night?.finished ?? false }
+    private var isNightGame: Bool { room.night != nil && !isChampion }
+
+    private var entries: [TVResultsEntry] {
+        if isChampion, let night = room.night {
+            return night.standings
+                .sorted { $0.points > $1.points }
+                .map { TVResultsEntry(standing: $0) }
+        }
+        return room.players
+            .sorted { $0.score > $1.score }
+            .map { TVResultsEntry(player: $0) }
     }
 
-    private var podiumPlayers: [Player] { Array(ranked.prefix(3)) }
-    private var restPlayers: [Player] { Array(ranked.dropFirst(3)) }
+    private var podiumEntries: [TVResultsEntry] { Array(entries.prefix(3)) }
+    private var restEntries: [TVResultsEntry] { Array(entries.dropFirst(3)) }
 
     var body: some View {
         ZStack {
             VStack(spacing: 24) {
                 header
 
-                HStack(alignment: .bottom, spacing: 56) {
-                    ResultsPodium(players: podiumPlayers, stage: stage)
-                        .frame(maxWidth: .infinity)
-
-                    if !restPlayers.isEmpty {
-                        ResultsRankingList(players: restPlayers,
-                                           startRank: 4,
-                                           isShown: stage >= 4)
-                            .frame(width: 620)
-                    }
-                }
-                .frame(maxHeight: .infinity)
+                middle
+                    .frame(maxHeight: .infinity)
 
                 actionButtons
             }
@@ -50,24 +86,35 @@ struct TVResultsView: View {
             .padding(.top, 20)
             .padding(.bottom, 20)
 
-            if stage >= 3 && !room.players.isEmpty {
-                ShellConfetti(particleCount: 160,
-                              duration: 5.5,
-                              origin: UnitPoint(x: restPlayers.isEmpty ? 0.5 : 0.34, y: 0.42))
+            if stage >= 3 && !entries.isEmpty {
+                ShellConfetti(particleCount: isChampion ? 220 : 160,
+                              duration: isChampion ? 7.0 : 5.5,
+                              origin: UnitPoint(x: restEntries.isEmpty ? 0.5 : 0.34, y: 0.42))
+                    .id(isChampion)
                     .ignoresSafeArea()
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .focusScope(resultsFocus)
-        .task { await runReveal() }
+        .onChange(of: isChampion) { _, nowChampion in
+            // The last night game's "Crown the champion" lands on this same
+            // screen: replay the reveal for the night's podium.
+            if nowChampion {
+                stage = 0
+                revealRun += 1
+            }
+        }
+        .task(id: revealRun) { await runReveal() }
     }
+
+    // MARK: Header
 
     private var header: some View {
         VStack(spacing: 8) {
-            Text("FINAL RESULTS")
+            Text(eyebrowText)
                 .font(ShellTheme.eyebrow(24))
                 .tracking(8)
-                .foregroundColor(ShellTheme.textSecondary)
+                .foregroundColor(isChampion ? ShellTheme.gold : ShellTheme.textSecondary)
             Text(winnerLine)
                 .font(ShellTheme.display(64, weight: .black))
                 .foregroundStyle(LinearGradient(colors: [Color.white, ShellTheme.gold],
@@ -78,46 +125,162 @@ struct TVResultsView: View {
                 .minimumScaleFactor(0.5)
                 .opacity(stage >= 3 ? 1 : 0)
                 .scaleEffect(stage >= 3 ? 1 : 0.8)
-            Text(room.gameID.displayName)
+            Text(subtitleText)
                 .font(.system(size: 26, weight: .medium, design: .rounded))
                 .foregroundColor(ShellTheme.textTertiary)
         }
     }
 
+    private var eyebrowText: String {
+        if isChampion { return "GAME NIGHT CHAMPION" }
+        if let night = room.night {
+            let total: Int = night.playlist.count
+            let number: Int = min(total, night.index + 1)
+            return "GAME NIGHT  ·  GAME \(number) OF \(total)"
+        }
+        return "FINAL RESULTS"
+    }
+
+    private var subtitleText: String {
+        if isChampion, let night = room.night {
+            return night.gamesPlayed == 1 ? "1 game played" : "\(night.gamesPlayed) games played"
+        }
+        return room.gameID.displayName
+    }
+
     private var winnerLine: String {
-        guard let winner = ranked.first else { return "Game over" }
-        if ranked.count > 1, ranked[1].score == winner.score {
+        guard let winner = entries.first else {
+            return isChampion ? "Night over" : "Game over"
+        }
+        if entries.count > 1, entries[1].score == winner.score {
             return "It's a tie!"
         }
-        return "\(winner.name) wins!"
+        return isChampion ? "\(winner.name) wins the night!" : "\(winner.name) wins!"
     }
 
-    private var actionButtons: some View {
-        HStack(spacing: 32) {
-            Button(action: onPlayAgain) {
-                Label("Play Again", systemImage: "arrow.clockwise")
-            }
-            .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.gold))
-            .prefersDefaultFocus(true, in: resultsFocus)
+    // MARK: Middle
 
-            // Reported directly: "Play Again" always took everyone back to
-            // the game list -- it does a real rematch now, so this is the
-            // screen's only way back to it, for whoever doesn't already
-            // know Menu on the remote does the same thing.
-            Button(action: onBackToGames) {
-                Label("Back to Games", systemImage: "square.grid.2x2.fill")
+    @ViewBuilder
+    private var middle: some View {
+        if isNightGame && stage >= 5, let night = room.night {
+            nightBoard(night)
+                .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .opacity))
+        } else {
+            HStack(alignment: .bottom, spacing: 56) {
+                ResultsPodium(entries: podiumEntries, stage: stage)
+                    .frame(maxWidth: .infinity)
+
+                if !restEntries.isEmpty {
+                    ResultsRankingList(title: isChampion ? "EVERYONE TONIGHT" : "LEADERBOARD",
+                                       entries: restEntries,
+                                       startRank: 4,
+                                       isShown: stage >= 4)
+                        .frame(width: 620)
+                }
             }
-            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.cyan, fontSize: 26))
+            .transition(.opacity)
         }
     }
 
-    /// Steps the reveal once per appearance. `.task` is cancelled if the
-    /// screen goes away (Play Again, Menu), which ends the sequence early.
+    private func nightBoard(_ night: GameNight) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 12) {
+                Image(systemName: "moon.stars.fill")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(ShellTheme.gold)
+                Text("NIGHT STANDINGS")
+                    .font(ShellTheme.eyebrow(24))
+                    .tracking(6)
+                    .foregroundColor(.white)
+                Spacer(minLength: 16)
+                TVNightPlaylistStrip(slots: TVNightSlot.slots(from: night.playlist),
+                                     currentIndex: night.index,
+                                     tileSize: 44)
+            }
+            TVNightStandingsBoard(standings: night.standings, totalsBefore: nightTotalsBefore)
+        }
+        .frame(maxWidth: 1240, maxHeight: .infinity, alignment: .top)
+    }
+
+    // MARK: Buttons
+
+    @ViewBuilder
+    private var actionButtons: some View {
+        if isChampion {
+            HStack(spacing: 32) {
+                Button(action: onBackToGames) {
+                    Label("Back to Games", systemImage: "square.grid.2x2.fill")
+                }
+                .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.gold))
+                .prefersDefaultFocus(true, in: resultsFocus)
+
+                if let onEndNight {
+                    Button(action: onEndNight) {
+                        Label("End night", systemImage: "moon.zzz.fill")
+                    }
+                    .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.pink, fontSize: 22))
+                }
+            }
+        } else if isNightGame, let night = room.night, let onNextGame {
+            HStack(spacing: 32) {
+                Button(action: onNextGame) {
+                    Label(nextGameTitle(night),
+                          systemImage: night.next == nil ? "crown.fill" : "forward.fill")
+                }
+                .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.pink))
+                .prefersDefaultFocus(true, in: resultsFocus)
+
+                if let onEndNight {
+                    Button(action: onEndNight) {
+                        Label("End night", systemImage: "moon.zzz.fill")
+                    }
+                    .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.cyan, fontSize: 22))
+                }
+            }
+        } else {
+            HStack(spacing: 32) {
+                Button(action: onPlayAgain) {
+                    Label("Play Again", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.gold))
+                .prefersDefaultFocus(true, in: resultsFocus)
+
+                // Reported directly: "Play Again" always took everyone back to
+                // the game list -- it does a real rematch now, so this is the
+                // screen's only way back to it, for whoever doesn't already
+                // know Menu on the remote does the same thing.
+                Button(action: onBackToGames) {
+                    Label("Back to Games", systemImage: "square.grid.2x2.fill")
+                }
+                .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.cyan, fontSize: 26))
+            }
+        }
+    }
+
+    private func nextGameTitle(_ night: GameNight) -> String {
+        if let next = night.nextGame {
+            return "Next game: \(next.displayName)"
+        }
+        if night.next != nil {
+            return "Next game"
+        }
+        return "Crown the champion"
+    }
+
+    // MARK: Reveal
+
+    /// Steps the reveal once per run. `.task(id:)` cancels it if the screen
+    /// goes away (Next game, Play Again, Menu), which ends the sequence early.
     private func runReveal() async {
-        guard !hasStartedReveal else { return }
-        hasStartedReveal = true
-        for next in 1...4 {
-            let delay: UInt64 = next == 1 ? 400_000_000 : 750_000_000
+        for next in 1...5 {
+            if next == 5 && !isNightGame { return }
+            let delay: UInt64
+            switch next {
+            case 1: delay = 400_000_000
+            case 5: delay = 2_400_000_000
+            default: delay = 750_000_000
+            }
             try? await Task.sleep(nanoseconds: delay)
             if Task.isCancelled { return }
             withAnimation(.spring(response: 0.6, dampingFraction: 0.72)) {
@@ -127,12 +290,13 @@ struct TVResultsView: View {
     }
 }
 
+
 // MARK: - Podium
 
 /// Top three on stepped blocks, laid out 2nd / 1st / 3rd, the whole stage
 /// tipped back slightly in 3D so the block tops are visible.
 private struct ResultsPodium: View {
-    let players: [Player]
+    let entries: [TVResultsEntry]
     let stage: Int
 
     var body: some View {
@@ -156,7 +320,7 @@ private struct ResultsPodium: View {
 
     private func column(rank: Int) -> some View {
         let index: Int = rank - 1
-        let player: Player? = index < players.count ? players[index] : nil
+        let player: TVResultsEntry? = index < entries.count ? entries[index] : nil
         return PodiumColumn(player: player, rank: rank, isRisen: stage >= Self.revealStage(for: rank))
     }
 
@@ -171,7 +335,7 @@ private struct ResultsPodium: View {
 }
 
 private struct PodiumColumn: View {
-    let player: Player?
+    let player: TVResultsEntry?
     let rank: Int
     let isRisen: Bool
 
@@ -307,11 +471,12 @@ private struct PodiumTopShape: Shape {
 /// Everyone from 4th place down, as cards that swing in from the right one
 /// after another. Two compact columns when the room is big.
 private struct ResultsRankingList: View {
-    let players: [Player]
+    let title: String
+    let entries: [TVResultsEntry]
     let startRank: Int
     let isShown: Bool
 
-    private var isCompact: Bool { players.count > 7 }
+    private var isCompact: Bool { entries.count > 7 }
 
     private var columns: [GridItem] {
         if isCompact {
@@ -322,14 +487,14 @@ private struct ResultsRankingList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("LEADERBOARD")
+            Text(title)
                 .font(ShellTheme.eyebrow(20))
                 .tracking(6)
                 .foregroundColor(ShellTheme.textTertiary)
                 .opacity(isShown ? 1 : 0)
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: isCompact ? 10 : 14) {
-                ForEach(Array(players.enumerated()), id: \.element.id) { index, player in
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, player in
                     RankingCard(rank: startRank + index, player: player, isCompact: isCompact)
                         .opacity(isShown ? 1 : 0)
                         .offset(x: isShown ? 0 : 140)
@@ -347,7 +512,7 @@ private struct ResultsRankingList: View {
 
 private struct RankingCard: View {
     let rank: Int
-    let player: Player
+    let player: TVResultsEntry
     let isCompact: Bool
 
     var body: some View {

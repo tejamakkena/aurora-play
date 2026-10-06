@@ -13,6 +13,9 @@ struct Room: Codable, Equatable {
     var contentPack: String? = nil
     var botsAllowed: Bool? = nil
     var usesContentPack: Bool? = nil
+    // Free-text question topic (Trivia / Travel Mode), set via set_topic.
+    // "" or nil means the usual mixed questions.
+    var topic: String? = nil
     // Game Night (games/game_night.py). nil outside a Game Night.
     var night: GameNight? = nil
 

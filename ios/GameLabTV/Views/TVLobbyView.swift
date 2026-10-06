@@ -43,14 +43,33 @@ struct TVLobbyView: View {
 
     private var style: TVCategoryStyle { room.gameID.category.tvStyle }
 
+    /// Game Night room (created from the home screen's Game Night card)
+    /// that has not started its night yet: offer the setup panel.
+    private var showsNightSetup: Bool {
+        vm.isNightSetup && room.night == nil && !isSolo
+    }
+
+    /// Any Game Night panel on the left: the join card shrinks to make room.
+    private var showsNightPanel: Bool {
+        showsNightSetup || room.night != nil
+    }
+
+    /// Suggested Trivia topics the topic chip cycles through ("" = mixed).
+    private static let quizTopics: [String] = ["", "Bollywood", "Cricket", "Science", "Telugu cinema", "Space"]
+
     var body: some View {
         // Small outer padding: tvOS adds its own overscan safe area.
         HStack(alignment: .center, spacing: 48) {
-            joinPanel
-                .frame(width: 700)
+            VStack(spacing: 22) {
+                joinPanel
+                nightPanel
+            }
+            .frame(width: 700)
+            .focusSection()
 
             roomPanel
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .focusSection()
         }
         .padding(.horizontal, 40)
         .padding(.vertical, 40)
@@ -59,7 +78,60 @@ struct TVLobbyView: View {
 
     // MARK: Left -- join card
 
+    @ViewBuilder
     private var joinPanel: some View {
+        if showsNightPanel {
+            compactJoinPanel
+        } else {
+            fullJoinPanel
+        }
+    }
+
+    /// The join card with less air, so a Game Night panel fits below it.
+    private var compactJoinPanel: some View {
+        ShellGlassCard(cornerRadius: 40, tint: ShellTheme.cyan, padding: 30) {
+            VStack(spacing: 18) {
+                Text("JOIN ON YOUR PHONE")
+                    .font(ShellTheme.eyebrow(20))
+                    .tracking(6)
+                    .foregroundColor(ShellTheme.textSecondary)
+
+                RoomCodeTiles(code: room.code)
+
+                HStack(alignment: .center, spacing: 24) {
+                    LobbyQRCode(code: room.code, side: 112)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Open Aurora Play and enter the code, or scan")
+                            .font(.system(size: 21, weight: .medium, design: .rounded))
+                            .foregroundColor(ShellTheme.textSecondary)
+                            .lineLimit(2)
+                        Text(joinLinkText)
+                            .font(.system(size: 18, weight: .medium, design: .monospaced))
+                            .foregroundColor(ShellTheme.cyan.opacity(0.85))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.6)
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private var nightPanel: some View {
+        if showsNightSetup {
+            TVNightSetupPanel(playerCount: room.players.count,
+                              focusNamespace: lobbyFocus) { minutes, kids, playlist in
+                vm.startNight(minutes: minutes, kids: kids, playlist: playlist)
+            }
+        } else if let night = room.night {
+            TVNightLobbyPanel(night: night)
+        }
+    }
+
+    private var fullJoinPanel: some View {
         ShellGlassCard(cornerRadius: 44, tint: ShellTheme.cyan, padding: 44) {
             VStack(spacing: 30) {
                 Text("JOIN ON YOUR PHONE")
@@ -170,46 +242,91 @@ struct TVLobbyView: View {
             }
             .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.cyan))
             .disabled(!canStart)
-            .prefersDefaultFocus(true, in: lobbyFocus)
+            // In a Game Night room still being set up, "Start the night"
+            // (in TVNightSetupPanel) takes the initial focus instead.
+            .prefersDefaultFocus(!showsNightSetup, in: lobbyFocus)
         }
     }
 
-    /// Question language (Trivia/KBC) and bot seat-fillers. Focusable with
-    /// the Siri Remote, so the host can set these up without a phone.
+    /// Quiz topic (Trivia), question language (Trivia/KBC) and bot
+    /// seat-fillers. Focusable with the Siri Remote, so the host can set
+    /// these up without a phone. One row when it fits, else two.
     @ViewBuilder
     private var lobbyOptions: some View {
-        if (room.usesContentPack ?? false) || (room.botsAllowed ?? false) {
-            HStack(spacing: 16) {
-                if room.usesContentPack ?? false {
-                    // One button that cycles English -> Telugu -> Hindi: three
-                    // side by side do not fit this column at tvOS sizes.
-                    let current = ContentPack(rawValue: room.contentPack ?? "en") ?? .en
-                    Button {
-                        vm.setContentPack(current.next)
-                    } label: {
-                        Label("Questions: \(current.label)", systemImage: "character.bubble.fill")
-                    }
-                    .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.cyan, fontSize: 24))
+        if (room.usesContentPack ?? false) || (room.botsAllowed ?? false) || room.gameID == .trivia {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 14) {
+                    questionOptions
+                    botOptions
                 }
-                if room.botsAllowed ?? false {
-                    Button {
-                        vm.addBot()
-                    } label: {
-                        Label("Add Bot", systemImage: "cpu")
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 14) {
+                        questionOptions
                     }
-                    .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.orange, fontSize: 24))
-                    .disabled(!canAddBot)
-                    if let bot = room.players.last(where: { $0.isBot }) {
-                        Button {
-                            vm.removeBot(bot.id)
-                        } label: {
-                            Label("Remove Bot", systemImage: "minus.circle")
-                        }
-                        .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.pink, fontSize: 24))
+                    HStack(spacing: 14) {
+                        botOptions
                     }
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var questionOptions: some View {
+        if room.gameID == .trivia {
+            // Cycles a few suggested topics; the server writes fresh
+            // questions on the chosen one (set_topic).
+            let currentTopic: String = room.topic ?? ""
+            let topicLabel: String = currentTopic.isEmpty ? "Mixed" : currentTopic
+            Button {
+                vm.setTopic(Self.nextTopic(after: currentTopic))
+            } label: {
+                Label("Topic: \(topicLabel)", systemImage: "text.bubble.fill")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.violet, fontSize: 22))
+        }
+        if room.usesContentPack ?? false {
+            // One button that cycles English -> Telugu -> Hindi: three
+            // side by side do not fit this column at tvOS sizes.
+            let current = ContentPack(rawValue: room.contentPack ?? "en") ?? .en
+            Button {
+                vm.setContentPack(current.next)
+            } label: {
+                Label("Questions: \(current.label)", systemImage: "character.bubble.fill")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.cyan, fontSize: 22))
+        }
+    }
+
+    @ViewBuilder
+    private var botOptions: some View {
+        if room.botsAllowed ?? false {
+            Button {
+                vm.addBot()
+            } label: {
+                Label("Add Bot", systemImage: "cpu")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.orange, fontSize: 22))
+            .disabled(!canAddBot)
+            if let bot = room.players.last(where: { $0.isBot }) {
+                Button {
+                    vm.removeBot(bot.id)
+                } label: {
+                    Label("Remove Bot", systemImage: "minus.circle")
+                }
+                .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.pink, fontSize: 22))
+            }
+        }
+    }
+
+    /// The suggested topic after `current`; a topic typed on a phone (not
+    /// in the list) goes back to the start, "Mixed".
+    static func nextTopic(after current: String) -> String {
+        let topics: [String] = quizTopics
+        guard !topics.isEmpty else { return "" }
+        let index: Int? = topics.firstIndex { $0.lowercased() == current.lowercased() }
+        guard let index else { return topics[0] }
+        return topics[(index + 1) % topics.count]
     }
 }
 
@@ -310,15 +427,17 @@ private struct RoomCodeTile: View {
 /// card tilted slightly in 3D with a breathing glow behind it.
 private struct LobbyQRCode: View {
     let code: String
+    /// Edge length of the QR image itself; the glow and card scale with it.
+    var side: CGFloat = 180
 
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 40, style: .continuous)
                 .fill(RadialGradient(colors: [ShellTheme.cyan.opacity(0.55), ShellTheme.cyan.opacity(0)],
                                      center: .center,
-                                     startRadius: 40,
-                                     endRadius: 170))
-                .frame(width: 300, height: 300)
+                                     startRadius: side * 0.22,
+                                     endRadius: side * 0.95))
+                .frame(width: side * 1.67, height: side * 1.67)
                 .phaseAnimator([false, true]) { content, phase in
                     content
                         .scaleEffect(phase ? 1.06 : 0.92)
@@ -334,20 +453,20 @@ private struct LobbyQRCode: View {
                     image.resizable().interpolation(.none).scaledToFit()
                 default:
                     Image(systemName: "qrcode")
-                        .font(.system(size: 80))
+                        .font(.system(size: side * 0.44))
                         .foregroundColor(Color.black.opacity(0.35))
                 }
             }
-            .frame(width: 180, height: 180)
-            .padding(16)
+            .frame(width: side, height: side)
+            .padding(side * 0.09)
             .background {
-                RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color.white)
+                RoundedRectangle(cornerRadius: side * 0.145, style: .continuous).fill(Color.white)
             }
             .compositingGroup()
             .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 14)
             .rotation3DEffect(.degrees(-8), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
         }
-        .frame(width: 260, height: 260)
+        .frame(width: side * 1.45, height: side * 1.45)
     }
 }
 
