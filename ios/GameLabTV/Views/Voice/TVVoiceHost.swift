@@ -37,11 +37,82 @@ final class TVVoiceHost: NSObject, ObservableObject {
 
     private let socket = GameSocketManager.shared
     private var roomCode: String?
-    private var player: AVPlayer?
-    private var endObserver: NSObjectProtocol?
-    private var failObserver: NSObjectProtocol?
     /// Fired when the current utterance finishes (cloud or device).
     private var pendingSpeechCompletion: (() -> Void)?
+
+    // MARK: One voice per app session
+    //
+    // The TV used to mix two voices: the cloud AI voice and the Apple TV's
+    // built-in one. A 4 s "stream didn't start" timer was not tied to the
+    // line it was armed for, so when it fired during a LATER line it
+    // re-spoke the OLD line in the device voice; and every slow request (a
+    // sleeping server) fell back to the device voice for that one line.
+    // Now the first line decides: if the cloud voice answers, the whole
+    // session uses it; if not, the whole session uses one fixed device
+    // voice. At most one switch (cloud -> device, if the cloud dies
+    // mid-session), never alternating. Every async callback carries a
+    // token, so a stale line can never speak or fire a completion.
+    private enum SessionVoice { case undecided, cloud, device }
+    private static var sessionVoice: SessionVoice = .undecided
+    private var speechToken = 0
+    private var audioPlayer: AVAudioPlayer?
+    private var currentUtteranceID: ObjectIdentifier?
+
+    /// Disk-cached session for cloud voice lines (nonisolated: read by the
+    /// background fetch below; URLSession is thread-safe).
+    nonisolated private static let ttsSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.urlCache = URLCache(memoryCapacity: 8 * 1024 * 1024,
+                                   diskCapacity: 100 * 1024 * 1024,
+                                   directory: FileManager.default
+                                       .urls(for: .cachesDirectory, in: .userDomainMask)
+                                       .first?.appendingPathComponent("tv_tts_audio"))
+        config.requestCachePolicy = .returnCacheDataElseLoad
+        return URLSession(configuration: config)
+    }()
+
+    nonisolated private static func isNovelty(_ v: AVSpeechSynthesisVoice) -> Bool {
+        if v.voiceTraits.contains(.isNoveltyVoice) { return true }
+        let id = v.identifier.lowercased()
+        return id.contains("speech.synthesis.voice") || id.contains("eloquence")
+    }
+
+    /// One fixed, real (non-novelty) English voice: the best installed
+    /// quality, else the standard en-US voice.
+    private static let deviceVoice: AVSpeechSynthesisVoice? = {
+        let english = AVSpeechSynthesisVoice.speechVoices().filter {
+            $0.language.hasPrefix("en") && !TVVoiceHost.isNovelty($0)
+        }
+        func rank(_ q: AVSpeechSynthesisVoiceQuality) -> Int {
+            switch q {
+            case .premium:  return 0
+            case .enhanced: return 1
+            default:        return 2
+            }
+        }
+        let best = english.sorted {
+            (rank($0.quality), $0.language == "en-US" ? 0 : 1, $0.identifier)
+                < (rank($1.quality), $1.language == "en-US" ? 0 : 1, $1.identifier)
+        }.first
+        if let best, best.quality != .default { return best }
+        return AVSpeechSynthesisVoice(language: "en-US") ?? best
+    }()
+
+    /// The cloud voice's audio for `text`, or nil (offline, no API key,
+    /// slow). Cached on disk, so repeated lines are instant.
+    nonisolated private static func fetchTTS(_ text: String, timeout: TimeInterval) async -> Data? {
+        var components = URLComponents(
+            url: AppConstants.serverURL.appendingPathComponent("api/voice/tts"),
+            resolvingAgainstBaseURL: false)
+        components?.queryItems = [URLQueryItem(name: "text", value: text)]
+        guard let url = components?.url else { return nil }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = timeout
+        guard let (data, response) = try? await ttsSession.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              data.count > 512 else { return nil }
+        return data
+    }
 
     private let synthesizer = AVSpeechSynthesizer()
 
@@ -114,8 +185,8 @@ final class TVVoiceHost: NSObject, ObservableObject {
 
     // MARK: - Speaking (the mouth)
 
-    /// Speak arbitrary text through the TV speakers: cloud TTS first
-    /// (same /api/voice/tts as the phone), device voice as the fallback.
+    /// Speak arbitrary text through the TV speakers in the session's one
+    /// voice (see "One voice per app session" above).
     /// - Parameter completion: fired when the utterance finishes or is
     ///   cut off. The quizmaster uses it to open the listen window exactly
     ///   when the question ends.
@@ -123,38 +194,32 @@ final class TVVoiceHost: NSObject, ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { completion?(); return }
         stopSpeaking()
+        speechToken += 1
+        let token = speechToken
         pendingSpeechCompletion = completion
-        var components = URLComponents(
-            url: AppConstants.serverURL.appendingPathComponent("api/voice/tts"),
-            resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: "text", value: trimmed)]
-        if let url = components?.url {
-            let item = AVPlayerItem(url: url)
-            let player = AVPlayer(playerItem: item)
-            self.player = player
-            let center = NotificationCenter.default
-            endObserver = center.addObserver(forName: .AVPlayerItemDidPlayToEndTime,
-                                             object: item, queue: .main) { [weak self] _ in
-                Task { @MainActor in self?.speechDidFinish() }
-            }
-            failObserver = center.addObserver(
-                forName: .AVPlayerItemFailedToPlayToEndTime,
-                object: item, queue: .main) { [weak self] _ in
-                    Task { @MainActor in self?.speakOnDevice(trimmed) }
-                }
-            player.play()
-            // If the stream can't start (no API key, offline), don't hang.
-            Task {
-                try? await Task.sleep(nanoseconds: 4_000_000_000)
-                await MainActor.run { [weak self] in
-                    if self?.player?.timeControlStatus != .playing {
-                        self?.speakOnDevice(trimmed)
-                    }
-                }
-            }
+        if Self.sessionVoice == .device {
+            speakOnDevice(trimmed)
             return
         }
-        speakOnDevice(trimmed)
+        // First line: a short wait decides the session. Once the cloud
+        // voice is chosen, allow it longer (a sleeping server) rather than
+        // switching voices mid-game.
+        let timeout: TimeInterval = Self.sessionVoice == .cloud ? 20 : 8
+        Task { [weak self] in
+            let data = await Self.fetchTTS(trimmed, timeout: timeout)
+            guard let self, token == self.speechToken else { return }
+            if let data, let player = try? AVAudioPlayer(data: data) {
+                Self.sessionVoice = .cloud
+                player.delegate = self
+                self.audioPlayer = player
+                if player.play() { return }
+                self.audioPlayer = nil
+            }
+            // The cloud voice is unavailable: use the device voice for the
+            // rest of the session, never alternating.
+            Self.sessionVoice = .device
+            self.speakOnDevice(trimmed)
+        }
     }
 
     /// Convenience: speak a trivia question in host phrasing, then open
@@ -181,18 +246,25 @@ final class TVVoiceHost: NSObject, ObservableObject {
     }
 
     func stopSpeaking() {
-        if let o = endObserver { NotificationCenter.default.removeObserver(o) }
-        if let o = failObserver { NotificationCenter.default.removeObserver(o) }
-        endObserver = nil
-        failObserver = nil
-        player?.pause()
-        player = nil
+        speechToken += 1
+        audioPlayer?.stop()
+        audioPlayer = nil
+        currentUtteranceID = nil
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
         finishSpeechCompletion()
     }
 
-    private func speechDidFinish() {
-        player = nil
+    fileprivate func cloudLineFinished(_ id: ObjectIdentifier) {
+        guard let current = audioPlayer, ObjectIdentifier(current) == id else { return }
+        audioPlayer = nil
+        finishSpeechCompletion()
+    }
+
+    fileprivate func deviceLineFinished(_ id: ObjectIdentifier) {
+        // A cancelled earlier utterance reports late; only the current one
+        // may fire the completion (else the mic would open mid-question).
+        guard currentUtteranceID == id else { return }
+        currentUtteranceID = nil
         finishSpeechCompletion()
     }
 
@@ -203,12 +275,13 @@ final class TVVoiceHost: NSObject, ObservableObject {
     }
 
     private func speakOnDevice(_ text: String) {
-        // Callers have already torn down any in-flight audio via
-        // stopSpeaking()/teardownPlayer(). Do NOT call stopSpeaking() here:
-        // it would fire pendingSpeechCompletion before this utterance
-        // even starts, arming the mic while we're still talking.
+        // Callers have already torn down any in-flight audio. Do NOT call
+        // stopSpeaking() here: it would fire pendingSpeechCompletion before
+        // this utterance even starts, arming the mic while we're talking.
         let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = Self.deviceVoice
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.95
+        currentUtteranceID = ObjectIdentifier(utterance)
         synthesizer.speak(utterance)
     }
 
@@ -272,11 +345,25 @@ final class TVVoiceHost: NSObject, ObservableObject {
 extension TVVoiceHost: AVSpeechSynthesizerDelegate {
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didFinish utterance: AVSpeechUtterance) {
-        Task { @MainActor in self.finishSpeechCompletion() }
+        let id = ObjectIdentifier(utterance)
+        Task { @MainActor in self.deviceLineFinished(id) }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didCancel utterance: AVSpeechUtterance) {
-        Task { @MainActor in self.finishSpeechCompletion() }
+        let id = ObjectIdentifier(utterance)
+        Task { @MainActor in self.deviceLineFinished(id) }
+    }
+}
+
+extension TVVoiceHost: AVAudioPlayerDelegate {
+    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        let id = ObjectIdentifier(player)
+        Task { @MainActor in self.cloudLineFinished(id) }
+    }
+
+    nonisolated func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
+        let id = ObjectIdentifier(player)
+        Task { @MainActor in self.cloudLineFinished(id) }
     }
 }

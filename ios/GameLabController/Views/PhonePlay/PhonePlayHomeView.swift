@@ -1,6 +1,10 @@
 import SwiftUI
 
 // MARK: - Phone Play root and home grid
+//
+// This is the app's home screen (ControllerScreen.join): a "Play on TV"
+// hero that opens the join sheet, then the Phone Play games, with Road
+// Trip Quiz (Travel Mode) among the party games.
 
 struct PhonePlayRootView: View {
     @EnvironmentObject var vm: ControllerRootViewModel
@@ -37,14 +41,26 @@ struct PhonePlayRootView: View {
         } else if play.active == .arcade, let game = play.arcade {
             PocketArcadeRootView(game: game, onExit: play.closeGame)
         } else {
-            PhonePlayHomeView(play: play, onExit: vm.endPhonePlay)
+            PhonePlayHomeView(play: play,
+                              resumableRoomCode: vm.resumableRoomCode,
+                              onPlayOnTV: vm.openJoinSheet,
+                              onResumeTV: vm.resumeTVGame,
+                              onDismissResume: { vm.forgetResumableRoom() },
+                              onRoadTrip: vm.startTravel)
         }
     }
 }
 
 struct PhonePlayHomeView: View {
     @ObservedObject var play: PhonePlayViewModel
-    let onExit: () -> Void
+    /// Non-nil when the phone was seated in a TV room when the app last
+    /// went away: shows the "Back to your TV game" banner.
+    let resumableRoomCode: String?
+    let onPlayOnTV: () -> Void
+    let onResumeTV: () -> Void
+    let onDismissResume: () -> Void
+    /// Opens Road Trip Quiz (Travel Mode).
+    let onRoadTrip: () -> Void
 
     @State private var appeared: Bool = false
     @State private var dailyDone: Bool = false
@@ -61,12 +77,18 @@ struct PhonePlayHomeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PhonePlayTopBar(title: "", backTitle: "Home", onBack: onExit)
+            PhoneHomeTopBar()
             ScrollView {
                 VStack(spacing: 22) {
-                    header
+                    if let code = resumableRoomCode {
+                        PhoneHomeResumeBanner(code: code, onResume: onResumeTV, onDismiss: onDismissResume)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+
+                    PhoneHomeTVHero(appeared: appeared, action: onPlayOnTV)
 
                     PhonePlaySectionLabel(text: "Party games")
+                        .padding(.top, 4)
 
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(Array(partyGames.enumerated()), id: \.element.id) { pair in
@@ -79,6 +101,15 @@ struct PhonePlayHomeView: View {
                         }
                     }
 
+                    // Travel Mode, as a party game: one phone reads riddles
+                    // and quiz questions aloud for the whole car.
+                    PhonePlayGameCard(info: PhonePlayCardInfo.roadTrip,
+                                      badge: "Hands-free",
+                                      index: partyGames.count,
+                                      appeared: appeared,
+                                      wide: true,
+                                      action: onRoadTrip)
+
                     PhonePlaySectionLabel(text: "Solo")
                         .padding(.top, 6)
 
@@ -86,20 +117,26 @@ struct PhonePlayHomeView: View {
                         ForEach(Array(soloGames.enumerated()), id: \.element.id) { pair in
                             PhonePlayGameCard(game: pair.element,
                                               badge: badge(for: pair.element),
-                                              index: partyGames.count + pair.offset,
+                                              index: partyGames.count + 1 + pair.offset,
                                               appeared: appeared) {
                                 play.open(pair.element)
                             }
                         }
                     }
 
-                    Text("Works offline. No TV or Wi-Fi needed.")
+                    Text("Phone games work offline. No TV or Wi-Fi needed.")
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.text3)
                         .padding(.top, 4)
+
+                    Text(BuildStamp.displayString)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text3.opacity(0.7))
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, 6)
                 .padding(.bottom, 34)
+                .animation(PhonePlayDesign.smooth, value: resumableRoomCode)
             }
         }
         .onAppear {
@@ -108,22 +145,6 @@ struct PhonePlayHomeView: View {
                 appeared = true
             }
         }
-    }
-
-    private var header: some View {
-        VStack(spacing: 6) {
-            Text("Phone Play")
-                .font(.system(size: 40, weight: .black, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(colors: [PhonePlayDesign.orange, PhonePlayDesign.pink, PhonePlayDesign.purple],
-                                   startPoint: .leading, endPoint: .trailing)
-                )
-            Text("One phone. No TV. Pass it around.")
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                .foregroundColor(PhonePlayDesign.text2)
-        }
-        .scaleEffect(appeared ? 1 : 0.9)
-        .opacity(appeared ? 1 : 0)
     }
 
     private func badge(for game: PhonePlayGame) -> String? {
@@ -152,18 +173,66 @@ struct PhonePlayHomeView: View {
 
 // MARK: - Cards
 
+/// What a home card shows. Phone Play games build one from PhonePlayGame;
+/// Road Trip Quiz (Travel Mode) is routed specially and has its own.
+struct PhonePlayCardInfo {
+    let title: String
+    let blurb: String
+    let symbol: String
+    let colors: [Color]
+    let players: String
+
+    init(title: String, blurb: String, symbol: String, colors: [Color], players: String) {
+        self.title = title
+        self.blurb = blurb
+        self.symbol = symbol
+        self.colors = colors
+        self.players = players
+    }
+
+    init(game: PhonePlayGame) {
+        self.init(title: game.title, blurb: game.blurb, symbol: game.symbol,
+                  colors: game.colors, players: game.players)
+    }
+
+    static let roadTrip = PhonePlayCardInfo(
+        title: "Road Trip Quiz",
+        blurb: "Hands-free riddles, quiz and brain teasers, spoken aloud. Everyone shouts the answer.",
+        symbol: "car.fill",
+        colors: [PhonePlayDesign.green, PhonePlayDesign.cyan],
+        players: "Whole car"
+    )
+}
+
 private struct PhonePlayGameCard: View {
-    let game: PhonePlayGame
+    let info: PhonePlayCardInfo
     let badge: String?
     let index: Int
     let appeared: Bool
+    var wide: Bool = false
     let action: () -> Void
+
+    init(info: PhonePlayCardInfo, badge: String?, index: Int, appeared: Bool,
+         wide: Bool = false, action: @escaping () -> Void) {
+        self.info = info
+        self.badge = badge
+        self.index = index
+        self.appeared = appeared
+        self.wide = wide
+        self.action = action
+    }
+
+    init(game: PhonePlayGame, badge: String?, index: Int, appeared: Bool,
+         action: @escaping () -> Void) {
+        self.init(info: PhonePlayCardInfo(game: game), badge: badge, index: index,
+                  appeared: appeared, action: action)
+    }
 
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top) {
-                    Image(systemName: game.symbol)
+                    Image(systemName: info.symbol)
                         .font(.system(size: 34, weight: .bold))
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
@@ -181,32 +250,32 @@ private struct PhonePlayGameCard: View {
                     }
                 }
                 Spacer(minLength: 0)
-                Text(game.title)
-                    .font(.system(size: 23, weight: .black, design: .rounded))
+                Text(info.title)
+                    .font(.system(size: wide ? 26 : 23, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(game.blurb)
+                Text(info.blurb)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(game.players)
+                Text(info.players)
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.65))
             }
             .padding(16)
-            .frame(maxWidth: .infinity, minHeight: 210, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: wide ? 170 : 210, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
-                    .fill(PhonePlayDesign.gradient(game.colors))
+                    .fill(PhonePlayDesign.gradient(info.colors))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
             )
-            .shadow(color: (game.colors.first ?? .clear).opacity(0.35), radius: 14, y: 8)
+            .shadow(color: (info.colors.first ?? .clear).opacity(0.35), radius: 14, y: 8)
         }
         .buttonStyle(PhonePlayPressStyle())
         .scaleEffect(appeared ? 1 : 0.8)

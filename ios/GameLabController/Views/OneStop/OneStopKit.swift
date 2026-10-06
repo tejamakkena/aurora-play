@@ -7,13 +7,18 @@ import SwiftUI
 // and the set_custom_questions / start_night / next_game / end_night
 // handlers in games/native_hub/socket_events.py.
 
+/// The one-stop panels (Game Night, quiz maker, profile, teams) wear the
+/// Phone Play look: same dark background, party gradients, card radius,
+/// press springs and haptics. These names stay so every panel keeps
+/// compiling unchanged.
 enum OneStopTheme {
-    static let background = Color(hex: "0a0a14")
-    static let nightGradient = [Color.purple, Color.pink, Color.orange]
-    static let quizGradient = [Color.cyan, Color.blue, Color.purple]
+    static let background = PhonePlayDesign.bg
+    static let nightGradient = [PhonePlayDesign.purple, PhonePlayDesign.pink, PhonePlayDesign.orange]
+    static let quizGradient = [PhonePlayDesign.cyan, PhonePlayDesign.blue, PhonePlayDesign.indigo]
 }
 
-/// Rounded, softly tinted card used by every one-stop panel.
+/// Rounded, softly tinted card used by every one-stop panel: a Phone Play
+/// surface card with a wash of `tint`.
 struct OneStopCard: ViewModifier {
     var tint: Color
     var padding: CGFloat = 16
@@ -23,14 +28,18 @@ struct OneStopCard: ViewModifier {
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(LinearGradient(colors: [tint.opacity(0.20), Color.white.opacity(0.04)],
-                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                    .fill(PhonePlayDesign.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                            .fill(PhonePlayDesign.gradient([tint.opacity(0.22), tint.opacity(0.02)]))
+                    )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .strokeBorder(tint.opacity(0.35), lineWidth: 1)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                    .strokeBorder(tint.opacity(0.32), lineWidth: 1)
             )
+            .shadow(color: tint.opacity(0.12), radius: 12, y: 6)
     }
 }
 
@@ -44,52 +53,48 @@ extension View {
 struct OneStopChip: View {
     let title: String
     let selected: Bool
-    var tint: Color = .cyan
+    var tint: Color = PhonePlayDesign.cyan
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            PhonePlayHaptics.tap()
+            action()
+        } label: {
             Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(selected ? .black : .white.opacity(0.75))
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .lineLimit(1)
+                .foregroundColor(selected ? .black : PhonePlayDesign.text2)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(selected ? tint : Color.white.opacity(0.08)))
-                .overlay(Capsule().strokeBorder(selected ? Color.clear : Color.white.opacity(0.12), lineWidth: 1))
+                .padding(.vertical, 9)
+                .background(
+                    Capsule().fill(selected ? PhonePlayDesign.gradient([tint, tint.opacity(0.75)])
+                                            : PhonePlayDesign.gradient([PhonePlayDesign.surface2,
+                                                                        PhonePlayDesign.surface2]))
+                )
+                .overlay(Capsule().strokeBorder(selected ? Color.clear : Color.white.opacity(0.1), lineWidth: 1))
+                .scaleEffect(selected ? 1.04 : 1)
         }
-        .buttonStyle(.plain)
-        .animation(.spring(response: 0.3, dampingFraction: 0.75), value: selected)
+        .buttonStyle(PhonePlayPressStyle())
+        .animation(PhonePlayDesign.pop, value: selected)
     }
 }
 
-/// Big gradient call-to-action button.
+/// Big gradient call-to-action button: Phone Play's big button.
 struct OneStopPrimaryButton: View {
     let title: String
     let systemImage: String
-    var colors: [Color] = [.purple, .cyan]
+    var colors: [Color] = [PhonePlayDesign.purple, PhonePlayDesign.cyan]
     var enabled: Bool = true
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(LinearGradient(colors: enabled ? colors : [Color.white.opacity(0.12), Color.white.opacity(0.08)],
-                                             startPoint: .leading, endPoint: .trailing))
-                )
-                .shadow(color: (colors.first ?? .purple).opacity(enabled ? 0.35 : 0), radius: 10, y: 4)
-        }
-        .buttonStyle(OneStopPressStyle())
-        .disabled(!enabled)
+        PhonePlayBigButton(title: title, symbol: systemImage, colors: colors,
+                           enabled: enabled, action: action)
     }
 }
 
-/// Quiet outlined secondary button.
+/// Quiet secondary button, Phone Play's ghost button with a tint.
 struct OneStopSecondaryButton: View {
     let title: String
     let systemImage: String
@@ -97,28 +102,41 @@ struct OneStopSecondaryButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(tint.opacity(0.9))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(tint.opacity(0.35), lineWidth: 1.5)
-                )
+        Button {
+            PhonePlayHaptics.tap()
+            action()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .bold))
+                Text(title)
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundColor(tint.opacity(0.9))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .fill(tint.opacity(0.08))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .strokeBorder(tint.opacity(0.3), lineWidth: 1)
+            )
         }
-        .buttonStyle(OneStopPressStyle())
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
-/// Subtle squash on press.
+/// Subtle squash on press: the Phone Play spring.
 struct OneStopPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .brightness(configuration.isPressed ? -0.04 : 0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

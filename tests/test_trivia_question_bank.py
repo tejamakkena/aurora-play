@@ -61,6 +61,16 @@ def _qtext(kind, q):
     return q[1] if kind == "trivia" else q[0]
 
 
+def _trivia_to(engine, phase, limit=200):
+    """Fast-forward the trivia game show to ``phase`` by expiring deadlines."""
+    for _ in range(limit):
+        if engine.phase == phase:
+            return
+        engine.deadline = 0.0
+        engine.tick(0.0)
+    raise AssertionError(f"never reached {phase}")
+
+
 # ---- the missing-question bug ----------------------------------------------
 
 
@@ -70,6 +80,7 @@ def test_trivia_private_state_includes_question_text_and_category():
     # text never reached the phone, so players saw answer buttons with no
     # question. TriviaControllerView now renders privateData["questionText"].
     engine, roster, _ = _make("trivia")
+    _trivia_to(engine, "question")
     for player in roster:
         private = engine.private_state(player.id)
         assert private["questionText"] == engine.question[1]
@@ -151,6 +162,7 @@ def test_kbc_pool_has_no_cross_bank_duplicates():
 
 def test_trivia_records_asked_questions_in_room_history():
     engine, roster, room = _make("trivia")
+    _trivia_to(engine, "question")
     history = room.question_history[("en", "trivia")]
     assert _qtext("trivia", engine.question) in history
 

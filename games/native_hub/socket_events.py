@@ -424,7 +424,7 @@ def register_native_events(socketio):
             if not playlist:
                 push_error(socketio, sid, "No games fit this group", "NO_GAMES")
                 return
-            game_night.start(room, playlist)
+            game_night.start(room, playlist, kids=bool(data.get("kids")))
             room.state = RoomState.LOBBY
             room.engine = None
             room.phase = "play"
@@ -475,6 +475,9 @@ def register_native_events(socketio):
         with room.lock:
             if not _lobby_controller(room, sid, "end the Game Night"):
                 return
+            night = room.night or {}
+            if night.get("kidsTopic") and room.topic == night.get("kidsTopic"):
+                room.topic = ""        # drop the Kids mode learning topic
             room.night = None
             room.touch()
         push_room(socketio, room)

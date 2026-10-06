@@ -25,14 +25,15 @@ RULES: dict[str, dict] = {
     # ---- Originals -----------------------------------------------------
     "trivia": {
         "title": "Trivia",
-        "objective": "Answer quiz questions faster than everyone else.",
+        "objective": "Win the quiz show: score big, then reach the top of the Final Climb.",
         "rules": [
-            "Each question appears on the TV with four options.",
-            "Tap your answer on your phone before the timer runs out.",
-            "Faster correct answers earn more points.",
-            "The highest score after all rounds wins.",
+            "Vote for a category door on your phone before each round.",
+            "Every second question, throw a power at a rival (Freeze, Scramble or Fog) or raise a Shield.",
+            "Right answers score 500 points plus up to 500 more for speed.",
+            "In the Final Climb, right answers climb a rung and wrong ones slip one.",
+            "First to the top of the tower wins the show.",
         ],
-        "controls": "Tap an option on your phone.",
+        "controls": "Tap doors, powers and answers on your phone.",
     },
     "poker": {
         "title": "Poker",
@@ -161,6 +162,7 @@ RULES: dict[str, dict] = {
         "rules": [
             "Roll the dice on your turn to move forward.",
             "Climb ladders to jump ahead; snakes slide you back down.",
+            "Roll a 6 and you roll again (up to three times in a row).",
             "You need the exact roll to land on square 100.",
             "The first token home wins.",
         ],

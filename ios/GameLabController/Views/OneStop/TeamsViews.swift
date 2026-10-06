@@ -35,7 +35,7 @@ struct PhoneTeamsCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Teams", systemImage: "person.3.fill")
-                    .font(.headline)
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                 Spacer()
                 if let mine = teams.team(of: myID) {
@@ -53,8 +53,7 @@ struct PhoneTeamsCard: View {
                     .foregroundColor(.white.opacity(0.45))
             }
         }
-        .padding(16)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Color.white.opacity(0.06)))
+        .phonePlaySurfaceCard(tint: PhonePlayDesign.yellow)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: teams)
     }
 
@@ -65,7 +64,7 @@ struct PhoneTeamsCard: View {
         }
         return Button {
             guard !isMine, room.state == .lobby else { return }
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            PhonePlayHaptics.tap()
             TeamEvents.move(roomCode: room.code, playerID: myID, teamID: team.id)
         } label: {
             HStack(alignment: .top, spacing: 12) {
@@ -76,7 +75,7 @@ struct PhoneTeamsCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(team.name)
-                            .font(.subheadline.weight(.bold))
+                            .font(.system(size: 15, weight: .heavy, design: .rounded))
                             .foregroundColor(.white)
                         Spacer()
                         if team.points > 0 {
@@ -101,7 +100,7 @@ struct PhoneTeamsCard: View {
                     .strokeBorder(team.tint.opacity(isMine ? 0.9 : 0.3), lineWidth: isMine ? 2 : 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
@@ -127,8 +126,8 @@ struct HostTeamsControl: View {
                         TeamEvents.setTeams(roomCode: room.code, count: current)
                     } label: {
                         Image(systemName: "shuffle")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundColor(.yellow)
+                            .font(.system(size: 15, weight: .heavy, design: .rounded))
+                            .foregroundColor(PhonePlayDesign.yellow)
                             .padding(8)
                             .background(Circle().fill(Color.white.opacity(0.08)))
                     }
@@ -146,12 +145,12 @@ struct HostTeamsControl: View {
             TeamEvents.setTeams(roomCode: room.code, count: count)
         } label: {
             Text(label)
-                .font(.subheadline.weight(.semibold))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(selected ? .black : .white.opacity(0.7))
                 .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(Capsule().fill(selected ? Color.yellow : Color.white.opacity(0.08)))
+                .background(Capsule().fill(selected ? PhonePlayDesign.yellow : Color.white.opacity(0.08)))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
@@ -168,10 +167,10 @@ struct InviteShareButton: View {
                   subject: Text("Join my Aurora Play game"),
                   message: Text("Join my \(room.gameID.displayName) game on Aurora Play. Room code \(room.code).")) {
             Label("Invite", systemImage: "square.and.arrow.up")
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(.cyan)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.cyan)
                 .padding(.horizontal, 12).padding(.vertical, 6)
-                .background(Capsule().fill(Color.cyan.opacity(0.12)))
+                .background(Capsule().fill(PhonePlayDesign.cyan.opacity(0.12)))
         }
     }
 }

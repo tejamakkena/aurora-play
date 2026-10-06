@@ -478,6 +478,12 @@ class TestTriviaTopicIntegration:
                 "Which country won the &quot;1983&quot; Cricket World Cup?",
                 "India", ["West Indies", "England", "Australia"])]})
         engine, room, _ = self._trivia(topic="cricket")
+        # Recorded when the question is actually asked, after the intro.
+        for _ in range(20):
+            if engine.phase == "question":
+                break
+            engine.deadline = 0.0
+            engine.tick(0.0)
         assert 'Which country won the "1983" Cricket World Cup?' in \
             room.question_history.get(("topic:cricket", "trivia"), [])
 

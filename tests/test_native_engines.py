@@ -560,24 +560,70 @@ class TestGameRules:
 class TestSnakeLadder:
     """Board layout + movement rules for the native Snake & Ladder engine.
 
-    Regression coverage for two changes: SNAKES was trimmed from 10 entries
-    to exactly 3 (the TV board renders each as a full 3D serpentine model,
-    so fewer/more-prominent snakes reads better cinematically), and
-    public_state() now exposes the static snakes/ladders maps so the Swift
+    The board is the classic-style layout again (10 snakes, 9 ladders) after
+    an earlier 3-snake cut was reported as "same and easy", so the layout
+    invariants below are what keep it a fair, chain-free real board.
+    public_state() exposes the static snakes/ladders maps so the Swift
     client has one authoritative source for the board layout.
     """
 
-    def test_exactly_three_snakes(self):
-        from games.native_hub.engines.legacy_boards import SNAKES
-        assert len(SNAKES) == 3
+    def test_classic_snake_and_ladder_counts(self):
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+        assert 9 <= len(SNAKES) <= 10
+        assert len(LADDERS) == 9
         for head, tail in SNAKES.items():
             assert 1 <= tail < head <= 100
-
-    def test_ladders_unchanged_at_ten(self):
-        from games.native_hub.engines.legacy_boards import LADDERS
-        assert len(LADDERS) == 10
         for bottom, top in LADDERS.items():
             assert 1 <= bottom < top <= 100
+
+    def test_no_square_is_both_snake_head_and_ladder_bottom(self):
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+        assert not set(SNAKES) & set(LADDERS)
+
+    def test_every_endpoint_is_a_distinct_square(self):
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+        endpoints = (list(SNAKES) + list(SNAKES.values())
+                     + list(LADDERS) + list(LADDERS.values()))
+        assert len(endpoints) == len(set(endpoints))
+
+    def test_nothing_starts_on_1_or_100(self):
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+        for square in (1, 100):
+            assert square not in SNAKES
+            assert square not in LADDERS
+
+    def test_no_chains(self):
+        # One roll resolves at most one slide: a ladder never tops out on a
+        # snake head, and a snake never drops you onto a ladder bottom.
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+        for top in LADDERS.values():
+            assert top not in SNAKES
+            assert top not in LADDERS
+        for tail in SNAKES.values():
+            assert tail not in LADDERS
+            assert tail not in SNAKES
+
+    def test_each_snake_and_ladder_spans_a_row(self):
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+
+        def row(n):
+            return (n - 1) // 10
+        for head, tail in SNAKES.items():
+            assert row(head) > row(tail)
+        for bottom, top in LADDERS.items():
+            assert row(top) > row(bottom)
+
+    def test_end_game_has_a_long_snake_from_the_nineties(self):
+        # The real board's tension: a snake near the top that can drop a
+        # near-winner back into the 20s-40s.
+        from games.native_hub.engines.legacy_boards import SNAKES
+        assert any(head >= 90 and 20 <= tail < 50 for head, tail in SNAKES.items())
+        assert sum(1 for head in SNAKES if head > 80) >= 3
+
+    def test_snakes_and_ladders_cover_the_whole_board(self):
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+        rows = {(n - 1) // 10 for n in list(SNAKES) + list(LADDERS)}
+        assert len(rows) >= 8
 
     def test_public_state_exposes_snakes_and_ladders_maps(self):
         from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
@@ -664,10 +710,10 @@ class TestSnakeLadder:
 
     def test_slide_seq_increases_across_slides(self):
         from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
-        assert SNAKES[89] == 53 and LADDERS[28] == 84
+        assert SNAKES[87] == 24 and LADDERS[28] == 84
         engine, _ = make("snake_ladder", players=2)
         pid = engine.current_player_id()
-        engine.positions[pid] = 85
+        engine.positions[pid] = 83
         engine.handle_action(pid, "roll", {"value": 4})
         first = engine.public_state()["lastSlide"][pid]["seq"]
         engine.turn_index = engine.order.index(pid)   # force the turn back
@@ -686,7 +732,9 @@ class TestSnakeLadder:
         engine.handle_action(pid, "roll", {"value": 4})
         assert engine.public_state()["lastSlide"][pid]["kind"] == "snake"
         engine.turn_index = engine.order.index(pid)   # force the turn back
-        engine.positions[pid] = 40                    # 41..46: no snake/ladder
+        from games.native_hub.engines.legacy_boards import LADDERS
+        assert 41 not in SNAKES and 41 not in LADDERS
+        engine.positions[pid] = 40                    # 41: no snake/ladder
         engine.handle_action(pid, "roll", {"value": 1})
         assert pid not in engine.public_state()["lastSlide"]
         assert engine.private_state(pid)["lastSlide"] is None
@@ -700,15 +748,123 @@ class TestSnakeLadder:
         assert pid not in engine.public_state()["lastSlide"]
 
 
+    # -- Roll again on a 6 ---------------------------------------------------
+
+    @staticmethod
+    def _plain_square_before(roll):
+        """A start square whose `roll` lands on a plain square (no slide)."""
+        from games.native_hub.engines.legacy_boards import LADDERS, SNAKES
+        for start in range(10, 90):
+            if start + roll not in SNAKES and start + roll not in LADDERS:
+                return start
+        raise AssertionError("no plain square")
+
+    def test_rolling_a_six_gives_another_turn(self):
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        start = self._plain_square_before(6)
+        engine.positions[pid] = start
+        engine.handle_action(pid, "roll", {"value": 6})
+        assert engine.positions[pid] == start + 6
+        assert engine.current_player_id() == pid
+        public = engine.public_state()
+        assert public["lastRollBonus"] is True
+        assert public["lastRollerID"] == pid
+        assert public["rollAgainOnSix"] is True
+        assert public["rollSeq"] == 1
+        assert engine.private_state(pid)["rollAgain"] is True
+        other = next(p for p in engine.order if p != pid)
+        assert engine.private_state(other)["rollAgain"] is False
+        assert engine.private_state(other)["isMyTurn"] is False
+
+    def test_non_six_passes_the_turn_and_clears_the_bonus(self):
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = self._plain_square_before(6)
+        engine.handle_action(pid, "roll", {"value": 6})
+        assert engine.current_player_id() == pid
+        engine.positions[pid] = self._plain_square_before(2)
+        engine.handle_action(pid, "roll", {"value": 2})
+        assert engine.current_player_id() != pid
+        assert engine.public_state()["lastRollBonus"] is False
+        assert engine.private_state(pid)["rollAgain"] is False
+
+    def test_third_six_in_a_row_moves_but_passes_the_turn(self):
+        # The controller sends the die value, so a phone that always says 6
+        # must not be able to hold the turn forever.
+        from games.native_hub.engines.legacy_boards import MAX_BONUS_ROLLS
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        for _ in range(MAX_BONUS_ROLLS):
+            engine.positions[pid] = self._plain_square_before(6)
+            engine.handle_action(pid, "roll", {"value": 6})
+            assert engine.current_player_id() == pid
+        start = self._plain_square_before(6)
+        engine.positions[pid] = start
+        engine.handle_action(pid, "roll", {"value": 6})
+        assert engine.positions[pid] == start + 6
+        assert engine.current_player_id() != pid
+        assert engine.public_state()["lastRollBonus"] is False
+        # The streak resets for the next player.
+        nxt = engine.current_player_id()
+        engine.positions[nxt] = self._plain_square_before(6)
+        engine.handle_action(nxt, "roll", {"value": 6})
+        assert engine.current_player_id() == nxt
+
+    def test_six_onto_a_snake_still_rolls_again(self):
+        from games.native_hub.engines.legacy_boards import SNAKES
+        head = next(h for h in SNAKES if h > 6)
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = head - 6
+        engine.handle_action(pid, "roll", {"value": 6})
+        assert engine.positions[pid] == SNAKES[head]
+        assert engine.current_player_id() == pid
+        assert engine.public_state()["lastSlide"][pid]["kind"] == "snake"
+
+    def test_winning_six_ends_the_game_without_a_bonus(self):
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = 94
+        engine.handle_action(pid, "roll", {"value": 6})
+        assert engine.is_over() and engine.winner == pid
+        assert engine.public_state()["lastRollBonus"] is False
+
+    def test_bonus_roll_lapses_on_turn_timeout(self):
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = self._plain_square_before(6)
+        engine.handle_action(pid, "roll", {"value": 6})
+        assert engine.current_player_id() == pid
+        engine.on_turn_timeout()
+        assert engine.current_player_id() != pid
+        assert engine.public_state()["lastRollBonus"] is False
+        assert engine.bonus_streak == 0
+
+    def test_overshoot_with_a_six_still_rolls_again(self):
+        engine, _ = make("snake_ladder", players=2)
+        pid = engine.current_player_id()
+        engine.positions[pid] = 97
+        engine.handle_action(pid, "roll", {"value": 6})
+        assert engine.positions[pid] == 97
+        assert engine.current_player_id() == pid
+        # The roll still counts as a fresh roll for the TV.
+        assert engine.public_state()["rollSeq"] == 1
+
 class TestTrivia:
-    def test_trivia_plays_through_the_whole_question_bank(self):
-        # Used to hardcode 8 rounds regardless of bank size, cutting the
-        # game off partway through -- reported directly as "scoring is only
-        # for 10 questions."
-        from games.native_hub.engines.legacy_social import TRIVIA_QUESTIONS
+    @staticmethod
+    def _to(engine, phase, limit=200):
+        for _ in range(limit):
+            if engine.phase == phase:
+                return
+            engine.deadline = 0.0
+            engine.tick(1 / 30)
+        raise AssertionError(f"never reached {phase}")
+
+    def test_trivia_plays_nine_questions_in_three_rounds(self):
         engine, _ = make("trivia", players=2)
-        assert engine.TOTAL_ROUNDS == len(TRIVIA_QUESTIONS)
-        assert engine.TOTAL_ROUNDS > 8
+        assert engine.total_rounds == engine.MAIN_QUESTIONS == 9
+        assert engine.total_round_groups == 3
 
     def test_trivia_hides_the_correct_answer_until_reveal(self):
         # correctIndex used to be sent on every single push, including the
@@ -717,7 +873,7 @@ class TestTrivia:
         # directly as "answers are getting revealed way before the
         # questions."
         engine, _ = make("trivia", players=2)
-        assert engine.phase == "answering"
+        self._to(engine, "question")
         assert "correctIndex" not in engine.public_state()
 
         engine.deadline = 0.0             # force the round timer to expire
@@ -727,18 +883,17 @@ class TestTrivia:
 
     def test_trivia_holds_the_reveal_before_advancing(self):
         engine, _ = make("trivia", players=2)
+        self._to(engine, "question")
         first_question_id = engine.question_id
         engine.deadline = 0.0
         engine.tick(1 / 30)
         assert engine.phase == "reveal"
 
-        # reveal_until is still in the future -- ticking again shouldn't
-        # jump straight to the next question.
+        # The reveal deadline is still in the future -- ticking again
+        # shouldn't jump straight to the next question.
         engine.tick(1 / 30)
         assert engine.phase == "reveal"
         assert engine.question_id == first_question_id
 
-        engine.reveal_until = 0.0
-        engine.tick(1 / 30)
-        assert engine.phase == "answering"
+        self._to(engine, "question")
         assert engine.question_id != first_question_id

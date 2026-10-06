@@ -87,6 +87,52 @@ def _best_hand(cards):
     return max(_score_5(list(combo)) for combo in itertools.combinations(cards, 5))
 
 
+def _best_five(cards):
+    """The five cards that make ``_best_hand`` (all of them when <= 5)."""
+    if len(cards) <= 5:
+        return list(cards)
+    return list(max(itertools.combinations(cards, 5), key=lambda combo: _score_5(list(combo))))
+
+
+_RANK_WORD = {14: "Ace", 13: "King", 12: "Queen", 11: "Jack", 10: "Ten", 9: "Nine",
+              8: "Eight", 7: "Seven", 6: "Six", 5: "Five", 4: "Four", 3: "Three", 2: "Two"}
+_RANK_PLURAL = {14: "Aces", 13: "Kings", 12: "Queens", 11: "Jacks", 10: "10s", 9: "9s",
+                8: "8s", 7: "7s", 6: "6s", 5: "5s", 4: "4s", 3: "3s", 2: "2s"}
+
+
+def _hand_name(score):
+    """A broadcast-style name for a ``_score_5`` tuple, e.g.
+    "Full house, Kings over 7s". Display only -- never compared."""
+    if not score:
+        return ""
+    category = score[0]
+    rest = list(score[1:])
+
+    def word(i):
+        return _RANK_WORD.get(rest[i], "") if i < len(rest) else ""
+
+    def plural(i):
+        return _RANK_PLURAL.get(rest[i], "") if i < len(rest) else ""
+
+    if category == 8:
+        return "Royal flush" if rest and rest[0] == 14 else f"Straight flush, {word(0)} high"
+    if category == 7:
+        return f"Four of a kind, {plural(0)}"
+    if category == 6:
+        return f"Full house, {plural(0)} over {plural(1)}"
+    if category == 5:
+        return f"Flush, {word(0)} high"
+    if category == 4:
+        return f"Straight, {word(0)} high"
+    if category == 3:
+        return f"Three of a kind, {plural(0)}"
+    if category == 2:
+        return f"Two pair, {plural(0)} and {plural(1)}"
+    if category == 1:
+        return f"Pair of {plural(0)}"
+    return f"{word(0)} high"
+
+
 class PokerEngine(TurnBasedEngine):
     """Texas Hold'em over several hands.
 
@@ -126,6 +172,13 @@ class PokerEngine(TurnBasedEngine):
         self.next_hand_at = 0.0
         self.game_over_pending = False
         self.last_hand: dict | None = None
+        # Display-only extras for the TV table (button/blind markers and the
+        # most recent action for its callout banner).
+        self.dealer_id: str | None = None
+        self.small_blind_id: str | None = None
+        self.big_blind_id: str | None = None
+        self.last_action: dict | None = None
+        self.action_seq = 0
 
     def setup(self):
         self.chips = {pid: self.STARTING_CHIPS for pid in self.order}
@@ -160,6 +213,9 @@ class PokerEngine(TurnBasedEngine):
             sb, bb = seated[dealer], seated[(dealer + 1) % n]   # heads-up: button posts SB
         else:
             sb, bb = seated[(dealer + 1) % n], seated[(dealer + 2) % n]
+        self.dealer_id = seated[dealer]
+        self.small_blind_id, self.big_blind_id = sb, bb
+        self.last_action = None
         self._post(sb, self.SMALL_BLIND)
         self._post(bb, self.BIG_BLIND)
         self.current_bet = max(self.contrib.values())
@@ -170,7 +226,7 @@ class PokerEngine(TurnBasedEngine):
             return
         self.next_turn()
 
-    def _end_hand(self, winners, share):
+    def _end_hand(self, winners, share, hand_name="", winning_cards=None):
         self.pot = 0
         self.phase = "showdown"
         self.winner = winners[0] if len(winners) == 1 else None
@@ -179,6 +235,8 @@ class PokerEngine(TurnBasedEngine):
             "winnerIDs": list(winners),
             "winnerNames": [self.player_name(w) for w in winners],
             "amount": share,
+            "handName": hand_name,
+            "winningCards": list(winning_cards or []),
         }
         self._sync_scores()
         self.deadline = 0.0
@@ -263,6 +321,9 @@ class PokerEngine(TurnBasedEngine):
                 or player_id in self.all_in or not self.is_my_turn(player_id)):
             return
 
+        bet_before = self.current_bet
+        contrib_before = self.contrib.get(player_id, 0)
+
         if action == "fold":
             self.folded.add(player_id)
             self.acted.add(player_id)
@@ -296,6 +357,8 @@ class PokerEngine(TurnBasedEngine):
         else:
             return
 
+        self._record_action(player_id, action, bet_before, contrib_before)
+
         if len(self._live()) == 1:
             self._award(self._live()[0])
             return
@@ -304,6 +367,25 @@ class PokerEngine(TurnBasedEngine):
             self._advance_street()
         else:
             self.next_turn()
+
+    def _record_action(self, player_id, action, bet_before, contrib_before):
+        """Remember the action just applied, for the TV's callout banner."""
+        paid = self.contrib.get(player_id, 0) - contrib_before
+        total = self.contrib.get(player_id, 0)
+        if action == "fold":
+            kind, amount = "fold", 0
+        elif player_id in self.all_in and paid > 0:
+            kind, amount = "allIn", total
+        elif paid <= 0:
+            kind, amount = "check", 0
+        elif total > bet_before:
+            kind, amount = ("raise" if bet_before > 0 else "bet"), total
+        else:
+            kind, amount = "call", paid
+        self.action_seq += 1
+        self.last_action = {"seq": self.action_seq, "playerID": player_id,
+                            "name": self.player_name(player_id),
+                            "action": kind, "amount": amount}
 
     def _advance_street(self):
         self.acted = set()
@@ -342,15 +424,21 @@ class PokerEngine(TurnBasedEngine):
         best_score = _best_hand(self.hands[ranked[0]] + self.community)
         winners = [pid for pid in ranked
                    if _best_hand(self.hands[pid] + self.community) == best_score]
-        self.showdown = [
-            {"playerID": pid, "name": self.player_name(pid), "cards": self.hands[pid]}
-            for pid in live
-        ]
+        self.showdown = []
+        for pid in live:
+            cards = self.hands[pid] + self.community
+            self.showdown.append({
+                "playerID": pid, "name": self.player_name(pid), "cards": self.hands[pid],
+                "handName": _hand_name(_best_hand(cards)),
+                "bestCards": _best_five(cards),
+                "isWinner": pid in winners,
+            })
         share, remainder = divmod(self.pot, len(winners))
         for pid in winners:
             self.chips[pid] += share
         self.chips[winners[0]] += remainder
-        self._end_hand(winners, share)
+        best = self.hands[winners[0]] + self.community
+        self._end_hand(winners, share, _hand_name(best_score), _best_five(best))
 
     def _award(self, winner):
         amount = self.pot
@@ -388,6 +476,13 @@ class PokerEngine(TurnBasedEngine):
             "handNumber": self.hand_number,
             "maxHands": self.MAX_HANDS,
             "lastHand": self.last_hand,
+            "dealerID": self.dealer_id,
+            "smallBlindID": self.small_blind_id,
+            "bigBlindID": self.big_blind_id,
+            "currentBet": self.current_bet,
+            "lastAction": self.last_action,
+            "turnSeconds": self.turn_seconds,
+            "bigBlind": self.BIG_BLIND,
         })
         return state
 
@@ -409,6 +504,9 @@ class PokerEngine(TurnBasedEngine):
             "handNumber": self.hand_number,
             "maxHands": self.MAX_HANDS,
             "lastHand": self.last_hand,
+            "myBet": self.contrib.get(player_id, 0),
+            "currentBet": self.current_bet,
+            "pot": self.pot,
         })
         return state
 

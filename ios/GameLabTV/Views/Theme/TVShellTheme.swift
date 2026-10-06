@@ -115,9 +115,24 @@ struct ShellAmbientBackground: View {
     var showsFloor: Bool = true
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: !isAnimated)) { context in
-            ShellAmbientCanvas(time: context.date.timeIntervalSinceReferenceDate,
-                               showsFloor: showsFloor)
+        // The blobs drift slowly, so 20 fps looks the same as 30. The Canvas
+        // is rendered on the GPU (drawingGroup): drawn on the CPU it repainted
+        // a full-screen 4K gradient every frame and stole time from scrolling.
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: !isAnimated)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            if #available(tvOS 18.0, *) {
+                // tvOS 18+: the colour field is a GPU MeshGradient whose
+                // inner points drift; the Canvas only adds the floor grid
+                // and vignette on top.
+                ZStack {
+                    ShellMeshField(time: time)
+                    ShellAmbientCanvas(time: time, showsFloor: showsFloor, showsBlobs: false)
+                }
+                .drawingGroup()
+            } else {
+                ShellAmbientCanvas(time: time, showsFloor: showsFloor, showsBlobs: true)
+                    .drawingGroup()
+            }
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
@@ -128,11 +143,55 @@ struct ShellAmbientBackground: View {
 private struct ShellAmbientCanvas: View {
     let time: Double
     let showsFloor: Bool
+    var showsBlobs: Bool = true
 
     var body: some View {
         Canvas { context, size in
-            ShellAmbientPainter.paint(&context, size: size, time: time, showsFloor: showsFloor)
+            ShellAmbientPainter.paint(&context, size: size, time: time,
+                                      showsFloor: showsFloor, showsBlobs: showsBlobs)
         }
+    }
+}
+
+/// The ambient colour field on tvOS 18+: a 4x4 MeshGradient in the shell's
+/// palette whose inner points and colours drift slowly. Rendered on the GPU,
+/// so it is richer and cheaper than painting blobs.
+@available(tvOS 18.0, *)
+private struct ShellMeshField: View {
+    let time: Double
+
+    private static let palette: [Color] = [
+        ShellTheme.ink, ShellTheme.night, ShellTheme.deepBlue, ShellTheme.ink,
+        ShellTheme.night, ShellTheme.violet, Color(hex: "2563EB"), ShellTheme.deepBlue,
+        ShellTheme.deepBlue, Color(hex: "06B6D4"), ShellTheme.pink, ShellTheme.night,
+        ShellTheme.ink, ShellTheme.deepBlue, ShellTheme.night, ShellTheme.ink,
+    ]
+
+    var body: some View {
+        let t = Float(time.truncatingRemainder(dividingBy: 10_000))
+        var points: [SIMD2<Float>] = []
+        for row in 0..<4 {
+            for col in 0..<4 {
+                var x = Float(col) / 3
+                var y = Float(row) / 3
+                // Edge points stay on the edges; inner ones wander.
+                if (1...2).contains(col) && (1...2).contains(row) {
+                    let phase = Float(row * 4 + col)
+                    x += 0.08 * sin(t * 0.11 + phase)
+                    y += 0.08 * cos(t * 0.09 + phase * 1.3)
+                }
+                points.append(SIMD2<Float>(x, y))
+            }
+        }
+        // Brightness of the lit middle colours breathes a little.
+        let glow = 0.55 + 0.15 * Double(sin(t * 0.2))
+        let colors: [Color] = Self.palette.enumerated().map { index, color in
+            let row = index / 4, col = index % 4
+            let inner = (1...2).contains(row) && (1...2).contains(col)
+            return inner ? color.opacity(glow) : color
+        }
+        return MeshGradient(width: 4, height: 4, points: points, colors: colors)
+            .background(ShellTheme.ink)
     }
 }
 
@@ -156,19 +215,21 @@ enum ShellAmbientPainter {
         Blob(color: Color(hex: "A855F7"), x: 0.52, y: 0.45, radius: 0.26, driftX: 0.14, driftY: 0.09, speed: 0.06, phase: 5.2)
     ]
 
-    static func paint(_ context: inout GraphicsContext, size: CGSize, time: Double, showsFloor: Bool) {
+    static func paint(_ context: inout GraphicsContext, size: CGSize, time: Double,
+                      showsFloor: Bool, showsBlobs: Bool = true) {
         let rect = CGRect(origin: .zero, size: size)
-        let base = Gradient(colors: [ShellTheme.ink, ShellTheme.night, ShellTheme.deepBlue])
-        context.fill(Path(rect),
-                     with: .linearGradient(base,
-                                           startPoint: CGPoint(x: 0, y: 0),
-                                           endPoint: CGPoint(x: size.width, y: size.height)))
-
         // Keep the argument to sin/cos small so precision never degrades.
         let t: CGFloat = CGFloat(time.truncatingRemainder(dividingBy: 20_000))
-        let unit: CGFloat = max(size.width, size.height)
-        for blob in blobs {
-            paintBlob(&context, blob: blob, size: size, unit: unit, t: t)
+        if showsBlobs {
+            let base = Gradient(colors: [ShellTheme.ink, ShellTheme.night, ShellTheme.deepBlue])
+            context.fill(Path(rect),
+                         with: .linearGradient(base,
+                                               startPoint: CGPoint(x: 0, y: 0),
+                                               endPoint: CGPoint(x: size.width, y: size.height)))
+            let unit: CGFloat = max(size.width, size.height)
+            for blob in blobs {
+                paintBlob(&context, blob: blob, size: size, unit: unit, t: t)
+            }
         }
 
         if showsFloor {
@@ -289,11 +350,19 @@ struct ShellGlassCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .padding(padding)
-            .background {
-                ShellGlassSurface(cornerRadius: cornerRadius, tint: tint)
-            }
+        if #available(tvOS 26.0, *) {
+            // tvOS 26: Apple's Liquid Glass material, lightly tinted.
+            content
+                .padding(padding)
+                .glassEffect(.regular.tint(tint.opacity(0.16)),
+                             in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        } else {
+            content
+                .padding(padding)
+                .background {
+                    ShellGlassSurface(cornerRadius: cornerRadius, tint: tint)
+                }
+        }
     }
 }
 

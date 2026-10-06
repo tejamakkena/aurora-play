@@ -278,3 +278,49 @@ def test_picker_http(server):
     app, _ = server
     body = app.test_client().get("/api/picker?players=6&kids=1&minutes=10").get_json()
     assert body["games"] and all(g["kids"] for g in body["games"])
+
+
+# --------------------------------------------------------------------------
+# Kids mode = learning mode
+# --------------------------------------------------------------------------
+
+def test_kids_mode_is_learning_games_only():
+    ids = {g["id"] for g in game_night.pick_games(4, kids=True)}
+    assert ids, "kids mode must still offer games"
+    assert ids <= {"trivia", "kbc", "brain_battle", "npat", "cipher_grid", "connect4",
+                   "snake_ladder", "memory", "hot_grid", "digit_guess", "battleship"}
+    assert not ids & {"most_likely_to", "bluff_it", "pong", "emoji_movie", "poker"}
+
+
+def test_chess_is_not_offered():
+    assert "chess" not in game_night.CATALOG
+
+
+def test_kids_night_rotates_learning_topics_and_clears_them():
+    room = make_room()
+    game_night.start(room, ["trivia", "brain_battle"], kids=True)
+    first = room.topic
+    assert first in game_night.KIDS_TOPICS
+    game_night.record_game(room, results("a", "b", "c"))
+    game_night.advance(room)
+    assert room.topic in game_night.KIDS_TOPICS and room.topic != first
+
+
+def test_kids_mode_keeps_a_host_topic():
+    room = make_room()
+    room.topic = "Cricket"
+    game_night.start(room, ["trivia"], kids=True)
+    assert room.topic == "Cricket"
+
+
+def test_end_night_drops_the_kids_topic(server):
+    app, socketio = server
+    tv = socketio.test_client(app, namespace=NS)
+    tv.emit("create_room", {"gameID": "trivia", "hostName": "TV", "hostID": "tv-1"},
+            namespace=NS)
+    code = latest(tv, "room_updated")["code"]
+    tv.emit("start_night", {"roomCode": code, "playlist": ["trivia"], "kids": True},
+            namespace=NS)
+    assert latest(tv, "room_updated")["topic"] in game_night.KIDS_TOPICS
+    tv.emit("end_night", {"roomCode": code}, namespace=NS)
+    assert latest(tv, "room_updated")["topic"] == ""

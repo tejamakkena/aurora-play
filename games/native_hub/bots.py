@@ -42,17 +42,40 @@ def _phase_key(engine) -> str:
     return f"{round_no}:{phase}"
 
 
+#: How often a trivia bot knows the answer: a fair opponent, not a wall.
+TRIVIA_BOT_ACCURACY = 0.6
+
+
 def _policy_trivia(engine, bot_id):
-    # TriviaEngine wants choiceIndex + questionID and only while answering;
-    # a bare "index" was silently ignored, so bots never answered.
-    if getattr(engine, "phase", "") != "answering":
+    """Trivia game show (trivia_show.py): vote a category door, throw a
+    random power at a random rival, and answer with TRIVIA_BOT_ACCURACY."""
+    phase = getattr(engine, "phase", "")
+    if phase == "category_vote":
+        categories = getattr(engine, "categories", []) or []
+        if not categories:
+            return None
+        return ("vote_category", {"index": random.randrange(len(categories))})
+    if phase == "power_pick":
+        rivals = [p.id for p in engine.room.players
+                  if p.id != bot_id and p.connected]
+        power = random.choice(["freeze", "scramble", "fog", "shield"])
+        if power == "shield" or not rivals:
+            return ("pick_power", {"power": "shield"})
+        return ("pick_power", {"power": power, "targetID": random.choice(rivals)})
+    if phase not in ("question", "finale_question"):
         return None
     question = getattr(engine, "question", None)
     if not question:
         return None
     choices = question[2]
-    return ("answer", {"choiceIndex": random.randrange(len(choices)),
-                       "questionID": engine.question_id})
+    if not choices:
+        return None
+    correct = question[3]
+    if 0 <= correct < len(choices) and random.random() < TRIVIA_BOT_ACCURACY:
+        index = correct
+    else:
+        index = random.randrange(len(choices))
+    return ("answer", {"choiceIndex": index, "questionID": engine.question_id})
 
 
 def _policy_kbc(engine, bot_id):

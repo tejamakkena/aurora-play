@@ -1,12 +1,14 @@
 import SwiftUI
 
+/// "Play on TV": the join form, shown as a sheet over the Phone Play home
+/// (RootControllerView). Room code, name, the QR hint and the LAN server
+/// setting, in the Phone Play look.
 struct JoinRoomView: View {
     let onJoin: (String, String) -> Void
-    /// Opens Travel Mode (one phone hosts in the car).
-    let onTravel: () -> Void
-    /// Opens Phone Play (one phone, no TV, passed around the group).
-    let onPhonePlay: () -> Void
-    /// Pre-filled from an auroraplay://join/<CODE> deep link.
+    /// Dismisses the sheet.
+    let onClose: () -> Void
+    /// Pre-filled from an auroraplay://join/<CODE> deep link (or the last
+    /// attempt, after an error).
     var initialCode: String? = nil
 
     /// Remembered between games so guests only type their name once.
@@ -20,222 +22,243 @@ struct JoinRoomView: View {
     @State private var code = ""
     @State private var name = ""
     @State private var shakeCode = false
+    @State private var appeared = false
     @FocusState private var focusedField: Field?
 
-    // The TV app has always shown a "Server connected" / "Reconnecting…"
-    // dot (TVGameSelectionView); this app never has, so there was no way
-    // for someone stuck on a join to tell whether their phone's socket
-    // was even connected in the first place versus a bad room code or a
-    // lost server reply -- all three look identical without this.
+    // The TV app has always shown a "Server connected" / "Reconnecting"
+    // dot (TVGameSelectionView); without one here there is no way for
+    // someone stuck on a join to tell whether their phone's socket was
+    // even connected in the first place versus a bad room code or a lost
+    // server reply -- all three look identical without this.
     @ObservedObject private var socket = GameSocketManager.shared
 
     private enum Field { case code, name }
 
+    private static let tvColors: [Color] = [PhonePlayDesign.cyan, PhonePlayDesign.indigo]
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 40) {
-                // Logo
-                VStack(spacing: 6) {
-                    Image(systemName: "gamecontroller.fill").font(.system(size: 64)).foregroundColor(.white.opacity(0.8))
-                        .font(.system(size: 64))
-                    Text("Aurora Play")
-                        .font(.system(size: 36, weight: .black, design: .rounded))
-                        .foregroundStyle(
-                            LinearGradient(colors: [.purple, .cyan],
-                                           startPoint: .leading, endPoint: .trailing)
-                        )
-                    Text("Your phone is the controller")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.4))
+        VStack(spacing: 0) {
+            topBar
+            ScrollView {
+                VStack(spacing: 22) {
+                    header
+                    codeCard
+                    nameCard
 
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(socket.isConnected ? Color.green : Color.red)
-                            .frame(width: 8, height: 8)
-                        Text(socket.isConnected ? "Server connected" : "Reconnecting…")
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.4))
+                    PhonePlayBigButton(title: "Join Game", symbol: "arrow.right.circle.fill",
+                                       colors: Self.tvColors, enabled: canJoin) {
+                        attemptJoin()
                     }
-                    .padding(.top, 4)
-                }
-                .padding(.top, 60)
-
-                // Input fields
-                VStack(spacing: 16) {
-                    // Room code — large, prominent
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Room Code")
-                            .font(.caption.bold())
-                            .foregroundColor(.white.opacity(0.5))
-                            .tracking(2)
-
-                        TextField("", text: $code)
-                            .placeholder(when: code.isEmpty) {
-                                Text("ABC123").foregroundColor(.white.opacity(0.2))
-                            }
-                            .font(.system(size: 36, weight: .bold, design: .monospaced))
-                            .multilineTextAlignment(.center)
-                            .textInputAutocapitalization(.characters)
-                            .autocorrectionDisabled()
-                            .foregroundColor(.white)
-                            .focused($focusedField, equals: .code)
-                            .onChange(of: code) { code = String($0.prefix(6).uppercased()) }
-                            .frame(height: 64)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color.white.opacity(0.06))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .strokeBorder(
-                                                shakeCode ? Color.red : Color.white.opacity(0.1),
-                                                lineWidth: 1.5
-                                            )
-                                    )
-                            )
-                            .offset(x: shakeCode ? 6 : 0)
-                            .animation(shakeCode ? .default.repeatCount(4, autoreverses: true).speed(8) : .default,
-                                       value: shakeCode)
-                    }
-
-                    // Name field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Your Name")
-                            .font(.caption.bold())
-                            .foregroundColor(.white.opacity(0.5))
-                            .tracking(2)
-
-                        TextField("", text: $name)
-                            .placeholder(when: name.isEmpty) {
-                                Text("Enter name").foregroundColor(.white.opacity(0.2))
-                            }
-                            .font(.title3)
-                            .foregroundColor(.white)
-                            .focused($focusedField, equals: .name)
-                            .onChange(of: name) { name = String($0.prefix(20)) }
-                            .frame(height: 54)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color.white.opacity(0.06))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .strokeBorder(Color.white.opacity(0.1), lineWidth: 1.5)
-                                    )
-                            )
-                    }
-                }
-                .padding(.horizontal, 32)
-
-                // Join button
-                Button(action: attemptJoin) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "arrow.right.circle.fill")
-                        Text("Join Game")
-                            .font(.headline)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(
-                                canJoin
-                                ? LinearGradient(colors: [.purple, .cyan],
-                                                 startPoint: .leading, endPoint: .trailing)
-                                : LinearGradient(colors: [Color.white.opacity(0.1)],
-                                                 startPoint: .leading, endPoint: .trailing)
-                            )
-                    )
-                    .foregroundColor(canJoin ? .white : .white.opacity(0.3))
-                }
-                .buttonStyle(.plain)
-                .disabled(!canJoin)
-                .padding(.horizontal, 32)
-
-                // Travel Mode — one phone hosts voice-first games in the car.
-                Button(action: onTravel) {
-                    HStack(spacing: 14) {
-                        Image(systemName: "car.fill")
-                            .font(.system(size: 30))
-                            .foregroundColor(.green)
-                            .frame(width: 44)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Travel Mode")
-                                .font(.headline.bold())
-                                .foregroundColor(.white)
-                            Text(TravelCopy.entrySubtitle)
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.5))
+                    .overlay {
+                        // A disabled BigButton swallows nothing; this catches
+                        // the tap so an incomplete code still shakes.
+                        if !canJoin {
+                            Color.clear
+                                .contentShape(Rectangle())
+                                .onTapGesture { attemptJoin() }
                         }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.white.opacity(0.35))
                     }
-                    .padding(18)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white.opacity(0.06))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .strokeBorder(Color.green.opacity(0.35), lineWidth: 1.5)
-                            )
-                    )
+
+                    qrHint
+
+                    serverSettings
+
+                    // Build stamp -- which commit this build came from.
+                    Text(BuildStamp.displayString)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text3)
+                        .padding(.bottom, 24)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 32)
-
-                // Phone Play -- party games on this phone alone, no TV.
-                Button(action: onPhonePlay) {
-                    HStack(spacing: 14) {
-                        Image(systemName: "iphone.gen3")
-                            .font(.system(size: 30))
-                            .foregroundStyle(
-                                LinearGradient(colors: [Color(hex: "FF8A3D"), Color(hex: "FF5FC8")],
-                                               startPoint: .top, endPoint: .bottom)
-                            )
-                            .frame(width: 44)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Phone Play")
-                                .font(.headline.bold())
-                                .foregroundColor(.white)
-                            Text("Heads Up, Spy, Mafia and a daily brain challenge. No TV needed")
-                                .font(.subheadline)
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.white.opacity(0.35))
-                    }
-                    .padding(18)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.white.opacity(0.06))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .strokeBorder(Color(hex: "FF5FC8").opacity(0.4), lineWidth: 1.5)
-                            )
-                    )
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 32)
-
-                serverSettings
-                    .padding(.horizontal, 32)
-
-                // Build stamp — which commit this build came from.
-                Text(BuildStamp.displayString)
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.25))
-                    .padding(.bottom, 40)
+                .padding(.horizontal, 20)
+                .padding(.top, 6)
             }
+            .scrollDismissesKeyboard(.interactively)
         }
+        .background(PhonePlayDesign.bg.ignoresSafeArea())
+        .preferredColorScheme(.dark)
         .onTapGesture { focusedField = nil }
         .onAppear {
             if let initialCode, code.isEmpty { code = initialCode }
             if name.isEmpty { name = savedName }
+            withAnimation(PhonePlayDesign.pop) { appeared = true }
+            // Code already there (deep link): straight to the name, or
+            // ready to tap Join when the name is remembered too.
+            if code.count < 6 {
+                focusedField = .code
+            } else if name.trimmingCharacters(in: .whitespaces).isEmpty {
+                focusedField = .name
+            }
         }
-        .onChange(of: initialCode) { newCode in
+        .onChange(of: initialCode) { _, newCode in
             if let newCode { code = newCode }
         }
+    }
+
+    // MARK: Pieces
+
+    private var topBar: some View {
+        HStack {
+            Button {
+                PhonePlayHaptics.tap()
+                onClose()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.white.opacity(0.75))
+                    .frame(width: 36, height: 36)
+                    .background(Circle().fill(Color.white.opacity(0.08)))
+            }
+            .buttonStyle(PhonePlayPressStyle())
+            .accessibilityLabel("Close")
+            Spacer()
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(socket.isConnected ? PhonePlayDesign.green : PhonePlayDesign.red)
+                    .frame(width: 8, height: 8)
+                Text(socket.isConnected ? "Server connected" : "Reconnecting...")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Capsule().fill(Color.white.opacity(0.06)))
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 6)
+    }
+
+    private var header: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(PhonePlayDesign.gradient(Self.tvColors))
+                    .frame(width: 92, height: 92)
+                    .shadow(color: PhonePlayDesign.cyan.opacity(0.4), radius: 18, y: 8)
+                Image(systemName: "tv.fill")
+                    .font(.system(size: 42, weight: .bold))
+                    .foregroundColor(.white)
+                    .phonePlayIdle(dy: 3, degrees: 3, duration: 1.3)
+            }
+            Text("Play on TV")
+                .font(.system(size: 34, weight: .black, design: .rounded))
+                .foregroundStyle(
+                    LinearGradient(colors: [PhonePlayDesign.cyan, PhonePlayDesign.indigo, PhonePlayDesign.purple],
+                                   startPoint: .leading, endPoint: .trailing)
+                )
+            Text("Your phone becomes the controller")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
+        }
+        .scaleEffect(appeared ? 1 : 0.9)
+        .opacity(appeared ? 1 : 0)
+    }
+
+    private var codeCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            PhonePlaySectionLabel(text: "Room code")
+            TextField("", text: $code)
+                .placeholder(when: code.isEmpty) {
+                    Text("ABC123").foregroundColor(.white.opacity(0.18))
+                }
+                .font(.system(size: 38, weight: .black, design: .monospaced))
+                .multilineTextAlignment(.center)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .foregroundColor(.white)
+                .focused($focusedField, equals: .code)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .name }
+                .onChange(of: code) { _, newValue in
+                    let clean = String(newValue.prefix(6).uppercased())
+                    if clean != newValue { code = clean }
+                    if clean.count == 6, newValue.count == 6 { PhonePlayHaptics.tap() }
+                }
+                .frame(height: 70)
+                .background(
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                        .fill(PhonePlayDesign.surface2)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                        .strokeBorder(codeBorder, lineWidth: 1.5)
+                )
+                .offset(x: shakeCode ? 6 : 0)
+                .animation(shakeCode ? .default.repeatCount(4, autoreverses: true).speed(8) : .default,
+                           value: shakeCode)
+            Text("It is on the TV screen, under the QR code")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text3)
+        }
+        .phonePlaySurfaceCard()
+    }
+
+    private var codeBorder: Color {
+        if shakeCode { return PhonePlayDesign.red }
+        if focusedField == .code { return PhonePlayDesign.cyan.opacity(0.8) }
+        return Color.white.opacity(0.1)
+    }
+
+    private var nameCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            PhonePlaySectionLabel(text: "Your name")
+            TextField("", text: $name)
+                .placeholder(when: name.isEmpty) {
+                    Text("Enter name")
+                        .foregroundColor(.white.opacity(0.25))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .textInputAutocapitalization(.words)
+                .focused($focusedField, equals: .name)
+                .submitLabel(.join)
+                .onSubmit { attemptJoin() }
+                .onChange(of: name) { _, newValue in
+                    if newValue.count > 20 { name = String(newValue.prefix(20)) }
+                }
+                .frame(height: 56)
+                .padding(.horizontal, 16)
+                .background(
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                        .fill(PhonePlayDesign.surface2)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                        .strokeBorder(focusedField == .name ? PhonePlayDesign.cyan.opacity(0.8)
+                                                            : Color.white.opacity(0.1),
+                                      lineWidth: 1.5)
+                )
+        }
+        .phonePlaySurfaceCard()
+    }
+
+    /// The TV lobby shows a QR code that opens auroraplay://join/<CODE>;
+    /// the iPhone Camera app scans it and lands right back in this sheet
+    /// with the code filled in.
+    private var qrHint: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "qrcode.viewfinder")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 52, height: 52)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(PhonePlayDesign.gradient([PhonePlayDesign.purple, PhonePlayDesign.pink]))
+                )
+                .phonePlayIdle(scale: 0.05, duration: 1.2)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Scan the QR instead")
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                Text("Point your Camera app at the QR code on the TV. The code fills in here by itself.")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .phonePlaySurfaceCard()
     }
 
     /// Collapsed by default; only the host who runs a LAN server needs it.
@@ -244,46 +267,61 @@ struct JoinRoomView: View {
             Button {
                 serverText = UserDefaults.standard.string(forKey: AppConstants.serverOverrideKey) ?? ""
                 serverError = false
-                showServer.toggle()
+                withAnimation(PhonePlayDesign.smooth) { showServer.toggle() }
             } label: {
                 Label("Server: \(AppConstants.serverURL.host ?? "?")", systemImage: "server.rack")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.35))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text3)
             }
             .buttonStyle(.plain)
 
             if showServer {
-                TextField("e.g. 192.168.1.20:5000", text: $serverText)
-                    .font(.callout.monospaced())
-                    .foregroundColor(.white)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 10)
-                        .strokeBorder(serverError ? Color.red : Color.white.opacity(0.15), lineWidth: 1))
-                HStack(spacing: 12) {
-                    Button("Use default") { applyServer(nil) }
-                        .foregroundColor(.white.opacity(0.6))
-                    Spacer()
-                    Button("Connect") { applyServer(serverText) }
-                        .foregroundColor(.cyan)
+                VStack(spacing: 12) {
+                    TextField("e.g. 192.168.1.20:5000", text: $serverText)
+                        .font(.callout.monospaced())
+                        .foregroundColor(.white)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(PhonePlayDesign.surface2)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(serverError ? PhonePlayDesign.red : Color.white.opacity(0.12),
+                                              lineWidth: 1)
+                        )
+                    HStack(spacing: 12) {
+                        PhonePlayChip(title: "Use default", selected: false,
+                                      colors: [PhonePlayDesign.surface2, PhonePlayDesign.surface2]) {
+                            applyServer(nil)
+                        }
+                        PhonePlayChip(title: "Connect", selected: true, colors: Self.tvColors) {
+                            applyServer(serverText)
+                        }
+                    }
                 }
-                .font(.callout.bold())
-                .buttonStyle(.plain)
+                .phonePlaySurfaceCard()
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
     }
 
     private func applyServer(_ raw: String?) {
         if let raw, !raw.trimmingCharacters(in: .whitespaces).isEmpty {
-            guard let url = AppConstants.validServerURL(raw) else { serverError = true; return }
+            guard let url = AppConstants.validServerURL(raw) else {
+                serverError = true
+                PhonePlayHaptics.error()
+                return
+            }
             UserDefaults.standard.set(url.absoluteString, forKey: AppConstants.serverOverrideKey)
         } else {
             UserDefaults.standard.removeObject(forKey: AppConstants.serverOverrideKey)
         }
         serverError = false
-        showServer = false
+        withAnimation(PhonePlayDesign.smooth) { showServer = false }
         GameSocketManager.shared.disconnect()
         GameSocketManager.shared.connect(to: AppConstants.serverURL)
     }
@@ -292,10 +330,13 @@ struct JoinRoomView: View {
 
     private func attemptJoin() {
         guard canJoin else { triggerShake(); return }
+        focusedField = nil
+        PhonePlayHaptics.success()
         onJoin(code, name.trimmingCharacters(in: .whitespaces))
     }
 
     private func triggerShake() {
+        PhonePlayHaptics.warning()
         shakeCode = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { shakeCode = false }
     }

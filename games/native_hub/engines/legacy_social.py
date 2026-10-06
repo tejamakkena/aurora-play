@@ -7,20 +7,15 @@ MafiaControllerView actually know about (day/night) -- discussion and
 voting both happen inside the "day" phase on the TV, so there's no
 separate voting phase to preserve in the native contract. Raja Mantri
 ports role assignment and scoring straight from
-games/raja_mantri/socket_events.py. Trivia has no reusable browser logic
-(the browser game calls out to a Gemini API for questions), so its
-question bank and round loop are original, built to
-TVTriviaBoardView/TriviaControllerView's contract.
+games/raja_mantri/socket_events.py. Trivia's question bank lives here;
+the game-show engine that plays it is in trivia_show.py (re-exported below),
+built to TVTriviaBoardView/TriviaControllerView's contract.
 """
 
 import random
 import time
 
 from games.native_hub.engine import NativeGameEngine
-from games.native_hub.engines.content_packs import (
-    fresh_questions,
-    record_questions,
-)
 
 # ---------------------------------------------------------------------------
 # Mafia -- verified against MafiaBoardState/MafiaControllerView. Role names
@@ -795,226 +790,9 @@ TRIVIA_QUESTIONS = [
 ]
 
 
-class TriviaEngine(NativeGameEngine):
-    game_id = "trivia"
-    min_players = 2
-    max_players = 10
-
-    # Reported directly: only 8 of the bank's 15 questions were ever played
-    # per game. Using the whole bank means every question gets a turn
-    # instead of the game always cutting off partway through it.
-    TOTAL_ROUNDS = len(TRIVIA_QUESTIONS)
-    ROUND_SECONDS = 20
-    REVEAL_DELAY_SECONDS = 1.3
-    # How long the correct answer stays up before the next question loads --
-    # a real reveal beat, not an instant cut. See `phase` below for why this
-    # exists at all.
-    REVEAL_HOLD_SECONDS = 3.0
-
-    def __init__(self, room, broadcaster):
-        super().__init__(room, broadcaster)
-        self.round = 0
-        self.pool: list[tuple] = []
-        self.question: tuple | None = None
-        self.question_id = ""
-        self.deadline = 0.0
-        self.choices_at = 0.0
-        self.answered: dict[str, int] = {}
-        self.scores: dict[str, int] = {}
-        # "answering" while the round timer is live, "reveal" for the beat
-        # after it ends where the correct choice is shown. public_state()
-        # only includes correctIndex during "reveal" -- it used to be sent
-        # unconditionally on every single push, including the very first
-        # one for a brand new question, so the TV painted the correct
-        # answer green the instant the choices appeared, well before anyone
-        # had answered or the timer had run down. Reported directly as
-        # "answers are getting revealed way before the questions."
-        self.phase = "answering"
-        self.reveal_until = 0.0
-        self.total_rounds = self.TOTAL_ROUNDS
-        self._finished = False
-        # Content-pack id used for the current session's pool, so asked
-        # questions can be recorded against the right pack history.
-        self._pack = "en"
-
-    def start(self, players):
-        self.scores = {p.id: 0 for p in players}
-        # Externally injected questions (create_room "seedQuestions"): the
-        # client fetched these itself, so they win over everything else.
-        if self._start_from_seeds():
-            return
-        # Travel Mode topic: the passenger typed a free-text topic in the
-        # lobby, so generate fresh questions on demand instead of dealing
-        # from a fixed pack. Falls back to the packs below when empty.
-        topic = (getattr(self.room, "topic", "") or "").strip()
-        if topic and self._start_from_topic(topic):
-            return
-        pack = getattr(self.room, "content_pack", "en")
-        self._pack = pack
-        # Random sampling means no question repeats within a session;
-        # fresh_questions additionally skips what this room asked recently.
-        pool = fresh_questions(self.room, pack, "trivia")
-        self.pool = random.sample(pool, min(self.TOTAL_ROUNDS, len(pool)))
-        # A smaller language pack (Telugu/Hindi) plays each question once
-        # rather than wrapping round and repeating.
-        self.total_rounds = len(self.pool)
-        self.round = 0
-        self._next_question()
-
-    def _start_from_seeds(self) -> bool:
-        """Seed the pool from externally injected questions
-        (room.seed_questions, set from create_room "seedQuestions").
-
-        Already validated at room creation; recorded into the rolling
-        history by _next_question exactly like the pack path. Returns
-        False when there are no seeds so start() falls through.
-        """
-        seeds = list(getattr(self.room, "seed_questions", None) or [])
-        if not seeds:
-            return False
-        try:
-            from games import topic_gen
-            topic = (getattr(self.room, "topic", "") or "").strip() or "Seeded"
-            self._pack = "seeded"
-            self.pool = [topic_gen.question_dict_to_tuple(topic, q) for q in seeds]
-        except Exception:
-            return False
-        if not self.pool:
-            return False
-        self.total_rounds = len(self.pool)
-        self.round = 0
-        self._next_question()
-        return True
-
-    def _start_from_topic(self, topic: str) -> bool:
-        """Seed the pool from live topic generation (games/topic_gen.py).
-
-        Returns False when the service yields nothing usable, so start()
-        falls back to the fixed content packs. Already-asked questions are
-        skipped via the room's rolling history, and each asked question is
-        recorded by _next_question exactly like the pack path.
-        """
-        try:
-            from games import topic_gen
-            key = topic_gen.norm_topic(topic)
-            pack_key = f"topic:{key}"
-            history = getattr(self.room, "question_history", {}).get((pack_key, "trivia"), [])
-            items, source = topic_gen._fetch(
-                "questions", topic, min(self.TOTAL_ROUNDS, 20),
-                session_history=history)
-            if source == "bundled":
-                # Offline or the API failed: play the room's fixed pack
-                # instead (content_packs.py), honoring its language.
-                return False
-        except Exception:
-            return False
-        if not items:
-            return False
-        self._pack = pack_key
-        self.pool = [topic_gen.question_dict_to_tuple(topic, q) for q in items]
-        self.total_rounds = len(self.pool)
-        self.round = 0
-        self._next_question()
-        return True
-
-    def _next_question(self):
-        self.round += 1
-        self.question = self.pool[(self.round - 1) % len(self.pool)]
-        self.question_id = f"q{self.round}"
-        # Remember the question in the room's rolling history so the next
-        # session in this room skips it.
-        record_questions(self.room, self._pack, "trivia", [self.question])
-        self.answered = {}
-        self.phase = "answering"
-        now = time.time()
-        self.deadline = now + self.ROUND_SECONDS
-        self.choices_at = now + self.REVEAL_DELAY_SECONDS
-
-    def seconds_left(self):
-        return max(0, int(round(self.deadline - time.time()))) if self.deadline else 0
-
-    def handle_action(self, player_id, action, data):
-        if self._finished or action != "answer" or player_id in self.answered:
-            return
-        if self.phase != "answering":
-            return          # the TV is already showing the correct answer
-        if data.get("questionID") != self.question_id:
-            return
-        idx = data.get("choiceIndex")
-        if not isinstance(idx, int):
-            return
-        self.answered[player_id] = idx
-        _, _, _, correct_index = self.question
-        if idx == correct_index:
-            elapsed = time.time() - (self.deadline - self.ROUND_SECONDS)
-            points = max(20, 100 - int(elapsed * 4))
-            self.scores[player_id] = self.scores.get(player_id, 0) + points
-            player = self.room.player(player_id)
-            if player is not None:
-                player.score = self.scores[player_id]
-
-    def tick(self, dt):
-        if self._finished:
-            return
-        now = time.time()
-        if self.phase == "reveal":
-            # Holding here, rather than advancing the instant the timer or
-            # every answer comes in, is what actually gives the reveal beat
-            # above a duration to be seen for.
-            if now >= self.reveal_until:
-                if self.round >= self.total_rounds:
-                    self._finished = True
-                else:
-                    self._next_question()
-            return
-
-        active = self.room.connected_players()
-        everyone_answered = bool(active) and all(p.id in self.answered for p in active)
-        if now >= self.deadline or everyone_answered:
-            self.phase = "reveal"
-            self.reveal_until = now + self.REVEAL_HOLD_SECONDS
-
-    def public_state(self):
-        category, text, choices, correct_index = self.question
-        state = {
-            "secondsLeft": self.seconds_left(),
-            "showChoices": time.time() >= self.choices_at,
-            "questionID": self.question_id,
-            "questionText": text,
-            "choices": choices,
-            "category": category,
-            "phase": self.phase,
-            "answeredPlayerIDs": list(self.answered.keys()),
-            "players": [
-                {"id": p.id, "name": p.name, "score": self.scores.get(p.id, 0), "isHost": p.is_host}
-                for p in self.room.players
-            ],
-            "finished": self._finished,
-        }
-        # Only present once the reveal phase actually starts -- see the
-        # `phase` doc comment in __init__ for why this can't just be sent
-        # unconditionally.
-        if self.phase == "reveal":
-            state["correctIndex"] = correct_index
-        return state
-
-    def private_state(self, player_id):
-        # The phone needs the question text itself, not just the choices --
-        # without it the controller shows answer buttons with no question.
-        category, text, choices, _ = self.question
-        return {
-            "choices": choices,
-            "questionID": self.question_id,
-            "questionText": text,
-            "category": category,
-            "score": self.scores.get(player_id, 0),
-        }
-
-    def is_over(self):
-        return self._finished
-
-    def results(self):
-        return self.ranked_results(self.scores)
+# The Trivia game show itself lives in trivia_show.py; it is re-exported here
+# so existing imports (and the ENGINES table below) keep working.
+from games.native_hub.engines.trivia_show import TriviaEngine  # noqa: E402
 
 
 ENGINES = {

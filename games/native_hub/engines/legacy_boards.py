@@ -546,18 +546,33 @@ class ChessEngine(TurnBasedEngine):
 # snakes/ladders below straight from the `snakes`/`ladders` maps exposed on
 # public_state(), rather than hardcoding its own possibly-drifting copy.
 #
-# Only 3 snakes on purpose (down from an earlier 10): the user asked for a
-# real 3D board with "3 snakes resting with some animation", where each
-# snake is a full serpentine model with its own idle loop plus a one-shot
-# eat/swallow animation -- fewer, more prominent snakes reads better
-# cinematically than a crowded board of thin ones. Ladders are left at 10;
-# only the snake count was asked to shrink. Spaced across the board (one in
-# the high 80s, one in the low 60s, one in the low 30s) so each is a
-# distinct, well-separated set piece rather than clustered together.
+# The classic board. An earlier pass cut the board to 3 snakes so each could
+# be a big 3D set piece, and players reported the game as "same and easy" --
+# nothing like the real thing. This is a classic-style layout again: 10
+# snakes and 9 ladders spread over all ten rows, with the end game made tense
+# the way the real board is -- a gauntlet of heads at 87/93/95/98, and the
+# long 98 -> 39 and 87 -> 24 snakes that can throw a near-winner back into
+# the bottom half. A solo game averages ~38 turns with the roll-again rule
+# below (~45 without it), in line with the classic board's ~39.
+#
+# Layout invariants (enforced by tests/test_native_engines.py):
+#   * every endpoint (snake head/tail, ladder bottom/top) is a distinct
+#     square, so no square is both a snake head and a ladder bottom;
+#   * nothing starts or ends on 1 or 100 (the win needs an exact roll);
+#   * no chains -- a ladder top is never a snake head and a snake tail is
+#     never a ladder bottom, so one roll resolves at most one slide;
+#   * every snake/ladder spans at least one row, so the TV board can draw
+#     each one as a clearly diagonal/vertical set piece.
 # ---------------------------------------------------------------------------
 
-SNAKES = {89: 53, 62: 22, 32: 10}
-LADDERS = {2: 38, 7: 14, 8: 31, 15: 26, 21: 42, 28: 84, 36: 44, 51: 67, 71: 91, 78: 98}
+SNAKES = {17: 7, 32: 10, 47: 26, 54: 34, 62: 19, 64: 43, 87: 24, 93: 73, 95: 75, 98: 39}
+LADDERS = {4: 14, 9: 31, 21: 42, 28: 84, 36: 44, 51: 67, 57: 76, 71: 91, 80: 99}
+
+# Rolling a 6 earns another roll (the common house rule), capped so a run of
+# sixes -- or a phone that always reports 6, since the controller sends the
+# value -- can never hold the turn forever: the third six in a row still
+# moves, but the turn then passes.
+MAX_BONUS_ROLLS = 2
 
 
 class SnakeLadderEngine(TurnBasedEngine):
@@ -578,11 +593,45 @@ class SnakeLadderEngine(TurnBasedEngine):
         # breaks when state updates coalesce or arrive out of order.
         self.last_slide: dict[str, dict] = {}
         self.slide_seq = 0
+        # Roll-again-on-6 bookkeeping. `bonus_streak` counts the sixes the
+        # current turn holder has cashed in as extra rolls this turn;
+        # `last_roller`/`last_roll_bonus` describe the most recent roll so
+        # the TV/phone can say "Rolled a 6, roll again!".
+        self.bonus_streak = 0
+        self.last_roller: str | None = None
+        self.last_roll_bonus = False
+        # Monotonic count of accepted rolls, so the TV can tell a fresh roll
+        # (tumble the die, flash the banner) from a re-broadcast -- even one
+        # that left every position unchanged (an overshoot near 100).
+        self.roll_seq = 0
 
     def setup(self):
         self.positions = {pid: 0 for pid in self.order}
         self.last_slide = {}
         self.slide_seq = 0
+        self.bonus_streak = 0
+        self.last_roller = None
+        self.last_roll_bonus = False
+        self.roll_seq = 0
+
+    def _pass_turn(self):
+        self.bonus_streak = 0
+        self.last_roll_bonus = False
+        self.next_turn()
+
+    def on_turn_timeout(self):
+        # A bonus roll that is never taken simply lapses with the clock.
+        self._pass_turn()
+
+    def on_player_leave(self, player_id):
+        if self.current_player_id() == player_id:
+            self._pass_turn()
+
+    def roll_again_pending(self) -> bool:
+        """True while the current turn holder is owed a bonus roll for a 6."""
+        return (not self._finished and self.last_roll_bonus
+                and self.last_roller is not None
+                and self.last_roller == self.current_player_id())
 
     def handle_action(self, player_id, action, data):
         if self._finished or action != "roll" or not self.is_my_turn(player_id):
@@ -612,10 +661,19 @@ class SnakeLadderEngine(TurnBasedEngine):
             self.last_slide.pop(player_id, None)
         self.positions[player_id] = new_pos
 
+        self.last_roller = player_id
+        self.roll_seq += 1
         if new_pos == 100:
+            self.last_roll_bonus = False
             self.finish(winner=player_id)
             return
-        self.next_turn()
+        if value == 6 and self.bonus_streak < MAX_BONUS_ROLLS:
+            # Same player rolls again with a fresh clock.
+            self.bonus_streak += 1
+            self.last_roll_bonus = True
+            self.reset_turn_clock()
+            return
+        self._pass_turn()
 
     def public_state(self):
         state = self.base_public()
@@ -635,6 +693,14 @@ class SnakeLadderEngine(TurnBasedEngine):
             # `seq` to play each cinematic exactly once; keys are player
             # ids, values are {"kind", "from", "to", "seq"} dicts.
             "lastSlide": {pid: dict(slide) for pid, slide in self.last_slide.items()},
+            # Roll-again-on-6 (additive keys; older clients ignore them).
+            # `lastRollerID` is whoever rolled most recently and
+            # `lastRollBonus` is true while that player -- still the
+            # current player -- is owed another roll for a 6.
+            "lastRollerID": self.last_roller,
+            "lastRollBonus": self.roll_again_pending(),
+            "rollSeq": self.roll_seq,
+            "rollAgainOnSix": True,
         })
         return state
 
@@ -646,6 +712,8 @@ class SnakeLadderEngine(TurnBasedEngine):
             # This player's own latest slide (drives the controller
             # haptic); absent/None when their last move was a plain hop.
             "lastSlide": dict(self.last_slide[player_id]) if player_id in self.last_slide else None,
+            # True when this player just rolled a 6 and goes again.
+            "rollAgain": self.roll_again_pending() and self.last_roller == player_id,
         })
         return state
 
