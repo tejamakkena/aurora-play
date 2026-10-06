@@ -300,28 +300,37 @@ class TestTrivia:
         code, phones = open_room(app, socketio, tv, "trivia", players=2)
         start_and_settle(socketio, tv, code)
         board = latest(tv, "game_state")["boardState"]
-        assert {"secondsLeft", "showChoices", "questionID", "questionText",
-                "choices", "category", "phase", "answeredPlayerIDs",
-                "players"} <= set(board)
-        # correctIndex is only ever included once the reveal phase starts
-        # (see TriviaEngine.public_state) -- it used to be sent
-        # unconditionally, including on this very first push for a brand
-        # new question, which painted the correct choice on the TV before
-        # anyone had answered.
-        assert board["phase"] == "answering"
+        assert {"secondsLeft", "deadline", "showChoices", "questionID",
+                "questionText", "choices", "category", "phase",
+                "answeredPlayerIDs", "players"} <= set(board)
+        # The show opens on its title card; no question (or answer) yet.
+        assert board["phase"] == "intro"
         assert "correctIndex" not in board
 
-        private = latest(phones[0], "private_state")["privateData"]
-        assert {"choices", "questionID", "score"} <= set(private)
+        # Fast-forward the show to its first question on the server side.
+        engine = rooms.get(code).engine
+        room = rooms.get(code)
+        with room.lock:
+            for _ in range(50):
+                if engine.phase == "question":
+                    break
+                engine.deadline = 0.0
+                engine.tick(0.0)
+        assert engine.phase == "question"
 
-        # The real answer lives on the engine itself, not in the
-        # deliberately-hidden board state -- reading it directly is the
-        # whole point of this test now.
-        correct = rooms.get(code).engine.question[3]
+        correct = engine.question[3]
         act(socketio, phones[0], code, "dev-0", "answer",
-            {"choiceIndex": correct, "questionID": board["questionID"]})
+            {"choiceIndex": correct, "questionID": engine.question_id})
         after = latest(tv, "game_state")["boardState"]
+        assert after["phase"] == "question"
         assert "dev-0" in after["answeredPlayerIDs"]
+        # Correctness stays hidden from the TV until the reveal: no score
+        # moves and no correctIndex.
+        assert "correctIndex" not in after
+        assert all(p["score"] == 0 for p in after["players"])
+
+        private = latest(phones[0], "private_state")["privateData"]
+        assert {"choices", "questionID", "score", "locked"} <= set(private)
 
 
 class TestHeist:

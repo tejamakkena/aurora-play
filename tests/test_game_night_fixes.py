@@ -387,9 +387,20 @@ class TestMafia:
         assert engine.private_state(villager)["mafiaTeam"] == []
 
 
+def _trivia_to(engine, phase, limit=200):
+    """Fast-forward the trivia game show to ``phase`` by expiring deadlines."""
+    for _ in range(limit):
+        if engine.phase == phase:
+            return
+        engine.deadline = 0.0
+        engine.tick(0.0)
+    raise AssertionError(f"never reached {phase}, stuck in {engine.phase}")
+
+
 class TestTrivia:
     def test_no_scoring_after_the_reveal(self):
         engine, roster = make("trivia", players=2)
+        _trivia_to(engine, "question")
         engine.phase = "reveal"
         correct = engine.question[3]
         engine.handle_action(roster[0].id, "answer",
@@ -400,14 +411,15 @@ class TestTrivia:
         engine, roster = make("trivia", players=2)
         engine.room.content_pack = "te"
         engine.start(roster)
-        assert engine.total_rounds == len(engine.pool)
-        assert len({q[1] for q in engine.pool}) == engine.total_rounds
+        assert engine.total_rounds == min(engine.MAIN_QUESTIONS, len(engine.pool))
+        assert len({q[1] for q in engine.pool}) == len(engine.pool)
 
 
 class TestBotPolicies:
     def test_trivia_bot_sends_a_valid_answer(self):
         from games.native_hub import bots
         engine, roster = make("trivia", players=2)
+        _trivia_to(engine, "question")
         verb, data = bots._policy_trivia(engine, "bot-x")
         assert verb == "answer"
         assert data["questionID"] == engine.question_id
@@ -418,6 +430,7 @@ class TestBotPolicies:
         engine, roster = make("trivia", players=2)
         bot = engine.room.add_bot()
         engine.scores[bot.id] = 0
+        _trivia_to(engine, "question")
         verb, data = bots._policy_trivia(engine, bot.id)
         engine.handle_action(bot.id, verb, data)
         assert bot.id in engine.answered
