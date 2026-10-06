@@ -160,11 +160,11 @@ struct ProfileChipButton: View {
     @State private var showEditor = false
 
     var body: some View {
-        Button { showEditor = true } label: {
+        Button { PhonePlayHaptics.tap(); showEditor = true } label: {
             HStack(spacing: 8) {
                 ProfileAvatarBubble(avatar: store.avatar, tint: store.tint, size: 30)
                 Text(store.name.isEmpty ? "Profile" : store.displayName)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
                     .lineLimit(1)
                 Image(systemName: "pencil")
@@ -215,7 +215,7 @@ struct ProfileEditorView: View {
                         Label("Saved on this phone. It will sync when the server is reachable.",
                               systemImage: "icloud.slash")
                             .font(.footnote)
-                            .foregroundColor(.orange)
+                            .foregroundColor(PhonePlayDesign.orange)
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                     OneStopPrimaryButton(title: saving ? "Saving..." : "Save profile",
@@ -274,7 +274,7 @@ struct ProfileEditorView: View {
                 .placeholder(when: draftName.isEmpty) {
                     Text("What should the TV call you?").foregroundColor(.white.opacity(0.25))
                 }
-                .font(.title3.weight(.semibold))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .focused($nameFocused)
                 .submitLabel(.done)
@@ -393,9 +393,9 @@ struct ProfileEditorView: View {
 
     private func sectionTitle(_ text: String) -> some View {
         Text(text)
-            .font(.caption.bold())
+            .font(.system(size: 12, weight: .heavy, design: .rounded))
             .tracking(2)
-            .foregroundColor(.white.opacity(0.5))
+            .foregroundColor(PhonePlayDesign.text3)
     }
 
     // MARK: Save

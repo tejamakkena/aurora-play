@@ -47,26 +47,15 @@ struct TravelModeRootView: View {
         }
     }
 
+    /// Road Trip Quiz is a card on the Phone Play home, so it gets the
+    /// same back-to-home bar as every Phone Play game.
     private var topBar: some View {
-        HStack(spacing: 12) {
-            Label("Travel Mode", systemImage: "car.fill")
-                .font(.headline)
-                .foregroundColor(.white)
-            Spacer()
-            if travel.stage == .playing {
-                TravelVoiceBadge(speech: travel.speech)
-            }
-            Button("End") { vm.endTravel() }
-                .font(.subheadline.bold())
-                .foregroundColor(.red.opacity(0.9))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.red.opacity(0.5), lineWidth: 1.5))
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color.white.opacity(0.04))
+        PhonePlayTopBar(title: "Road Trip Quiz",
+                        backTitle: "Home",
+                        onBack: { vm.endTravel() },
+                        trailing: travel.stage == .playing
+                            ? AnyView(TravelVoiceBadge(speech: travel.speech))
+                            : nil)
     }
 }
 
@@ -89,14 +78,23 @@ private struct TravelVoiceBadge: View {
 
 struct TravelSafetyFooter: View {
     var body: some View {
-        Text(TravelCopy.safetyLine)
-            .font(.callout.bold())
-            .foregroundColor(TravelDesign.warning.opacity(0.95))
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .padding(.horizontal, 16)
-            .background(TravelDesign.warning.opacity(0.08))
+        HStack(spacing: 8) {
+            Image(systemName: "steeringwheel")
+                .font(.system(size: 15, weight: .bold))
+            Text(TravelCopy.safetyLine)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .multilineTextAlignment(.leading)
+        }
+        .foregroundColor(TravelDesign.warning.opacity(0.95))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                .fill(TravelDesign.warning.opacity(0.1))
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
     }
 }
 
@@ -105,33 +103,59 @@ struct TravelSafetyFooter: View {
 struct TravelPickView: View {
     @ObservedObject var travel: TravelModeViewModel
 
+    @State private var appeared = false
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
-                VStack(spacing: 8) {
-                    Image(systemName: "mic.and.signal.meter.fill")
-                        .font(.system(size: 44))
-                        .foregroundColor(TravelDesign.primary)
+            VStack(spacing: 16) {
+                VStack(spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .fill(PhonePlayDesign.gradient([PhonePlayDesign.green, PhonePlayDesign.cyan]))
+                            .frame(width: 92, height: 92)
+                            .shadow(color: PhonePlayDesign.green.opacity(0.4), radius: 18, y: 8)
+                        Image(systemName: "mic.and.signal.meter.fill")
+                            .font(.system(size: 40, weight: .bold))
+                            .foregroundColor(.white)
+                            .phonePlayIdle(scale: 0.06, duration: 1.0)
+                    }
                     Text("Road Trip Quizmaster")
-                        .font(.system(size: 30, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .font(.system(size: 32, weight: .black, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(colors: [PhonePlayDesign.green, PhonePlayDesign.cyan],
+                                           startPoint: .leading, endPoint: .trailing)
+                        )
+                        .multilineTextAlignment(.center)
                     Text("I ask out loud, everyone shouts the answer.\nNo setup, no tapping.")
-                        .font(.body)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .foregroundColor(TravelDesign.text2)
                         .multilineTextAlignment(.center)
                 }
-                .padding(.top, 28)
-                .padding(.bottom, 8)
+                .padding(.top, 18)
+                .padding(.bottom, 6)
+                .scaleEffect(appeared ? 1 : 0.9)
+                .opacity(appeared ? 1 : 0)
 
-                ForEach(TravelPlayStyle.allCases) { style in
-                    Button { travel.start(style) } label: {
-                        TravelStyleCard(style: style)
+                PhonePlaySectionLabel(text: "Pick a game")
+
+                ForEach(Array(TravelPlayStyle.allCases.enumerated()), id: \.element.id) { pair in
+                    Button {
+                        PhonePlayHaptics.tap()
+                        travel.start(pair.element)
+                    } label: {
+                        TravelStyleCard(style: pair.element)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PhonePlayPressStyle())
+                    .scaleEffect(appeared ? 1 : 0.85)
+                    .opacity(appeared ? 1 : 0)
+                    .animation(PhonePlayDesign.pop.delay(0.08 + Double(pair.offset) * 0.07), value: appeared)
                 }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
+        }
+        .onAppear {
+            withAnimation(PhonePlayDesign.pop) { appeared = true }
         }
     }
 }
@@ -151,31 +175,31 @@ private struct TravelStyleCard: View {
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: style.sfSymbol)
-                .font(.system(size: 30, weight: .semibold))
-                .foregroundColor(tint)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(.white)
                 .frame(width: 60, height: 60)
-                .background(Circle().fill(tint.opacity(0.15)))
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(PhonePlayDesign.gradient([tint, tint.opacity(0.55)]))
+                )
+                .shadow(color: tint.opacity(0.35), radius: 8, y: 4)
             VStack(alignment: .leading, spacing: 4) {
                 Text(style.title)
-                    .font(.title2.bold())
+                    .font(.system(size: 22, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                 Text(style.blurb)
-                    .font(.subheadline)
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundColor(TravelDesign.text2)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Image(systemName: "play.fill")
-                .font(.title3)
-                .foregroundColor(tint)
+                .font(.system(size: 16, weight: .heavy))
+                .foregroundColor(.black)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(tint))
         }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: TravelDesign.cardRadius)
-                .fill(TravelDesign.surface)
-                .overlay(RoundedRectangle(cornerRadius: TravelDesign.cardRadius)
-                    .strokeBorder(tint.opacity(0.35), lineWidth: 1.5))
-        )
+        .phonePlaySurfaceCard(tint: tint, padding: 18)
     }
 }
 
@@ -189,7 +213,7 @@ struct TravelStartingView: View {
                 .scaleEffect(2)
                 .tint(TravelDesign.info)
             Text("Waking up your quizmaster...")
-                .font(.title3.bold())
+                .font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundColor(.white)
             Spacer()
         }
@@ -242,7 +266,7 @@ struct TravelPlayView: View {
         HStack {
             if let item = travel.item {
                 Text(chipText(item.kind))
-                    .font(.caption.bold())
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
                     .tracking(2)
                     .foregroundColor(.black)
                     .padding(.horizontal, 12)
@@ -303,8 +327,14 @@ struct TravelPlayView: View {
         }
         .padding(22)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: TravelDesign.cardRadius)
-            .fill(TravelDesign.surface))
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .fill(TravelDesign.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
+        )
         .animation(.easeInOut(duration: 0.25), value: travel.gotIt)
         .animation(.easeInOut(duration: 0.25), value: travel.hintShown)
     }
@@ -374,16 +404,26 @@ private struct TravelControl: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            PhonePlayHaptics.tap()
+            action()
+        } label: {
             VStack(spacing: 6) {
-                Image(systemName: systemImage).font(.title3)
-                Text(title).font(.subheadline.bold())
+                Image(systemName: systemImage).font(.system(size: 20, weight: .bold))
+                Text(title).font(.system(size: 15, weight: .heavy, design: .rounded))
             }
             .foregroundColor(tint)
             .frame(maxWidth: .infinity, minHeight: 64)
-            .background(RoundedRectangle(cornerRadius: 16).fill(TravelDesign.surface2))
+            .background(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .fill(TravelDesign.surface2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .strokeBorder(tint.opacity(0.18), lineWidth: 1)
+            )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
         .disabled(!enabled)
         .opacity(enabled ? 1 : 0.35)
     }

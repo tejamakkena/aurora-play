@@ -132,6 +132,40 @@ struct PhonePlaySectionLabel: View {
     }
 }
 
+// MARK: - Surface card
+
+/// The quiet dark card every non-game Phone Play surface sits on (join
+/// sheet, lobby, results, one-stop panels). `tint` adds a soft wash and
+/// a matching hairline.
+struct PhonePlaySurfaceCard: ViewModifier {
+    var tint: Color? = nil
+    var padding: CGFloat = 16
+
+    func body(content: Content) -> some View {
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                    .fill(PhonePlayDesign.surface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                            .fill(PhonePlayDesign.gradient([(tint ?? .clear).opacity(0.16), Color.clear]))
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                    .strokeBorder((tint ?? .white).opacity(tint == nil ? 0.06 : 0.3), lineWidth: 1)
+            )
+    }
+}
+
+extension View {
+    func phonePlaySurfaceCard(tint: Color? = nil, padding: CGFloat = 16) -> some View {
+        modifier(PhonePlaySurfaceCard(tint: tint, padding: padding))
+    }
+}
+
 // MARK: - Card flip
 
 /// Two faces on one card, turned about the vertical axis. The faces swap

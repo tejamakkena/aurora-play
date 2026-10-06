@@ -52,7 +52,7 @@ struct QuizMakerCard: View {
                     .symbolEffect(.bounce, value: loadedCount)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Make a quiz")
-                        .font(.headline)
+                        .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
                     Text(room.gameID == .trivia
                          ? "Any topic. Your questions play first."
@@ -65,7 +65,7 @@ struct QuizMakerCard: View {
 
             if loadedCount > 0 {
                 HStack(spacing: 8) {
-                    Image(systemName: "checkmark.seal.fill").foregroundColor(.green)
+                    Image(systemName: "checkmark.seal.fill").foregroundColor(PhonePlayDesign.green)
                     Text(loadedSummary)
                         .font(.footnote.weight(.semibold))
                         .foregroundColor(.white.opacity(0.85))
@@ -77,21 +77,21 @@ struct QuizMakerCard: View {
                     } label: {
                         Text("Clear")
                             .font(.caption.weight(.bold))
-                            .foregroundColor(.pink)
+                            .foregroundColor(PhonePlayDesign.pink)
                     }
                     .buttonStyle(.plain)
                 }
                 .padding(10)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.green.opacity(0.12)))
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(PhonePlayDesign.green.opacity(0.12)))
                 .transition(.scale(scale: 0.95).combined(with: .opacity))
             }
 
             OneStopSecondaryButton(title: loadedCount > 0 ? "Make another quiz" : "Write a quiz with AI",
-                                   systemImage: "sparkles", tint: .cyan) {
+                                   systemImage: "sparkles", tint: PhonePlayDesign.cyan) {
                 showMaker = true
             }
         }
-        .oneStopCard(tint: .cyan)
+        .oneStopCard(tint: PhonePlayDesign.cyan)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: loadedCount)
         .sheet(isPresented: $showMaker) {
             QuizMakerView(roomCode: room.code) { count, topic in
@@ -199,12 +199,12 @@ struct QuizMakerView: View {
                         .padding(14)
                         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06)))
                         .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(topicFocused ? Color.cyan : Color.white.opacity(0.1), lineWidth: 1.5))
+                            .strokeBorder(topicFocused ? PhonePlayDesign.cyan : Color.white.opacity(0.1), lineWidth: 1.5))
 
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(Self.suggestions, id: \.self) { s in
-                                OneStopChip(title: s, selected: trimmedTopic == s, tint: .cyan) {
+                                OneStopChip(title: s, selected: trimmedTopic == s, tint: PhonePlayDesign.cyan) {
                                     topic = s
                                 }
                             }
@@ -217,7 +217,7 @@ struct QuizMakerView: View {
                         label("QUESTIONS")
                         Spacer()
                         ForEach(Self.counts, id: \.self) { c in
-                            OneStopChip(title: "\(c)", selected: count == c, tint: .purple) { count = c }
+                            OneStopChip(title: "\(c)", selected: count == c, tint: PhonePlayDesign.purple) { count = c }
                         }
                     }
                     Divider().overlay(Color.white.opacity(0.1))
@@ -225,7 +225,7 @@ struct QuizMakerView: View {
                         label("LANGUAGE")
                         HStack(spacing: 8) {
                             ForEach(ContentPack.allCases) { pack in
-                                OneStopChip(title: pack.label, selected: language == pack, tint: .orange) {
+                                OneStopChip(title: pack.label, selected: language == pack, tint: PhonePlayDesign.orange) {
                                     language = pack
                                 }
                             }
@@ -234,12 +234,12 @@ struct QuizMakerView: View {
                     Divider().overlay(Color.white.opacity(0.1))
                     Toggle(isOn: $familySafe) {
                         Label("Family safe", systemImage: "figure.2.and.child.holdinghands")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
                             .foregroundColor(.white.opacity(0.85))
                     }
-                    .tint(.green)
+                    .tint(PhonePlayDesign.green)
                 }
-                .oneStopCard(tint: .purple)
+                .oneStopCard(tint: PhonePlayDesign.purple)
 
                 OneStopPrimaryButton(title: "Write my quiz", systemImage: "wand.and.stars",
                                      colors: OneStopTheme.quizGradient,
@@ -272,7 +272,7 @@ struct QuizMakerView: View {
                 .font(.title3.weight(.bold))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
-            ProgressView().tint(.cyan)
+            ProgressView().tint(PhonePlayDesign.cyan)
             if slowServer {
                 Text(retrying
                      ? "Almost there. The server just woke up, asking again."
@@ -300,7 +300,7 @@ struct QuizMakerView: View {
             Spacer()
             Image(systemName: "cloud.drizzle.fill")
                 .font(.system(size: 56))
-                .foregroundColor(.orange)
+                .foregroundColor(PhonePlayDesign.orange)
             Text("No questions this time")
                 .font(.title3.weight(.bold))
                 .foregroundColor(.white)
@@ -372,7 +372,7 @@ struct QuizMakerView: View {
                 if completeCount < drafts.count {
                     Text("\(drafts.count - completeCount) unfinished question\(drafts.count - completeCount == 1 ? "" : "s") will be skipped.")
                         .font(.caption)
-                        .foregroundColor(.orange)
+                        .foregroundColor(PhonePlayDesign.orange)
                 }
                 OneStopPrimaryButton(title: completeCount == 1 ? "Use this question" : "Use these \(completeCount) questions",
                                      systemImage: "paperplane.fill",
@@ -408,7 +408,7 @@ struct QuizMakerView: View {
 
     private func label(_ text: String) -> some View {
         Text(text)
-            .font(.caption.bold())
+            .font(.system(size: 12, weight: .heavy, design: .rounded))
             .tracking(2)
             .foregroundColor(.white.opacity(0.5))
     }
@@ -487,17 +487,17 @@ struct QuizDraftCard: View {
                         .font(.caption.weight(.heavy))
                         .foregroundColor(.black)
                         .frame(width: 26, height: 26)
-                        .background(Circle().fill(draft.isComplete ? Color.cyan : Color.orange))
+                        .background(Circle().fill(draft.isComplete ? PhonePlayDesign.cyan : PhonePlayDesign.orange))
                     VStack(alignment: .leading, spacing: 4) {
                         Text(draft.question.isEmpty ? "Untitled question" : draft.question)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.leading)
                             .lineLimit(expanded ? nil : 2)
                         if !expanded {
                             Label(correctText, systemImage: "checkmark.circle.fill")
                                 .font(.caption)
-                                .foregroundColor(.green)
+                                .foregroundColor(PhonePlayDesign.green)
                                 .lineLimit(1)
                         }
                     }
@@ -541,7 +541,7 @@ struct QuizDraftCard: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { draft.correct = i }
                     } label: {
                         ZStack {
-                            Circle().fill(isCorrect ? Color.green : Color.white.opacity(0.08))
+                            Circle().fill(isCorrect ? PhonePlayDesign.green : Color.white.opacity(0.08))
                             if isCorrect {
                                 Image(systemName: "checkmark")
                                     .font(.caption.weight(.heavy))
@@ -564,7 +564,7 @@ struct QuizDraftCard: View {
                         .padding(.vertical, 8)
                         .background(
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(isCorrect ? Color.green.opacity(0.15) : Color.white.opacity(0.05))
+                                .fill(isCorrect ? PhonePlayDesign.green.opacity(0.15) : Color.white.opacity(0.05))
                         )
                 }
             }
@@ -573,13 +573,13 @@ struct QuizDraftCard: View {
                 if !draft.isComplete {
                     Label("Needs a question and 4 different answers", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption2)
-                        .foregroundColor(.orange)
+                        .foregroundColor(PhonePlayDesign.orange)
                 }
                 Spacer()
                 Button(role: .destructive, action: onDelete) {
                     Label("Delete", systemImage: "trash")
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(.pink)
+                        .foregroundColor(PhonePlayDesign.pink)
                 }
                 .buttonStyle(.plain)
             }

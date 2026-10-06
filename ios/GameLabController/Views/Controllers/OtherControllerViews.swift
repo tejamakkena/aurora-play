@@ -733,6 +733,7 @@ struct ResultsControllerView: View {
     let onPlayAgain: () -> Void
 
     @EnvironmentObject private var vm: ControllerRootViewModel
+    @State private var appeared = false
 
     private var myID: String { AppConstants.deviceID }
     private var sorted: [Player] { room.players.sorted { $0.score > $1.score } }
@@ -740,55 +741,112 @@ struct ResultsControllerView: View {
         (sorted.firstIndex(where: { $0.id == myID }) ?? 0) + 1
     }
 
+    // Phone Play look (PhonePlayDesign / PhonePlayBigButton): this screen
+    // is the phone's, not a game controller's.
+    private var rankColors: [Color] {
+        switch myRank {
+        case 1:  return [PhonePlayDesign.yellow, PhonePlayDesign.orange]
+        case 2:  return [PhonePlayDesign.cyan, PhonePlayDesign.indigo]
+        case 3:  return [PhonePlayDesign.orange, PhonePlayDesign.pink]
+        default: return [PhonePlayDesign.purple, PhonePlayDesign.blue]
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 8) {
-                Text("Game Over").font(.largeTitle.bold()).foregroundColor(.white)
-                Text(room.gameID.displayName).font(.subheadline).foregroundColor(.white.opacity(0.4))
+            VStack(spacing: 6) {
+                Text("Game Over")
+                    .font(.system(size: 40, weight: .black, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(colors: [PhonePlayDesign.orange, PhonePlayDesign.pink, PhonePlayDesign.purple],
+                                       startPoint: .leading, endPoint: .trailing)
+                    )
+                Text(room.gameID.displayName)
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
             }
-            .padding(.top, 48).padding(.bottom, 24)
+            .padding(.top, 36).padding(.bottom, 20)
+            .scaleEffect(appeared ? 1 : 0.9)
+            .opacity(appeared ? 1 : 0)
 
             // My rank callout
-            HStack(spacing: 12) {
-                Text(rankEmoji(myRank)).font(.system(size: 40))
+            HStack(spacing: 14) {
+                Image(systemName: myRank == 1 ? "trophy.fill" : (myRank <= 3 ? "medal.fill" : "star.fill"))
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundColor(.white)
+                    .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+                    .phonePlayIdle(dy: 3, degrees: 5, duration: 1.2)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("You finished \(ordinal(myRank))").font(.headline).foregroundColor(.white)
+                    Text("You finished \(ordinal(myRank))")
+                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
                     if let me = sorted.first(where: { $0.id == myID }) {
-                        Text("\(me.score) points").font(.subheadline).foregroundColor(.cyan)
+                        Text("\(me.score) points")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundColor(.white.opacity(0.85))
                     }
                 }
                 Spacer()
             }
-            .padding(16).padding(.horizontal, 24)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.06)))
-            .padding(.horizontal, 24)
+            .padding(18)
+            .background(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                    .fill(PhonePlayDesign.gradient(rankColors))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+            )
+            .shadow(color: (rankColors.first ?? .clear).opacity(0.35), radius: 14, y: 8)
+            .padding(.horizontal, 20)
+            .scaleEffect(appeared ? 1 : 0.8)
+            .opacity(appeared ? 1 : 0)
+            .animation(PhonePlayDesign.pop.delay(0.08), value: appeared)
 
             // Full leaderboard
             ScrollView {
                 VStack(spacing: 8) {
+                    PhonePlaySectionLabel(text: "Leaderboard")
                     ForEach(Array(sorted.enumerated()), id: \.element.id) { rank, player in
                         HStack(spacing: 12) {
-                            Text(rankEmoji(rank + 1)).font(.title3).frame(width: 36)
+                            Text("\(rank + 1)")
+                                .font(.system(size: 14, weight: .heavy, design: .rounded))
+                                .foregroundColor(rank < 3 ? .black : .white.opacity(0.75))
+                                .frame(width: 30, height: 30)
+                                .background(Circle().fill(rank < 3 ? NightStandingsList.rankColor(rank + 1)
+                                                                   : PhonePlayDesign.surface2))
                             Text(player.name)
-                                .font(.body)
-                                .foregroundColor(player.id == myID ? .cyan : .white)
-                                .fontWeight(player.id == myID ? .bold : .regular)
+                                .font(.system(size: 17, weight: player.id == myID ? .heavy : .semibold,
+                                              design: .rounded))
+                                .foregroundColor(player.id == myID ? PhonePlayDesign.cyan : .white)
+                                .lineLimit(1)
                             if player.id == myID {
-                                Text("YOU").font(.caption2.bold()).foregroundColor(.cyan)
+                                Text("YOU")
+                                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 7).padding(.vertical, 3)
+                                    .background(Capsule().fill(PhonePlayDesign.cyan))
                             }
                             Spacer()
-                            Text("\(player.score)").font(.headline.bold()).foregroundColor(.white)
+                            Text("\(player.score)")
+                                .font(.system(size: 18, weight: .black, design: .rounded).monospacedDigit())
+                                .foregroundColor(.white)
                         }
-                        .padding(.horizontal, 20).padding(.vertical, 12)
-                        .background(RoundedRectangle(cornerRadius: 12)
-                            .fill(player.id == myID ? Color.cyan.opacity(0.1) : Color.white.opacity(0.04)))
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(player.id == myID ? PhonePlayDesign.cyan.opacity(0.12) : PhonePlayDesign.surface)
+                        )
+                        .offset(y: appeared ? 0 : 24)
+                        .opacity(appeared ? 1 : 0)
+                        .animation(PhonePlayDesign.pop.delay(0.15 + Double(min(rank, 8)) * 0.05), value: appeared)
                     }
                 }
-                .padding(.horizontal, 24).padding(.top, 16)
+                .padding(.horizontal, 20).padding(.top, 18)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
 
             // Rematch. start_game is host-or-TV-only server-side, so this
             // mirrors the lobby's host gating (see WaitingView/HostLobbyControls):
@@ -802,33 +860,30 @@ struct ResultsControllerView: View {
             // instead of replaying this one (Views/OneStop/GameNightViews).
             if let night = room.night {
                 GameNightResultsPanel(room: room, night: night, isHost: vm.isHost)
-                    .padding(.horizontal, 24).padding(.bottom, 12)
+                    .padding(.horizontal, 20).padding(.bottom, 12)
             } else if vm.isHost {
-                Button(action: onPlayAgain) {
-                    Label("Play Again", systemImage: "arrow.clockwise")
-                        .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple))
-                        .foregroundColor(.white)
-                }
-                .buttonStyle(.plain).padding(.horizontal, 24).padding(.bottom, 12)
+                PhonePlayBigButton(title: "Play Again", symbol: "arrow.clockwise",
+                                   colors: [PhonePlayDesign.purple, PhonePlayDesign.pink],
+                                   action: onPlayAgain)
+                    .padding(.horizontal, 20).padding(.bottom, 12)
             } else {
                 HStack(spacing: 8) {
-                    ProgressView().scaleEffect(0.9).tint(.white.opacity(0.5))
+                    ProgressView().scaleEffect(0.9).tint(PhonePlayDesign.text2)
                     Text("Waiting for the host to start a rematch")
-                        .font(.subheadline).foregroundColor(.white.opacity(0.5))
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
                 }
-                .padding(.horizontal, 24).padding(.bottom, 12)
+                .padding(.horizontal, 20).padding(.bottom, 12)
             }
 
-            Button(action: onLeave) {
-                Label("Leave Room", systemImage: "arrow.left.circle")
-                    .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.1)))
-                    .foregroundColor(.white)
-            }
-            .buttonStyle(.plain).padding(.horizontal, 24).padding(.bottom, 40)
+            PhonePlayGhostButton(title: "Leave Room", symbol: "arrow.left.circle", action: onLeave)
+                .padding(.horizontal, 20).padding(.bottom, 28)
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(PhonePlayDesign.bg.ignoresSafeArea())
+        .onAppear {
+            if myRank == 1 { PhonePlayHaptics.success() } else { PhonePlayHaptics.tap() }
+            withAnimation(PhonePlayDesign.pop) { appeared = true }
+        }
     }
 
     private func rankEmoji(_ rank: Int) -> String {
