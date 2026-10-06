@@ -2,6 +2,52 @@ import SwiftUI
 import CoreMotion
 import UIKit
 
+// Styled with the Phone Play look (PhonePlayDesign): surface cards, rounded
+// heavy type, gradient buttons that squash under the finger, and haptics.
+// The results screen further down keeps its own styling.
+
+// MARK: - Shared pieces
+
+private extension View {
+    /// A Phone Play surface card, optionally edged in an accent colour.
+    func otherPadCard(_ accent: Color? = nil,
+                      radius: CGFloat = PhonePlayDesign.cardRadius) -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(PhonePlayDesign.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(accent?.opacity(0.4) ?? Color.white.opacity(0.06), lineWidth: 1)
+            )
+    }
+}
+
+/// A short status line in a tinted capsule.
+private struct OtherPadPill: View {
+    let text: String
+    var systemImage: String? = nil
+    var tint: Color = PhonePlayDesign.cyan
+    var filled: Bool = false
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 14, weight: .bold))
+            }
+            Text(text)
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .multilineTextAlignment(.center)
+        }
+        .foregroundColor(filled ? .black : tint)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .background(Capsule().fill(filled ? tint : tint.opacity(0.14)))
+    }
+}
+
 // MARK: - Poker Controller
 //
 // Moved to PokerControllerView.swift.
@@ -37,52 +83,60 @@ struct ShakeToRollControllerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 40) {
-            Spacer()
+        ControllerShell(title: "Snakes & Ladders",
+                        subtitle: isMyTurn ? "Your turn" : "Waiting for your turn") {
+            VStack(spacing: 26) {
+                Spacer()
 
-            // A big, tactile pip-faced die (not just a printed number) --
-            // the user specifically asked for "a little bigger dice" here,
-            // so this is sized to dominate the screen the way a physical
-            // die would in your hand, with its own roll flourish on both a
-            // shake and a direct tap (the shake gesture alone is easy to
-            // trigger by accident or to miss entirely; a tap always works).
-            Button(action: roll) {
-                DiceFaceView(value: lastRoll ?? 0, size: 220)
-                    .scaleEffect(diceScale)
-                    .rotation3DEffect(.degrees(diceRotation), axis: (x: 0.5, y: 1, z: 0.15))
-                    .shadow(color: .cyan.opacity(isMyTurn ? 0.35 : 0), radius: 24)
+                // A big, tactile pip-faced die (not just a printed number) --
+                // the user specifically asked for "a little bigger dice" here,
+                // so this is sized to dominate the screen the way a physical
+                // die would in your hand, with its own roll flourish on both a
+                // shake and a direct tap (the shake gesture alone is easy to
+                // trigger by accident or to miss entirely; a tap always works).
+                Button(action: roll) {
+                    DiceFaceView(value: lastRoll ?? 0, size: 220)
+                        .scaleEffect(diceScale)
+                        .rotation3DEffect(.degrees(diceRotation), axis: (x: 0.5, y: 1, z: 0.15))
+                        .shadow(color: PhonePlayDesign.cyan.opacity(isMyTurn ? 0.45 : 0), radius: 26)
+                        .phonePlayIdle(dy: 4, duration: 1.3)
+                }
+                .buttonStyle(PhonePlayPressStyle())
+                .disabled(!isMyTurn)
+                .onShake { roll() }
+                .accessibilityLabel("Roll the dice")
+
+                if let roll = lastRoll {
+                    Text("You rolled \(roll)!")
+                        .font(.system(size: 34, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .contentTransition(.numericText(value: Double(roll)))
+                }
+
+                if rollAgain && isMyTurn {
+                    OtherPadPill(text: "Rolled a 6, roll again!",
+                                 systemImage: "arrow.counterclockwise.circle.fill",
+                                 tint: PhonePlayDesign.yellow, filled: true)
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                }
+
+                OtherPadPill(text: isMyTurn ? "Shake or tap the die to roll!" : "Not your turn…",
+                             systemImage: isMyTurn ? "hand.tap.fill" : "hourglass",
+                             tint: isMyTurn ? PhonePlayDesign.cyan : PhonePlayDesign.text3)
+
+                if let pos = privateData["position"] as? Int {
+                    Text("Your position: \(pos)")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
+                }
+
+                Spacer()
             }
-            .buttonStyle(.plain)
-            .disabled(!isMyTurn)
-            .onShake { roll() }
-            .accessibilityLabel("Roll the dice")
-
-            if let roll = lastRoll {
-                Text("You rolled \(roll)!")
-                    .font(.largeTitle.bold()).foregroundColor(.white)
-            }
-
-            if rollAgain && isMyTurn {
-                Label("Rolled a 6, roll again!", systemImage: "arrow.counterclockwise.circle.fill")
-                    .font(.title2.bold())
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 20).padding(.vertical, 10)
-                    .background(Capsule().fill(Color.yellow))
-            }
-
-            Text(isMyTurn ? "Shake or tap the die to roll!" : "Not your turn…")
-                .font(.title3)
-                .foregroundColor(isMyTurn ? .cyan : .white.opacity(0.4))
-
-            if let pos = privateData["position"] as? Int {
-                Text("Your position: \(pos)")
-                    .font(.subheadline).foregroundColor(.white.opacity(0.5))
-            }
-
-            Spacer()
+            .animation(PhonePlayDesign.pop, value: lastRoll)
+            .animation(PhonePlayDesign.pop, value: isMyTurn)
+            .animation(PhonePlayDesign.pop, value: rollAgain)
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
-        .onChange(of: slideEvent?.seq ?? -1) { seq in
+        .onChange(of: slideEvent?.seq ?? -1) { _, seq in
             // A fresh slide event for this player: buzz once. A snake bite
             // is an error-style jolt, a ladder climb a success-style tap.
             guard seq >= 0, seq != lastBuzzedSlideSeq else { return }
@@ -91,15 +145,12 @@ struct ShakeToRollControllerView: View {
         }
     }
 
-    /// Optional, safe haptic. `UINotificationFeedbackGenerator` no-ops on
-    /// devices without a haptic engine, so this is purely additive -- no
-    /// capability check or fallback needed.
+    /// Optional, safe haptic: the feedback generators no-op on devices
+    /// without a haptic engine, so this is purely additive.
     private func playSlideHaptic(kind: String?) {
-        let generator = UINotificationFeedbackGenerator()
-        generator.prepare()
         switch kind {
-        case "snake": generator.notificationOccurred(.error)
-        case "ladder": generator.notificationOccurred(.success)
+        case "snake": PhonePlayHaptics.error()
+        case "ladder": PhonePlayHaptics.success()
         default: break
         }
     }
@@ -107,10 +158,11 @@ struct ShakeToRollControllerView: View {
     private func roll() {
         guard isMyTurn, !isRolling else { return }
         isRolling = true
+        PhonePlayHaptics.thump()
         withAnimation(.spring(response: 0.22, dampingFraction: 0.35)) { diceScale = 1.28 }
         withAnimation(.easeOut(duration: 0.55)) { diceRotation += 360 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
-            withAnimation(.spring()) { diceScale = 1.0 }
+            withAnimation(PhonePlayDesign.pop) { diceScale = 1.0 }
             let value = Int.random(in: 1...6)
             lastRoll = value
             onAction("roll", ["value": value])
@@ -144,13 +196,14 @@ private struct DiceFaceView: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.18)
-                .fill(Color.white)
-            RoundedRectangle(cornerRadius: size * 0.18)
+            RoundedRectangle(cornerRadius: size * 0.18, style: .continuous)
+                .fill(LinearGradient(colors: [Color.white, Color(hex: "E8E8F0")],
+                                     startPoint: .top, endPoint: .bottom))
+            RoundedRectangle(cornerRadius: size * 0.18, style: .continuous)
                 .stroke(Color.black.opacity(0.08), lineWidth: 2)
             ForEach(Array(pipPositions.enumerated()), id: \.offset) { _, pip in
                 Circle()
-                    .fill(Color.black.opacity(0.82))
+                    .fill(PhonePlayDesign.bg)
                     .frame(width: size * 0.15, height: size * 0.15)
                     .position(x: pip.0 * size, y: pip.1 * size)
             }
@@ -170,36 +223,44 @@ struct PongControllerView: View {
     @State private var lastSent: Date = .distantPast
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        ControllerShell(title: "Pong",
+                        subtitle: "Side: \(privateData["side"] as? String ?? "?")") {
+            VStack(spacing: 22) {
+                Spacer()
 
-            Text("Pong")
-                .font(.largeTitle.bold()).foregroundColor(.white)
+                Image(systemName: "iphone.gen3")
+                    .font(.system(size: 40, weight: .bold))
+                    .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.indigo]))
+                    .rotationEffect(.degrees(motion.roll * 30))
 
-            Text("Tilt your phone to move your paddle")
-                .foregroundColor(.white.opacity(0.5))
+                Text("Tilt your phone to move your paddle")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .multilineTextAlignment(.center)
 
-            // Visual tilt indicator
-            ZStack {
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.white.opacity(0.06))
-                    .frame(width: 120, height: 300)
+                // Visual tilt indicator
+                ZStack {
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                        .fill(PhonePlayDesign.surface)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                                .strokeBorder(PhonePlayDesign.cyan.opacity(0.3), lineWidth: 1)
+                        )
+                        .frame(width: 120, height: 300)
 
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.cyan)
-                    .frame(width: 20, height: 60)
-                    .offset(y: CGFloat(motion.roll) * 100)
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.indigo]))
+                        .frame(width: 22, height: 64)
+                        .shadow(color: PhonePlayDesign.cyan.opacity(0.5), radius: 10)
+                        .offset(y: CGFloat(motion.roll) * 100)
+                }
+
+                Spacer()
             }
-
-            Text("Side: \(privateData["side"] as? String ?? "?")")
-                .font(.caption).foregroundColor(.white.opacity(0.4))
-
-            Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
         .onAppear { motion.start() }
         .onDisappear { motion.stop() }
-        .onChange(of: motion.roll) { roll in
+        .onChange(of: motion.roll) { _, roll in
             let now = Date()
             // Reported directly as "so glitchy": this was capped at 20/sec,
             // but game_action's shared rate limiter (socket_events.py's
@@ -260,47 +321,59 @@ struct MindMeldControllerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer()
-            Text("Mind Meld").font(.largeTitle.bold()).foregroundColor(.white)
-            if totalRounds > 0 {
-                Text("Round \(round) of \(totalRounds)")
-                    .font(.caption.bold()).foregroundColor(.white.opacity(0.5))
-            }
-            Text("Category: \(category)").font(.title3).foregroundColor(.cyan)
-            Text("Type ONE word that fits the category.\nTry to match what others think!").font(.subheadline)
-                .foregroundColor(.white.opacity(0.5)).multilineTextAlignment(.center)
-
-            if showReveal {
-                Image(systemName: "tv").font(.system(size: 54)).foregroundColor(.purple)
-                Text("Look at the TV for the melds!").font(.title3).foregroundColor(.white)
-            } else if !hasSubmitted {
-                TextField("Your word…", text: $wordInput)
-                    .font(.title2).foregroundColor(.white).multilineTextAlignment(.center)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                    .submitLabel(.send)
-                    .onSubmit(submit)
-                    .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.08)))
-                    .padding(.horizontal, 32)
-
-                Button(action: submit) {
-                    Text("Submit").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple))
+        ControllerShell(title: "Mind Meld",
+                        subtitle: totalRounds > 0 ? "Round \(round) of \(totalRounds)" : nil) {
+            VStack(spacing: 18) {
+                VStack(spacing: 8) {
+                    Text("CATEGORY")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .tracking(2)
+                        .foregroundColor(PhonePlayDesign.purple)
+                    Text(category)
+                        .font(.system(size: 26, weight: .black, design: .rounded))
                         .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Type ONE word that fits the category.\nTry to match what others think!")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
+                        .multilineTextAlignment(.center)
                 }
-                .buttonStyle(.plain)
-                .disabled(wordInput.trimmingCharacters(in: .whitespaces).isEmpty)
-                .padding(.horizontal, 32)
-            } else {
-                Image(systemName: "brain.filled.head.profile").font(.system(size: 60)).foregroundColor(.purple)
-                Text("You said \"\(myWord ?? wordInput)\"\nWaiting for the others…").font(.title3).foregroundColor(.white)
-                    .multilineTextAlignment(.center)
+                .padding(20)
+                .frame(maxWidth: .infinity)
+                .otherPadCard(PhonePlayDesign.purple)
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+
+                if showReveal {
+                    WaitingState(systemIcon: "tv", text: "Look at the TV for the melds!")
+                        .transition(.scale(scale: 0.92).combined(with: .opacity))
+                } else if !hasSubmitted {
+                    VStack(spacing: 14) {
+                        Spacer()
+                        AnswerField(placeholder: "Your word…", text: $wordInput, autocapitalize: false)
+                            .submitLabel(.send)
+                            .onSubmit(submit)
+                        BigButton(title: "Submit", systemImage: "paperplane.fill",
+                                  tint: PhonePlayDesign.purple,
+                                  enabled: !wordInput.trimmingCharacters(in: .whitespaces).isEmpty) {
+                            submit()
+                        }
+                        Spacer()
+                    }
+                    .transition(.scale(scale: 0.92).combined(with: .opacity))
+                } else {
+                    WaitingState(systemIcon: "brain.filled.head.profile",
+                                 text: "You said \"\(myWord ?? wordInput)\"",
+                                 detail: "Waiting for the others…")
+                        .transition(.scale(scale: 0.92).combined(with: .opacity))
+                }
+                Spacer(minLength: 0)
             }
-            Spacer()
+            .animation(PhonePlayDesign.pop, value: showReveal)
+            .animation(PhonePlayDesign.pop, value: hasSubmitted)
         }
-        .background(Color(hex: "0d0a14").ignoresSafeArea())
-        .onChange(of: round) { _ in
+        .onChange(of: round) { _, _ in
             wordInput = ""
             submittedRound = nil
         }
@@ -338,46 +411,70 @@ struct HotGridControllerView: View {
     private let gridSize = 5
 
     var body: some View {
-        VStack(spacing: 18) {
-            Text("Hot Grid").font(.largeTitle.bold()).foregroundColor(.white)
-            Text("Score \(score)").font(.headline).foregroundColor(.cyan)
-            Text(isMyTurn ? "Pick a hidden tile!" : "Waiting for your turn…")
-                .font(.title3).foregroundColor(isMyTurn ? .yellow : .white.opacity(0.4))
-            if let lastPickText {
-                Text(lastPickText).font(.caption).foregroundColor(.white.opacity(0.5))
-            }
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: gridSize), spacing: 10) {
-                ForEach(0..<gridSize*gridSize, id: \.self) { idx in
-                    let tile = idx < tiles.count ? tiles[idx] : "hidden"
-                    let hidden = tile == "hidden"
-                    Button(action: { pick(idx) }) {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(fill(for: tile, pending: pendingPick == idx))
-                            .frame(height: 52)
-                            .overlay(label(for: tile))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!isMyTurn || !hidden || pendingPick != nil)
+        ControllerShell(title: "Hot Grid", subtitle: "Find the points, dodge the traps") {
+            VStack(spacing: 16) {
+                VStack(spacing: 2) {
+                    Text("SCORE")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .tracking(2)
+                        .foregroundColor(PhonePlayDesign.text3)
+                    Text("\(score)")
+                        .font(.system(size: 44, weight: .black, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundColor(PhonePlayDesign.cyan)
+                        .contentTransition(.numericText(value: Double(score)))
+                        .animation(PhonePlayDesign.pop, value: score)
                 }
+                .padding(.top, 14)
+
+                OtherPadPill(text: isMyTurn ? "Pick a hidden tile!" : "Waiting for your turn…",
+                             systemImage: isMyTurn ? "hand.tap.fill" : "hourglass",
+                             tint: isMyTurn ? PhonePlayDesign.yellow : PhonePlayDesign.text3)
+
+                if let lastPickText {
+                    Text(lastPickText)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
+                }
+
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: gridSize), spacing: 8) {
+                    ForEach(0..<gridSize*gridSize, id: \.self) { idx in
+                        let tile = idx < tiles.count ? tiles[idx] : "hidden"
+                        let hidden = tile == "hidden"
+                        Button(action: { pick(idx) }) {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(fill(for: tile, pending: pendingPick == idx))
+                                .frame(height: 56)
+                                .overlay(label(for: tile))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(hidden ? 0.08 : 0), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(PhonePlayPressStyle())
+                        .disabled(!isMyTurn || !hidden || pendingPick != nil)
+                    }
+                }
+                .padding(14)
+                .otherPadCard(isMyTurn ? PhonePlayDesign.yellow : nil)
+                .padding(.horizontal, 16)
+                .opacity(isMyTurn ? 1 : 0.55)
+                Spacer()
             }
-            .padding(.horizontal, 20)
-            .opacity(isMyTurn ? 1 : 0.55)
-            Spacer()
+            .animation(PhonePlayDesign.pop, value: isMyTurn)
+            .animation(PhonePlayDesign.pop, value: tiles)
         }
-        .padding(.top, 40)
-        .background(Color(hex: "0a0a0a").ignoresSafeArea())
-        .onChange(of: isMyTurn) { _ in pendingPick = nil }
-        .onChange(of: tiles) { _ in pendingPick = nil }
+        .onChange(of: isMyTurn) { _, _ in pendingPick = nil }
+        .onChange(of: tiles) { _, _ in pendingPick = nil }
     }
 
     private func fill(for tile: String, pending: Bool) -> Color {
-        if pending { return Color.yellow.opacity(0.5) }
+        if pending { return PhonePlayDesign.yellow.opacity(0.5) }
         switch tile {
-        case "hidden":   return Color.white.opacity(0.1)
-        case "trap":     return Color.red.opacity(0.35)
-        case "teleport": return Color.purple.opacity(0.35)
-        default:         return Color.green.opacity(0.3)
+        case "hidden":   return PhonePlayDesign.surface2
+        case "trap":     return PhonePlayDesign.red.opacity(0.3)
+        case "teleport": return PhonePlayDesign.purple.opacity(0.3)
+        default:         return PhonePlayDesign.green.opacity(0.25)
         }
     }
 
@@ -385,18 +482,27 @@ struct HotGridControllerView: View {
     private func label(for tile: String) -> some View {
         switch tile {
         case "hidden":
-            Text("?").font(.title2).foregroundColor(.white.opacity(0.5))
+            Text("?")
+                .font(.system(size: 22, weight: .black, design: .rounded))
+                .foregroundColor(.white.opacity(0.4))
         case "trap":
-            Image(systemName: "flame.fill").foregroundColor(.red)
+            Image(systemName: "flame.fill")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(PhonePlayDesign.red)
         case "teleport":
-            Image(systemName: "sparkles").foregroundColor(.purple)
+            Image(systemName: "sparkles")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(PhonePlayDesign.purple)
         default:
-            Text("+\(tile)").font(.headline).foregroundColor(.green)
+            Text("+\(tile)")
+                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .foregroundColor(PhonePlayDesign.green)
         }
     }
 
     private func pick(_ index: Int) {
         guard isMyTurn, pendingPick == nil else { return }
+        PhonePlayHaptics.tap()
         pendingPick = index
         onAction("pick_tile", ["index": index])
     }
@@ -413,32 +519,76 @@ struct StockPanicControllerView: View {
     private var stocks: [String] { portfolio.keys.sorted() }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                Text("Stock Panic").font(.title.bold()).foregroundColor(.white)
-                Text("Cash: $\(cash)").font(.headline).foregroundColor(.green)
-
-                ForEach(stocks, id: \.self) { stock in
-                    HStack(spacing: 16) {
-                        Text(stock).font(.headline).foregroundColor(.white).frame(width: 80)
-                        Text("×\(portfolio[stock] ?? 0)").foregroundColor(.white.opacity(0.6))
-                        Spacer()
-                        Button("Buy") { onAction("trade", ["stock": stock, "action": "buy"]) }
-                            .foregroundColor(.green).padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.green.opacity(0.2)))
-                            .buttonStyle(.plain)
-                        Button("Sell") { onAction("trade", ["stock": stock, "action": "sell"]) }
-                            .foregroundColor(.red).padding(.horizontal, 14).padding(.vertical, 8)
-                            .background(RoundedRectangle(cornerRadius: 8).fill(Color.red.opacity(0.2)))
-                            .buttonStyle(.plain)
+        ControllerShell(title: "Stock Panic", subtitle: "Buy low, sell before the crash") {
+            ScrollView {
+                VStack(spacing: 12) {
+                    VStack(spacing: 2) {
+                        Text("CASH")
+                            .font(.system(size: 12, weight: .heavy, design: .rounded))
+                            .tracking(2)
+                            .foregroundColor(PhonePlayDesign.text3)
+                        Text("$\(cash)")
+                            .font(.system(size: 40, weight: .black, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundColor(PhonePlayDesign.green)
+                            .contentTransition(.numericText(value: Double(cash)))
+                            .animation(PhonePlayDesign.pop, value: cash)
                     }
-                    .padding(14)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.06)))
+                    .padding(.vertical, 16)
+                    .frame(maxWidth: .infinity)
+                    .otherPadCard(PhonePlayDesign.green)
+                    .padding(.bottom, 6)
+
+                    ForEach(stocks, id: \.self) { stock in
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(stock)
+                                    .font(.system(size: 18, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                                Text("×\(portfolio[stock] ?? 0) held")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .foregroundColor(PhonePlayDesign.text3)
+                            }
+                            Spacer()
+                            tradeButton("Buy", tint: PhonePlayDesign.green) {
+                                onAction("trade", ["stock": stock, "action": "buy"])
+                            }
+                            tradeButton("Sell", tint: PhonePlayDesign.red) {
+                                onAction("trade", ["stock": stock, "action": "sell"])
+                            }
+                        }
+                        .padding(14)
+                        .otherPadCard(radius: PhonePlayDesign.buttonRadius)
+                    }
                 }
+                .padding(20)
             }
-            .padding(24)
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+    }
+
+    private func tradeButton(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button(action: {
+            PhonePlayHaptics.tap()
+            action()
+        }) {
+            Text(title)
+                .font(.system(size: 16, weight: .heavy, design: .rounded))
+                .foregroundColor(tint)
+                .frame(minWidth: 58)
+                .padding(.vertical, 11)
+                .padding(.horizontal, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(tint.opacity(0.16))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(tint.opacity(0.35), lineWidth: 1)
+                )
+        }
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
@@ -468,42 +618,68 @@ struct SpeedSculptorControllerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text(votingPhase ? "Vote: best \(prompt)" : "Draw: \(prompt)")
-                    .font(.headline).foregroundColor(.white)
-                Spacer()
-                if secondsLeft > 0 {
-                    Text("\(secondsLeft)s").font(.headline.monospacedDigit())
-                        .foregroundColor(secondsLeft <= 5 ? .red : .cyan)
-                }
-                if !votingPhase && !submitted {
-                    Button("Clear") { lines = []; currentLine = nil }
-                        .foregroundColor(.cyan).buttonStyle(.plain).padding(.leading, 12)
-                }
-            }
-            .padding(16)
-            .background(Color.white.opacity(0.06))
-
-            if votingPhase {
-                votingList
-            } else {
-                drawingCanvas
-                if !submitted {
-                    Button(action: submitDrawing) {
-                        Text("Submit Drawing").font(.headline).frame(maxWidth: .infinity).padding(.vertical, 16)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(Color.purple))
-                            .foregroundColor(.white)
-                    }
-                    .buttonStyle(.plain).padding(16)
+        ControllerShell(title: "Speed Sculptor",
+                        subtitle: votingPhase ? "Vote: best \(prompt)" : "Draw: \(prompt)",
+                        secondsLeft: secondsLeft) {
+            VStack(spacing: 0) {
+                if votingPhase {
+                    votingList
+                        .transition(.scale(scale: 0.95).combined(with: .opacity))
                 } else {
-                    Label("Submitted! Watch the TV.", systemImage: "checkmark.circle.fill")
-                        .foregroundColor(.green).padding(16)
+                    VStack(spacing: 10) {
+                        HStack {
+                            Text("YOUR CANVAS")
+                                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                                .tracking(2)
+                                .foregroundColor(PhonePlayDesign.purple)
+                                .lineLimit(1)
+                            Spacer()
+                            if !submitted {
+                                Button(action: {
+                                    PhonePlayHaptics.tap()
+                                    lines = []
+                                    currentLine = nil
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "trash")
+                                            .font(.system(size: 13, weight: .bold))
+                                        Text("Clear")
+                                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    }
+                                    .foregroundColor(.white.opacity(0.85))
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(Capsule().fill(Color.white.opacity(0.08)))
+                                }
+                                .buttonStyle(PhonePlayPressStyle())
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+
+                        drawingCanvas
+                            .padding(.horizontal, 16)
+
+                        if !submitted {
+                            BigButton(title: "Submit Drawing", systemImage: "paperplane.fill",
+                                      tint: PhonePlayDesign.purple) {
+                                submitDrawing()
+                            }
+                            .padding(.vertical, 12)
+                        } else {
+                            OtherPadPill(text: "Submitted! Watch the TV.",
+                                         systemImage: "checkmark.circle.fill",
+                                         tint: PhonePlayDesign.green)
+                                .padding(.vertical, 18)
+                        }
+                    }
+                    .transition(.scale(scale: 0.95).combined(with: .opacity))
                 }
             }
+            .animation(PhonePlayDesign.pop, value: votingPhase)
+            .animation(PhonePlayDesign.pop, value: submitted)
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
-        .onChange(of: round) { _ in
+        .onChange(of: round) { _, _ in
             lines = []
             currentLine = nil
             submittedRound = nil
@@ -524,8 +700,13 @@ struct SpeedSculptorControllerView: View {
         .background(GeometryReader { geo in
             Color.clear
                 .onAppear { canvasSize = geo.size }
-                .onChange(of: geo.size) { canvasSize = $0 }
+                .onChange(of: geo.size) { _, newSize in canvasSize = newSize }
         })
+        .clipShape(RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .strokeBorder(PhonePlayDesign.purple.opacity(0.5), lineWidth: 2)
+        )
         .allowsHitTesting(!submitted)
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -547,30 +728,26 @@ struct SpeedSculptorControllerView: View {
 
     private var votingList: some View {
         ScrollView {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 Text("Look at the drawings on the TV and vote for your favourite")
-                    .font(.subheadline).foregroundColor(.white.opacity(0.6))
-                    .multilineTextAlignment(.center).padding(.top, 20)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 16)
+                    .padding(.bottom, 4)
                 if candidates.isEmpty {
-                    Text("No other drawings this round").foregroundColor(.white.opacity(0.4))
+                    Text("No other drawings this round")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text3)
                 }
                 ForEach(candidates, id: \.id) { c in
-                    let chosen = myVote == c.id
-                    Button { onAction("vote", ["targetID": c.id]) } label: {
-                        HStack {
-                            Text(c.name).font(.headline)
-                            Spacer()
-                            Image(systemName: chosen ? "hand.thumbsup.fill" : "hand.thumbsup")
-                        }
-                        .foregroundColor(chosen ? .black : .white)
-                        .padding(18)
-                        .background(RoundedRectangle(cornerRadius: 14)
-                            .fill(chosen ? Color.cyan : Color.white.opacity(0.08)))
+                    ChoiceRow(text: c.name, selected: myVote == c.id) {
+                        onAction("vote", ["targetID": c.id])
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 20)
+            .padding(.bottom, 20)
         }
     }
 
@@ -626,79 +803,120 @@ struct TambolaControllerView: View {
     }
 
     var body: some View {
-        VStack(spacing: 14) {
-            HStack {
-                Text("Tambola").font(.title.bold()).foregroundColor(.white)
-                Spacer()
-                Text("Score \(score)").font(.headline).foregroundColor(.cyan)
-            }
-            .padding(.horizontal, 20)
-
-            if let lastCalled {
-                VStack(spacing: 2) {
-                    Text("LAST CALLED").font(.caption2.bold()).tracking(2)
-                        .foregroundColor(.white.opacity(0.4))
-                    Text("\(lastCalled)")
-                        .font(.system(size: 54, weight: .heavy, design: .rounded))
-                        .foregroundColor(.yellow)
-                }
-            }
-
-            Text("Tap called numbers on your ticket")
-                .font(.caption).foregroundColor(.white.opacity(0.4))
-
-            VStack(spacing: 5) {
-                ForEach(Array(ticket.enumerated()), id: \.offset) { _, row in
-                    HStack(spacing: 5) {
-                        ForEach(Array(row.enumerated()), id: \.offset) { _, num in
-                            if let n = num {
-                                let marked = markedNumbers.contains(n)
-                                let called = calledOnTicket.contains(n)
-                                Button(action: { onAction(marked ? "unmark" : "mark", ["number": n]) }) {
-                                    Text("\(n)").font(.system(.body, design: .monospaced).bold())
-                                        .frame(width: 36, height: 40)
-                                        .background(RoundedRectangle(cornerRadius: 7)
-                                            .fill(marked ? Color.green.opacity(0.55) : Color.white.opacity(0.1)))
-                                        .overlay(RoundedRectangle(cornerRadius: 7)
-                                            .strokeBorder(called && !marked ? Color.yellow : Color.clear,
-                                                          lineWidth: 2))
-                                        .foregroundColor(.white)
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                RoundedRectangle(cornerRadius: 7)
-                                    .fill(Color.white.opacity(0.03))
-                                    .frame(width: 36, height: 40)
-                            }
-                        }
-                    }
-                }
-            }
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                ForEach(prizes, id: \.type) { prize in
-                    Button(action: { onAction("claim", ["type": prize.type]) }) {
+        ControllerShell(title: "Tambola", subtitle: "Score \(score)") {
+            ScrollView {
+                VStack(spacing: 14) {
+                    if let lastCalled {
                         VStack(spacing: 2) {
-                            Text(prize.label).font(.subheadline.bold())
-                            if let winner = prize.winner {
-                                Text("won by \(winner)").font(.caption2)
+                            Text("LAST CALLED")
+                                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                                .tracking(2)
+                                .foregroundColor(PhonePlayDesign.text3)
+                            Text("\(lastCalled)")
+                                .font(.system(size: 58, weight: .black, design: .rounded))
+                                .monospacedDigit()
+                                .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.yellow,
+                                                                           PhonePlayDesign.orange]))
+                                .contentTransition(.numericText(value: Double(lastCalled)))
+                                .animation(PhonePlayDesign.pop, value: lastCalled)
+                        }
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .otherPadCard(PhonePlayDesign.yellow)
+                    }
+
+                    Text("Tap called numbers on your ticket")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
+
+                    // Cells share the width rather than a fixed 36pt each, so
+                    // a nine-column row never runs off a small phone.
+                    VStack(spacing: 5) {
+                        ForEach(Array(ticket.enumerated()), id: \.offset) { _, row in
+                            HStack(spacing: 4) {
+                                ForEach(Array(row.enumerated()), id: \.offset) { _, num in
+                                    if let n = num {
+                                        let marked = markedNumbers.contains(n)
+                                        let called = calledOnTicket.contains(n)
+                                        Button(action: {
+                                            PhonePlayHaptics.tap()
+                                            onAction(marked ? "unmark" : "mark", ["number": n])
+                                        }) {
+                                            Text("\(n)")
+                                                .font(.system(size: 16, weight: .heavy, design: .rounded))
+                                                .monospacedDigit()
+                                                .minimumScaleFactor(0.7)
+                                                .lineLimit(1)
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 42)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                                        .fill(marked
+                                                              ? PhonePlayDesign.gradient([PhonePlayDesign.green,
+                                                                                          PhonePlayDesign.green.opacity(0.7)])
+                                                              : PhonePlayDesign.gradient([PhonePlayDesign.surface2,
+                                                                                          PhonePlayDesign.surface2]))
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                                        .strokeBorder(called && !marked ? PhonePlayDesign.yellow : Color.clear,
+                                                                      lineWidth: 2)
+                                                )
+                                                .foregroundColor(marked ? .black : .white)
+                                        }
+                                        .buttonStyle(PhonePlayPressStyle())
+                                    } else {
+                                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                                            .fill(Color.white.opacity(0.03))
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 42)
+                                    }
+                                }
                             }
                         }
-                        .frame(maxWidth: .infinity).padding(.vertical, 10)
-                        .background(RoundedRectangle(cornerRadius: 12)
-                            .fill(prize.winner == nil ? Color.yellow.opacity(0.85) : Color.white.opacity(0.08)))
-                        .foregroundColor(prize.winner == nil ? .black : .white.opacity(0.4))
                     }
-                    .buttonStyle(.plain)
-                    .disabled(prize.winner != nil)
-                }
-            }
-            .padding(.horizontal, 20)
+                    .padding(10)
+                    .otherPadCard()
 
-            Spacer(minLength: 0)
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10),
+                                        GridItem(.flexible(), spacing: 10)],
+                              spacing: 10) {
+                        ForEach(prizes, id: \.type) { prize in
+                            Button(action: {
+                                PhonePlayHaptics.thump()
+                                onAction("claim", ["type": prize.type])
+                            }) {
+                                VStack(spacing: 2) {
+                                    Text(prize.label)
+                                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.7)
+                                    if let winner = prize.winner {
+                                        Text("won by \(winner)")
+                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                            .lineLimit(1)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 50)
+                                .padding(.horizontal, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(prize.winner == nil
+                                              ? PhonePlayDesign.gradient([PhonePlayDesign.yellow, PhonePlayDesign.orange])
+                                              : PhonePlayDesign.gradient([PhonePlayDesign.surface, PhonePlayDesign.surface]))
+                                )
+                                .foregroundColor(prize.winner == nil ? .black : PhonePlayDesign.text3)
+                            }
+                            .buttonStyle(PhonePlayPressStyle())
+                            .disabled(prize.winner != nil)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 24)
+            }
         }
-        .padding(.top, 30)
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
     }
 }
 
@@ -710,14 +928,30 @@ struct GenericTapControllerView: View {
     let onAction: (String, [String: Any]) -> Void
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 18) {
             Spacer()
-            Image(systemName: room.gameID.sfSymbol).font(.system(size: 64)).foregroundColor(.white.opacity(0.85))
-            Text(room.gameID.displayName).font(.title.bold()).foregroundColor(.white)
-            Text("Game in progress").foregroundColor(.white.opacity(0.4))
+            ZStack {
+                Circle()
+                    .fill(PhonePlayDesign.gradient([PhonePlayDesign.indigo.opacity(0.55),
+                                                    PhonePlayDesign.cyan.opacity(0.35)]))
+                    .frame(width: 120, height: 120)
+                Image(systemName: room.gameID.sfSymbol)
+                    .font(.system(size: 52, weight: .bold))
+                    .foregroundColor(.white)
+            }
+            .phonePlayIdle(dy: 4, scale: 0.03, duration: 1.6)
+            Text(room.gameID.displayName)
+                .font(.system(size: 28, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+            Text("Game in progress")
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .padding(30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(PhonePlayDesign.bg.ignoresSafeArea())
     }
 }
 
@@ -899,6 +1133,7 @@ struct BlastRunnersControllerView: View {
                 if !canAct {
                     bannerText
                         .padding(.top, 8)
+                        .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
 
                 Spacer()
@@ -911,45 +1146,65 @@ struct BlastRunnersControllerView: View {
 
                 Spacer()
                 Text("Move with the pad, then BLAST to clear rock or knock out enemies")
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.35))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text3)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 30)
                     .padding(.bottom, 20)
             }
+            .animation(PhonePlayDesign.pop, value: canAct)
+            .animation(PhonePlayDesign.pop, value: phase)
         }
     }
 
     private var statusBar: some View {
         HStack(spacing: 16) {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 ForEach(0..<max(livesMax, 1), id: \.self) { index in
                     Image(systemName: index < livesCurrent ? "heart.fill" : "heart")
-                        .foregroundColor(index < livesCurrent ? .red : .white.opacity(0.25))
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(index < livesCurrent ? PhonePlayDesign.red : .white.opacity(0.25))
                 }
             }
+            .animation(PhonePlayDesign.pop, value: livesCurrent)
             Spacer()
+            HStack(spacing: 6) {
+                Image(systemName: "diamond.fill")
+                    .font(.system(size: 13, weight: .bold))
+                Text("\(gemsRemaining)")
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText(value: Double(gemsRemaining)))
+            }
+            .foregroundColor(PhonePlayDesign.cyan)
+            .animation(PhonePlayDesign.pop, value: gemsRemaining)
         }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
+        )
         .padding(.horizontal, 20)
-        .padding(.top, 16)
+        .padding(.top, 14)
     }
 
     @ViewBuilder
     private var bannerText: some View {
         switch phase {
         case "levelFailed":
-            Text("Team down — resetting level \(level)…")
-                .font(.headline).foregroundColor(.red)
+            OtherPadPill(text: "Team down — resetting level \(level)…",
+                         systemImage: "arrow.counterclockwise", tint: PhonePlayDesign.red)
         case "levelComplete":
-            Text("Level \(level) clear!")
-                .font(.headline).foregroundColor(.green)
+            OtherPadPill(text: "Level \(level) clear!",
+                         systemImage: "checkmark.seal.fill", tint: PhonePlayDesign.green)
         case "gameComplete":
-            Text("All 25 levels cleared!")
-                .font(.headline).foregroundColor(.yellow)
+            OtherPadPill(text: "All 25 levels cleared!",
+                         systemImage: "trophy.fill", tint: PhonePlayDesign.yellow)
         default:
             if !isAlive {
-                Text("Respawning…")
-                    .font(.headline).foregroundColor(.orange)
+                OtherPadPill(text: "Respawning…",
+                             systemImage: "hourglass", tint: PhonePlayDesign.orange)
             }
         }
     }
@@ -966,30 +1221,53 @@ struct BlastRunnersControllerView: View {
     }
 
     private func dpadArrow(_ direction: String, _ icon: String) -> some View {
-        Button(action: { if canAct { onAction("move", ["direction": direction]) } }) {
+        Button(action: {
+            if canAct {
+                PhonePlayHaptics.tap()
+                onAction("move", ["direction": direction])
+            }
+        }) {
             Image(systemName: icon)
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 26, weight: .heavy))
                 .foregroundColor(canAct ? .white : .white.opacity(0.3))
                 .frame(width: 64, height: 58)
-                .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.09)))
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(PhonePlayDesign.surface2)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
         .disabled(!canAct)
     }
 
     private var blastButton: some View {
-        Button(action: { if canAct { onAction("blast", [:]) } }) {
+        Button(action: {
+            if canAct {
+                PhonePlayHaptics.thump()
+                onAction("blast", [:])
+            }
+        }) {
             VStack(spacing: 6) {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: 32, weight: .bold))
                 Text("BLAST")
-                    .font(.headline.bold())
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .tracking(1)
             }
             .foregroundColor(canAct ? .black : .white.opacity(0.35))
             .frame(width: 116, height: 116)
-            .background(Circle().fill(canAct ? Color.orange : Color.white.opacity(0.08)))
+            .background(
+                Circle()
+                    .fill(canAct ? PhonePlayDesign.gradient([PhonePlayDesign.yellow, PhonePlayDesign.orange])
+                                 : PhonePlayDesign.gradient([Color.white.opacity(0.08), Color.white.opacity(0.08)]))
+            )
+            .shadow(color: PhonePlayDesign.orange.opacity(canAct ? 0.45 : 0), radius: 16, y: 6)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
         .disabled(!canAct)
     }
 }
