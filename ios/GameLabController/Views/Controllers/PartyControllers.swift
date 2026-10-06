@@ -168,7 +168,7 @@ struct LastTapControllerView: View {
                         subtitle: isAlive ? "Round \(privateData.int("round"))" : "Eliminated") {
             ZStack {
                 if !isAlive {
-                    WaitingState(systemIcon: "skull", text: "You're out",
+                    WaitingState(systemIcon: "xmark.octagon.fill", text: "You're out",
                                  detail: "Watch the rest fight it out on the TV")
                         .transition(.partyPadPop)
                 } else if let ms = myMs {
