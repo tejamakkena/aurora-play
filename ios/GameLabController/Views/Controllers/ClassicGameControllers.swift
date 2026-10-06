@@ -1,79 +1,266 @@
 import SwiftUI
+import UIKit
 
 // MARK: - Connect 4 Controller
 
+/// Phone palette for the server's disc colour ids (matches the TV board).
+private struct Connect4PhonePalette {
+    let base: Color
+    let light: Color
+    let dark: Color
+
+    static func of(_ id: String) -> Connect4PhonePalette {
+        switch id {
+        case "red":
+            return Connect4PhonePalette(base: Color(hex: "e8283b"), light: Color(hex: "ff8a8f"), dark: Color(hex: "7a0b16"))
+        case "yellow":
+            return Connect4PhonePalette(base: Color(hex: "ffc61a"), light: Color(hex: "fff1a8"), dark: Color(hex: "9a6a00"))
+        case "green":
+            return Connect4PhonePalette(base: Color(hex: "1fc96b"), light: Color(hex: "9cf5c2"), dark: Color(hex: "0a6634"))
+        case "blue":
+            return Connect4PhonePalette(base: Color(hex: "35b4ff"), light: Color(hex: "c4ecff"), dark: Color(hex: "0b5c9e"))
+        default:
+            return Connect4PhonePalette(base: Color(hex: "8a94a6"), light: Color(hex: "d5dbe6"), dark: Color(hex: "3c4454"))
+        }
+    }
+}
+
+/// Small glossy disc, same look as the TV's.
+private struct Connect4PhoneDisc: View {
+    let colorID: String
+    let size: CGFloat
+
+    var body: some View {
+        let palette = Connect4PhonePalette.of(colorID)
+        return ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(colors: [palette.light, palette.base, palette.dark],
+                                   center: UnitPoint(x: 0.36, y: 0.30),
+                                   startRadius: 0, endRadius: size * 0.72)
+                )
+            Circle()
+                .strokeBorder(palette.dark.opacity(0.75), lineWidth: max(1, size * 0.05))
+            Ellipse()
+                .fill(
+                    LinearGradient(colors: [Color.white.opacity(0.75), Color.white.opacity(0.0)],
+                                   startPoint: .top, endPoint: .bottom)
+                )
+                .frame(width: size * 0.52, height: size * 0.30)
+                .offset(x: -size * 0.09, y: -size * 0.23)
+        }
+        .frame(width: size, height: size)
+        .shadow(color: Color.black.opacity(0.4), radius: size * 0.06, x: 0, y: size * 0.05)
+    }
+}
+
+/// Aim by dragging (or tapping) across the column strip; the disc drops
+/// when you let go. The strip sizes itself to however many columns the
+/// board has (7, 9 or 10) and is disabled while it isn't your turn.
 struct Connect4ControllerView: View {
     let privateData: [String: Any]
     let onAction: (String, [String: Any]) -> Void
 
+    @State private var aimedCol: Int? = nil
+
     private var isMyTurn: Bool { privateData["isMyTurn"] as? Bool ?? false }
     private var myColor: String { privateData["color"] as? String ?? "red" }
+    private var columnCount: Int {
+        let cols: Int = privateData["cols"] as? Int ?? 7
+        return min(max(cols, 1), 16)
+    }
     private var columnsFull: Set<Int> {
         Set((privateData["fullColumns"] as? [Int]) ?? [])
     }
-
-    @State private var hoveredCol: Int? = nil
+    private var currentName: String { privateData["currentPlayerName"] as? String ?? "" }
+    private var currentColor: String { privateData["currentColor"] as? String ?? "" }
+    private var turnOrder: [String] { privateData["turnOrder"] as? [String] ?? [] }
+    private var colors: [String: String] { privateData["colors"] as? [String: String] ?? [:] }
+    private var currentID: String { privateData["currentPlayerID"] as? String ?? "" }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
-            HStack {
-                Text("Connect 4").font(.headline).foregroundColor(.white)
-                Spacer()
-                Circle()
-                    .fill(myColor == "red" ? Color.red : Color.yellow)
-                    .frame(width: 24, height: 24)
-                Text("You").font(.subheadline).foregroundColor(.white.opacity(0.6))
-            }
-            .padding(20).background(Color.white.opacity(0.04))
-
-            Spacer()
-
-            if isMyTurn {
-                VStack(spacing: 20) {
-                    Text("Drop your disc!").font(.title3.bold()).foregroundColor(.yellow)
-
-                    // 7-column tap strip
-                    HStack(spacing: 8) {
-                        ForEach(0..<7, id: \.self) { col in
-                            let full = columnsFull.contains(col)
-                            Button(action: { if !full { drop(col) } }) {
-                                VStack(spacing: 6) {
-                                    Image(systemName: "chevron.down")
-                                        .font(.caption.bold())
-                                        .foregroundColor(hoveredCol == col ? .yellow : .white.opacity(0.4))
-
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(full ? Color.white.opacity(0.05) : (hoveredCol == col
-                                            ? (myColor == "red" ? Color.red.opacity(0.6) : Color.yellow.opacity(0.6))
-                                            : Color.white.opacity(0.12)))
-                                        .frame(height: 200)
-                                        .overlay(
-                                            full ? Image(systemName: "xmark").foregroundColor(.white.opacity(0.2)) : nil
-                                        )
-
-                                    Text("\(col + 1)").font(.caption2).foregroundColor(.white.opacity(0.5))
-                                }
-                            }
-                            .buttonStyle(.plain).disabled(full)
-                            .simultaneousGesture(DragGesture(minimumDistance: 0)
-                                .onChanged { _ in hoveredCol = col }
-                                .onEnded { _ in hoveredCol = nil }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                }
-            } else {
-                waitingLabel("Opponent's turn…")
-            }
-
-            Spacer()
+            header
+            Spacer(minLength: 12)
+            statusLine
+                .padding(.bottom, 18)
+            columnPicker
+                .padding(.horizontal, 14)
+            turnOrderStrip
+                .padding(.top, 18)
+            Spacer(minLength: 12)
         }
         .background(Color(hex: "00040d").ignoresSafeArea())
+        .onChange(of: isMyTurn) { mine in
+            if !mine { aimedCol = nil }
+            if mine { UIImpactFeedbackGenerator(style: .medium).impactOccurred() }
+        }
     }
 
-    private func drop(_ col: Int) {
+    // MARK: Header / status
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            Text("Connect 4").font(.headline).foregroundColor(.white)
+            Spacer()
+            Connect4PhoneDisc(colorID: myColor, size: 28)
+            Text("You are \(myColor.capitalized)")
+                .font(.subheadline.bold())
+                .foregroundColor(Connect4PhonePalette.of(myColor).light)
+        }
+        .padding(20)
+        .background(Color.white.opacity(0.04))
+    }
+
+    @ViewBuilder
+    private var statusLine: some View {
+        if isMyTurn {
+            VStack(spacing: 4) {
+                Text("Your move!")
+                    .font(.title2.bold())
+                    .foregroundColor(Connect4PhonePalette.of(myColor).light)
+                Text("Drag to aim, let go to drop")
+                    .font(.footnote)
+                    .foregroundColor(.white.opacity(0.5))
+            }
+        } else if !currentName.isEmpty {
+            HStack(spacing: 8) {
+                if !currentColor.isEmpty {
+                    Connect4PhoneDisc(colorID: currentColor, size: 18)
+                }
+                waitingLabel("Waiting for \(currentName)")
+            }
+        } else {
+            waitingLabel("Waiting...")
+        }
+    }
+
+    // MARK: Column picker
+
+    private var columnPicker: some View {
+        GeometryReader { geo in
+            pickerStrip(width: geo.size.width)
+        }
+        .frame(height: 260)
+        .opacity(isMyTurn ? 1.0 : 0.35)
+        .allowsHitTesting(isMyTurn)
+        .animation(.easeInOut(duration: 0.2), value: isMyTurn)
+    }
+
+    private func pickerStrip(width: CGFloat) -> some View {
+        let count: Int = columnCount
+        let spacing: CGFloat = count > 8 ? 4 : 6
+        let totalSpacing: CGFloat = spacing * CGFloat(max(count - 1, 0))
+        let colWidth: CGFloat = max(10, (width - totalSpacing) / CGFloat(max(count, 1)))
+        return HStack(spacing: spacing) {
+            ForEach(0..<count, id: \.self) { col in
+                columnView(col: col, width: colWidth)
+            }
+        }
+        .frame(width: width, height: 260, alignment: .center)
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    aim(at: value.location.x, colWidth: colWidth, spacing: spacing)
+                }
+                .onEnded { value in
+                    aim(at: value.location.x, colWidth: colWidth, spacing: spacing)
+                    releaseDrop()
+                }
+        )
+    }
+
+    private func columnView(col: Int, width: CGFloat) -> some View {
+        let full: Bool = columnsFull.contains(col)
+        let aimed: Bool = aimedCol == col && !full
+        let palette = Connect4PhonePalette.of(myColor)
+        let discSize: CGFloat = min(width * 0.9, 34)
+        return VStack(spacing: 6) {
+            ZStack {
+                if aimed {
+                    Connect4PhoneDisc(colorID: myColor, size: discSize)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                } else {
+                    Image(systemName: "chevron.down")
+                        .font(.caption.bold())
+                        .foregroundColor(.white.opacity(full ? 0.1 : 0.35))
+                }
+            }
+            .frame(height: 36)
+            RoundedRectangle(cornerRadius: min(10, width * 0.3))
+                .fill(columnFill(full: full, aimed: aimed, palette: palette))
+                .overlay(
+                    RoundedRectangle(cornerRadius: min(10, width * 0.3))
+                        .strokeBorder(aimed ? palette.light.opacity(0.9) : Color.white.opacity(0.08),
+                                      lineWidth: aimed ? 2 : 1)
+                )
+                .overlay(
+                    full ? Image(systemName: "xmark").font(.caption2).foregroundColor(.white.opacity(0.25)) : nil
+                )
+            Text("\(col + 1)")
+                .font(.caption2)
+                .foregroundColor(aimed ? .white : .white.opacity(0.45))
+        }
+        .frame(width: width)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: aimed)
+    }
+
+    private func columnFill(full: Bool, aimed: Bool, palette: Connect4PhonePalette) -> LinearGradient {
+        if full {
+            return LinearGradient(colors: [Color.white.opacity(0.03), Color.white.opacity(0.03)],
+                                  startPoint: .top, endPoint: .bottom)
+        }
+        if aimed {
+            return LinearGradient(colors: [palette.base.opacity(0.75), palette.dark.opacity(0.55)],
+                                  startPoint: .top, endPoint: .bottom)
+        }
+        return LinearGradient(colors: [Color(hex: "2f6bff").opacity(0.30), Color(hex: "0f2a86").opacity(0.30)],
+                              startPoint: .top, endPoint: .bottom)
+    }
+
+    // MARK: Turn order
+
+    private var turnOrderStrip: some View {
+        HStack(spacing: 10) {
+            ForEach(Array(turnOrder.enumerated()), id: \.offset) { item in
+                turnDot(playerID: item.element)
+            }
+        }
+    }
+
+    private func turnDot(playerID: String) -> some View {
+        let isCurrent: Bool = playerID == currentID
+        let colorID: String = colors[playerID] ?? ""
+        return Connect4PhoneDisc(colorID: colorID, size: isCurrent ? 26 : 18)
+            .opacity(isCurrent ? 1.0 : 0.5)
+            .overlay(
+                Circle()
+                    .strokeBorder(Color.white.opacity(isCurrent ? 0.9 : 0.0), lineWidth: 2)
+                    .padding(-4)
+            )
+    }
+
+    // MARK: Actions
+
+    private func aim(at x: CGFloat, colWidth: CGFloat, spacing: CGFloat) {
+        let pitch: CGFloat = colWidth + spacing
+        guard pitch > 0 else { return }
+        let raw: Int = Int((x / pitch).rounded(.down))
+        let col: Int = min(max(raw, 0), columnCount - 1)
+        if col != aimedCol {
+            aimedCol = col
+            UISelectionFeedbackGenerator().selectionChanged()
+        }
+    }
+
+    private func releaseDrop() {
+        guard isMyTurn, let col = aimedCol, !columnsFull.contains(col) else {
+            aimedCol = nil
+            return
+        }
+        aimedCol = nil
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
         onAction("drop", ["column": col])
     }
 }
