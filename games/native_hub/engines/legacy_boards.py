@@ -600,6 +600,10 @@ class SnakeLadderEngine(TurnBasedEngine):
         self.bonus_streak = 0
         self.last_roller: str | None = None
         self.last_roll_bonus = False
+        # Monotonic count of accepted rolls, so the TV can tell a fresh roll
+        # (tumble the die, flash the banner) from a re-broadcast -- even one
+        # that left every position unchanged (an overshoot near 100).
+        self.roll_seq = 0
 
     def setup(self):
         self.positions = {pid: 0 for pid in self.order}
@@ -608,6 +612,7 @@ class SnakeLadderEngine(TurnBasedEngine):
         self.bonus_streak = 0
         self.last_roller = None
         self.last_roll_bonus = False
+        self.roll_seq = 0
 
     def _pass_turn(self):
         self.bonus_streak = 0
@@ -657,6 +662,7 @@ class SnakeLadderEngine(TurnBasedEngine):
         self.positions[player_id] = new_pos
 
         self.last_roller = player_id
+        self.roll_seq += 1
         if new_pos == 100:
             self.last_roll_bonus = False
             self.finish(winner=player_id)
@@ -693,6 +699,7 @@ class SnakeLadderEngine(TurnBasedEngine):
             # current player -- is owed another roll for a 6.
             "lastRollerID": self.last_roller,
             "lastRollBonus": self.roll_again_pending(),
+            "rollSeq": self.roll_seq,
             "rollAgainOnSix": True,
         })
         return state

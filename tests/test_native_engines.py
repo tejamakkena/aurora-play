@@ -771,6 +771,7 @@ class TestSnakeLadder:
         assert public["lastRollBonus"] is True
         assert public["lastRollerID"] == pid
         assert public["rollAgainOnSix"] is True
+        assert public["rollSeq"] == 1
         assert engine.private_state(pid)["rollAgain"] is True
         other = next(p for p in engine.order if p != pid)
         assert engine.private_state(other)["rollAgain"] is False
@@ -847,6 +848,8 @@ class TestSnakeLadder:
         engine.handle_action(pid, "roll", {"value": 6})
         assert engine.positions[pid] == 97
         assert engine.current_player_id() == pid
+        # The roll still counts as a fresh roll for the TV.
+        assert engine.public_state()["rollSeq"] == 1
 
 class TestTrivia:
     def test_trivia_plays_through_the_whole_question_bank(self):
