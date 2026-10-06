@@ -5,6 +5,66 @@ import SwiftUI
 /// Each reads `privateData` through computed properties rather than mirroring it
 /// into `@State`, so a fresh `private_state` from the server is reflected at
 /// once. Only genuinely local interaction state (a half-typed answer) is stored.
+///
+/// Styled with the Phone Play look (PhonePlayDesign): surface cards, rounded
+/// heavy type, gradient buttons that squash under the finger, and haptics.
+
+// MARK: - Shared pieces
+
+/// One accent per party game, all drawn from the Phone Play palette.
+private enum PartyPadTint {
+    static let bluff: Color = PhonePlayDesign.pink
+    static let lastTap: Color = PhonePlayDesign.green
+    static let herd: Color = PhonePlayDesign.cyan
+    static let emoji: Color = PhonePlayDesign.yellow
+    static let npat: Color = PhonePlayDesign.cyan
+    static let teamA: Color = PhonePlayDesign.cyan
+    static let teamB: Color = PhonePlayDesign.pink
+    static let mostLikely: Color = PhonePlayDesign.purple
+}
+
+/// The question or prompt for the round, on a surface card.
+private struct PartyPadPromptCard: View {
+    let text: String
+    var label: String? = nil
+    var accent: Color = PhonePlayDesign.cyan
+    var textColor: Color = .white
+
+    var body: some View {
+        VStack(spacing: 8) {
+            if let label {
+                Text(label.uppercased())
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                    .tracking(2)
+                    .foregroundColor(accent)
+            }
+            Text(text)
+                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .foregroundColor(textColor)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 20)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .strokeBorder(accent.opacity(0.35), lineWidth: 1)
+        )
+        .padding(.horizontal, 20)
+    }
+}
+
+/// The transition every phase change in this file uses.
+private extension AnyTransition {
+    static var partyPadPop: AnyTransition {
+        .scale(scale: 0.92).combined(with: .opacity)
+    }
+}
 
 // MARK: - Bluff It
 
@@ -32,32 +92,39 @@ struct BluffItControllerView: View {
                         subtitle: phase == "write" ? "Invent a convincing lie" : "Find the truth",
                         secondsLeft: seconds) {
             VStack(spacing: 18) {
-                Text(prompt)
-                    .font(.title3.bold()).foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24).padding(.top, 20)
+                if !prompt.isEmpty {
+                    PartyPadPromptCard(text: prompt,
+                                       label: phase == "pick" ? "Spot the real answer" : "Fake an answer",
+                                       accent: PartyPadTint.bluff)
+                        .padding(.top, 14)
+                }
 
                 switch phase {
                 case "write":
                     if hasSubmitted {
                         WaitingState(systemIcon: "pencil", text: "Lie submitted",
                                      detail: "Waiting for everyone else…")
+                            .transition(.partyPadPop)
                     } else {
-                        Spacer()
-                        AnswerField(placeholder: "Your fake answer", text: $lie)
-                        BigButton(title: "Submit Lie", systemImage: "paperplane.fill",
-                                  enabled: !lie.trimmingCharacters(in: .whitespaces).isEmpty) {
-                            onAction("submit_lie", ["text": lie])
-                            lie = ""
+                        VStack(spacing: 14) {
+                            Spacer()
+                            AnswerField(placeholder: "Your fake answer", text: $lie)
+                            BigButton(title: "Submit Lie", systemImage: "paperplane.fill",
+                                      tint: PartyPadTint.bluff,
+                                      enabled: !lie.trimmingCharacters(in: .whitespaces).isEmpty) {
+                                onAction("submit_lie", ["text": lie])
+                                lie = ""
+                            }
+                            Spacer()
                         }
-                        Spacer()
+                        .transition(.partyPadPop)
                     }
                 case "pick":
                     ScrollView {
                         VStack(spacing: 10) {
                             ForEach(options, id: \.index) { opt in
                                 ChoiceRow(text: opt.text,
-                                          detail: opt.isMine ? "your lie — can't pick it" : nil,
+                                          detail: opt.isMine ? "Your lie, so you can't pick it" : nil,
                                           selected: myPick == opt.index,
                                           disabled: opt.isMine || myPick != nil) {
                                     onAction("pick", ["index": opt.index])
@@ -65,14 +132,19 @@ struct BluffItControllerView: View {
                             }
                         }
                         .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
                     }
+                    .transition(.partyPadPop)
                 default:
                     WaitingState(systemIcon: "party.popper.fill", text: "Scores are on the TV")
+                        .transition(.partyPadPop)
                 }
                 Spacer(minLength: 0)
             }
+            .animation(PhonePlayDesign.pop, value: phase)
+            .animation(PhonePlayDesign.pop, value: hasSubmitted)
             // Clear the draft when a new round starts so the old lie is not resubmitted.
-            .onChange(of: privateData.int("round")) { newRound in
+            .onChange(of: privateData.int("round")) { _, newRound in
                 if newRound != trackedRound { trackedRound = newRound; lie = "" }
             }
         }
@@ -91,37 +163,71 @@ struct LastTapControllerView: View {
     private var myMs: Int? { privateData["myMs"] as? Int }
     private var falseStart: Bool { privateData.bool("falseStart") }
 
-    @State private var pulse = false
-
     var body: some View {
         ControllerShell(title: "Last Tap Standing",
                         subtitle: isAlive ? "Round \(privateData.int("round"))" : "Eliminated") {
-            if !isAlive {
-                WaitingState(systemIcon: "skull", text: "You're out",
-                             detail: "Watch the rest fight it out on the TV")
-            } else if let ms = myMs {
-                WaitingState(systemIcon: falseStart ? "nosign" : "stopwatch.fill",
-                             text: falseStart ? "Too early!" : "\(ms) ms",
-                             detail: falseStart ? "You tapped before GO"
-                                                : "Waiting for the others…")
-            } else {
-                Button(action: { if canTap { onAction("tap", [:]) } }) {
-                    ZStack {
-                        Circle()
-                            .fill(phase == "go" ? Color.green : Color.white.opacity(0.08))
-                            .scaleEffect(phase == "go" && pulse ? 1.04 : 1.0)
-                        Text(phase == "go" ? "TAP!" : "WAIT")
-                            .font(.system(size: 52, weight: .heavy)).tracking(3)
-                            .foregroundColor(phase == "go" ? .black : .white.opacity(0.35))
-                    }
-                    .padding(30)
-                }
-                .buttonStyle(.plain)
-                .onChange(of: phase) { _ in
-                    withAnimation(.easeInOut(duration: 0.25).repeatForever()) { pulse.toggle() }
+            ZStack {
+                if !isAlive {
+                    WaitingState(systemIcon: "xmark.octagon.fill", text: "You're out",
+                                 detail: "Watch the rest fight it out on the TV")
+                        .transition(.partyPadPop)
+                } else if let ms = myMs {
+                    WaitingState(systemIcon: falseStart ? "nosign" : "stopwatch.fill",
+                                 text: falseStart ? "Too early!" : "\(ms) ms",
+                                 detail: falseStart ? "You tapped before GO"
+                                                    : "Waiting for the others…")
+                        .transition(.partyPadPop)
+                } else {
+                    tapPad
+                        .transition(.partyPadPop)
                 }
             }
+            .animation(PhonePlayDesign.pop, value: isAlive)
+            .animation(PhonePlayDesign.pop, value: myMs)
         }
+    }
+
+    /// The giant tap target. It stays live while waiting (the server judges
+    /// a false start), and turns green and throbs on GO.
+    private var tapPad: some View {
+        let go: Bool = phase == "go"
+        return Button(action: {
+            guard canTap else { return }
+            if go { PhonePlayHaptics.thump() } else { PhonePlayHaptics.rigid() }
+            onAction("tap", [:])
+        }) {
+            ZStack {
+                if go {
+                    Circle()
+                        .fill(PhonePlayDesign.gradient([PartyPadTint.lastTap, PhonePlayDesign.cyan]))
+                        .shadow(color: PartyPadTint.lastTap.opacity(0.55), radius: 30)
+                        .phonePlayIdle(scale: 0.03, duration: 0.25)
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
+                } else {
+                    Circle()
+                        .fill(PhonePlayDesign.gradient([PhonePlayDesign.surface2, PhonePlayDesign.surface]))
+                        .overlay(Circle().strokeBorder(Color.white.opacity(0.08), lineWidth: 2))
+                        .transition(.opacity)
+                }
+                VStack(spacing: 6) {
+                    Text(go ? "TAP!" : "WAIT")
+                        .font(.system(size: 56, weight: .black, design: .rounded))
+                        .tracking(3)
+                        .foregroundColor(go ? .black : .white.opacity(0.35))
+                    Text(go ? "Hit it!" : "Tap the moment it turns green")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(go ? .black.opacity(0.6) : PhonePlayDesign.text3)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 30)
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .padding(30)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .animation(PhonePlayDesign.pop, value: go)
+        }
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
@@ -145,29 +251,39 @@ struct HerdControllerView: View {
                         subtitle: "Answer like the crowd would",
                         secondsLeft: seconds) {
             VStack(spacing: 18) {
-                Text(prompt).font(.title2.bold()).foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24).padding(.top, 24)
+                if !prompt.isEmpty {
+                    PartyPadPromptCard(text: prompt, label: "Think like the herd",
+                                       accent: PartyPadTint.herd)
+                        .padding(.top, 14)
+                }
 
                 if phase != "answer" {
                     WaitingState(systemIcon: "chart.bar.fill", text: "Results are on the TV",
                                  detail: myAnswer.map { "You said “\($0)”" })
+                        .transition(.partyPadPop)
                 } else if hasSubmitted {
                     WaitingState(systemIcon: "checkmark.circle.fill", text: "Answer locked in",
                                  detail: myAnswer.map { "“\($0)”" })
+                        .transition(.partyPadPop)
                 } else {
-                    Spacer()
-                    AnswerField(placeholder: "Your answer", text: $answer)
-                    BigButton(title: "Submit", systemImage: "paperplane.fill",
-                              enabled: !answer.trimmingCharacters(in: .whitespaces).isEmpty) {
-                        onAction("answer", ["text": answer])
-                        answer = ""
+                    VStack(spacing: 14) {
+                        Spacer()
+                        AnswerField(placeholder: "Your answer", text: $answer)
+                        BigButton(title: "Submit", systemImage: "paperplane.fill",
+                                  tint: PartyPadTint.herd,
+                                  enabled: !answer.trimmingCharacters(in: .whitespaces).isEmpty) {
+                            onAction("answer", ["text": answer])
+                            answer = ""
+                        }
+                        Spacer()
                     }
-                    Spacer()
+                    .transition(.partyPadPop)
                 }
                 Spacer(minLength: 0)
             }
-            .onChange(of: privateData.int("round")) { newRound in
+            .animation(PhonePlayDesign.pop, value: phase)
+            .animation(PhonePlayDesign.pop, value: hasSubmitted)
+            .onChange(of: privateData.int("round")) { _, newRound in
                 if newRound != trackedRound { trackedRound = newRound; answer = "" }
             }
         }
@@ -201,89 +317,167 @@ struct EmojiMovieControllerView: View {
         ControllerShell(title: "Emoji Movie",
                         subtitle: phase == "compose" ? "Describe it in emoji" : "Guess the others",
                         secondsLeft: seconds) {
-            if phase == "compose" {
-                VStack(spacing: 16) {
-                    VStack(spacing: 6) {
-                        Text("YOUR SECRET TITLE").font(.caption.bold()).tracking(3)
-                            .foregroundColor(.white.opacity(0.4))
-                        Text(myTitle ?? "…").font(.title2.bold()).foregroundColor(.yellow)
-                    }
-                    .padding(.top, 20)
-
-                    if myEmoji != nil {
-                        WaitingState(systemIcon: "checkmark.circle.fill", text: "Submitted",
-                                     detail: myEmoji)
-                    } else {
-                        Text(composed.isEmpty ? "tap emoji below" : composed)
-                            .font(.system(size: 40))
-                            .frame(height: 60)
-
-                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6),
-                                  spacing: 10) {
-                            ForEach(palette, id: \.self) { e in
-                                Button(action: { if composed.count < 12 { composed += e } }) {
-                                    Text(e).font(.system(size: 30))
-                                        .frame(maxWidth: .infinity).padding(.vertical, 8)
-                                        .background(RoundedRectangle(cornerRadius: 8)
-                                            .fill(.white.opacity(0.06)))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, 20)
-
-                        HStack(spacing: 12) {
-                            Button(action: { composed = String(composed.dropLast()) }) {
-                                Image(systemName: "delete.left").font(.title2)
-                                    .foregroundColor(.white.opacity(0.6))
-                                    .padding(.vertical, 14).padding(.horizontal, 22)
-                                    .background(RoundedRectangle(cornerRadius: 12)
-                                        .fill(.white.opacity(0.08)))
-                            }
-                            .buttonStyle(.plain)
-
-                            BigButton(title: "Submit", enabled: !composed.isEmpty) {
-                                onAction("submit_emoji", ["emoji": composed])
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                    }
-                    Spacer(minLength: 0)
+            ZStack {
+                if phase == "compose" {
+                    composeView
+                        .transition(.partyPadPop)
+                } else if phase == "guess" {
+                    guessView
+                        .transition(.partyPadPop)
+                } else {
+                    WaitingState(systemIcon: "party.popper.fill", text: "Reveal is on the TV")
+                        .transition(.partyPadPop)
                 }
-            } else if phase == "guess" {
-                ScrollView {
-                    VStack(spacing: 14) {
-                        ForEach(entries, id: \.index) { entry in
-                            VStack(spacing: 8) {
-                                Text(entry.emoji).font(.system(size: 40))
-                                if entry.isMine {
-                                    Text("your clue").font(.caption)
-                                        .foregroundColor(.white.opacity(0.4))
-                                } else {
-                                    TextField("Guess the title", text: Binding(
-                                        get: { guesses[entry.index] ?? "" },
-                                        set: { guesses[entry.index] = $0 }))
-                                        .textFieldStyle(.plain).font(.body)
-                                        .foregroundColor(.white).padding(12)
-                                        .background(RoundedRectangle(cornerRadius: 10)
-                                            .fill(.white.opacity(0.08)))
-                                        .onSubmit {
-                                            onAction("guess", ["index": entry.index,
-                                                               "text": guesses[entry.index] ?? ""])
-                                        }
-                                }
-                            }
-                            .padding(16)
-                            .background(RoundedRectangle(cornerRadius: 12)
-                                .fill(.white.opacity(0.05)))
-                        }
-                    }
-                    .padding(20)
-                }
-            } else {
-                WaitingState(systemIcon: "party.popper.fill", text: "Reveal is on the TV")
             }
+            .animation(PhonePlayDesign.pop, value: phase)
         }
+    }
+
+    private var composeView: some View {
+        VStack(spacing: 16) {
+            PartyPadPromptCard(text: myTitle ?? "…", label: "Your secret title",
+                               accent: PartyPadTint.emoji, textColor: PartyPadTint.emoji)
+                .padding(.top, 14)
+
+            if myEmoji != nil {
+                WaitingState(systemIcon: "checkmark.circle.fill", text: "Submitted",
+                             detail: myEmoji)
+                    .transition(.partyPadPop)
+            } else {
+                VStack(spacing: 14) {
+                    // The clue so far; the hint is set in small type so it
+                    // is not blown up to emoji size.
+                    Text(composed.isEmpty ? "Tap emoji below" : composed)
+                        .font(composed.isEmpty
+                              ? Font.system(size: 17, weight: .semibold, design: .rounded)
+                              : Font.system(size: 40))
+                        .foregroundColor(composed.isEmpty ? PhonePlayDesign.text3 : .white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, 14)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 72)
+                        .background(
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                .fill(PhonePlayDesign.surface2)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                        )
+                        .padding(.horizontal, 20)
+                        .animation(PhonePlayDesign.pop, value: composed)
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 6),
+                              spacing: 8) {
+                        ForEach(palette, id: \.self) { e in
+                            Button(action: {
+                                guard composed.count < 12 else {
+                                    PhonePlayHaptics.warning()
+                                    return
+                                }
+                                PhonePlayHaptics.tap()
+                                composed += e
+                            }) {
+                                Text(e).font(.system(size: 30))
+                                    .frame(maxWidth: .infinity).padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .fill(PhonePlayDesign.surface)
+                                    )
+                            }
+                            .buttonStyle(PhonePlayPressStyle())
+                        }
+                    }
+                    .padding(.horizontal, 20)
+
+                    HStack(spacing: 12) {
+                        Button(action: {
+                            PhonePlayHaptics.tap()
+                            composed = String(composed.dropLast())
+                        }) {
+                            Image(systemName: "delete.left")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.white.opacity(0.85))
+                                .frame(width: 66, height: 60)
+                                .background(
+                                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                        .fill(Color.white.opacity(0.07))
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(PhonePlayPressStyle())
+
+                        PhonePlayBigButton(title: "Submit", symbol: "paperplane.fill",
+                                           colors: [PhonePlayDesign.yellow, PhonePlayDesign.orange],
+                                           enabled: !composed.isEmpty) {
+                            onAction("submit_emoji", ["emoji": composed])
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .transition(.partyPadPop)
+            }
+            Spacer(minLength: 0)
+        }
+        .animation(PhonePlayDesign.pop, value: myEmoji)
+    }
+
+    private var guessView: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                ForEach(entries, id: \.index) { entry in
+                    VStack(spacing: 10) {
+                        Text(entry.emoji)
+                            .font(.system(size: 40))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
+                        if entry.isMine {
+                            Text("YOUR CLUE")
+                                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                                .tracking(2)
+                                .foregroundColor(PhonePlayDesign.text3)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 5)
+                                .background(Capsule().fill(Color.white.opacity(0.07)))
+                        } else {
+                            TextField("Guess the title", text: Binding(
+                                get: { guesses[entry.index] ?? "" },
+                                set: { guesses[entry.index] = $0 }))
+                                .textFieldStyle(.plain)
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .foregroundColor(.white)
+                                .submitLabel(.send)
+                                .padding(14)
+                                .background(
+                                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                        .fill(PhonePlayDesign.surface2)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                        .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                                )
+                                .onSubmit {
+                                    PhonePlayHaptics.tap()
+                                    onAction("guess", ["index": entry.index,
+                                                       "text": guesses[entry.index] ?? ""])
+                                }
+                        }
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                            .fill(PhonePlayDesign.surface)
+                    )
+                }
+            }
+            .padding(20)
+        }
+        .scrollDismissesKeyboard(.interactively)
     }
 }
 
@@ -310,47 +504,75 @@ struct NPATControllerView: View {
         ControllerShell(title: "Name Place Animal Thing",
                         subtitle: "Everything starts with \(letter)",
                         secondsLeft: seconds) {
-            if phase != "fill" {
-                WaitingState(systemIcon: "clipboard.fill", text: "Scoring on the TV")
-            } else if hasSubmitted {
-                WaitingState(systemIcon: "checkmark.circle.fill", text: "Submitted",
-                             detail: "Waiting for the round to end…")
-            } else {
-                ScrollView {
-                    VStack(spacing: 14) {
-                        Text(letter)
-                            .font(.system(size: 72, weight: .heavy, design: .rounded))
-                            .foregroundColor(.cyan).padding(.top, 10)
+            ZStack {
+                if phase != "fill" {
+                    WaitingState(systemIcon: "clipboard.fill", text: "Scoring on the TV")
+                        .transition(.partyPadPop)
+                } else if hasSubmitted {
+                    WaitingState(systemIcon: "checkmark.circle.fill", text: "Submitted",
+                                 detail: "Waiting for the round to end…")
+                        .transition(.partyPadPop)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            Text(letter)
+                                .font(.system(size: 80, weight: .black, design: .rounded))
+                                .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.cyan,
+                                                                           PhonePlayDesign.indigo]))
+                                .phonePlayIdle(dy: 3, scale: 0.03, duration: 1.4)
+                                .padding(.top, 8)
 
-                        ForEach(fields, id: \.0) { key, label, icon in
-                            HStack(spacing: 12) {
-                                Image(systemName: icon).foregroundColor(.cyan)
-                                    .frame(width: 26)
-                                TextField(label, text: Binding(
-                                    get: { values[key] ?? "" },
-                                    set: { values[key] = $0 }))
-                                    .textFieldStyle(.plain).font(.body)
-                                    .foregroundColor(.white)
-                                    .autocorrectionDisabled()
+                            ForEach(fields, id: \.0) { key, label, icon in
+                                fieldRow(key: key, label: label, icon: icon)
                             }
-                            .padding(14)
-                            .background(RoundedRectangle(cornerRadius: 10)
-                                .fill(.white.opacity(0.07)))
-                        }
 
-                        BigButton(title: "Submit All", systemImage: "checkmark.circle.fill",
-                                  enabled: values.values.contains { !$0.isEmpty }) {
-                            onAction("submit", values)
+                            PhonePlayBigButton(title: "Submit All", symbol: "checkmark.circle.fill",
+                                               colors: [PhonePlayDesign.cyan, PhonePlayDesign.indigo],
+                                               enabled: values.values.contains { !$0.isEmpty }) {
+                                onAction("submit", values)
+                            }
+                            .padding(.top, 6)
                         }
-                        .padding(.top, 6)
+                        .padding(20)
                     }
-                    .padding(20)
-                }
-                .onChange(of: privateData.int("round")) { newRound in
-                    if newRound != trackedRound { trackedRound = newRound; values = [:] }
+                    .scrollDismissesKeyboard(.interactively)
+                    .transition(.partyPadPop)
                 }
             }
+            .animation(PhonePlayDesign.pop, value: phase)
+            .animation(PhonePlayDesign.pop, value: hasSubmitted)
+            .onChange(of: privateData.int("round")) { _, newRound in
+                if newRound != trackedRound { trackedRound = newRound; values = [:] }
+            }
         }
+    }
+
+    private func fieldRow(key: String, label: String, icon: String) -> some View {
+        let filled: Bool = !(values[key] ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+        return HStack(spacing: 12) {
+            Image(systemName: filled ? "checkmark.circle.fill" : icon)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(filled ? PhonePlayDesign.green : PartyPadTint.npat)
+                .frame(width: 26)
+            TextField(label, text: Binding(
+                get: { values[key] ?? "" },
+                set: { values[key] = $0 }))
+                .textFieldStyle(.plain)
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+                .autocorrectionDisabled()
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                .strokeBorder(filled ? PhonePlayDesign.green.opacity(0.5) : Color.white.opacity(0.06),
+                              lineWidth: 1)
+        )
+        .animation(PhonePlayDesign.pop, value: filled)
     }
 }
 
@@ -375,38 +597,62 @@ struct AntakshariControllerView: View {
         song.trimmingCharacters(in: .whitespaces).uppercased().hasPrefix(letter)
     }
 
+    private var teamColor: Color { myTeam == 0 ? PartyPadTint.teamA : PartyPadTint.teamB }
+
     var body: some View {
         ControllerShell(title: "Antakshari",
                         subtitle: "Team \(myTeam == 0 ? "A" : "B")",
                         secondsLeft: seconds) {
             VStack(spacing: 16) {
                 VStack(spacing: 4) {
-                    Text("SING A SONG STARTING WITH").font(.caption.bold()).tracking(2)
-                        .foregroundColor(.white.opacity(0.4))
+                    Text("SING A SONG STARTING WITH")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .tracking(2)
+                        .foregroundColor(PhonePlayDesign.text3)
                     Text(letter)
-                        .font(.system(size: 80, weight: .heavy, design: .rounded))
-                        .foregroundColor(myTeam == 0 ? .cyan : .pink)
+                        .font(.system(size: 84, weight: .black, design: .rounded))
+                        .foregroundStyle(PhonePlayDesign.gradient([teamColor, teamColor.opacity(0.6)]))
+                        .phonePlayIdle(dy: 3, scale: 0.03, duration: 1.4)
                 }
-                .padding(.top, 20)
+                .padding(.vertical, 18)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                        .fill(PhonePlayDesign.surface)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                        .strokeBorder(teamColor.opacity(0.35), lineWidth: 1)
+                )
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
 
                 if phase != "sing" {
                     WaitingState(systemIcon: "mic.fill", text: "Round over",
                                  detail: mySong.map { "You sang “\($0)”" })
+                        .transition(.partyPadPop)
                 } else {
-                    AnswerField(placeholder: "Song name", text: $song)
-                    if !song.isEmpty && !valid {
-                        Text("Must start with \(letter)")
-                            .font(.caption).foregroundColor(.orange)
+                    VStack(spacing: 12) {
+                        AnswerField(placeholder: "Song name", text: $song)
+                        if !song.isEmpty && !valid {
+                            Text("Must start with \(letter)")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundColor(PhonePlayDesign.orange)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                        BigButton(title: "Sing It!", systemImage: "music.note",
+                                  tint: teamColor, enabled: valid) {
+                            onAction("submit_song", ["song": song])
+                            song = ""
+                        }
                     }
-                    BigButton(title: "Sing It!", systemImage: "music.note",
-                              tint: myTeam == 0 ? .cyan : .pink, enabled: valid) {
-                        onAction("submit_song", ["song": song])
-                        song = ""
-                    }
+                    .animation(PhonePlayDesign.pop, value: valid)
+                    .transition(.partyPadPop)
                 }
                 Spacer(minLength: 0)
             }
-            .onChange(of: privateData.int("round")) { newRound in
+            .animation(PhonePlayDesign.pop, value: phase)
+            .onChange(of: privateData.int("round")) { _, newRound in
                 if newRound != trackedRound { trackedRound = newRound; song = "" }
             }
         }
@@ -436,37 +682,65 @@ struct MostLikelyToControllerView: View {
         ControllerShell(title: "Most Likely To",
                         subtitle: phase == "vote" ? "Vote for who fits best" : "See who got the votes",
                         secondsLeft: seconds) {
-            VStack(spacing: 20) {
-                Text(prompt)
-                    .font(.title3.bold()).foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+            VStack(spacing: 18) {
+                if !prompt.isEmpty {
+                    PartyPadPromptCard(text: prompt, label: "Who is most likely to",
+                                       accent: PartyPadTint.mostLikely)
+                        .padding(.top, 14)
+                }
 
                 if phase == "vote" {
                     if hasVoted {
-                        Label("Vote counted", systemImage: "checkmark.circle.fill")
-                            .foregroundColor(.green)
+                        WaitingState(systemIcon: "checkmark.circle.fill", text: "Vote counted",
+                                     detail: "Waiting for everyone else…")
+                            .transition(.partyPadPop)
                     } else {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ForEach(players, id: \.id) { player in
-                                Button {
-                                    onAction("vote", ["targetID": player.id])
-                                } label: {
-                                    Text(player.name)
-                                        .font(.headline).foregroundColor(.white)
-                                        .frame(maxWidth: .infinity, minHeight: 56)
-                                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.1)))
+                        ScrollView {
+                            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12),
+                                                GridItem(.flexible(), spacing: 12)],
+                                      spacing: 12) {
+                                ForEach(players, id: \.id) { player in
+                                    Button {
+                                        PhonePlayHaptics.tap()
+                                        onAction("vote", ["targetID": player.id])
+                                    } label: {
+                                        Text(player.name)
+                                            .font(.system(size: 18, weight: .heavy, design: .rounded))
+                                            .foregroundColor(.white)
+                                            .lineLimit(2)
+                                            .minimumScaleFactor(0.7)
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal, 10)
+                                            .frame(maxWidth: .infinity, minHeight: 64)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius,
+                                                                 style: .continuous)
+                                                    .fill(PhonePlayDesign.surface)
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius,
+                                                                 style: .continuous)
+                                                    .strokeBorder(PartyPadTint.mostLikely.opacity(0.35),
+                                                                  lineWidth: 1)
+                                            )
+                                    }
+                                    .buttonStyle(PhonePlayPressStyle())
                                 }
-                                .buttonStyle(.plain)
                             }
+                            .padding(.horizontal, 20)
+                            .padding(.bottom, 20)
                         }
+                        .transition(.partyPadPop)
                     }
                 } else {
-                    Text("Votes are in — check the TV for the reveal")
-                        .foregroundColor(.white.opacity(0.5))
+                    WaitingState(systemIcon: "tv", text: "Votes are in",
+                                 detail: "Check the TV for the reveal")
+                        .transition(.partyPadPop)
                 }
                 Spacer(minLength: 0)
             }
+            .animation(PhonePlayDesign.pop, value: phase)
+            .animation(PhonePlayDesign.pop, value: hasVoted)
         }
     }
 }

@@ -11,6 +11,10 @@ import UIKit
 // Action payloads are unchanged: "fold" and "check"/"call" with no data, and
 // "bet" with {"amount": Int} where the amount is the player's total for the
 // street (the engine treats it as "raise to").
+//
+// Styled with the Phone Play look (PhonePlayDesign): its tokens, rounded
+// heavy type, surface cards, press style and haptics. The cards themselves
+// keep the TV deck's faces and navy-and-gold backs.
 
 struct PokerControllerView: View {
     let privateData: [String: Any]
@@ -82,7 +86,7 @@ struct PokerControllerView: View {
 
             Text(peekHint)
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
-                .foregroundColor(.white.opacity(0.55))
+                .foregroundColor(PhonePlayDesign.text2)
                 .padding(.top, 14)
 
             Spacer(minLength: 8)
@@ -100,7 +104,7 @@ struct PokerControllerView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PKCBackground().ignoresSafeArea())
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: canAct)
+        .animation(PhonePlayDesign.smooth, value: canAct)
         .onAppear { raiseTo = Double(minRaise) }
         .onChange(of: canAct) { _, nowActing in
             if nowActing { raiseTo = Double(minRaise) }
@@ -124,10 +128,10 @@ struct PokerControllerView: View {
                 Text("HAND \(handNumber)/\(maxHands)")
                     .font(.system(size: 13, weight: .heavy, design: .rounded))
                     .tracking(1.5)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(PhonePlayDesign.text2)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
-                    .background(Capsule().fill(Color.white.opacity(0.08)))
+                    .background(Capsule().fill(PhonePlayDesign.surface))
             }
         }
     }
@@ -166,7 +170,7 @@ struct PokerControllerView: View {
                 .onChanged { _ in
                     guard !peeking, !hand.isEmpty, !folded else { return }
                     peeking = true
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    PhonePlayHaptics.rigid()
                 }
                 .onEnded { _ in peeking = false }
         )
@@ -183,13 +187,13 @@ struct PokerControllerView: View {
             tint = PKCColors.gold
         } else if folded {
             text = "Folded -- sit tight for the next hand"
-            tint = .white.opacity(0.5)
+            tint = PhonePlayDesign.text2
         } else if allIn {
             text = "You're all in!"
             tint = PKCColors.red
         } else {
             text = "Waiting for your turn"
-            tint = .white.opacity(0.5)
+            tint = PhonePlayDesign.text2
         }
         return Text(text)
             .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -197,7 +201,11 @@ struct PokerControllerView: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
-            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white.opacity(0.06)))
+            .padding(.horizontal, 12)
+            .background(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                    .fill(PhonePlayDesign.surface)
+            )
     }
 
     // MARK: Your turn
@@ -212,7 +220,7 @@ struct PokerControllerView: View {
                 Spacer()
                 Text(toCall > 0 ? "To call: \(PKCFormat.chips(toCall))" : "Nothing to call")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.75))
+                    .foregroundColor(PhonePlayDesign.text2)
             }
 
             if canRaise {
@@ -224,12 +232,12 @@ struct PokerControllerView: View {
                     onAction("fold", [:])
                 }
                 PKCActionButton(title: callTitle, subtitle: callSubtitle,
-                                fill: Color(hex: "334155"), ink: .white) {
+                                fill: PhonePlayDesign.surface2, ink: .white) {
                     onAction(toCall > 0 ? "call" : "check", [:])
                 }
                 if canRaise {
                     PKCActionButton(title: raiseTitle, subtitle: PKCFormat.chips(raiseAmount),
-                                    fill: PKCColors.gold, ink: Color(hex: "111827")) {
+                                    fill: PKCColors.gold, ink: PhonePlayDesign.bg) {
                         onAction("bet", ["amount": raiseAmount])
                     }
                 }
@@ -237,11 +245,11 @@ struct PokerControllerView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.black.opacity(0.45))
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+                .fill(PhonePlayDesign.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .strokeBorder(PKCColors.gold.opacity(0.35), lineWidth: 1.5)
         )
     }
@@ -268,7 +276,7 @@ struct PokerControllerView: View {
                 Text(raiseAmount >= maxTotal ? "ALL IN" : (tableBet > 0 ? "RAISE TO" : "BET"))
                     .font(.system(size: 13, weight: .heavy, design: .rounded))
                     .tracking(2)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(PhonePlayDesign.text3)
                 Spacer()
                 Text(PKCFormat.chips(raiseAmount))
                     .font(.system(size: 34, weight: .black, design: .rounded))
@@ -304,8 +312,8 @@ struct PokerControllerView: View {
 // MARK: - Pieces
 
 private enum PKCColors {
-    static let gold = Color(hex: "f5c451")
-    static let red = Color(hex: "e11d48")
+    static let gold: Color = PhonePlayDesign.yellow
+    static let red: Color = PhonePlayDesign.red
 }
 
 private enum PKCFormat {
@@ -314,12 +322,13 @@ private enum PKCFormat {
     }
 }
 
+/// The Phone Play backdrop with a faint green glow behind the cards, a
+/// nod to the table's felt.
 private struct PKCBackground: View {
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(hex: "0d3b2c"), Color(hex: "072018"), Color(hex: "030a08")],
-                           startPoint: .top, endPoint: .bottom)
-            RadialGradient(colors: [Color.white.opacity(0.08), Color.clear],
+            PhonePlayDesign.bg
+            RadialGradient(colors: [PhonePlayDesign.green.opacity(0.16), Color.clear],
                            center: UnitPoint(x: 0.5, y: 0.35), startRadius: 0, endRadius: 420)
         }
     }
@@ -335,7 +344,7 @@ private struct PKCStat: View {
             Text(label)
                 .font(.system(size: 11, weight: .heavy, design: .rounded))
                 .tracking(2)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(PhonePlayDesign.text3)
             Text(value)
                 .font(.system(size: 22, weight: .black, design: .rounded))
                 .monospacedDigit()
@@ -345,7 +354,7 @@ private struct PKCStat: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 7)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.black.opacity(0.35)))
+        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(PhonePlayDesign.surface))
     }
 }
 
@@ -354,16 +363,21 @@ private struct PKCQuickSize: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            PhonePlayHaptics.tap()
+            action()
+        }) {
             Text(title)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
+                .foregroundColor(.white.opacity(0.85))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 9)
-                .background(Capsule().fill(Color.white.opacity(0.1)))
-                .overlay(Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 1))
+                .padding(.vertical, 10)
+                .background(Capsule().fill(PhonePlayDesign.surface2))
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
@@ -376,7 +390,7 @@ private struct PKCActionButton: View {
 
     var body: some View {
         Button {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            PhonePlayHaptics.tap()
             action()
         } label: {
             VStack(spacing: 1) {
@@ -394,11 +408,17 @@ private struct PKCActionButton: View {
             }
             .foregroundColor(ink)
             .frame(maxWidth: .infinity, minHeight: 58)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(fill))
-            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.2), lineWidth: 1))
+            .background(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .fill(PhonePlayDesign.gradient([fill, fill.opacity(0.75)]))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+            )
+            .shadow(color: fill.opacity(0.3), radius: 10, y: 4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PhonePlayPressStyle())
     }
 }
 
