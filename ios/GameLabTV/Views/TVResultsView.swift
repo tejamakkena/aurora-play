@@ -76,6 +76,10 @@ struct TVResultsView: View {
             VStack(spacing: 24) {
                 header
 
+                if let teams = room.teams {
+                    TVTeamScoreStrip(teams: teams, isShown: stage >= 3)
+                }
+
                 middle
                     .frame(maxHeight: .infinity)
 

@@ -22,6 +22,10 @@ enum ClientEvent: String {
     case startNight     = "start_night"
     case nextGame       = "next_game"
     case endNight       = "end_night"
+    // Teams mode (TV or host; a phone may move itself)
+    case setTeams       = "set_teams"
+    case moveToTeam     = "move_to_team"
+    case clearTeams     = "clear_teams"
     // Voice quizmaster (TV speaks, one phone listens)
     case claimMic       = "claim_mic"       // phone -> server: I hold the mic
     case voiceState      = "voice_state"     // TV/mic -> room: ask/listen/lock/grade

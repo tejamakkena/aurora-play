@@ -228,8 +228,13 @@ struct TVLobbyView: View {
             }
 
             ShellGlassCard(cornerRadius: 36, tint: style.accent, padding: 28) {
-                LobbyRoster(players: room.players, maxPlayers: room.gameID.maxPlayers)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let teams = room.teams {
+                    TVTeamsRoster(teams: teams, players: room.players)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    LobbyRoster(players: room.players, maxPlayers: room.gameID.maxPlayers)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
 
             lobbyOptions
@@ -253,11 +258,13 @@ struct TVLobbyView: View {
     /// these up without a phone. One row when it fits, else two.
     @ViewBuilder
     private var lobbyOptions: some View {
-        if (room.usesContentPack ?? false) || (room.botsAllowed ?? false) || room.gameID == .trivia {
+        if (room.usesContentPack ?? false) || (room.botsAllowed ?? false) || room.gameID == .trivia
+            || allowsTeams {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 14) {
                     questionOptions
                     botOptions
+                    teamOptions
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 14) {
@@ -265,6 +272,7 @@ struct TVLobbyView: View {
                     }
                     HStack(spacing: 14) {
                         botOptions
+                        teamOptions
                     }
                 }
             }
@@ -315,6 +323,37 @@ struct TVLobbyView: View {
                     Label("Remove Bot", systemImage: "minus.circle")
                 }
                 .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.pink, fontSize: 22))
+            }
+        }
+    }
+
+    /// Teams need at least two players to split.
+    private var allowsTeams: Bool {
+        !isSolo && room.players.count >= 2
+    }
+
+    /// Teams: Off -> 2 -> 3 -> 4 -> Off (never more teams than players),
+    /// plus a reshuffle while teams are on.
+    @ViewBuilder
+    private var teamOptions: some View {
+        if allowsTeams {
+            let current: Int = room.teams?.teams.count ?? 0
+            let most: Int = min(4, room.players.count)
+            let next: Int = current == 0 ? 2 : (current + 1 > most ? 0 : current + 1)
+            Button {
+                vm.setTeams(count: next)
+            } label: {
+                Label(current == 0 ? "Teams: Off" : "Teams: \(current)",
+                      systemImage: "person.3.fill")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.gold, fontSize: 22))
+            if current > 0 {
+                Button {
+                    vm.setTeams(count: current)
+                } label: {
+                    Label("Shuffle", systemImage: "shuffle")
+                }
+                .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.gold, fontSize: 22))
             }
         }
     }

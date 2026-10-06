@@ -361,6 +361,23 @@ final class TVRootViewModel: ObservableObject {
         socket.emit(.setTopic, payload: payload)
     }
 
+    /// Teams mode: 2-4 teams dealt by the server, or 0 to switch it off.
+    func setTeams(count: Int) {
+        guard case .lobby(let room) = screen else { return }
+        if count < 2 {
+            socket.emit(.clearTeams, payload: RoomCodePayload(roomCode: room.code))
+        } else {
+            socket.emit(.setTeams, payload: SetTeamsPayload(roomCode: room.code, count: count))
+        }
+    }
+
+    func moveToTeam(playerID: String, teamID: String) {
+        guard case .lobby(let room) = screen else { return }
+        socket.emit(.moveToTeam, payload: MoveToTeamPayload(roomCode: room.code,
+                                                             playerID: playerID,
+                                                             teamID: teamID))
+    }
+
     nonisolated static func nightTotals(_ night: GameNight?) -> [String: Int] {
         var totals: [String: Int] = [:]
         for standing in night?.standings ?? [] {

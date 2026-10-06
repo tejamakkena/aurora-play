@@ -49,11 +49,20 @@ struct WaitingView: View {
                         Text(room.code)
                             .font(.system(.body, design: .monospaced).bold())
                             .foregroundColor(.cyan)
+                        InviteShareButton(room: room)
+                            .padding(.leading, 6)
                     }
 
                     // Game Night scoreboard (everyone sees it while one runs)
                     if let night = room.night {
                         GameNightStatusCard(room: room, night: night, isHost: vm.isHost)
+                            .padding(.horizontal, 24)
+                            .transition(.scale(scale: 0.95).combined(with: .opacity))
+                    }
+
+                    // Teams (everyone sees them; tap to switch)
+                    if let teams = room.teams {
+                        PhoneTeamsCard(room: room, teams: teams, myID: vm.playerID)
                             .padding(.horizontal, 24)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                     }
@@ -111,6 +120,7 @@ struct WaitingView: View {
                 }
                 .padding(.bottom, 24)
                 .animation(.spring(response: 0.45, dampingFraction: 0.85), value: room.night)
+                .animation(.spring(response: 0.45, dampingFraction: 0.85), value: room.teams)
             }
 
             // Ready button
@@ -158,6 +168,7 @@ private struct HostLobbyControls: View {
                 GameNightPlannerCard(room: room)
             }
             QuizMakerCard(room: room)
+            HostTeamsControl(room: room)
 
             if room.usesContentPack ?? false {
                 HStack(spacing: 8) {

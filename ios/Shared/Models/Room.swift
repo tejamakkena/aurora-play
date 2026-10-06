@@ -18,6 +18,8 @@ struct Room: Codable, Equatable {
     var topic: String? = nil
     // Game Night (games/game_night.py). nil outside a Game Night.
     var night: GameNight? = nil
+    // Teams mode (games/teams.py). nil when everyone plays for themselves.
+    var teams: RoomTeams? = nil
 
     var hostPlayerID: String { players.first?.id ?? "" }
 }
