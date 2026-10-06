@@ -305,140 +305,140 @@ struct RulesInterstitialView: View {
             Self.cardBg.opacity(0.92).ignoresSafeArea()
             // Centred when the rules are short, scrollable when long.
             GeometryReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(alignment: .center, spacing: 14) {
-                        Image(systemName: "gamecontroller.fill")
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(LinearGradient(colors: [Self.cardCyan, Self.cardIndigo],
-                                                         startPoint: .topLeading, endPoint: .bottomTrailing))
-                            )
-                            .shadow(color: Self.cardCyan.opacity(0.4), radius: 10, y: 4)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("HOW TO PLAY")
-                                .font(.system(size: 12, weight: .heavy, design: .rounded))
-                                .tracking(2)
-                                .foregroundColor(Self.cardText3)
-                            Text(rules.title)
-                                .font(.system(size: 28, weight: .black, design: .rounded))
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(alignment: .center, spacing: 14) {
+                            Image(systemName: "gamecontroller.fill")
+                                .font(.system(size: 26, weight: .bold))
                                 .foregroundColor(.white)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.7)
-                        }
-                    }
-
-                    Text(rules.objective)
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundColor(Self.cardCyan)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(Array(rules.rules.enumerated()), id: \.offset) { index, rule in
-                            HStack(alignment: .top, spacing: 12) {
-                                Text("\(index + 1)")
-                                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                                    .foregroundColor(.black)
-                                    .frame(width: 28, height: 28)
-                                    .background(
-                                        Circle().fill(LinearGradient(colors: [Self.cardGreen, Self.cardCyan],
-                                                                     startPoint: .topLeading,
-                                                                     endPoint: .bottomTrailing))
-                                    )
-                                Text(rule)
-                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.92))
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .padding(.top, 4)
-                                Spacer(minLength: 0)
+                                .frame(width: 56, height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(LinearGradient(colors: [Self.cardCyan, Self.cardIndigo],
+                                                             startPoint: .topLeading, endPoint: .bottomTrailing))
+                                )
+                                .shadow(color: Self.cardCyan.opacity(0.4), radius: 10, y: 4)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("HOW TO PLAY")
+                                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+                                    .tracking(2)
+                                    .foregroundColor(Self.cardText3)
+                                Text(rules.title)
+                                    .font(.system(size: 28, weight: .black, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.7)
                             }
-                            .opacity(rulesShown ? 1 : 0)
-                            .offset(x: rulesShown ? 0 : 24)
-                            .animation(.spring(response: 0.38, dampingFraction: 0.68)
-                                        .delay(0.1 + Double(index) * 0.06),
-                                       value: rulesShown)
                         }
-                    }
-
-                    HStack(spacing: 10) {
-                        Image(systemName: "hand.tap.fill")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(Self.cardPink)
-                        Text(rules.controls)
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundColor(Self.cardText2)
+    
+                        Text(rules.objective)
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundColor(Self.cardCyan)
                             .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Self.cardSurface2)
-                    )
-
-                    if let onPrimary {
-                        Button(action: onPrimary) {
-                            HStack(spacing: 10) {
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 18, weight: .bold))
-                                Text(primaryTitle)
-                                    .font(.system(size: 20, weight: .heavy, design: .rounded))
+    
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(Array(rules.rules.enumerated()), id: \.offset) { index, rule in
+                                HStack(alignment: .top, spacing: 12) {
+                                    Text("\(index + 1)")
+                                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                                        .foregroundColor(.black)
+                                        .frame(width: 28, height: 28)
+                                        .background(
+                                            Circle().fill(LinearGradient(colors: [Self.cardGreen, Self.cardCyan],
+                                                                         startPoint: .topLeading,
+                                                                         endPoint: .bottomTrailing))
+                                        )
+                                    Text(rule)
+                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                        .foregroundColor(.white.opacity(0.92))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.top, 4)
+                                    Spacer(minLength: 0)
+                                }
+                                .opacity(rulesShown ? 1 : 0)
+                                .offset(x: rulesShown ? 0 : 24)
+                                .animation(.spring(response: 0.38, dampingFraction: 0.68)
+                                            .delay(0.1 + Double(index) * 0.06),
+                                           value: rulesShown)
                             }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(LinearGradient(colors: [Self.cardGreen, Self.cardCyan],
-                                                         startPoint: .topLeading,
-                                                         endPoint: .bottomTrailing))
-                            )
-                            .shadow(color: Self.cardGreen.opacity(0.35), radius: 14, y: 6)
                         }
-                        .buttonStyle(RulesCardPressStyle())
-                        .padding(.top, 4)
-                    } else {
+    
                         HStack(spacing: 10) {
-                            ProgressView()
-                                .tint(Self.cardCyan)
-                            Text("Waiting for host to begin...")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                            Image(systemName: "hand.tap.fill")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(Self.cardPink)
+                            Text(rules.controls)
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
                                 .foregroundColor(Self.cardText2)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .fill(Self.cardSurface2)
                         )
-                        .phaseAnimator([false, true]) { content, phase in
-                            content.opacity(phase ? 1.0 : 0.6)
-                        } animation: { _ in
-                            Animation.easeInOut(duration: 1.2)
+    
+                        if let onPrimary {
+                            Button(action: onPrimary) {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 18, weight: .bold))
+                                    Text(primaryTitle)
+                                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 18)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .fill(LinearGradient(colors: [Self.cardGreen, Self.cardCyan],
+                                                             startPoint: .topLeading,
+                                                             endPoint: .bottomTrailing))
+                                )
+                                .shadow(color: Self.cardGreen.opacity(0.35), radius: 14, y: 6)
+                            }
+                            .buttonStyle(RulesCardPressStyle())
+                            .padding(.top, 4)
+                        } else {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                    .tint(Self.cardCyan)
+                                Text("Waiting for host to begin...")
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundColor(Self.cardText2)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                    .fill(Self.cardSurface2)
+                            )
+                            .phaseAnimator([false, true]) { content, phase in
+                                content.opacity(phase ? 1.0 : 0.6)
+                            } animation: { _ in
+                                Animation.easeInOut(duration: 1.2)
+                            }
                         }
                     }
+                    .padding(22)
+                    .background(
+                        RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous)
+                            .fill(Self.cardSurface)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.4), radius: 24, y: 12)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 24)
+                    .scaleEffect(rulesShown ? 1 : 0.9)
+                    .opacity(rulesShown ? 1 : 0)
+                    .frame(maxWidth: .infinity, minHeight: proxy.size.height)
                 }
-                .padding(22)
-                .background(
-                    RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous)
-                        .fill(Self.cardSurface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-                )
-                .shadow(color: Color.black.opacity(0.4), radius: 24, y: 12)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 24)
-                .scaleEffect(rulesShown ? 1 : 0.9)
-                .opacity(rulesShown ? 1 : 0)
-                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
-            }
-            .scrollBounceBehavior(.basedOnSize)
+                .scrollBounceBehavior(.basedOnSize)
             }
         }
         .onAppear {

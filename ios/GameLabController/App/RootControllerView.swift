@@ -79,11 +79,14 @@ struct RootControllerView: View {
                 .safeAreaInset(edge: .top) {
                     HStack {
                         Button { showLeaveConfirm = true } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.title3)
-                                .foregroundColor(.white.opacity(0.4))
+                            Image(systemName: "xmark")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white.opacity(0.7))
+                                .frame(width: 30, height: 30)
+                                .background(Circle().fill(Color.white.opacity(0.08)))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(PhonePlayPressStyle())
+                        .accessibilityLabel("Leave game")
                         Spacer()
                     }
                     .padding(.horizontal, 16)
@@ -422,7 +425,9 @@ final class ControllerRootViewModel: ObservableObject {
             self.joinTimeoutTask?.cancel()
             // Only show error overlay from loading state; in-game errors stay silent
             if case .loading = self.screen {
-                self.forgetResumableRoom(ifCode: self.pendingJoinCode)
+                if let attempted = self.pendingJoinCode {
+                    self.forgetResumableRoom(ifCode: attempted)
+                }
                 self.screen = .error(r.message)
             }
         }
