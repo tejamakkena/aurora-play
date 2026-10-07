@@ -419,7 +419,7 @@ struct AirHockeyControllerView: View {
                                     .fill(PhonePlayDesign.cyan.opacity(0.15))
                                     .frame(width: 2)
                             )
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .fill(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.blue]))
                             .frame(width: paddleWidth, height: 70)
                             .shadow(color: PhonePlayDesign.cyan.opacity(0.5), radius: 12, y: 4)
@@ -1004,11 +1004,11 @@ struct SimonSaysControllerView: View {
             PhonePlayHaptics.tap()
             onAction("pad", ["pad": direction])
         }) {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.gradient([tint.opacity(canTap ? 0.95 : 0.25),
                                                 tint.opacity(canTap ? 0.65 : 0.15)]))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                         .strokeBorder(Color.white.opacity(canTap ? 0.25 : 0.06), lineWidth: 1.5)
                 )
                 .frame(width: 100, height: 84)

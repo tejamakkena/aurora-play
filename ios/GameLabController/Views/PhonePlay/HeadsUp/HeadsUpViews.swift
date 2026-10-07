@@ -82,7 +82,7 @@ private struct HeadsUpPickView: View {
                         }
                         .tint(PhonePlayDesign.orange)
                         .padding(16)
-                        .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .fill(PhonePlayDesign.surface))
                     }
                 }
@@ -120,7 +120,7 @@ private struct HeadsUpDeckCard: View {
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 140, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.gradient(deck.colors))
             )
             .shadow(color: (deck.colors.first ?? .clear).opacity(0.3), radius: 10, y: 5)
@@ -214,7 +214,7 @@ private struct HeadsUpRuleTile: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(color.opacity(0.12)))
     }
 }
@@ -339,7 +339,7 @@ private struct HeadsUpPlayView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
-                        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .fill(PhonePlayDesign.orange))
                 }
                 .buttonStyle(PhonePlayPressStyle())
@@ -351,7 +351,7 @@ private struct HeadsUpPlayView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
-                        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .fill(PhonePlayDesign.green))
                 }
                 .buttonStyle(PhonePlayPressStyle())
@@ -479,7 +479,7 @@ private struct HeadsUpResultRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(PhonePlayDesign.surface))
     }
 }

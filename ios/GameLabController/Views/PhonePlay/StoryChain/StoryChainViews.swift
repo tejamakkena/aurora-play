@@ -87,7 +87,7 @@ private struct StoryChainSetupView: View {
                     }
                     .tint(PhonePlayDesign.pink)
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.surface))
 
                     Text("\(StoryChainDeck.openers.count) openers and \(StoryChainDeck.twists.count) twists ready. \(StoryChainViewModel.turnSeconds) seconds a turn.")
@@ -571,7 +571,7 @@ private struct StoryChainStat: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(PhonePlayDesign.surface))
     }
 }
@@ -791,7 +791,7 @@ private struct StoryChainCrownView: View {
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .fill(PhonePlayDesign.surface))
                         }
                     }

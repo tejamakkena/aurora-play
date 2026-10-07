@@ -219,7 +219,7 @@ private struct WordDayInfoCard<Content: View>: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.surface)
         )
     }
@@ -279,10 +279,10 @@ private struct WordDayChallengeCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.surface)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                         .strokeBorder(PhonePlayDesign.green.opacity(game.usedToday ? 0.6 : 0.2), lineWidth: 1.5)
                 )
         )
@@ -358,7 +358,7 @@ private struct WordDayYesterdayCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.surface)
         )
         .clipped()

@@ -442,12 +442,12 @@ struct HotGridControllerView: View {
                         let tile = idx < tiles.count ? tiles[idx] : "hidden"
                         let hidden = tile == "hidden"
                         Button(action: { pick(idx) }) {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .fill(fill(for: tile, pending: pendingPick == idx))
                                 .frame(height: 56)
                                 .overlay(label(for: tile))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                         .strokeBorder(Color.white.opacity(hidden ? 0.08 : 0), lineWidth: 1)
                                 )
                         }
@@ -580,11 +580,11 @@ struct StockPanicControllerView: View {
                 .padding(.vertical, 11)
                 .padding(.horizontal, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(tint.opacity(0.16))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .strokeBorder(tint.opacity(0.35), lineWidth: 1)
                 )
         }
@@ -900,7 +900,7 @@ struct TambolaControllerView: View {
                                 .frame(maxWidth: .infinity, minHeight: 50)
                                 .padding(.horizontal, 6)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                         .fill(prize.winner == nil
                                               ? PhonePlayDesign.gradient([PhonePlayDesign.yellow, PhonePlayDesign.orange])
                                               : PhonePlayDesign.gradient([PhonePlayDesign.surface, PhonePlayDesign.surface]))
@@ -1069,7 +1069,7 @@ struct ResultsControllerView: View {
                         }
                         .padding(.horizontal, 14).padding(.vertical, 10)
                         .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                                 .fill(player.id == myID ? PhonePlayDesign.cyan.opacity(0.12) : PhonePlayDesign.surface)
                         )
                         .offset(y: appeared ? 0 : 24)
@@ -1287,11 +1287,11 @@ struct BlastRunnersControllerView: View {
                 .foregroundColor(canAct ? .white : .white.opacity(0.3))
                 .frame(width: 64, height: 58)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.surface2)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
                 )
         }

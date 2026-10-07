@@ -161,7 +161,7 @@ struct GameNightPlannerCard: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.05)))
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(Color.white.opacity(0.05)))
                     .transition(.asymmetric(insertion: .scale(scale: 0.9).combined(with: .opacity),
                                             removal: .opacity))
                 }
@@ -409,7 +409,7 @@ struct NightGameRow: View {
                 .foregroundColor(.white)
                 .frame(width: 40, height: 40)
                 .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(highlight
                               ? AnyShapeStyle(LinearGradient(colors: OneStopTheme.nightGradient,
                                                              startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -496,7 +496,7 @@ struct NightStandingsList: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
                 .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(me ? PhonePlayDesign.cyan.opacity(0.12) : Color.white.opacity(0.04))
                 )
             }
@@ -548,7 +548,7 @@ struct NightChampionBanner: View {
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                 .fill(LinearGradient(colors: [PhonePlayDesign.yellow.opacity(0.25), PhonePlayDesign.orange.opacity(0.12)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
         )

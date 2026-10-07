@@ -316,10 +316,10 @@ private struct PocketArcadeLightCell: View {
     }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(fill)
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(lit ? 0.6 : 0.08), lineWidth: lit ? 3 : 1)
             )
             .overlay(
@@ -359,7 +359,7 @@ private struct PocketArcadeNumberCell: View {
     let wrong: Bool
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(wrong ? PhonePlayDesign.red
                         : (cleared ? PhonePlayDesign.surface.opacity(0.4) : PhonePlayDesign.surface2))
             .overlay(
@@ -368,7 +368,7 @@ private struct PocketArcadeNumberCell: View {
                     .foregroundColor(cleared ? PhonePlayDesign.text3.opacity(0.4) : .white)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(PhonePlayDesign.cyan.opacity(cleared ? 0 : 0.25), lineWidth: 1)
             )
             .scaleEffect(cleared ? 0.86 : 1)

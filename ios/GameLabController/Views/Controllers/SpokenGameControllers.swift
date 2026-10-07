@@ -96,11 +96,11 @@ struct SpokenPhoneGiantButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.gradient([tint, tint.opacity(0.65)]))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(isSelected ? 0.95 : 0), lineWidth: 4)
             )
             .overlay(alignment: .topTrailing) {
@@ -174,10 +174,10 @@ struct SpokenPhoneLetterGrid: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous).fill(fill)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(fill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(border, lineWidth: isPicked || isHighlighted ? 2 : 1)
             )
             .scaleEffect(isPicked ? 1.08 : 1)

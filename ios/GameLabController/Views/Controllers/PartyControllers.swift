@@ -380,7 +380,7 @@ struct EmojiMovieControllerView: View {
                                 Text(e).font(.system(size: 30))
                                     .frame(maxWidth: .infinity).padding(.vertical, 8)
                                     .background(
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                             .fill(PhonePlayDesign.surface)
                                     )
                             }

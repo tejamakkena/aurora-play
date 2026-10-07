@@ -315,7 +315,7 @@ private struct HotTakesPadHints: View {
                 }
                 .padding(14)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(PhonePlayDesign.surface)
                 )
             }
@@ -381,11 +381,11 @@ private struct HotTakesPadVersus: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                 .fill(active ? (colors.first ?? .clear).opacity(0.25) : PhonePlayDesign.surface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                 .strokeBorder((colors.first ?? .clear).opacity(active ? 0.9 : 0.2), lineWidth: active ? 2 : 1)
         )
         .scaleEffect(active ? 1.04 : 1)
@@ -842,7 +842,7 @@ private struct TwentyQPadTallyRow: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                 .fill(color.opacity(0.12))
         )
     }

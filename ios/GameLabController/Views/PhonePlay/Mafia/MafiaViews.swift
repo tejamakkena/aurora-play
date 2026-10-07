@@ -131,7 +131,7 @@ private struct MafiaSetupView: View {
                     Spacer(minLength: 0)
                 }
                 .padding(14)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .fill(MafiaStyle.accent.opacity(0.12)))
 
                 PhonePlayBigButton(title: "Deal the roles", symbol: "rectangle.stack.fill",
@@ -313,7 +313,7 @@ private struct MafiaNightView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(Color.white.opacity(0.07)))
     }
 
@@ -343,7 +343,7 @@ private struct MafiaNightView: View {
                     .foregroundColor(.white.opacity(0.6))
                     .multilineTextAlignment(.center)
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(Color.white.opacity(0.05)))
             }
         }
@@ -374,7 +374,7 @@ private struct MafiaNightView: View {
         }
         .foregroundColor(.white)
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(guilty ? PhonePlayDesign.red.opacity(0.85) : PhonePlayDesign.green.opacity(0.7)))
         .transition(.scale.combined(with: .opacity))
     }
@@ -389,7 +389,7 @@ private struct MafiaNightView: View {
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.white)
                     .frame(width: 60, height: 60)
-                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(Color.white.opacity(0.1)))
             }
             .buttonStyle(PhonePlayPressStyle())
@@ -423,7 +423,7 @@ private struct MafiaPickChip: View {
                 .padding(.vertical, 14)
                 .padding(.horizontal, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(selected ? tint : Color.white.opacity(0.08))
                 )
                 .scaleEffect(selected ? 1.05 : 1)
@@ -674,7 +674,7 @@ private struct MafiaRoleRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(PhonePlayDesign.surface))
     }
 }

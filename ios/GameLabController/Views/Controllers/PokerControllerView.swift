@@ -354,7 +354,7 @@ private struct PKCStat: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 7)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(PhonePlayDesign.surface))
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(PhonePlayDesign.surface))
     }
 }
 

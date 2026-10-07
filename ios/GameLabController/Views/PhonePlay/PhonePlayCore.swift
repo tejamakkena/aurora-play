@@ -31,8 +31,13 @@ enum PhonePlayDesign {
     static let blue      = Color(hex: "4D7CFF")
     static let indigo    = Color(hex: "6C5CFF")
 
+    /// Three radii and no others: a card or panel is 24, a button or a
+    /// full-width row is 18, and a chip or inline pill is 14. Anything
+    /// smaller belongs to a game piece (a playing card, a board tile) and is
+    /// sized from that piece, not from here.
     static let cardRadius: CGFloat = 24
     static let buttonRadius: CGFloat = 18
+    static let chipRadius: CGFloat = 14
 
     static func gradient(_ colors: [Color]) -> LinearGradient {
         LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)

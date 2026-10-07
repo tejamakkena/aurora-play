@@ -852,7 +852,7 @@ private struct QuizPadIce: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "E0F7FF"), Color(hex: "93D8F7"), Color(hex: "5BB8E8")],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
                 .opacity(0.96)

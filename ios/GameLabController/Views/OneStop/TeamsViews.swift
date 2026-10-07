@@ -92,11 +92,11 @@ struct PhoneTeamsCard: View {
             }
             .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius)
                     .fill(team.tint.opacity(isMine ? 0.22 : 0.08))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius)
                     .strokeBorder(team.tint.opacity(isMine ? 0.9 : 0.3), lineWidth: isMine ? 2 : 1)
             )
         }

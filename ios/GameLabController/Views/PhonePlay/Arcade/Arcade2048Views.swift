@@ -189,10 +189,10 @@ private struct Arcade2048BoardView: View {
             let side: CGFloat = max(80, min(geo.size.width, geo.size.height))
             let cell: CGFloat = max(10, (side - gap * CGFloat(n + 1)) / CGFloat(n))
             ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.surface)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                             .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
                     )
                 ForEach(0..<(n * n), id: \.self) { index in
@@ -317,7 +317,7 @@ private struct Arcade2048Banner<Buttons: View>: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.bg.opacity(0.86))
         )
     }

@@ -344,7 +344,7 @@ private struct DailyOptionButton: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
-            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(fill))
+            .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous).fill(fill))
             .scaleEffect(state == .right ? 1.03 : 1)
         }
         .buttonStyle(PhonePlayPressStyle())

@@ -684,7 +684,7 @@ struct KBCControllerView: View {
                 .strikethrough(!available, color: .white.opacity(0.25))
                 .frame(maxWidth: .infinity).padding(.vertical, 14)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(available ? PhonePlayDesign.gradient([PhonePlayDesign.purple, PhonePlayDesign.indigo])
                                         : PhonePlayDesign.gradient([Color.white.opacity(0.05),
                                                                     Color.white.opacity(0.05)]))

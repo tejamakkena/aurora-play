@@ -104,7 +104,7 @@ private struct ClassicStatBadge: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                 .fill(tint.opacity(0.12))
         )
         .animation(PhonePlayDesign.pop, value: value)
@@ -783,11 +783,11 @@ private struct MemoryTile: View {
     }
 
     private var cardBack: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(PhonePlayDesign.gradient([PhonePlayDesign.indigo.opacity(0.6),
                                             PhonePlayDesign.purple.opacity(0.35)]))
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
             )
             .overlay(
@@ -798,10 +798,10 @@ private struct MemoryTile: View {
     }
 
     private var cardFace: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(matched ? PhonePlayDesign.green.opacity(0.22) : PhonePlayDesign.surface2)
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(matched ? PhonePlayDesign.green : Color.white.opacity(0.12),
                                   lineWidth: matched ? 2 : 1)
             )
@@ -946,13 +946,13 @@ struct RouletteControllerView: View {
                             // this is what stops the row overflowing at all.
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                     .fill(selected
                                           ? PhonePlayDesign.gradient([PhonePlayDesign.yellow, PhonePlayDesign.orange])
                                           : PhonePlayDesign.gradient([PhonePlayDesign.surface, PhonePlayDesign.surface]))
                             )
                             .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                     .strokeBorder(Color.white.opacity(selected ? 0 : 0.08), lineWidth: 1)
                             )
                             .shadow(color: PhonePlayDesign.yellow.opacity(selected ? 0.3 : 0), radius: 8, y: 3)
@@ -1153,10 +1153,10 @@ private struct BetTile: View {
             .frame(maxWidth: .infinity, minHeight: 62)
             .padding(.horizontal, 6)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .fill(betAmount > 0 ? PhonePlayDesign.green.opacity(0.18) : PhonePlayDesign.surface)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                             .strokeBorder(betAmount > 0 ? PhonePlayDesign.green.opacity(0.6) : Color.white.opacity(0.06),
                                           lineWidth: 1.5)
                     )
@@ -1534,7 +1534,7 @@ struct DigitGuessControllerView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
                         .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .fill(PhonePlayDesign.surface)
                         )
                     }

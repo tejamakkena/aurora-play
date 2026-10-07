@@ -462,7 +462,7 @@ struct PhonePlayNamesEditor: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(PhonePlayDesign.surface))
         .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity),
                                 removal: .scale(scale: 0.8).combined(with: .opacity)))
@@ -499,7 +499,7 @@ struct PhonePlayNamesEditor: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.14), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
         )
     }
@@ -561,7 +561,7 @@ struct PhonePlayChip: View {
             .padding(.vertical, subtitle == nil ? 14 : 10)
             .padding(.horizontal, 6)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .fill(selected ? PhonePlayDesign.gradient(colors)
                                    : PhonePlayDesign.gradient([PhonePlayDesign.surface,
                                                                PhonePlayDesign.surface]))
@@ -623,10 +623,10 @@ struct PhonePlayAIButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .fill(accent.opacity(0.1))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                             .strokeBorder(accent.opacity(0.35), lineWidth: 1)
                     )
             )

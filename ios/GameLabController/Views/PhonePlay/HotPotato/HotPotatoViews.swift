@@ -75,7 +75,7 @@ private struct HotPotatoSetupView: View {
                     }
                     .tint(PhonePlayDesign.orange)
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.surface))
 
                     VStack(spacing: 8) {
@@ -210,7 +210,7 @@ private struct HotPotatoStandings: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .fill(PhonePlayDesign.surface))
             }
         }
@@ -297,7 +297,7 @@ private struct HotPotatoBurningView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 120)
                     .background(
-                        RoundedRectangle(cornerRadius: 30, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                             .fill(PhonePlayDesign.gradient(HotPotatoStyle.colors))
                     )
                     .shadow(color: PhonePlayDesign.red.opacity(0.45), radius: 18, y: 8)

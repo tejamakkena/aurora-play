@@ -82,7 +82,7 @@ struct QuizMakerCard: View {
                     .buttonStyle(.plain)
                 }
                 .padding(10)
-                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(PhonePlayDesign.green.opacity(0.12)))
+                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(PhonePlayDesign.green.opacity(0.12)))
                 .transition(.scale(scale: 0.95).combined(with: .opacity))
             }
 
@@ -197,8 +197,8 @@ struct QuizMakerView: View {
                             if topic.count > 80 { topic = String(topic.prefix(80)) }
                         }
                         .padding(14)
-                        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06)))
-                        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(Color.white.opacity(0.06)))
+                        .overlay(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                             .strokeBorder(topicFocused ? PhonePlayDesign.cyan : Color.white.opacity(0.1), lineWidth: 1.5))
 
                     ScrollView(.horizontal, showsIndicators: false) {

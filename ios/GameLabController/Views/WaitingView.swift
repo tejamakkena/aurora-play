@@ -87,7 +87,7 @@ struct WaitingView: View {
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 96, height: 96)
                 .background(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                         .fill(PhonePlayDesign.gradient(Self.tvColors))
                 )
                 .shadow(color: PhonePlayDesign.cyan.opacity(0.4), radius: 18, y: 8)
@@ -181,7 +181,7 @@ struct WaitingView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                 .fill(me ? PhonePlayDesign.cyan.opacity(0.1) : PhonePlayDesign.surface)
         )
     }

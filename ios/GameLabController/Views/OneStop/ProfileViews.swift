@@ -287,8 +287,8 @@ struct ProfileEditorView: View {
                     if draftName.count > 20 { draftName = String(draftName.prefix(20)) }
                 }
                 .padding(14)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06)))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(Color.white.opacity(0.06)))
+                .overlay(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(nameFocused ? tint : Color.white.opacity(0.1), lineWidth: 1.5))
         }
     }
@@ -338,11 +338,11 @@ struct ProfileEditorView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 58)
                             .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                                     .fill(selected ? tint : Color.white.opacity(0.06))
                             )
                             .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                                     .strokeBorder(Color.white.opacity(selected ? 0.5 : 0.08), lineWidth: 1)
                             )
                             .scaleEffect(selected ? 1.05 : 1)
@@ -392,7 +392,7 @@ struct ProfileEditorView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.12)))
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(color.opacity(0.12)))
     }
 
     private func sectionTitle(_ text: String) -> some View {

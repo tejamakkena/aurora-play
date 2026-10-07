@@ -107,7 +107,7 @@ private struct SpyChoiceChip: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(selected ? PhonePlayDesign.gradient(SpyStyle.colors)
                                        : PhonePlayDesign.gradient([PhonePlayDesign.surface,
                                                                    PhonePlayDesign.surface]))
@@ -289,7 +289,7 @@ private struct SpyLocationsSheet: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                     .fill(PhonePlayDesign.surface2))
                         }
                     }
@@ -376,10 +376,10 @@ private struct SpySuspectButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                     .fill(PhonePlayDesign.surface)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .strokeBorder(selected ? PhonePlayDesign.red : Color.clear, lineWidth: 2)
                     )
             )

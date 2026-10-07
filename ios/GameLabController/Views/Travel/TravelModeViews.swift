@@ -110,7 +110,7 @@ struct TravelPickView: View {
             VStack(spacing: 16) {
                 VStack(spacing: 10) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                             .fill(PhonePlayDesign.gradient([PhonePlayDesign.green, PhonePlayDesign.cyan]))
                             .frame(width: 92, height: 92)
                             .shadow(color: PhonePlayDesign.green.opacity(0.4), radius: 18, y: 8)
@@ -179,7 +179,7 @@ private struct TravelStyleCard: View {
                 .foregroundColor(.white)
                 .frame(width: 60, height: 60)
                 .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.gradient([tint, tint.opacity(0.55)]))
                 )
                 .shadow(color: tint.opacity(0.35), radius: 8, y: 4)
@@ -312,7 +312,7 @@ struct TravelPlayView: View {
                         .multilineTextAlignment(.center)
                         .padding(14)
                         .frame(maxWidth: .infinity)
-                        .background(RoundedRectangle(cornerRadius: 14)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius)
                             .fill(TravelDesign.warning.opacity(0.1)))
                 }
 
@@ -360,7 +360,7 @@ struct TravelPlayView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 14).fill(tint.opacity(0.12)))
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius).fill(tint.opacity(0.12)))
     }
 
     // MARK: Controls (all optional)

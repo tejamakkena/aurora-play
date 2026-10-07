@@ -131,7 +131,7 @@ struct JoinRoomView: View {
     private var header: some View {
         VStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.gradient(Self.tvColors))
                     .frame(width: 92, height: 92)
                     .shadow(color: PhonePlayDesign.cyan.opacity(0.4), radius: 18, y: 8)
@@ -243,7 +243,7 @@ struct JoinRoomView: View {
                 .foregroundColor(.white)
                 .frame(width: 52, height: 52)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.gradient([PhonePlayDesign.purple, PhonePlayDesign.pink]))
                 )
                 .phonePlayIdle(scale: 0.05, duration: 1.2)
@@ -285,11 +285,11 @@ struct JoinRoomView: View {
                         .keyboardType(.URL)
                         .padding(12)
                         .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .fill(PhonePlayDesign.surface2)
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .strokeBorder(serverError ? PhonePlayDesign.red : Color.white.opacity(0.12),
                                               lineWidth: 1)
                         )
