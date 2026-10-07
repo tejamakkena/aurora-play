@@ -5,10 +5,10 @@ import UIKit
 //
 // Games that run on ONE phone with no TV and no signal: the phone is
 // passed around the group (Spy, Mafia, Truth or Dare, Would You Rather,
-// Hot Potato), held to a forehead (Heads Up) or played solo (Daily Brain
-// Challenge, Word of the Day, Pocket Arcade). Nothing here touches the
-// socket or the room; ControllerRootViewModel only creates and tears down
-// a PhonePlayViewModel, exactly like Travel Mode.
+// Hot Potato, Story Chain), held to a forehead (Heads Up) or played solo
+// (Daily Brain Challenge, Word of the Day, Pocket Arcade). Nothing here
+// touches the socket or the room; ControllerRootViewModel only creates
+// and tears down a PhonePlayViewModel, exactly like Travel Mode.
 
 // MARK: - Design tokens
 
@@ -77,6 +77,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     case truthOrDare
     case wouldYouRather
     case hotPotato
+    case storyChain
     case daily
     case wordOfDay
     case arcade
@@ -88,7 +89,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         switch self {
         case .daily, .wordOfDay, .arcade:
             return true
-        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato:
+        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .storyChain:
             return false
         }
     }
@@ -101,6 +102,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return "Truth or Dare"
         case .wouldYouRather: return "Would You Rather"
         case .hotPotato:      return "Hot Potato"
+        case .storyChain:     return "Story Chain"
         case .daily:          return "Daily Brain"
         case .wordOfDay:      return "Word of the Day"
         case .arcade:         return "Pocket Arcade"
@@ -115,6 +117,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return "Spin to pick a player, then truth or dare."
         case .wouldYouRather: return "Two choices, one phone. Pick a side."
         case .hotPotato:      return "Name one and pass before it blows."
+        case .storyChain:     return "One silly story, one line each, out loud."
         case .daily:          return "Five fresh puzzles a day. Keep your streak."
         case .wordOfDay:      return "One new word a day. Hear it, then use it."
         case .arcade:         return "Quick reflex games. Beat your best."
@@ -129,6 +132,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return "flame.fill"
         case .wouldYouRather: return "arrow.left.arrow.right"
         case .hotPotato:      return "timer"
+        case .storyChain:     return "text.book.closed.fill"
         case .daily:          return "brain.head.profile"
         case .wordOfDay:      return "textformat.abc"
         case .arcade:         return "gamecontroller.fill"
@@ -143,6 +147,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return [PhonePlayDesign.pink, PhonePlayDesign.purple]
         case .wouldYouRather: return [PhonePlayDesign.blue, PhonePlayDesign.orange]
         case .hotPotato:      return [PhonePlayDesign.yellow, PhonePlayDesign.red]
+        case .storyChain:     return [PhonePlayDesign.indigo, PhonePlayDesign.pink]
         case .daily:          return [PhonePlayDesign.green, PhonePlayDesign.cyan]
         case .wordOfDay:      return [PhonePlayDesign.purple, PhonePlayDesign.blue]
         case .arcade:         return [PhonePlayDesign.cyan, PhonePlayDesign.indigo]
@@ -157,6 +162,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return "2-16 players"
         case .wouldYouRather: return "2+ players"
         case .hotPotato:      return "2-12 players"
+        case .storyChain:     return "3-10 players"
         case .daily:          return "Solo"
         case .wordOfDay:      return "Solo"
         case .arcade:         return "Solo"
@@ -166,8 +172,8 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
 
 // MARK: - Remembered player names
 
-/// Spy, Mafia, Truth or Dare and Hot Potato share one remembered roster,
-/// so a group only types its names once per phone.
+/// Spy, Mafia, Truth or Dare, Hot Potato and Story Chain share one
+/// remembered roster, so a group only types its names once per phone.
 enum PhonePlayRoster {
     private static let key = "phoneplay_player_names"
 
@@ -320,6 +326,7 @@ final class PhonePlayViewModel: ObservableObject {
     @Published private(set) var truthOrDare: TruthDareViewModel? = nil
     @Published private(set) var wouldYouRather: WouldRatherViewModel? = nil
     @Published private(set) var hotPotato: HotPotatoViewModel? = nil
+    @Published private(set) var storyChain: StoryChainViewModel? = nil
     @Published private(set) var wordOfDay: WordDayViewModel? = nil
     @Published private(set) var arcade: PocketArcadeViewModel? = nil
 
@@ -337,6 +344,7 @@ final class PhonePlayViewModel: ObservableObject {
         case .truthOrDare:    truthOrDare = TruthDareViewModel()
         case .wouldYouRather: wouldYouRather = WouldRatherViewModel()
         case .hotPotato:      hotPotato = HotPotatoViewModel()
+        case .storyChain:     storyChain = StoryChainViewModel()
         case .wordOfDay:      wordOfDay = WordDayViewModel()
         case .arcade:         arcade = PocketArcadeViewModel()
         }
@@ -353,6 +361,7 @@ final class PhonePlayViewModel: ObservableObject {
         truthOrDare?.shutdown()
         wouldYouRather?.shutdown()
         hotPotato?.shutdown()
+        storyChain?.shutdown()
         wordOfDay?.shutdown()
         arcade?.shutdown()
         headsUp = nil
@@ -362,6 +371,7 @@ final class PhonePlayViewModel: ObservableObject {
         truthOrDare = nil
         wouldYouRather = nil
         hotPotato = nil
+        storyChain = nil
         wordOfDay = nil
         arcade = nil
         active = nil
