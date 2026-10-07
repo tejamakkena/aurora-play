@@ -13,6 +13,7 @@ room_updated/game_started/game_state/private_state event shapes, and one
 concrete action per game confirmed to actually change server state.
 """
 
+import time
 import pytest
 
 from app import create_app
@@ -317,6 +318,10 @@ class TestTrivia:
                 engine.deadline = 0.0
                 engine.tick(0.0)
         assert engine.phase == "question"
+        with room.lock:
+            # Skip the read-aloud wait: answers open once the TV has read
+            # the question and its options.
+            engine.choices_at = time.time()
 
         correct = engine.question[3]
         act(socketio, phones[0], code, "dev-0", "answer",
