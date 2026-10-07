@@ -142,6 +142,11 @@ def _policy_atlas(engine, bot_id):
             if random.random() < ATLAS_BOT_STUMPED:
                 return None
             return ("said", {})
+        speaker_player = engine.room.player(speaker) if speaker else None
+        if speaker_player is not None and speaker_player.is_bot:
+            # Nothing was said out loud: leave a bot's turn to its own
+            # "said" (or the clock), and to any human who calls Out!.
+            return None
         verdict = "valid" if random.random() < SPOKEN_BOT_GENEROSITY else "out"
         return ("judge", {"verdict": verdict})
     if phase == "letter" and bot_id == speaker:

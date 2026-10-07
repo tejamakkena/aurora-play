@@ -406,6 +406,29 @@ class TestAtlasLives:
         assert engine.phase == "over"
 
 
+class TestAtlasLeaving:
+    def test_a_dropped_phone_keeps_its_seat(self):
+        engine, roster = make("atlas", players=3)
+        roster[1].connected = False
+        engine.on_player_leave(roster[1].id)
+        assert roster[1].id in engine.alive and not engine.is_over()
+
+    def test_a_speaker_who_leaves_the_room_passes_the_turn_without_a_strike(self):
+        engine, roster = make("atlas", players=3)
+        leaver = engine.speaker
+        engine.room.remove_player(leaver)
+        engine.on_player_leave(leaver)
+        assert engine.speaker == roster[1].id and engine.phase == "say"
+        assert engine.lives[leaver] == 3
+
+    def test_the_last_player_left_in_the_room_wins(self):
+        engine, roster = make("atlas", players=2)
+        engine.room.remove_player(roster[1].id)
+        engine.on_player_leave(roster[1].id)
+        assert engine.is_over() and engine.winner == roster[0].id
+        assert engine.results()[0]["playerID"] == roster[0].id
+
+
 class TestAtlasState:
     def test_public_state_is_serialisable_and_carries_the_board(self):
         engine, roster = make("atlas", players=3)
@@ -580,6 +603,23 @@ class TestAntakshariFlow:
         assert engine.phase == "sing"
 
 
+class TestAntakshariEmptySide:
+    def test_singers_judge_themselves_when_the_other_side_is_away(self):
+        engine, _ = make("antakshari", players=2)
+        to_sing(engine)
+        singer, judge = member(engine, 0), member(engine, 1)
+        engine.room.player(judge).connected = False
+        assert engine.private_state(singer)["role"] == "judge"
+        engine.handle_action(singer, "judge", {"verdict": "sang"})
+        assert engine.scores == [1, 0]
+
+    def test_singers_cannot_judge_while_the_other_side_is_here(self):
+        engine, _ = make("antakshari", players=2)
+        to_sing(engine)
+        engine.handle_action(member(engine, 0), "judge", {"verdict": "sang"})
+        assert engine.scores == [0, 0]
+
+
 class TestAntakshariEnding:
     def test_first_to_eight_wins_after_the_flash(self):
         engine, _ = make("antakshari", players=4)
@@ -666,12 +706,24 @@ def act_now(engine, bot):
     return maybe_bot_action(engine, bot)
 
 
+def act_once(engine, bot):
+    """Like the room pump: a bot acts at most once per phase."""
+    if bot.bot_phase_key == bots._phase_key(engine) and bot.bot_act_at == float("inf"):
+        return None
+    return act_now(engine, bot)
+
+
 class TestSpokenBots:
     def test_atlas_bot_judges_valid_or_out(self):
         engine, roster = make("atlas", players=1, n_bots=2)
         bot = roster[1]
         verb, payload = act_now(engine, bot)
         assert verb == "judge" and payload["verdict"] in ("valid", "out")
+
+    def test_atlas_bots_do_not_judge_another_bot(self):
+        engine, roster = make("atlas", players=1, n_bots=2)
+        engine.speaker = roster[1].id
+        assert act_now(engine, roster[2]) is None
 
     def test_atlas_bot_speaker_says_it_then_picks_a_matching_letter(self, monkeypatch):
         monkeypatch.setattr(bots.random, "random", lambda: 0.9)
@@ -720,7 +772,7 @@ class TestSpokenBots:
                 break
             moved = False
             for bot in roster:
-                act = act_now(engine, bot)
+                act = act_once(engine, bot)
                 if act is not None:
                     engine.handle_action(bot.id, *act)
                     moved = True

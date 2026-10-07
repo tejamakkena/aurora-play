@@ -56,6 +56,7 @@ struct ControllerGameView: View {
         case .emojiMovie:    EmojiMovieControllerView(privateData: privateData, onAction: onAction)
         case .npat:          NPATControllerView(privateData: privateData, onAction: onAction)
         case .antakshari:    AntakshariControllerView(privateData: privateData, onAction: onAction)
+        case .atlas:         AtlasControllerView(privateData: privateData, onAction: onAction)
         case .mostLikelyTo:  MostLikelyToControllerView(privateData: privateData, onAction: onAction)
         case .brainBattle:   BrainBattleControllerView(privateData: privateData, onAction: onAction)
 
@@ -86,7 +87,6 @@ struct ControllerGameView: View {
             SimonSaysControllerView(privateData: privateData, onAction: onAction)
         case .twenty48:      SwipeControllerView(privateData: privateData, onAction: onAction)
         case .brickBreaker:  PaddleControllerView(privateData: privateData, onAction: onAction)
-        case .atlas:         AtlasControllerView(privateData: privateData, onAction: onAction)
 
         // Co-op arcade
         case .blastRunners:

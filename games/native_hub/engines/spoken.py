@@ -148,17 +148,22 @@ class AtlasEngine(NativeGameEngine):
             return
         self._begin_turn(nxt)
 
+    def _contenders(self) -> list[str]:
+        """Survivors still in the room (a dropped phone keeps its seat)."""
+        return [pid for pid in self.alive if self.room.player(pid) is not None]
+
     def _should_end(self) -> bool:
         if len(self.order) >= 2:
-            return len(self.alive) <= 1
-        return not self.alive
+            return len(self._contenders()) <= 1
+        return not self._contenders()
 
     def _finish(self):
         self._finished = True
         self.phase = "over"
         self.deadline = 0.0
-        if len(self.alive) == 1:
-            self.winner = self.alive[0]
+        contenders = self._contenders()
+        if len(contenders) == 1:
+            self.winner = contenders[0]
 
     # ---- judging -----------------------------------------------------------
 
@@ -272,7 +277,13 @@ class AtlasEngine(NativeGameEngine):
             self.spelling = on if isinstance(on, bool) else not self.spelling
 
     def tick(self, dt):
-        if self._finished or not self.deadline or time.time() < self.deadline:
+        if self._finished:
+            return
+        if self.phase in ("say", "letter") and self._should_end():
+            # Everyone else left the room: the last one here wins.
+            self._finish()
+            return
+        if not self.deadline or time.time() < self.deadline:
             return
         if self.phase == "say":
             # The buzzer: a turn the room was leaning Valid on still counts.
@@ -291,6 +302,12 @@ class AtlasEngine(NativeGameEngine):
 
     def on_player_leave(self, player_id):
         self.votes.pop(player_id, None)
+        if self._finished or self.room.player(player_id) is not None:
+            return                      # just a dropped phone: keep the seat
+        if self._should_end():
+            self._finish()
+        elif player_id == self.speaker and self.phase in ("say", "letter"):
+            self._next_turn()           # they left the room: no life lost
 
     # ---- state -------------------------------------------------------------
 
@@ -473,6 +490,13 @@ class AntakshariEngine(NativeGameEngine):
     def judging(self) -> int:
         return 1 - self.singing
 
+    def _judges_present(self) -> bool:
+        for pid in self._members(self.judging()):
+            player = self.room.player(pid)
+            if player is not None and player.connected:
+                return True
+        return False
+
     def _members(self, team: int) -> list[str]:
         return list(self.teams[team]["members"]) if 0 <= team < len(self.teams) else []
 
@@ -523,7 +547,7 @@ class AntakshariEngine(NativeGameEngine):
 
     def _resolve(self, sang: bool, kind: str):
         team = self.singing
-        self.history.append({"team": team, "letter": self.letter,
+        self.history.append({"round": self.round, "team": team, "letter": self.letter,
                              "result": kind, "endLetter": ""})
         self._flash(kind, team)
         if sang:
@@ -562,8 +586,10 @@ class AntakshariEngine(NativeGameEngine):
         if team is None:
             return
         if action == "judge":
-            if self.phase != "sing" or team != self.judging():
+            if self.phase != "sing":
                 return
+            if team != self.judging() and self._judges_present():
+                return                   # singers judge only if nobody else can
             verdict = data.get("verdict")
             if verdict == "sang":
                 self._resolve(True, "sang")
@@ -635,7 +661,11 @@ class AntakshariEngine(NativeGameEngine):
         if team is None:
             role = "wait"
         elif self.phase == "sing":
-            role = "sing" if team == self.singing else "judge"
+            if team == self.singing:
+                # With nobody left on the other side, the singers call it.
+                role = "sing" if self._judges_present() else "judge"
+            else:
+                role = "judge"
         elif self.phase == "letter":
             role = "pick" if team == self.singing else "wait"
         else:

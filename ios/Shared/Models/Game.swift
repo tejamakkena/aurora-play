@@ -50,6 +50,7 @@ enum GameID: String, Codable, CaseIterable {
     case emojiMovie    = "emoji_movie"
     case npat          = "npat"
     case antakshari    = "antakshari"
+    case atlas         = "atlas"
     case mostLikelyTo  = "most_likely_to"
     case brainBattle   = "brain_battle"
 
@@ -75,7 +76,6 @@ enum GameID: String, Codable, CaseIterable {
     case twenty48     = "twenty48"
     case brickBreaker = "brick_breaker"
     case simonSays    = "simon_says"
-    case atlas        = "atlas"
 
     // MARK: Co-op arcade
     case blastRunners = "blast_runners"
@@ -180,9 +180,24 @@ enum GameID: String, Codable, CaseIterable {
                          minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .antakshari:
+            // Spoken: teams SING out loud; phones only tap Sang it / Missed
+            // and the last letter (games/native_hub/engines/spoken.py).
             return .init(displayName: "Antakshari", sfSymbol: "music.note", category: .party,
                          minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
-                         phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .atlas:
+            // Spoken: the player SAYS a place out loud and the room judges
+            // it with Valid / Out! taps; the speaker then taps the place's
+            // last letter on an A-Z grid. No typing anywhere (an optional
+            // spelling box only appears when the host turns on spelling
+            // mode for kids), so every phone input is a tap. It needs at
+            // least two people -- someone has to listen -- and every
+            // player needs a phone to judge and pick letters, so there is
+            // no Siri Remote or "Play Solo Now" path: supportsRemote and
+            // soloPlayable stay false and it joins like any party game.
+            return .init(displayName: "Atlas", sfSymbol: "globe", category: .party,
+                         minPlayers: 2, maxPlayers: 12, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .mostLikelyTo:
             return .init(displayName: "Most Likely To", sfSymbol: "hand.thumbsup.fill", category: .party,
                          minPlayers: 3, maxPlayers: 20, hasPrivateInfo: false,
@@ -268,31 +283,14 @@ enum GameID: String, Codable, CaseIterable {
             return .init(displayName: "Simon Says", sfSymbol: "circle.grid.2x2.fill", category: .solo,
                          minPlayers: 1, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .dpad, supportsRemote: true, soloPlayable: true)
-        case .atlas:
-            // Unlike every other game in this section, Atlas has no remote
-            // fallback at all -- its only input is typed text, and there is
-            // no on-screen keyboard anywhere in this app. Marking it
-            // soloPlayable/supportsRemote used to offer "Play Solo Now" (and
-            // a green remote badge on its card) exactly like Neon Snake or
-            // Simon Says, which genuinely can be played with nothing but the
-            // remote. Reported directly, still broken after the deferred-
-            // placeholder fix (see room_manager.Room.pending_host_id): a
-            // player who takes "Play Solo Now" at its word never brings out
-            // a phone at all, and the round simply times out unanswered.
-            // false here routes Atlas through the plain join flow instead,
-            // same as Trivia or Poker -- a phone is required from the very
-            // first player, which is the only way this game ever works.
-            return .init(displayName: "Atlas", sfSymbol: "globe", category: .party,
-                         minPlayers: 1, maxPlayers: 8, hasPrivateInfo: false,
-                         phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
 
         // ---- Co-op arcade ------------------------------------------------
         case .blastRunners:
             // min_players is 1 server-side (solo play works fine -- the
             // shared life pool just applies to one player), but this game's
             // whole identity is co-op, and offering a "Play Solo Now"
-            // shortcut for it would repeat the exact mistake already fixed
-            // on Atlas earlier: a player who takes it at its word never
+            // shortcut for it would repeat the mistake Atlas once had (it
+            // used to be offered solo): a player who takes it at its word never
             // brings out a phone, and the game needs one for D-pad + blast
             // input a Siri Remote can't cleanly provide alongside steering.
             // Routing through the normal "Invite Friends" join flow (like

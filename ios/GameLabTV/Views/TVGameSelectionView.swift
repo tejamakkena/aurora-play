@@ -14,14 +14,14 @@ struct TVGameSelectionView: View {
     @State private var isPulsing = false
 
     // Every soloPlayable game also supports more than one player (Neon
-    // Snake, 2048, Simon Says: up to 4; Brick Breaker: up to 2; Atlas: up to
-    // 8) -- picking one used to always start it solo immediately with no
-    // way to invite anyone, despite the card's own "N–M players" caption
-    // advertising otherwise. Reported directly: Neon Snake showed no room
-    // code and no controller access at all, and Atlas -- whose only input
-    // style is typed text -- had no way to answer, since AtlasControllerView
-    // (the phone UI that types the answer) can never appear if no phone can
-    // ever join. This prompt gives a real choice instead of assuming solo.
+    // Snake, 2048, Simon Says: up to 4; Brick Breaker: up to 2) -- picking
+    // one used to always start it solo immediately with no way to invite
+    // anyone, despite the card's own "N–M players" caption advertising
+    // otherwise. Reported directly: Neon Snake showed no room code and no
+    // controller access at all, and Atlas (back when it was a typed solo
+    // game; it is now a spoken party game that always needs phones) had no
+    // way to answer because no phone could ever join. This prompt gives a
+    // real choice instead of assuming solo.
     @State private var soloChoiceGame: GameID? = nil
 
     // Gives the first game card a deterministic initial focus target instead
