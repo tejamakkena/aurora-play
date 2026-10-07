@@ -120,7 +120,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .storyChain:     return "One silly story, one line each, out loud."
         case .daily:          return "Five fresh puzzles a day. Keep your streak."
         case .wordOfDay:      return "One new word a day. Hear it, then use it."
-        case .arcade:         return "Quick reflex games. Beat your best."
+        case .arcade:         return "Reflex games and 2048. Beat your best."
         }
     }
 

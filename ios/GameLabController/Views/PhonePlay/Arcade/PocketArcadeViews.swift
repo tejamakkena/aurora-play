@@ -48,7 +48,7 @@ private struct PocketArcadeMenuView: View {
                         Text("Pocket Arcade")
                             .font(.system(size: 32, weight: .black, design: .rounded))
                             .foregroundColor(.white)
-                        Text("Quick reflex games for one. Beat your best.")
+                        Text("Quick games for one. Beat your best.")
                             .font(.system(size: 15, weight: .semibold, design: .rounded))
                             .foregroundColor(PhonePlayDesign.text2)
                             .multilineTextAlignment(.center)
@@ -74,6 +74,8 @@ private struct PocketArcadeMenuView: View {
             return game.bestLights > 0 ? "Best: \(game.bestLights) lights" : "No best yet"
         case .rush:
             return game.bestRush > 0 ? "Best: \(PocketArcadeStore.rushText(game.bestRush))" : "No best yet"
+        case .twenty48:
+            return game.bestTiles > 0 ? "Best: \(game.bestTiles) points" : "No best yet"
         }
     }
 }
@@ -168,6 +170,21 @@ private struct PocketArcadePlayView: View {
     @ObservedObject var game: PocketArcadeViewModel
 
     var body: some View {
+        Group {
+            switch game.game {
+            case .lights, .rush:
+                timedGame
+            case .twenty48:
+                Arcade2048PlayView(board: game.twenty48,
+                                   onClose: game.backToMenu,
+                                   onFinish: game.finishTiles)
+            }
+        }
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+    }
+
+    private var timedGame: some View {
         VStack(spacing: 18) {
             header
             Spacer(minLength: 0)
@@ -176,13 +193,14 @@ private struct PocketArcadePlayView: View {
                 PocketArcadeLightsGrid(game: game)
             case .rush:
                 PocketArcadeRushGrid(game: game)
+            case .twenty48:
+                // Drawn by Arcade2048PlayView instead.
+                EmptyView()
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 20)
-        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
     private var header: some View {
@@ -213,6 +231,9 @@ private struct PocketArcadePlayView: View {
                 Spacer()
                 PocketArcadeStat(label: "NEXT", value: "\(min(game.nextNumber, game.rushCount))",
                                  tint: PhonePlayDesign.cyan)
+            case .twenty48:
+                // Arcade2048PlayView has its own score header.
+                EmptyView()
             }
             Spacer()
             Color.clear.frame(width: 40, height: 40)
@@ -368,6 +389,7 @@ private struct PocketArcadeResultView: View {
         switch game.game {
         case .lights: return "\(game.hits)"
         case .rush:   return PocketArcadeStore.rushText(game.resultSeconds)
+        case .twenty48: return "\(game.tilesScore)"
         }
     }
 
@@ -375,6 +397,7 @@ private struct PocketArcadeResultView: View {
         switch game.game {
         case .lights: return game.hits == 1 ? "light tapped" : "lights tapped"
         case .rush:   return game.penalty > 0 ? "including \(Int(game.penalty))s of penalties" : "no wrong taps"
+        case .twenty48: return "points, biggest tile \(game.tilesBiggest)"
         }
     }
 
@@ -382,6 +405,7 @@ private struct PocketArcadeResultView: View {
         switch game.game {
         case .lights: return "Best: \(game.bestLights) lights"
         case .rush:   return "Best: \(PocketArcadeStore.rushText(game.bestRush))"
+        case .twenty48: return "Best: \(game.bestTiles) points"
         }
     }
 
