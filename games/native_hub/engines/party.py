@@ -585,104 +585,6 @@ class NPATEngine(RoundBasedEngine):
         return state
 
 
-class AntakshariEngine(RoundBasedEngine):
-    """Song chain: each answer must start with the letter the last one ended on.
-
-    Played in two teams, which is how it actually works at a family gathering.
-    """
-
-    game_id = "antakshari"
-    min_players = 2
-    max_players = 20
-    total_rounds = 8
-    first_phase = "sing"
-    phase_seconds = {"sing": 30, "reveal": 6}
-
-    def __init__(self, room, broadcaster):
-        super().__init__(room, broadcaster)
-        self.letter = ""
-        self.teams: dict[str, int] = {}       # player -> 0 or 1
-        self.team_scores = [0, 0]
-        self.accepted: list[dict] = []
-        self.round_winner: str | None = None
-
-    def start(self, players):
-        # Alternate assignment keeps teams balanced however many people join.
-        for i, player in enumerate(players):
-            self.teams[player.id] = i % 2
-        self.letter = random.choice(C.ANTAKSHARI_LETTERS)
-        super().start(players)
-
-    def begin_phase(self, phase):
-        if phase == "sing":
-            self.round_winner = None
-
-    def handle_action(self, player_id, action, data):
-        if action != "submit_song" or self.phase != "sing":
-            return
-        song = str(data.get("song", ""))[:60].strip()
-        if not song:
-            return
-        if not song.upper().startswith(self.letter):
-            return                       # wrong starting letter
-        if any(_norm(a["song"]) == _norm(song) for a in self.accepted):
-            return                       # already sung this game
-        self.submissions[player_id] = song
-        # It's a race: the first valid song takes the round, so close it now
-        # instead of making the room sit out the rest of the clock.
-        self.advance()
-
-    def resolve_phase(self, phase):
-        if phase == "sing":
-            self._score()
-            return "reveal"
-        return None
-
-    def _score(self):
-        if not self.submissions:
-            # Nobody answered -- re-roll the letter rather than deadlocking.
-            self.letter = random.choice(C.ANTAKSHARI_LETTERS)
-            return
-
-        # First valid submission wins the round.
-        winner = next(iter(self.submissions))
-        song = self.submissions[winner]
-        self.round_winner = winner
-        self.award(winner, 100)
-        team = self.teams.get(winner, 0)
-        self.team_scores[team] += 100
-        self.accepted.append({
-            "playerID": winner, "name": self.player_name(winner),
-            "song": song, "team": team,
-        })
-        # Chain to the last alphabetic character of the accepted song.
-        tail = next((c for c in reversed(song) if c.isalpha()), None)
-        self.letter = tail.upper() if tail else random.choice(C.ANTAKSHARI_LETTERS)
-
-    def public_state(self):
-        state = self.base_public()
-        state.update({
-            "letter": self.letter,
-            "teamScores": self.team_scores,
-            "teams": [
-                {"playerID": pid, "name": self.player_name(pid), "team": t}
-                for pid, t in self.teams.items()
-            ],
-            "chain": self.accepted[-6:],
-            "roundWinner": self.round_winner,
-        })
-        return state
-
-    def private_state(self, player_id):
-        state = self.base_private(player_id)
-        state.update({
-            "letter": self.letter,
-            "myTeam": self.teams.get(player_id, 0),
-            "mySong": self.submissions.get(player_id),
-        })
-        return state
-
-
 class MostLikelyToEngine(RoundBasedEngine):
     """Vote for who in the room fits the prompt. Secret ballot until reveal.
 
@@ -790,6 +692,5 @@ ENGINES = {
     "herd": HerdEngine,
     "emoji_movie": EmojiMovieEngine,
     "npat": NPATEngine,
-    "antakshari": AntakshariEngine,
     "most_likely_to": MostLikelyToEngine,
 }

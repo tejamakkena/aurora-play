@@ -6,7 +6,7 @@ each bot waits a short random "thinking" delay after a phase starts, acts at
 most once per phase, and then stays quiet. Policies are pure functions of
 engine state -- no sockets, no threads -- so they stay unit-testable.
 
-Only round-based party games get policies. A game with no policy simply gets
+Only party games and the spoken games get policies. A game with no policy simply gets
 no bot actions (bots abstain) rather than a wrong guess at its protocol.
 """
 
@@ -107,28 +107,62 @@ def _policy_bluff_it(engine, bot_id):
     return None
 
 
+# ---- Spoken games (spoken.py) ------------------------------------------------
+# A bot cannot talk or sing, so in Atlas and Antakshari it only does what a
+# phone does: judge the speaker (mostly generously) and, after its own turn,
+# tap a plausible last letter.
+
+#: How often a bot judge waves a turn through.
+SPOKEN_BOT_GENEROSITY = 0.8
+#: How often a bot speaker is stumped and lets the Atlas clock run out.
+ATLAS_BOT_STUMPED = 0.15
+
+#: Common last letters of place names and of (transliterated) Hindi songs,
+#: weighted by repetition.
+_PLACE_ENDINGS = "AAAAANNNYYLLDOESRIK"
+_SONG_ENDINGS = "AAAEEIIINNHHRRMKLY"
+
+
+def _atlas_bot_place(engine):
+    """A real place for the letter the bot was asked for, or ''."""
+    from games.native_hub.engines import _content as C
+    chain = getattr(engine, "chain", None) or []
+    letter = (chain[-1].get("letter") if chain else "") or getattr(engine, "letter", "")
+    used = {(e.get("place") or "").lower() for e in chain}
+    pool = sorted(p for p in C.ATLAS_PLACES
+                  if letter and p.startswith(letter.lower()) and p not in used)
+    return random.choice(pool).title() if pool else ""
+
+
+def _policy_atlas(engine, bot_id):
+    phase = getattr(engine, "phase", "")
+    speaker = getattr(engine, "speaker", None)
+    if phase == "say":
+        if bot_id == speaker:
+            if random.random() < ATLAS_BOT_STUMPED:
+                return None
+            return ("said", {})
+        verdict = "valid" if random.random() < SPOKEN_BOT_GENEROSITY else "out"
+        return ("judge", {"verdict": verdict})
+    if phase == "letter" and bot_id == speaker:
+        place = _atlas_bot_place(engine)
+        letter = place[-1].upper() if place else random.choice(_PLACE_ENDINGS)
+        return ("pick_letter", {"letter": letter, "place": place})
+    return None
+
+
 def _policy_antakshari(engine, bot_id):
-    if engine.phase != "sing":
+    phase = getattr(engine, "phase", "")
+    team = getattr(engine, "team_of", {}).get(bot_id)
+    singing = getattr(engine, "singing", 0)
+    if team is None:
         return None
-    # The first valid song takes the round, and a bot "types" in seconds;
-    # sitting out about half the rounds leaves the humans something to win.
-    if random.random() < 0.5:
-        return None
-    letter = (getattr(engine, "letter", "") or "").upper()
-    songs = getattr(engine, "songs", None) or _ANTAKSHARI_SONGS
-    fitting = [s for s in songs if s.upper().startswith(letter)] if letter else []
-    pool = fitting or songs
-    return ("submit_song", {"song": random.choice(pool)})
-
-
-_ANTAKSHARI_SONGS = [
-    "Aaja Nachle", "Bommarillu", "Chaiyya Chaiyya", "Dhoom Machale",
-    "Enna Solla Pogirai", "Gerua", "Hosanna", "Illahi",
-    "Jai Ho", "Kabhi Khushi Kabhie Gham", "Lungi Dance", "Maa Tujhe Salaam",
-    "Natu Natu", "O Antava", "Pinga", "Que Sera Sera",
-    "Radha", "Saami Saami", "Tum Hi Ho", "Udta Punjab",
-    "Vaste", "Why This Kolaveri", "Yeh Dosti", "Zinda",
-]
+    if phase == "sing" and team != singing:
+        verdict = "sang" if random.random() < SPOKEN_BOT_GENEROSITY else "missed"
+        return ("judge", {"verdict": verdict})
+    if phase == "letter" and team == singing:
+        return ("pick_letter", {"letter": random.choice(_SONG_ENDINGS)})
+    return None
 
 
 def _policy_most_likely_to(engine, bot_id):
@@ -164,6 +198,7 @@ POLICIES = {
     "kbc": _policy_kbc,
     "bluff_it": _policy_bluff_it,
     "antakshari": _policy_antakshari,
+    "atlas": _policy_atlas,
     "most_likely_to": _policy_most_likely_to,
     "brain_battle": _policy_brain_battle,
 }
