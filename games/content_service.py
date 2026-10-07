@@ -235,7 +235,7 @@ KINDS: dict[str, Kind] = {k.name: k for k in [
                "simple, fun things to draw on a phone in under a minute "
                "(objects, animals, simple scenes)",
                '"A snowman"'),
-    _text_kind("hot_take", _bundled("games.native_hub.engines.travel", "HOT_TAKES"), 160,
+    _text_kind("hot_take", _bundled("games.native_hub.engines.talk", "HOT_TAKES"), 160,
                'fun, family-friendly debate questions in the style of "Is a hot dog a '
                'sandwich?" (silly, never political or religious)',
                '"Is cereal a soup?"',

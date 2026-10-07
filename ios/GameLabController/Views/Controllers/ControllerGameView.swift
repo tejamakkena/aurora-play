@@ -92,20 +92,22 @@ struct ControllerGameView: View {
         case .blastRunners:
             BlastRunnersControllerView(privateData: privateData, onAction: onAction)
 
-        // No TV-room experience for these engines.
+        // Talk games — argue and ask out loud.
+        case .hotTakes:
+            HotTakesControllerView(privateData: privateData, onAction: onAction)
+        case .twentyQuestions:
+            TwentyQuestionsControllerView(privateData: privateData, onAction: onAction)
+
+        // Retired Travel Mode leftover: no TV-room experience.
         case .storyChain:
             TravelModeNoticeControllerView(gameID: .storyChain)
-        case .twentyQuestions:
-            TravelModeNoticeControllerView(gameID: .twentyQuestions)
-        case .hotTakes:
-            TravelModeNoticeControllerView(gameID: .hotTakes)
         }
     }
 }
 
-/// Story Chain / Twenty Questions / Hot Takes have no TV board or phone
-/// controller (Travel Mode is now a single quizmaster); if one is ever
-/// picked in a TV room, say so instead of showing a blank screen.
+/// Story Chain has no TV board or phone controller (Travel Mode is now a
+/// single quizmaster); if it is ever picked in a TV room, say so instead
+/// of showing a blank screen.
 private struct TravelModeNoticeControllerView: View {
     let gameID: GameID
 

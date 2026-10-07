@@ -80,10 +80,12 @@ enum GameID: String, Codable, CaseIterable {
     // MARK: Co-op arcade
     case blastRunners = "blast_runners"
 
-    // MARK: Travel Mode — voice-first car games, one phone hosts
-    case storyChain     = "story_chain"
+    // MARK: Talk games — argue and ask out loud in front of the TV
     case twentyQuestions = "twenty_questions"
     case hotTakes       = "hot_takes"
+
+    // MARK: Travel Mode leftover (retired)
+    case storyChain     = "story_chain"
 
     var meta: GameMeta {
         switch self {
@@ -301,20 +303,25 @@ enum GameID: String, Codable, CaseIterable {
                          minPlayers: 1, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .dpadPlusAction, supportsRemote: false, soloPlayable: false)
 
-        // ---- Travel Mode ------------------------------------------------
-        // Voice-first car games: one phone hosts (passenger operates),
-        // driver plays by voice only. Engine ids must stay in sync with
-        // utils/validators.py GAME_IDS.
-        case .storyChain:
-            return .init(displayName: "Story Chain", sfSymbol: "text.book.closed.fill", category: .creative,
-                         minPlayers: 2, maxPlayers: 8, hasPrivateInfo: false,
-                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
-        case .twentyQuestions:
-            return .init(displayName: "Twenty Questions", sfSymbol: "questionmark.circle.fill", category: .knowledge,
-                         minPlayers: 2, maxPlayers: 8, hasPrivateInfo: true,
-                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        // ---- Talk games ---------------------------------------------------
+        // TV + phone party games played out loud (games/native_hub/engines/
+        // talk.py). Engine ids must stay in sync with utils/validators.py
+        // GAME_IDS. Both deal private info: a debater's side and argument
+        // starters, the Answerer's secret word.
         case .hotTakes:
             return .init(displayName: "Hot Takes", sfSymbol: "flame.fill", category: .social,
+                         minPlayers: 3, maxPlayers: 8, hasPrivateInfo: true,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .twentyQuestions:
+            return .init(displayName: "20 Questions", sfSymbol: "questionmark.bubble.fill", category: .knowledge,
+                         minPlayers: 3, maxPlayers: 8, hasPrivateInfo: true,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+
+        // ---- Travel Mode leftover ------------------------------------------
+        // A voice-first car game from the old Travel Mode; retired (see
+        // `retired`), kept so older rooms still decode.
+        case .storyChain:
+            return .init(displayName: "Story Chain", sfSymbol: "text.book.closed.fill", category: .creative,
                          minPlayers: 2, maxPlayers: 8, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         }

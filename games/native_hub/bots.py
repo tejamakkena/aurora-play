@@ -36,10 +36,18 @@ _LIES = [
 
 
 def _phase_key(engine) -> str:
-    """Identify the current decision point for "act once per phase" tracking."""
+    """Identify the current decision point for "act once per phase" tracking.
+
+    An engine whose single phase holds many decisions (the 20 Questions
+    Answerer replies once per question) exposes ``bot_step`` so each one
+    counts as a fresh decision point.
+    """
     round_no = getattr(engine, "round", 0)
     phase = getattr(engine, "phase", "")
-    return f"{round_no}:{phase}"
+    step = getattr(engine, "bot_step", None)
+    if step is None:
+        return f"{round_no}:{phase}"
+    return f"{round_no}:{phase}:{step}"
 
 
 #: How often a trivia bot knows the answer: a fair opponent, not a wall.
@@ -154,6 +162,33 @@ def _policy_brain_battle(engine, bot_id):
     return ("answer", {"choice": random.choice(options)})
 
 
+def _policy_hot_takes(engine, bot_id):
+    """A bot cannot argue out loud: as a debater it hands the floor back
+    straight away (so the room is not left with 30 s of silence); as a
+    voter it votes for a random side."""
+    phase = getattr(engine, "phase", "")
+    if phase in ("for", "against"):
+        speaker = engine.for_id if phase == "for" else engine.against_id
+        if speaker == bot_id:
+            return ("done_speaking", {})
+        return None
+    if phase == "vote" and engine.is_voter(bot_id) and bot_id not in engine.votes:
+        return ("vote", {"side": random.choice(["for", "against"])})
+    return None
+
+
+def _policy_twenty_questions(engine, bot_id):
+    """As the Answerer, answer yes or no at random (it cannot hear the
+    question). Never guesses."""
+    if getattr(engine, "phase", "") != "ask":
+        return None
+    if getattr(engine, "answerer_id", None) != bot_id:
+        return None
+    if str(getattr(engine, "bot_step", "")).endswith("wait"):
+        return None                       # give the room time to ask
+    return ("answer", {"value": random.choice(["yes", "no"])})
+
+
 #: game_id -> policy. Deliberately explicit: adding a game here is a
 #: conscious decision that the bot understands that game's protocol.
 #: NOTE: emoji_movie is intentionally excluded -- bot emoji output would be
@@ -166,6 +201,8 @@ POLICIES = {
     "antakshari": _policy_antakshari,
     "most_likely_to": _policy_most_likely_to,
     "brain_battle": _policy_brain_battle,
+    "hot_takes": _policy_hot_takes,
+    "twenty_questions": _policy_twenty_questions,
 }
 
 

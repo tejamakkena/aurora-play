@@ -248,8 +248,11 @@ def test_hot_take_topic_prompts_are_not_repeated(monkeypatch):
                         lambda topic, n, session_history=(): [next(served)])
     engine, room, _ = start("hot_takes", players=3)
     room.topic = "food"
-    engine.begin_phase("discuss")
+    engine.begin_phase("intro")
+    assert engine.prompt == "Is soup a drink?"
     assert cs.norm_key("Is soup a drink?") in engine.used
+    engine.begin_phase("intro")
+    assert engine.prompt == "Is a cat a liquid?"
 
 
 def test_trivia_skips_questions_a_device_saw_in_another_room():

@@ -288,7 +288,8 @@ def test_kids_mode_is_learning_games_only():
     ids = {g["id"] for g in game_night.pick_games(4, kids=True)}
     assert ids, "kids mode must still offer games"
     assert ids <= {"trivia", "kbc", "brain_battle", "npat", "cipher_grid", "connect4",
-                   "snake_ladder", "memory", "hot_grid", "digit_guess", "battleship"}
+                   "snake_ladder", "memory", "hot_grid", "digit_guess", "battleship",
+                   "twenty_questions"}
     assert not ids & {"most_likely_to", "bluff_it", "pong", "emoji_movie", "poker"}
 
 
