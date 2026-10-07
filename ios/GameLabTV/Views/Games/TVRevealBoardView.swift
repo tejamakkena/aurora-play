@@ -64,7 +64,7 @@ struct TVRevealBoardView: View {
             VStack(spacing: 10) {
                 Text(header.uppercased())
                     .font(.caption.bold()).tracking(4)
-                    .foregroundColor(.cyan.opacity(0.8))
+                    .foregroundColor(TVTheme.cyan.opacity(0.8))
                 Text(headline)
                     .font(.system(size: 54, weight: .heavy))
                     .foregroundColor(.white)
@@ -121,13 +121,13 @@ struct TVRevealBoardView: View {
         HStack(spacing: 20) {
             if row.isWinner {
                 Image(systemName: "crown.fill")
-                    .font(.title2).foregroundColor(.yellow)
+                    .font(.title2).foregroundColor(TVTheme.yellow)
                     .frame(width: 44)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(row.name)
                     .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(row.isWinner ? .yellow : .white)
+                    .foregroundColor(row.isWinner ? TVTheme.yellow : .white)
                     .lineLimit(1)
                 if let sublabel = row.sublabel {
                     Text(sublabel)
@@ -138,19 +138,19 @@ struct TVRevealBoardView: View {
             Spacer()
             Text(row.detail)
                 .font(.title2)
-                .foregroundColor(row.isWinner ? .yellow : .white.opacity(0.9))
+                .foregroundColor(row.isWinner ? TVTheme.yellow : .white.opacity(0.9))
                 .multilineTextAlignment(.trailing)
                 .lineLimit(2)
         }
         .padding(.horizontal, 30).padding(.vertical, 16)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(row.isWinner ? Color.yellow.opacity(0.15)
+                .fill(row.isWinner ? TVTheme.yellow.opacity(0.15)
                                    : Color.white.opacity(0.06))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(row.isWinner ? Color.yellow.opacity(0.7) : .clear,
+                .stroke(row.isWinner ? TVTheme.yellow.opacity(0.7) : .clear,
                         lineWidth: 2)
         )
     }
@@ -159,13 +159,13 @@ struct TVRevealBoardView: View {
         VStack(spacing: 12) {
             Text(spotlight.title)
                 .font(.caption.bold()).tracking(4)
-                .foregroundColor(.yellow.opacity(0.85))
+                .foregroundColor(TVTheme.yellow.opacity(0.85))
             HStack(spacing: 18) {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 54)).foregroundColor(.yellow)
+                    .font(.system(size: 54)).foregroundColor(TVTheme.yellow)
                 Text(spotlight.name)
                     .font(.system(size: 64, weight: .heavy))
-                    .foregroundColor(.yellow)
+                    .foregroundColor(TVTheme.yellow)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
             }
@@ -175,8 +175,8 @@ struct TVRevealBoardView: View {
             }
         }
         .padding(.horizontal, 60).padding(.vertical, 28)
-        .background(RoundedRectangle(cornerRadius: 24).fill(Color.yellow.opacity(0.12)))
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Color.yellow, lineWidth: 3))
-        .shadow(color: .yellow.opacity(0.5), radius: 40)
+        .background(RoundedRectangle(cornerRadius: 24).fill(TVTheme.yellow.opacity(0.12)))
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(TVTheme.yellow, lineWidth: 3))
+        .shadow(color: TVTheme.yellow.opacity(0.5), radius: 40)
     }
 }

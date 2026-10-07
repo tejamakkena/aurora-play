@@ -147,7 +147,7 @@ struct TVGameSelectionView: View {
                     .font(.system(size: 44, weight: .heavy))
                     .foregroundColor(.black)
                     .padding(40)
-                    .background(Color.yellow)
+                    .background(TVTheme.yellow)
                     .accessibilityIdentifier("debugLastInput")
                     .transition(.opacity)
             }
@@ -234,9 +234,9 @@ struct TVGameSelectionView: View {
             // so the state reads as "actively retrying", not stuck.
             HStack(spacing: 8) {
                 Circle()
-                    .fill(socket.isConnected ? Color.green : Color.red)
+                    .fill(socket.isConnected ? TVTheme.green : TVTheme.red)
                     .frame(width: 10, height: 10)
-                    .shadow(color: socket.isConnected ? Color.green : Color.red, radius: 5)
+                    .shadow(color: socket.isConnected ? TVTheme.green : TVTheme.red, radius: 5)
                     .opacity(socket.isConnected ? 1 : (isPulsing ? 1 : 0.3))
                     .onAppear {
                         withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
@@ -528,10 +528,10 @@ private struct TVGameCard: View {
         .overlay(alignment: .topTrailing) {
             VStack(spacing: 6) {
                 if game.hasPrivateInfo {
-                    GameBadge(systemImage: "eye.slash.fill", color: .cyan)
+                    GameBadge(systemImage: "eye.slash.fill", color: TVTheme.cyan)
                 }
                 if game.supportsRemote {
-                    GameBadge(systemImage: "av.remote.fill", color: .green)
+                    GameBadge(systemImage: "av.remote.fill", color: TVTheme.green)
                 }
             }
             .padding(12)

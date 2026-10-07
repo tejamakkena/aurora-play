@@ -144,7 +144,7 @@ private struct HeistPlayerRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(status.role == .guard ? Color.red.opacity(0.3) : status.color.opacity(0.3))
+                .fill(status.role == .guard ? TVTheme.red.opacity(0.3) : status.color.opacity(0.3))
                 .frame(width: 36, height: 36)
                 .overlay(
                     Text(status.role == .guard ? "GUARD" : "THIEF").font(.caption.bold())
@@ -157,15 +157,15 @@ private struct HeistPlayerRow: View {
                     .foregroundColor(status.isCaught ? .white.opacity(0.3) : .white)
                 Text(status.role == .guard ? "Guard" : status.isCaught ? "Caught" : "Thief")
                     .font(.caption)
-                    .foregroundColor(status.role == .guard ? .red.opacity(0.7) : .white.opacity(0.4))
+                    .foregroundColor(status.role == .guard ? TVTheme.red.opacity(0.7) : .white.opacity(0.4))
             }
 
             Spacer()
 
             if status.hasEscaped {
-                Text("ESCAPED").font(.caption2.bold()).foregroundColor(.green)
+                Text("ESCAPED").font(.caption2.bold()).foregroundColor(TVTheme.green)
             } else if status.isCaught {
-                Image(systemName: "xmark.circle.fill").foregroundColor(.red.opacity(0.5))
+                Image(systemName: "xmark.circle.fill").foregroundColor(TVTheme.red.opacity(0.5))
             }
         }
         .padding(.horizontal, 20)
@@ -181,7 +181,7 @@ private struct WinnerBanner: View {
         VStack(spacing: 8) {
             Text(winner == .guard ? "Guard Wins!" : "Thieves Win!")
                 .font(.title3.bold())
-                .foregroundColor(winner == .guard ? .red : .green)
+                .foregroundColor(winner == .guard ? TVTheme.red : TVTheme.green)
             Text(winner == .guard ? "All thieves caught." : "A thief escaped!")
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.5))
@@ -190,7 +190,7 @@ private struct WinnerBanner: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(winner == .guard ? Color.red.opacity(0.15) : Color.green.opacity(0.15))
+                .fill(winner == .guard ? TVTheme.red.opacity(0.15) : TVTheme.green.opacity(0.15))
         )
     }
 }
@@ -305,7 +305,7 @@ struct HeistBoardState {
 
         // Player status array
         if let statuses = data["playerStatuses"]?.value as? [[String: Any]] {
-            let palette: [Color] = [.cyan, .yellow, .green, .orange, .purple, .pink]
+            let palette: [Color] = [TVTheme.cyan, TVTheme.yellow, TVTheme.green, TVTheme.orange, TVTheme.purple, TVTheme.pink]
             playerStatuses = statuses.enumerated().compactMap { idx, dict -> HeistPlayerStatus? in
                 guard let id   = dict["id"]   as? String,
                       let name = dict["name"] as? String,

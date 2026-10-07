@@ -25,13 +25,13 @@ private struct TVScoreHeader: View {
             ForEach(players) { p in
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(p.id == currentPlayerID ? Color.cyan : Color.white.opacity(0.15))
+                        .fill(p.id == currentPlayerID ? TVTheme.cyan : Color.white.opacity(0.15))
                         .frame(width: 12, height: 12)
                     Text(p.name).foregroundColor(p.id == currentPlayerID ? .white : .white.opacity(0.5))
-                    Text("\(p.score)").font(.headline.bold()).foregroundColor(.cyan)
+                    Text("\(p.score)").font(.headline.bold()).foregroundColor(TVTheme.cyan)
                 }
                 .padding(.horizontal, 14).padding(.vertical, 8)
-                .background(Capsule().fill(p.id == currentPlayerID ? Color.cyan.opacity(0.15) : Color.white.opacity(0.05)))
+                .background(Capsule().fill(p.id == currentPlayerID ? TVTheme.cyan.opacity(0.15) : Color.white.opacity(0.05)))
             }
             Spacer()
         }
@@ -1262,11 +1262,11 @@ private struct TVMemoryCard: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 16)
-                .fill(card.state == .matched ? Color.green.opacity(0.25)
+                .fill(card.state == .matched ? TVTheme.green.opacity(0.25)
                       : card.state == .flipped ? Color.white.opacity(0.15)
                       : Color(hex: "1e1e3a"))
                 .overlay(RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(card.state == .matched ? Color.green.opacity(0.5) : Color.white.opacity(0.06),
+                    .strokeBorder(card.state == .matched ? TVTheme.green.opacity(0.5) : Color.white.opacity(0.06),
                                   lineWidth: 2))
                 .frame(width: 112, height: 112)
 
@@ -1365,7 +1365,7 @@ struct TVMafiaBoardView: View {
                             Spacer()
                             HStack(spacing: 4) {
                                 ForEach(0..<count, id: \.self) { _ in
-                                    Circle().fill(Color.red).frame(width: 12, height: 12)
+                                    Circle().fill(TVTheme.red).frame(width: 12, height: 12)
                                 }
                             }
                         }
@@ -1378,7 +1378,7 @@ struct TVMafiaBoardView: View {
 
             if let eliminated = vm.state.lastEliminated {
                 Text("\(eliminated) was eliminated!")
-                    .font(.title3.bold()).foregroundColor(.red)
+                    .font(.title3.bold()).foregroundColor(TVTheme.red)
             }
 
             Spacer()
@@ -1401,7 +1401,7 @@ private struct MafiaPlayerTile: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .fill(player.isAlive ? Color.white.opacity(0.1) : Color.red.opacity(0.15))
+                    .fill(player.isAlive ? Color.white.opacity(0.1) : TVTheme.red.opacity(0.15))
                     .frame(width: 64, height: 64)
                 Text(player.isAlive ? String(player.name.prefix(1)) : "–")
                     .font(.title.bold()).foregroundColor(.white)
@@ -1410,7 +1410,7 @@ private struct MafiaPlayerTile: View {
                 .foregroundColor(player.isAlive ? .white : .white.opacity(0.3))
                 .strikethrough(!player.isAlive)
             if let role = player.revealedRole {
-                Text(role).font(.caption2.bold()).foregroundColor(.red)
+                Text(role).font(.caption2.bold()).foregroundColor(TVTheme.red)
             }
         }
         .opacity(player.isAlive ? 1 : 0.5)
@@ -1471,7 +1471,7 @@ struct TVDigitGuessBoardView: View {
                 .padding(.top, 40)
 
             Text(vm.state.solved ? "Code cracked!" : "Guess the secret 4-digit code")
-                .font(.title3).foregroundColor(vm.state.solved ? .green : .white.opacity(0.5))
+                .font(.title3).foregroundColor(vm.state.solved ? TVTheme.green : .white.opacity(0.5))
 
             // Player columns
             HStack(alignment: .top, spacing: 24) {
@@ -1490,7 +1490,7 @@ struct TVDigitGuessBoardView: View {
                             }
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(RoundedRectangle(cornerRadius: 8)
-                                .fill(guess.bulls == 4 ? Color.green.opacity(0.3) : Color.white.opacity(0.05)))
+                                .fill(guess.bulls == 4 ? TVTheme.green.opacity(0.3) : Color.white.opacity(0.05)))
                         }
                         Spacer()
                     }
@@ -1568,7 +1568,7 @@ struct TVRajaMantriBoard: View {
             }
             .padding(.horizontal, 60).padding(.top, 40)
 
-            Text(vm.state.phaseLabel).font(.title2).foregroundColor(.cyan.opacity(0.8))
+            Text(vm.state.phaseLabel).font(.title2).foregroundColor(TVTheme.cyan.opacity(0.8))
 
             // Player role cards (revealed after round ends)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: min(room.players.count, 4)),
@@ -1580,7 +1580,7 @@ struct TVRajaMantriBoard: View {
             .padding(.horizontal, 60)
 
             if let result = vm.state.roundResult {
-                Text(result).font(.title3.bold()).foregroundColor(.yellow)
+                Text(result).font(.title3.bold()).foregroundColor(TVTheme.yellow)
             }
 
             // Score table
@@ -1589,7 +1589,7 @@ struct TVRajaMantriBoard: View {
                     HStack {
                         Text(p.name).foregroundColor(.white)
                         Spacer()
-                        Text("\(p.score) pts").font(.headline.bold()).foregroundColor(.cyan)
+                        Text("\(p.score) pts").font(.headline.bold()).foregroundColor(TVTheme.cyan)
                     }
                     .padding(.horizontal, 24)
                 }
@@ -1622,7 +1622,7 @@ private struct RajaMantriPlayerCard: View {
                 Text(role).font(.caption.bold()).foregroundColor(roleColor(role))
             }
             if player.isAccused {
-                Text("← ACCUSED").font(.caption2.bold()).foregroundColor(.red)
+                Text("← ACCUSED").font(.caption2.bold()).foregroundColor(TVTheme.red)
             }
         }
         .padding(20)
@@ -1633,7 +1633,7 @@ private struct RajaMantriPlayerCard: View {
         switch r { case "Raja": return "R"; case "Mantri": return "M"; case "Chor": return "C"; default: return "?" }
     }
     private func roleColor(_ r: String) -> Color {
-        switch r { case "Raja": return .yellow; case "Mantri": return .purple; case "Chor": return .red; default: return .cyan }
+        switch r { case "Raja": return TVTheme.yellow; case "Mantri": return TVTheme.purple; case "Chor": return TVTheme.red; default: return TVTheme.cyan }
     }
 }
 
@@ -1693,11 +1693,11 @@ struct TVTambolaBoardView: View {
                 if let last = vm.state.lastCalled {
                     VStack(spacing: 8) {
                         Text("\(last)").font(.system(size: 96, weight: .black))
-                            .foregroundColor(.yellow)
+                            .foregroundColor(TVTheme.yellow)
                         Text("Last Called").font(.subheadline).foregroundColor(.white.opacity(0.4))
                     }
                     .padding(24)
-                    .background(RoundedRectangle(cornerRadius: 20).fill(Color.yellow.opacity(0.1)))
+                    .background(RoundedRectangle(cornerRadius: 20).fill(TVTheme.yellow.opacity(0.1)))
                 }
 
                 Text("Called: \(vm.state.calledNumbers.count)").font(.body).foregroundColor(.white.opacity(0.5))
@@ -1707,19 +1707,19 @@ struct TVTambolaBoardView: View {
                 // Prize board: every prize and who took it.
                 if vm.state.prizes.isEmpty {
                     ForEach(vm.state.claims, id: \.self) { claim in
-                        Text("\(claim)").font(.headline).foregroundColor(.green)
+                        Text("\(claim)").font(.headline).foregroundColor(TVTheme.green)
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(vm.state.prizes, id: \.label) { prize in
                             HStack(spacing: 10) {
                                 Image(systemName: prize.winner == nil ? "circle" : "checkmark.seal.fill")
-                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : .green)
+                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : TVTheme.green)
                                 Text(prize.label).font(.headline)
                                     .foregroundColor(prize.winner == nil ? .white : .white.opacity(0.5))
                                 Spacer()
                                 Text(prize.winner ?? "open").font(.headline)
-                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : .green)
+                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : TVTheme.green)
                                     .lineLimit(1)
                             }
                         }
@@ -1737,7 +1737,7 @@ struct TVTambolaBoardView: View {
                         .frame(width: 50, height: 40)
                         .background(RoundedRectangle(cornerRadius: 6)
                             .fill(vm.state.calledNumbers.contains(num)
-                                  ? Color.yellow : Color.white.opacity(0.06)))
+                                  ? TVTheme.yellow : Color.white.opacity(0.06)))
                 }
             }
             .padding(24)
@@ -1789,11 +1789,11 @@ struct TVStockPanicBoardView: View {
                 Spacer()
                 if let news = vm.state.latestNews {
                     HStack(spacing: 8) {
-                        Image(systemName: "newspaper.fill").foregroundColor(.yellow)
-                        Text(news).font(.subheadline).foregroundColor(.yellow)
+                        Image(systemName: "newspaper.fill").foregroundColor(TVTheme.yellow)
+                        Text(news).font(.subheadline).foregroundColor(TVTheme.yellow)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(Capsule().fill(Color.yellow.opacity(0.15)))
+                    .background(Capsule().fill(TVTheme.yellow.opacity(0.15)))
                 }
             }
             .padding(.horizontal, 60).padding(.top, 40)
@@ -1811,7 +1811,7 @@ struct TVStockPanicBoardView: View {
                 ForEach(room.players.sorted(by: { $0.score > $1.score })) { p in
                     VStack(spacing: 4) {
                         Text(p.name).font(.subheadline).foregroundColor(.white)
-                        Text("$\(p.score)").font(.headline.bold()).foregroundColor(.green)
+                        Text("$\(p.score)").font(.headline.bold()).foregroundColor(TVTheme.green)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -1840,12 +1840,12 @@ private struct StockTile: View {
         VStack(spacing: 6) {
             Text(stock.name).font(.headline).foregroundColor(.white)
             Text("$\(stock.price)").font(.system(size: 32, weight: .bold))
-                .foregroundColor(stock.change >= 0 ? .green : .red)
+                .foregroundColor(stock.change >= 0 ? TVTheme.green : TVTheme.red)
             HStack(spacing: 4) {
                 Image(systemName: stock.change >= 0 ? "arrow.up" : "arrow.down")
                 Text("\(abs(stock.change))").font(.caption)
             }
-            .foregroundColor(stock.change >= 0 ? .green : .red)
+            .foregroundColor(stock.change >= 0 ? TVTheme.green : TVTheme.red)
         }
         .padding(16)
         .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.06)))
@@ -1892,7 +1892,7 @@ struct TVMindMeldBoardView: View {
                 .padding(.top, 40)
 
             if let category = vm.state.category {
-                Text("Category: \(category)").font(.title2).foregroundColor(.cyan)
+                Text("Category: \(category)").font(.title2).foregroundColor(TVTheme.cyan)
             }
 
             if vm.state.showReveal {
@@ -1905,12 +1905,12 @@ struct TVMindMeldBoardView: View {
                                 Text(sub.word).font(.title2.bold()).foregroundColor(.white)
                                 Text(sub.playerName).font(.caption).foregroundColor(.white.opacity(0.5))
                                 if sub.isMeld {
-                                    Text("MELD +\(sub.meldCount)!").font(.caption.bold()).foregroundColor(.green)
+                                    Text("MELD +\(sub.meldCount)!").font(.caption.bold()).foregroundColor(TVTheme.green)
                                 }
                             }
                             .padding(12)
                             .background(RoundedRectangle(cornerRadius: 12)
-                                .fill(sub.isMeld ? Color.green.opacity(0.2) : Color.white.opacity(0.06)))
+                                .fill(sub.isMeld ? TVTheme.green.opacity(0.2) : Color.white.opacity(0.06)))
                         }
                     }
                 }
@@ -1926,7 +1926,7 @@ struct TVMindMeldBoardView: View {
                             VStack(spacing: 6) {
                                 Image(systemName: vm.state.submittedIDs.contains(p.id)
                                       ? "checkmark.circle.fill" : "circle")
-                                    .font(.title).foregroundColor(vm.state.submittedIDs.contains(p.id) ? .green : .white.opacity(0.3))
+                                    .font(.title).foregroundColor(vm.state.submittedIDs.contains(p.id) ? TVTheme.green : .white.opacity(0.3))
                                 Text(p.name).font(.caption).foregroundColor(.white.opacity(0.6))
                             }
                         }
@@ -2191,7 +2191,7 @@ struct TVSpeedSculptorBoardView: View {
                 Text("Speed Sculptor").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
                 Spacer()
                 if let prompt = vm.state.prompt {
-                    Text("Drawing: \(prompt)").font(.title2.bold()).foregroundColor(.yellow)
+                    Text("Drawing: \(prompt)").font(.title2.bold()).foregroundColor(TVTheme.yellow)
                 }
             }
             .padding(.horizontal, 60).padding(.top, 40)
@@ -2256,8 +2256,8 @@ private struct DrawingCard: View {
                 Text(drawing.playerName).font(.headline).foregroundColor(.white)
                 Spacer()
                 HStack(spacing: 4) {
-                    Image(systemName: "hand.thumbsup.fill").foregroundColor(.cyan)
-                    Text("\(drawing.voteCount)").font(.headline.bold()).foregroundColor(.cyan)
+                    Image(systemName: "hand.thumbsup.fill").foregroundColor(TVTheme.cyan)
+                    Text("\(drawing.voteCount)").font(.headline.bold()).foregroundColor(TVTheme.cyan)
                 }
             }
         }
@@ -2320,7 +2320,7 @@ struct TimerRing: View {
             Circle().stroke(Color.white.opacity(0.1), lineWidth: 6)
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(progress > 0.4 ? Color.cyan : Color.red,
+                .stroke(progress > 0.4 ? TVTheme.cyan : TVTheme.red,
                         style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 1), value: secondsLeft)

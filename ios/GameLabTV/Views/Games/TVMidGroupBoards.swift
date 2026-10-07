@@ -58,7 +58,7 @@ struct TVCipherGridBoardView: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 30) {
-                teamPill("RED", left: vm.state.redLeft, color: .red,
+                teamPill("RED", left: vm.state.redLeft, color: TVTheme.red,
                          active: vm.state.turn == "red")
                 Spacer()
                 VStack(spacing: 4) {
@@ -67,14 +67,14 @@ struct TVCipherGridBoardView: View {
                     Text(vm.state.clue.word.isEmpty ? "—"
                          : "\(vm.state.clue.word.uppercased())  \(vm.state.clue.count)")
                         .font(.system(size: 40, weight: .heavy))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(TVTheme.yellow)
                     if vm.state.guessesLeft > 0 {
                         Text("\(vm.state.guessesLeft) guesses left")
                             .font(.caption).foregroundColor(.white.opacity(0.5))
                     }
                 }
                 Spacer()
-                teamPill("BLUE", left: vm.state.blueLeft, color: .blue,
+                teamPill("BLUE", left: vm.state.blueLeft, color: TVTheme.blue,
                          active: vm.state.turn == "blue")
             }
             .padding(.horizontal, 70).padding(.top, 44)
@@ -98,7 +98,7 @@ struct TVCipherGridBoardView: View {
             if let winner = vm.state.winner {
                 Text("\(winner.uppercased()) TEAM WINS")
                     .font(.system(size: 46, weight: .heavy)).tracking(4)
-                    .foregroundColor(winner == "red" ? .red : .blue)
+                    .foregroundColor(winner == "red" ? TVTheme.red : TVTheme.blue)
                     .padding(.top, 24)
             }
 
@@ -180,14 +180,14 @@ struct TVOddOneOutBoardView: View {
                     Text("THE LOCATION WAS").font(.caption.bold()).tracking(4)
                         .foregroundColor(.white.opacity(0.4))
                     Text(location).font(.system(size: 62, weight: .heavy))
-                        .foregroundColor(.cyan)
+                        .foregroundColor(TVTheme.cyan)
                     if let spy = vm.state.spyName {
                         Text("The spy was \(spy)").font(.title2)
-                            .foregroundColor(.yellow)
+                            .foregroundColor(TVTheme.yellow)
                     }
                     Text(vm.state.winner == "spy" ? "Spy wins" : "Players win")
                         .font(.system(size: 40, weight: .bold))
-                        .foregroundColor(vm.state.winner == "spy" ? .red : .green)
+                        .foregroundColor(vm.state.winner == "spy" ? TVTheme.red : TVTheme.green)
                 }
             } else if vm.state.phase == "vote" {
                 VStack(spacing: 14) {
@@ -199,7 +199,7 @@ struct TVOddOneOutBoardView: View {
                             Spacer()
                             HStack(spacing: 6) {
                                 ForEach(0..<max(0, t.votes), id: \.self) { _ in
-                                    Circle().fill(Color.red).frame(width: 18, height: 18)
+                                    Circle().fill(TVTheme.red).frame(width: 18, height: 18)
                                 }
                             }
                         }
@@ -274,7 +274,7 @@ struct TVSealedAuctionBoardView: View {
                     Text(vm.state.lotName).font(.system(size: 54, weight: .bold))
                         .foregroundColor(.white).multilineTextAlignment(.center)
                     Text("worth \(vm.state.lotValue * 10) points")
-                        .font(.title3).foregroundColor(.yellow.opacity(0.8))
+                        .font(.title3).foregroundColor(TVTheme.yellow.opacity(0.8))
                 }
 
                 if vm.state.base.phase == "bid" {
@@ -287,16 +287,16 @@ struct TVSealedAuctionBoardView: View {
                                 Text(b.name).font(.title3).foregroundColor(.white)
                                 Spacer()
                                 Text("\(b.amount)").font(.title2.bold())
-                                    .foregroundColor(i == 0 && !vm.state.tied ? .green : .white.opacity(0.5))
+                                    .foregroundColor(i == 0 && !vm.state.tied ? TVTheme.green : .white.opacity(0.5))
                             }
                             .padding(.horizontal, 28).padding(.vertical, 12)
                             .background(RoundedRectangle(cornerRadius: 10)
-                                .fill(i == 0 && !vm.state.tied ? Color.green.opacity(0.15)
+                                .fill(i == 0 && !vm.state.tied ? TVTheme.green.opacity(0.15)
                                                                : .white.opacity(0.05)))
                         }
                         if vm.state.tied {
                             Text("Tied — nobody wins the lot")
-                                .font(.title3).foregroundColor(.orange)
+                                .font(.title3).foregroundColor(TVTheme.orange)
                         }
                     }
                     .padding(.horizontal, 260)
@@ -349,10 +349,10 @@ struct TVWavelengthBoardView: View {
             VStack(spacing: 34) {
                 Text(vm.state.clue.isEmpty ? "waiting for a clue…" : "“\(vm.state.clue)”")
                     .font(.system(size: 52, weight: .bold))
-                    .foregroundColor(vm.state.clue.isEmpty ? .white.opacity(0.3) : .yellow)
+                    .foregroundColor(vm.state.clue.isEmpty ? .white.opacity(0.3) : TVTheme.yellow)
 
                 ZStack(alignment: .leading) {
-                    LinearGradient(colors: [.blue, .purple, .red],
+                    LinearGradient(colors: [TVTheme.blue, TVTheme.purple, TVTheme.red],
                                    startPoint: .leading, endPoint: .trailing)
                         .frame(width: width, height: 44)
                         .clipShape(Capsule())
@@ -373,16 +373,16 @@ struct TVWavelengthBoardView: View {
                 .frame(width: width, height: 80)
 
                 HStack {
-                    Text(vm.state.leftLabel).font(.title2.bold()).foregroundColor(.blue)
+                    Text(vm.state.leftLabel).font(.title2.bold()).foregroundColor(TVTheme.blue)
                     Spacer()
-                    Text(vm.state.rightLabel).font(.title2.bold()).foregroundColor(.red)
+                    Text(vm.state.rightLabel).font(.title2.bold()).foregroundColor(TVTheme.red)
                 }
                 .frame(width: width)
 
                 if let points = vm.state.points {
                     Text(points > 0 ? "+\(points)" : "Missed")
                         .font(.system(size: 46, weight: .heavy))
-                        .foregroundColor(points > 0 ? .green : .white.opacity(0.4))
+                        .foregroundColor(points > 0 ? TVTheme.green : .white.opacity(0.4))
                 }
             }
             Spacer()
@@ -444,8 +444,8 @@ struct TVKBCBoardView: View {
 
     private func color(for index: Int) -> Color {
         if let correct = vm.state.correctIndex {
-            if index == correct { return .green }
-            if index == vm.state.answerIndex { return .red }
+            if index == correct { return TVTheme.green }
+            if index == vm.state.answerIndex { return TVTheme.red }
         }
         return .white.opacity(0.07)
     }
@@ -458,12 +458,12 @@ struct TVKBCBoardView: View {
                     Text("₹\(amount)")
                         .font(.system(size: 20, weight: i == vm.state.rung ? .heavy : .regular))
                         .foregroundColor(i == vm.state.rung ? .black
-                                         : i < vm.state.rung ? .yellow.opacity(0.6)
+                                         : i < vm.state.rung ? TVTheme.yellow.opacity(0.6)
                                          : .white.opacity(0.35))
                         .padding(.horizontal, 16).padding(.vertical, 6)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                         .background(RoundedRectangle(cornerRadius: 6)
-                            .fill(i == vm.state.rung ? Color.yellow : .clear))
+                            .fill(i == vm.state.rung ? TVTheme.yellow : .clear))
                 }
             }
             .frame(width: 260).padding(.vertical, 50).padding(.leading, 40)
@@ -484,13 +484,13 @@ struct TVKBCBoardView: View {
                         ForEach(Array(vm.state.choices.enumerated()), id: \.offset) { _, c in
                             HStack(spacing: 14) {
                                 Text(["A", "B", "C", "D"][min(c.index, 3)])
-                                    .font(.title3.bold()).foregroundColor(.yellow)
+                                    .font(.title3.bold()).foregroundColor(TVTheme.yellow)
                                 Text(c.hidden ? "" : c.text).font(.title3)
                                     .foregroundColor(.white)
                                 Spacer()
                                 if vm.state.phase == "poll", c.index < vm.state.pollTally.count {
                                     Text("\(vm.state.pollTally[c.index])%")
-                                        .font(.headline.bold()).foregroundColor(.cyan)
+                                        .font(.headline.bold()).foregroundColor(TVTheme.cyan)
                                 }
                             }
                             .padding(.horizontal, 24).padding(.vertical, 20)
@@ -502,7 +502,7 @@ struct TVKBCBoardView: View {
 
                     if vm.state.phase == "poll" {
                         Text("Audience poll — \(vm.state.pollCount) votes in")
-                            .font(.title3).foregroundColor(.cyan)
+                            .font(.title3).foregroundColor(TVTheme.cyan)
                     }
 
                     HStack(spacing: 22) {
@@ -513,7 +513,7 @@ struct TVKBCBoardView: View {
                 }
                 Spacer()
                 Text("Banked ₹\(vm.state.banked)")
-                    .font(.title3.bold()).foregroundColor(.yellow).padding(.bottom, 40)
+                    .font(.title3.bold()).foregroundColor(TVTheme.yellow).padding(.bottom, 40)
             }
         }
         .onAppear { vm.bind(roomCode: room.code) }
@@ -525,7 +525,7 @@ struct TVKBCBoardView: View {
             .font(.headline)
             .foregroundColor(available ? .white : .white.opacity(0.25))
             .padding(.horizontal, 22).padding(.vertical, 10)
-            .background(Capsule().fill(available ? Color.purple.opacity(0.5) : .white.opacity(0.05)))
+            .background(Capsule().fill(available ? TVTheme.purple.opacity(0.5) : .white.opacity(0.05)))
             .overlay(available ? nil : Capsule().stroke(.white.opacity(0.1), lineWidth: 1))
     }
 }
@@ -563,7 +563,7 @@ struct TVBollywoodCharadesBoardView: View {
                         Text("THE FILM WAS").font(.caption.bold()).tracking(4)
                             .foregroundColor(.white.opacity(0.4))
                         Text(title).font(.system(size: 58, weight: .heavy))
-                            .foregroundColor(.green)
+                            .foregroundColor(TVTheme.green)
                     }
                 } else {
                     VStack(spacing: 16) {
@@ -581,9 +581,9 @@ struct TVBollywoodCharadesBoardView: View {
                             .foregroundColor(.white.opacity(0.4))
                         HStack(spacing: 12) {
                             ForEach(vm.state.correctNames, id: \.self) { name in
-                                Text("\(name)").font(.headline).foregroundColor(.green)
+                                Text("\(name)").font(.headline).foregroundColor(TVTheme.green)
                                     .padding(.horizontal, 18).padding(.vertical, 10)
-                                    .background(Capsule().fill(.green.opacity(0.15)))
+                                    .background(Capsule().fill(TVTheme.green.opacity(0.15)))
                             }
                         }
                     }

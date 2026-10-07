@@ -14,11 +14,14 @@ import UIKit
 /// on the TV, in whichever form the TV happens to draw it.
 fileprivate func defuseModuleUIColor(_ name: String) -> UIColor {
     switch name {
-    case "red": return .red
-    case "blue": return .blue
-    case "yellow": return .yellow
+    case "red": return UIColor(TVTheme.red)
+    case "blue": return UIColor(TVTheme.blue)
+    case "yellow": return UIColor(TVTheme.yellow)
     case "white": return .white
-    default: return .gray
+    // Matches `DefuseControllerView.wireColor(_:)` on the phone, black wire
+    // and grey fallback included.
+    case "black": return UIColor(Color(hex: "121218"))
+    default: return UIColor(TVTheme.text3)
     }
 }
 
@@ -633,12 +636,12 @@ struct TVDefuseBoardView: View {
                     HStack(spacing: 8) {
                         ForEach(0..<vm.state.maxStrikes, id: \.self) { i in
                             Image(systemName: "xmark").font(.title.bold()).foregroundColor(.white.opacity(0.7))
-                                .foregroundColor(i < vm.state.strikes ? .red : .white.opacity(0.2))
+                                .foregroundColor(i < vm.state.strikes ? TVTheme.red : .white.opacity(0.2))
                         }
                     }
                     Text(String(format: "%d:%02d", vm.state.secondsLeft / 60, vm.state.secondsLeft % 60))
                         .font(.system(size: 62, weight: .heavy, design: .monospaced))
-                        .foregroundColor(vm.state.secondsLeft < 30 ? .red : .green)
+                        .foregroundColor(vm.state.secondsLeft < 30 ? TVTheme.red : TVTheme.green)
                         .shadow(color: .black.opacity(0.8), radius: 6)
                 }
                 .padding(.horizontal, 70).padding(.top, 44)
@@ -653,10 +656,10 @@ struct TVDefuseBoardView: View {
 
                 if vm.state.finished {
                     VStack(spacing: 16) {
-                        Image(systemName: vm.state.won ? "heart.fill" : "burst.fill").font(.system(size: 120)).foregroundColor(vm.state.won ? .green : .red)
+                        Image(systemName: vm.state.won ? "heart.fill" : "burst.fill").font(.system(size: 120)).foregroundColor(vm.state.won ? TVTheme.green : TVTheme.red)
                         Text(vm.state.won ? "DEFUSED" : "BOOM")
                             .font(.system(size: 64, weight: .heavy)).tracking(6)
-                            .foregroundColor(vm.state.won ? .green : .red)
+                            .foregroundColor(vm.state.won ? TVTheme.green : TVTheme.red)
                             .shadow(color: .black.opacity(0.7), radius: 10)
                     }
                 }
@@ -665,7 +668,7 @@ struct TVDefuseBoardView: View {
                 HStack(spacing: 16) {
                     ForEach(vm.state.log, id: \.self) { entry in
                         Text(entry).font(.callout)
-                            .foregroundColor(entry.hasPrefix("Strike") ? .red : .green)
+                            .foregroundColor(entry.hasPrefix("Strike") ? TVTheme.red : TVTheme.green)
                     }
                 }
                 .padding(.bottom, 40)
@@ -682,9 +685,9 @@ struct TVDefuseBoardView: View {
         .onChange(of: vm.state.finished) { finished in
             guard finished else { return }
             if vm.state.won {
-                triggerFlash(color: .green, peak: 0.5, fadeDuration: 1.4)
+                triggerFlash(color: TVTheme.green, peak: 0.5, fadeDuration: 1.4)
             } else {
-                triggerFlash(color: .red, peak: 0.75, fadeDuration: 1.2)
+                triggerFlash(color: TVTheme.red, peak: 0.75, fadeDuration: 1.2)
                 triggerShake(magnitude: 22)
             }
         }
@@ -694,7 +697,7 @@ struct TVDefuseBoardView: View {
     // the 3D scene's own lighting/material flash happens to render)
 
     private func triggerStrikeFeedback() {
-        triggerFlash(color: .red, peak: 0.4, fadeDuration: 0.5)
+        triggerFlash(color: TVTheme.red, peak: 0.4, fadeDuration: 0.5)
         triggerShake(magnitude: 10)
     }
 
@@ -1089,10 +1092,10 @@ struct TVHeistEscapeBoardView: View {
             Spacer()
             if vm.state.finished {
                 VStack(spacing: 16) {
-                    Image(systemName: vm.state.won ? "party.popper.fill" : "exclamationmark.triangle.fill").font(.system(size: 120)).foregroundColor(vm.state.won ? .yellow : .red)
+                    Image(systemName: vm.state.won ? "party.popper.fill" : "exclamationmark.triangle.fill").font(.system(size: 120)).foregroundColor(vm.state.won ? TVTheme.yellow : TVTheme.red)
                     Text(vm.state.won ? "ESCAPED" : "CAUGHT")
                         .font(.system(size: 60, weight: .heavy)).tracking(5)
-                        .foregroundColor(vm.state.won ? .green : .red)
+                        .foregroundColor(vm.state.won ? TVTheme.green : TVTheme.red)
                 }
             } else {
                 // The maze itself is never drawn — only where the team has been.
@@ -1101,8 +1104,8 @@ struct TVHeistEscapeBoardView: View {
                     ForEach(0..<(vm.state.size * vm.state.size), id: \.self) { cell in
                         ZStack {
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(cell == vm.state.exitCell ? Color.green.opacity(0.35)
-                                      : vm.state.trail.contains(cell) ? Color.cyan.opacity(0.2)
+                                .fill(cell == vm.state.exitCell ? TVTheme.green.opacity(0.35)
+                                      : vm.state.trail.contains(cell) ? TVTheme.cyan.opacity(0.2)
                                       : Color.white.opacity(0.05))
                             if cell == vm.state.position {
                                 Image(systemName: "person.fill").font(.system(size: 40)).foregroundColor(.white)
@@ -1301,7 +1304,7 @@ struct TVLudoBoardView: View {
     @StateObject private var vm = TVBoardModel(initial: LudoState()) { $0.update(from: $1) }
     @StateObject private var animator = LudoAnimator()
 
-    private let seatColors: [Color] = [.red, .green, .yellow, .blue]
+    private let seatColors: [Color] = [TVTheme.red, TVTheme.green, TVTheme.yellow, TVTheme.blue]
 
     /// Changes only when a raw token value changes; drives the hop animation.
     private var tokenSignature: String {
@@ -1715,7 +1718,7 @@ private struct LudoWinnerBanner: View {
         }
         .padding(.horizontal, 70).padding(.vertical, 36)
         .background(RoundedRectangle(cornerRadius: 24).fill(.black.opacity(0.78))
-            .overlay(RoundedRectangle(cornerRadius: 24).stroke(.yellow, lineWidth: 3)))
+            .overlay(RoundedRectangle(cornerRadius: 24).stroke(TVTheme.yellow, lineWidth: 3)))
     }
 }
 

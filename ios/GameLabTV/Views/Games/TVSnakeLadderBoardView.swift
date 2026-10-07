@@ -283,7 +283,7 @@ struct TVSnakeLadderBoardView: View {
                         Image(systemName: "trophy.fill")
                     }
                     .font(.system(size: 42, weight: .bold))
-                    .foregroundColor(.yellow)
+                    .foregroundColor(TVTheme.yellow)
                     .padding(.bottom, 24)
                 } else if vm.state.currentPlayerID != nil {
                     SnakeLadderTurnBanner(
@@ -318,7 +318,7 @@ private struct SnakeLadderTurnBanner: View {
                 .font(.system(size: 30, weight: .heavy))
                 .foregroundColor(.black)
                 .padding(.horizontal, 28).padding(.vertical, 10)
-                .background(Capsule().fill(Color.yellow))
+                .background(Capsule().fill(TVTheme.yellow))
                 .transition(.scale.combined(with: .opacity))
             }
             HStack(spacing: 16) {
@@ -403,12 +403,12 @@ private struct WinConfettiOverlay: View {
     @State private var falling = false
 
     init(count: Int = 44) {
-        let colors: [Color] = [.red, .yellow, .green, .cyan, .pink, .orange, .white]
+        let colors: [Color] = [TVTheme.red, TVTheme.yellow, TVTheme.green, TVTheme.cyan, TVTheme.pink, TVTheme.orange, .white]
         pieces = (0..<count).map { _ in
             Piece(x: CGFloat.random(in: 0...1),
                   delay: Double.random(in: 0...0.9),
                   duration: Double.random(in: 1.6...2.6),
-                  color: colors.randomElement() ?? .yellow,
+                  color: colors.randomElement() ?? TVTheme.yellow,
                   size: CGFloat.random(in: 8...16),
                   spin: Double.random(in: -540...540))
         }
@@ -452,7 +452,7 @@ private struct SnakeLadderPositionRow: View {
                 .foregroundColor(isCurrent ? .white : .white.opacity(0.6))
             Spacer()
             Text(entry.position == 0 ? "start" : "\(entry.position)")
-                .font(.subheadline.bold()).foregroundColor(.cyan)
+                .font(.subheadline.bold()).foregroundColor(TVTheme.cyan)
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
         .frame(width: 260)

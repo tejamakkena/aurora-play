@@ -56,6 +56,12 @@ enum ShellTheme {
     static let textSecondary = Color.white.opacity(0.7)
     static let textTertiary = Color.white.opacity(0.45)
 
+    /// Opaque greys, for the places a translucent white will not do (a
+    /// SceneKit material, a shape over artwork). Same hexes as Phone Play's
+    /// `text2` / `text3`.
+    static let text2 = Color(hex: "A7A7B8")
+    static let text3 = Color(hex: "6B6B7E")
+
     static let brandGradient = LinearGradient(
         colors: [Color(hex: "38D6F5"), Color(hex: "7C3AED"), Color(hex: "FF5FC8")],
         startPoint: .leading,

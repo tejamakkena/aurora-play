@@ -709,7 +709,7 @@ struct TVRouletteBoardView: View {
                     let bet = vm.state.playerBets[player.id] ?? 0
                     Text(bet > 0 ? "Bet $\(bet)" : "—")
                         .font(.caption)
-                        .foregroundColor(bet > 0 ? .cyan : .white.opacity(0.3))
+                        .foregroundColor(bet > 0 ? TVTheme.cyan : .white.opacity(0.3))
                 }
                 .frame(minWidth: 120)
                 .padding(.vertical, 12)

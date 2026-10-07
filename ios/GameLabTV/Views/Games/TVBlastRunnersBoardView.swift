@@ -74,11 +74,11 @@ struct TVBlastRunnersBoardView: View {
                     ForEach(0..<max(vm.state.livesMax, 1), id: \.self) { index in
                         Image(systemName: index < vm.state.livesCurrent ? "heart.fill" : "heart")
                             .font(.system(size: 20))
-                            .foregroundColor(index < vm.state.livesCurrent ? .red : .white.opacity(0.25))
+                            .foregroundColor(index < vm.state.livesCurrent ? TVTheme.red : .white.opacity(0.25))
                     }
                 }
                 HStack(spacing: 6) {
-                    Image(systemName: "diamond.fill").foregroundColor(.cyan)
+                    Image(systemName: "diamond.fill").foregroundColor(TVTheme.cyan)
                     Text("\(vm.state.gemsRemaining) of \(vm.state.gemsTotal) gems")
                         .font(.headline)
                         .foregroundColor(.white.opacity(0.8))
@@ -174,8 +174,8 @@ struct BlastRunnersBoardState {
 
     var bannerTint: Color {
         switch phase {
-        case "levelComplete", "gameComplete": return .green
-        case "levelFailed": return .red
+        case "levelComplete", "gameComplete": return TVTheme.green
+        case "levelFailed": return TVTheme.red
         default: return .white
         }
     }
@@ -270,7 +270,11 @@ private let brFloorColorA = UIColor(red: 0.12, green: 0.15, blue: 0.23, alpha: 1
 private let brFloorColorB = UIColor(red: 0.08, green: 0.11, blue: 0.18, alpha: 1)
 private let brRockColor = UIColor(red: 0.58, green: 0.36, blue: 0.17, alpha: 1)
 private let brWallColor = UIColor(red: 0.035, green: 0.04, blue: 0.06, alpha: 1)
-private let brPlayerPalette: [UIColor] = [.cyan, .yellow, .green, .orange]
+// SceneKit wants UIColor, so the shared tokens are bridged rather than
+// re-picked by eye.
+private let brPlayerPalette: [UIColor] = [
+    UIColor(TVTheme.cyan), UIColor(TVTheme.yellow), UIColor(TVTheme.green), UIColor(TVTheme.orange),
+]
 
 struct BlastRunnersCinematicBoardSceneView: UIViewRepresentable {
     var state: BlastRunnersBoardState

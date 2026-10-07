@@ -28,7 +28,7 @@ private struct SoloHUD: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("SCORE").font(.caption.bold()).tracking(3)
                     .foregroundColor(.white.opacity(0.4))
-                TVPopNumber(value: score, size: 40, color: .cyan)
+                TVPopNumber(value: score, size: 40, color: TVTheme.cyan)
             }
         }
         .padding(.horizontal, 80)
@@ -284,21 +284,21 @@ struct TVNeonSnakeBoardView: View {
                         let y = CGFloat(r) / CGFloat(rows) * size.height
                         grid.move(to: CGPoint(x: 0, y: y)); grid.addLine(to: CGPoint(x: size.width, y: y))
                     }
-                    ctx.stroke(grid, with: .color(.cyan.opacity(0.05)), lineWidth: 1)
+                    ctx.stroke(grid, with: .color(TVTheme.cyan.opacity(0.05)), lineWidth: 1)
                 }
             }
         )
         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.cyan.opacity(0.3), lineWidth: 3)
+                .stroke(TVTheme.cyan.opacity(0.3), lineWidth: 3)
         )
-        .shadow(color: .cyan.opacity(0.18), radius: 30)
+        .shadow(color: TVTheme.cyan.opacity(0.18), radius: 30)
         .shadow(color: Color(hex: "a78bfa").opacity(0.16), radius: 60)
         .overlay {
             TVParticleBurst(trigger: eatCount,
                             origin: CGPoint(x: (eatCell.x + 0.5) * scale, y: (eatCell.y + 0.5) * scale),
-                            color: .yellow, count: 22, reach: max(80, scale * 3.2))
+                            color: TVTheme.yellow, count: 22, reach: max(80, scale * 3.2))
         }
         .overlay { if vm.state.finished { GameOverBanner(score: vm.state.score) } }
     }
@@ -311,11 +311,11 @@ struct TVNeonSnakeBoardView: View {
         let pulse = CGFloat(1.0 + 0.12 * sin(now.timeIntervalSinceReferenceDate * 4))
         ctx.fill(Path(ellipseIn: CGRect(x: foodCenter.x - foodR * 2.2, y: foodCenter.y - foodR * 2.2,
                                         width: foodR * 4.4, height: foodR * 4.4)),
-                 with: .radialGradient(Gradient(colors: [.yellow.opacity(0.35), .clear]),
+                 with: .radialGradient(Gradient(colors: [TVTheme.yellow.opacity(0.35), .clear]),
                                        center: foodCenter, startRadius: 0, endRadius: foodR * 2.2))
         ctx.fill(Path(ellipseIn: CGRect(x: foodCenter.x - foodR * pulse, y: foodCenter.y - foodR * pulse,
                                         width: foodR * 2 * pulse, height: foodR * 2 * pulse)),
-                 with: .color(.yellow))
+                 with: .color(TVTheme.yellow))
 
         // ---- Snakes -------------------------------------------------------
         for i in vm.state.bodies.indices {
@@ -1214,7 +1214,7 @@ struct TVSimonSaysBoardView: View {
 
     private let pads = ["up", "right", "down", "left"]
     private let colors: [String: Color] = [
-        "up": .green, "right": .red, "down": .yellow, "left": .blue,
+        "up": TVTheme.green, "right": TVTheme.red, "down": TVTheme.yellow, "left": TVTheme.blue,
     ]
 
     var body: some View {
@@ -1248,7 +1248,7 @@ struct TVSimonSaysBoardView: View {
     private func pad(_ name: String) -> some View {
         let lit = vm.litPad == name
         return RoundedRectangle(cornerRadius: 24)
-            .fill((colors[name] ?? .gray).opacity(lit ? 1.0 : 0.28))
+            .fill((colors[name] ?? TVTheme.text3).opacity(lit ? 1.0 : 0.28))
             .frame(width: 220, height: 220)
             .overlay(
                 RoundedRectangle(cornerRadius: 24)

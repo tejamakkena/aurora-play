@@ -22,7 +22,7 @@ struct TVRoundHeader: View {
                 if let phaseLabel {
                     Text(phaseLabel.uppercased())
                         .font(.caption.bold()).tracking(3)
-                        .foregroundColor(.cyan.opacity(0.8))
+                        .foregroundColor(TVTheme.cyan.opacity(0.8))
                         // A long player name in "X's turn" must truncate,
                         // never wrap mid-word.
                         .lineLimit(1)
@@ -47,7 +47,7 @@ struct TVRoundHeader: View {
             if secondsLeft > 0 {
                 Text("\(secondsLeft)")
                     .font(.system(size: 48, weight: .heavy, design: .rounded))
-                    .foregroundColor(secondsLeft <= 5 ? .red : .cyan)
+                    .foregroundColor(secondsLeft <= 5 ? TVTheme.red : TVTheme.cyan)
                     .frame(minWidth: 90)
                     .contentTransition(.numericText())
                     .animation(.default, value: secondsLeft)
@@ -68,10 +68,10 @@ struct TVScoreStrip: View {
                 ForEach(players.sorted { $0.score > $1.score }) { p in
                     HStack(spacing: 10) {
                         Circle()
-                            .fill(highlight.contains(p.id) ? Color.green : Color.white.opacity(0.15))
+                            .fill(highlight.contains(p.id) ? TVTheme.green : Color.white.opacity(0.15))
                             .frame(width: 12, height: 12)
                         Text(p.name).font(.headline).foregroundColor(.white)
-                        Text("\(p.score)").font(.headline.bold()).foregroundColor(.cyan)
+                        Text("\(p.score)").font(.headline.bold()).foregroundColor(TVTheme.cyan)
                     }
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.06)))
@@ -276,7 +276,7 @@ struct TVLastTapBoardView: View {
 
     private var background: Color {
         switch vm.state.phase {
-        case "go":     return .green
+        case "go":     return TVTheme.green
         case "arming": return Color(hex: "1a0d2e")
         default:       return .black.opacity(0.4)
         }
@@ -303,9 +303,9 @@ struct TVLastTapBoardView: View {
                         .foregroundColor(.black)
                 case "final":
                     VStack(spacing: 16) {
-                        Image(systemName: "trophy.fill").font(.system(size: 100)).foregroundColor(.yellow)
+                        Image(systemName: "trophy.fill").font(.system(size: 100)).foregroundColor(TVTheme.yellow)
                         Text(vm.state.players.first { $0.id == vm.state.winner }?.name ?? "Winner")
-                            .font(.system(size: 62, weight: .heavy)).foregroundColor(.yellow)
+                            .font(.system(size: 62, weight: .heavy)).foregroundColor(TVTheme.yellow)
                     }
                 default:
                     VStack(spacing: 14) {
@@ -317,7 +317,7 @@ struct TVLastTapBoardView: View {
                                 Spacer()
                                 Text(r.falseStart ? "too early" : "\(r.ms) ms")
                                     .font(.title3.bold())
-                                    .foregroundColor(r.falseStart ? .red : .cyan)
+                                    .foregroundColor(r.falseStart ? TVTheme.red : TVTheme.cyan)
                             }
                             .padding(.horizontal, 30).padding(.vertical, 12)
                             .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.05)))
@@ -440,7 +440,7 @@ struct TVEmojiMovieBoardView: View {
                     Text("Everyone is describing their secret title")
                         .font(.title2).foregroundColor(.white.opacity(0.6))
                     Text("\(vm.state.composedCount) submitted")
-                        .font(.title3).foregroundColor(.cyan)
+                        .font(.title3).foregroundColor(TVTheme.cyan)
                 }
             } else if vm.state.base.phase == "reveal" {
                 stagedReveal
@@ -450,7 +450,7 @@ struct TVEmojiMovieBoardView: View {
                         VStack(spacing: 10) {
                             Text(e.emoji).font(.system(size: 62))
                             if let title = e.title {
-                                Text(title).font(.headline.bold()).foregroundColor(.green)
+                                Text(title).font(.headline.bold()).foregroundColor(TVTheme.green)
                             }
                             Text(e.owner).font(.caption).foregroundColor(.white.opacity(0.4))
                         }
@@ -813,7 +813,7 @@ struct TVMostLikelyToBoardView: View {
                     let voted = vm.state.base.submitted.contains(p.id)
                     Image(systemName: voted ? "checkmark.seal.fill" : "hourglass")
                         .font(.system(size: 30))
-                        .foregroundColor(voted ? .green : .white.opacity(0.25))
+                        .foregroundColor(voted ? TVTheme.green : .white.opacity(0.25))
                 }
             }
             Text("\(vm.state.votesSoFar) of \(total) votes in. Vote on your phone.")

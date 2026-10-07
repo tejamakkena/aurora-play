@@ -88,6 +88,8 @@ enum TVTheme {
     static let success = ShellTheme.green
     static let textSecondary = ShellTheme.textSecondary
     static let textTertiary = ShellTheme.textTertiary
+    static let text2 = ShellTheme.text2
+    static let text3 = ShellTheme.text3
 
     static let cardRadius: CGFloat = ShellTheme.cardRadius
     static let buttonRadius: CGFloat = ShellTheme.buttonRadius

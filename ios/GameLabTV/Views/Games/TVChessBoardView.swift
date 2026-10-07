@@ -137,7 +137,7 @@ struct TVChessBoardView: View {
         return ZStack {
             Rectangle().fill(base)
             if highlighted {
-                Rectangle().fill(Color.yellow.opacity(0.42))
+                Rectangle().fill(TVTheme.yellow.opacity(0.42))
             }
             ChessPieceText(piece: piece, size: 76)
         }
@@ -182,19 +182,19 @@ struct TVChessBoardView: View {
                 .frame(width: 34, height: 34)
             Text(vm.state.name(for: color))
                 .font(.system(size: 32, weight: .bold))
-                .foregroundColor(active ? .yellow : .white.opacity(0.8))
+                .foregroundColor(active ? TVTheme.yellow : .white.opacity(0.8))
                 .lineLimit(1)
             Spacer()
             if active {
                 Text("TO MOVE").font(.caption.bold()).tracking(2)
                     .foregroundColor(.black)
                     .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(Capsule().fill(Color.yellow))
+                    .background(Capsule().fill(TVTheme.yellow))
             }
         }
         .padding(18)
         .background(RoundedRectangle(cornerRadius: 14)
-            .fill(active ? Color.yellow.opacity(0.12) : Color.white.opacity(0.05)))
+            .fill(active ? TVTheme.yellow.opacity(0.12) : Color.white.opacity(0.05)))
     }
 
     @ViewBuilder
@@ -202,14 +202,14 @@ struct TVChessBoardView: View {
         if let winner = vm.state.winner {
             let name = vm.state.players.first(where: { $0.id == winner })?.name ?? "Winner"
             Label("\(name) captured the king!", systemImage: "crown.fill")
-                .font(.title2.bold()).foregroundColor(.yellow)
+                .font(.title2.bold()).foregroundColor(TVTheme.yellow)
         } else if vm.state.draw {
             Label("Stalemate: no legal moves", systemImage: "equal.circle.fill")
-                .font(.title2.bold()).foregroundColor(.cyan)
+                .font(.title2.bold()).foregroundColor(TVTheme.cyan)
         } else if vm.state.inCheck {
             Label("Check! \(vm.state.name(for: vm.state.turnColor ?? "white")) must save the king",
                   systemImage: "exclamationmark.triangle.fill")
-                .font(.title2.bold()).foregroundColor(.red)
+                .font(.title2.bold()).foregroundColor(TVTheme.red)
         }
     }
 

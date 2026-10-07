@@ -12,7 +12,7 @@ struct TVVoiceOverlay: View {
             HStack(spacing: 8) {
                 Image(systemName: host.micPlayerID == nil
                       ? "mic.slash.fill" : "mic.fill")
-                    .foregroundColor(host.micPlayerID == nil ? .gray : .green)
+                    .foregroundColor(host.micPlayerID == nil ? TVTheme.text3 : TVTheme.green)
                 Text(host.micPlayerName.map { "\($0)'s phone" }
                      ?? "No mic -- claim it on your phone")
                     .font(.callout)
@@ -51,7 +51,7 @@ struct TVVoiceOverlay: View {
                 Text(verdict)
                     .font(.headline)
                     .foregroundColor(host.lastVerdictCorrect == true
-                                     ? .green : .white.opacity(0.85))
+                                     ? TVTheme.green : .white.opacity(0.85))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                     .background(Capsule().fill(Color.black.opacity(0.55)))
@@ -72,8 +72,8 @@ struct TVVoiceOverlay: View {
 
     private var stateColor: Color {
         switch host.voiceState {
-        case "listen": return .green
-        case "ask":    return .cyan
+        case "listen": return TVTheme.green
+        case "ask":    return TVTheme.cyan
         default:      return .white.opacity(0.8)
         }
     }
