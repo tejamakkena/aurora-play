@@ -93,9 +93,9 @@ enum ShellTheme {
     }
 
     /// Player identity colours. Deliberately its own ten-step wheel, and
-    /// mirrored exactly by `TriviaPlayerPalette` on the phone -- the same
-    /// player must be the same colour on both screens, so do not fold these
-    /// into the tokens above.
+    /// mirrored exactly by `QuizPadStyle.avatarColors` on the phone -- the
+    /// same player must be the same colour on both screens, so do not fold
+    /// these into the tokens above.
     static let avatarPalette: [Color] = [
         Color(hex: "F43F5E"), Color(hex: "F97316"), Color(hex: "EAB308"),
         Color(hex: "22C55E"), Color(hex: "14B8A6"), Color(hex: "06B6D4"),
