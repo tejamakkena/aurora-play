@@ -117,9 +117,9 @@ struct TalkTopBar: View {
     var body: some View {
         HStack(spacing: 24) {
             ShellIconOrb(symbol: symbol, top: accent, bottom: accent.opacity(0.55),
-                         accent: accent, size: 74, isLit: true)
+                         accent: accent, size: 62, isLit: true)
             Text(title.uppercased())
-                .font(ShellTheme.display(40, weight: .black))
+                .font(ShellTheme.display(36, weight: .black))
                 .tracking(5)
                 .foregroundColor(.white)
             if !phaseLabel.isEmpty {
@@ -135,7 +135,7 @@ struct TalkTopBar: View {
                         .tracking(4)
                         .foregroundColor(ShellTheme.textTertiary)
                     Text("\(round) / \(totalRounds)")
-                        .font(ShellTheme.display(34))
+                        .font(ShellTheme.display(30))
                         .foregroundColor(.white)
                         .contentTransition(.numericText())
                         .animation(.default, value: round)
@@ -147,7 +147,7 @@ struct TalkTopBar: View {
             }
         }
         .padding(.horizontal, 70)
-        .padding(.top, 36)
+        .padding(.top, 12)
         .animation(.spring(response: 0.4, dampingFraction: 0.7), value: phaseLabel)
     }
 }
@@ -218,7 +218,7 @@ struct TalkPodRow: View {
 
     var body: some View {
         let big: Bool = players.count <= 6
-        let size: CGFloat = big ? 84 : 68
+        let size: CGFloat = big ? 70 : 58
         HStack(alignment: .bottom, spacing: big ? 30 : 18) {
             ForEach(players) { player in
                 TalkPod(player: player,
@@ -243,7 +243,7 @@ struct TalkPod: View {
     @State private var hop: Int = 0
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 5) {
             ZStack {
                 if let badge {
                     Text(badge.text)
@@ -258,18 +258,18 @@ struct TalkPod: View {
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            .frame(height: 30)
+            .frame(height: 28)
             ShellAvatarToken(id: player.id, name: player.name, size: size,
                              isHost: player.isHost, isBot: player.isBot, isReady: isChecked)
                 .shellHop(trigger: hop, height: 30)
                 .opacity(player.connected ? 1 : 0.35)
             Text(player.name)
-                .font(ShellTheme.display(21, weight: .bold))
+                .font(ShellTheme.display(20, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .frame(maxWidth: size + 50)
             Text("\(player.score)")
-                .font(ShellTheme.display(25, weight: .black))
+                .font(ShellTheme.display(23, weight: .black))
                 .foregroundColor(TalkPalette.gold)
                 .contentTransition(.numericText(value: Double(player.score)))
                 .animation(.easeOut(duration: 0.8), value: player.score)

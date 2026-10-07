@@ -113,7 +113,7 @@ struct TVHotTakesBoardView: View {
                                 leftStrength: forLight,
                                 rightColor: TalkPalette.againstColor,
                                 rightStrength: againstLight)
-            VStack(spacing: 22) {
+            VStack(spacing: 18) {
                 TalkTopBar(symbol: "flame.fill", title: "Hot Takes",
                            round: state.round, totalRounds: state.totalRounds,
                            phaseLabel: phaseLabel, accent: accent)
@@ -126,7 +126,7 @@ struct TVHotTakesBoardView: View {
                 TalkPodRow(players: state.players, badges: podBadges,
                            checked: phase == "vote" ? state.submitted : [],
                            spotlight: spotlight)
-                    .padding(.bottom, 26)
+                    .padding(.bottom, 12)
             }
             if phase == "switch" {
                 HotTakesSwitchOverlay(nextName: state.againstName)
@@ -322,23 +322,23 @@ private struct HotTakesPromptCard: View {
 
     private var fontSize: CGFloat {
         let n: Int = prompt.count
-        if n < 40 { return 66 }
-        if n < 70 { return 56 }
-        return 46
+        if n < 40 { return 60 }
+        if n < 70 { return 50 }
+        return 42
     }
 
     var body: some View {
-        ShellGlassCard(cornerRadius: 40, tint: ShellTheme.pink, padding: 34) {
-            VStack(spacing: 14) {
+        ShellGlassCard(cornerRadius: 36, tint: ShellTheme.pink, padding: 24) {
+            VStack(spacing: 10) {
                 Text("THE HOT TAKE")
-                    .font(ShellTheme.eyebrow(22))
+                    .font(ShellTheme.eyebrow(20))
                     .tracking(6)
                     .foregroundColor(TalkPalette.forColor)
                 Text(prompt.isEmpty ? " " : prompt)
                     .font(ShellTheme.display(fontSize, weight: .black))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
-                    .lineLimit(3)
+                    .lineLimit(2)
                     .minimumScaleFactor(0.6)
                     .shadow(color: Color.black.opacity(0.4), radius: 6, x: 0, y: 3)
                     .frame(maxWidth: .infinity)
@@ -371,9 +371,9 @@ private struct HotTakesDebaterPanel: View {
     let entranceEdge: HorizontalEdge
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 10) {
             Text(side)
-                .font(ShellTheme.display(44, weight: .black))
+                .font(ShellTheme.display(40, weight: .black))
                 .tracking(6)
                 .foregroundStyle(LinearGradient(colors: [Color.white, color],
                                                 startPoint: .top, endPoint: .bottom))
@@ -388,17 +388,17 @@ private struct HotTakesDebaterPanel: View {
             ZStack {
                 if isActive {
                     HotTakesSoundWaves(color: color)
-                        .frame(width: 230, height: 230)
+                        .frame(width: 170, height: 170)
                 }
                 if playerID.isEmpty {
-                    ShellGhostToken(size: 130)
+                    ShellGhostToken(size: 100)
                 } else {
-                    ShellAvatarToken(id: playerID, name: name, size: 130)
+                    ShellAvatarToken(id: playerID, name: name, size: 100)
                 }
             }
-            .frame(height: 200)
+            .frame(height: 130)
             Text(name.isEmpty ? "Waiting" : name)
-                .font(ShellTheme.display(40, weight: .heavy))
+                .font(ShellTheme.display(36, weight: .heavy))
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
@@ -418,9 +418,9 @@ private struct HotTakesDebaterPanel: View {
                         .transition(.scale.combined(with: .opacity))
                 }
             }
-            .frame(height: 44)
+            .frame(height: 40)
         }
-        .padding(.vertical, 26)
+        .padding(.vertical, 18)
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
         .background {
@@ -513,8 +513,8 @@ private struct HotTakesDebateClock: View {
     }
 
     var body: some View {
-        let size: CGFloat = 400
-        let line: CGFloat = 30
+        let size: CGFloat = 310
+        let line: CGFloat = 26
         ZStack {
             Circle()
                 .stroke(Color.white.opacity(0.08), lineWidth: line)
@@ -536,13 +536,13 @@ private struct HotTakesDebateClock: View {
                 .shadow(color: TalkPalette.forColor.opacity(phase == "for" ? 0.8 : 0.2), radius: 18)
             VStack(spacing: 4) {
                 Text("\(centerNumber)")
-                    .font(ShellTheme.display(150, weight: .black))
+                    .font(ShellTheme.display(120, weight: .black))
                     .monospacedDigit()
                     .foregroundColor(urgent ? TalkPalette.no : .white)
                     .contentTransition(.numericText(countsDown: true))
                     .animation(.default, value: centerNumber)
                 Text(centerLabel)
-                    .font(ShellTheme.eyebrow(28))
+                    .font(ShellTheme.eyebrow(24))
                     .tracking(6)
                     .foregroundColor(centerColor)
             }
@@ -602,14 +602,14 @@ private struct HotTakesVoteStatus: View {
     let phaseSeconds: Int
 
     var body: some View {
-        VStack(spacing: 22) {
+        VStack(spacing: 16) {
             Text("WHO ARGUED BETTER?")
-                .font(ShellTheme.display(36, weight: .black))
+                .font(ShellTheme.display(34, weight: .black))
                 .tracking(2)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
             TalkTimerRing(secondsLeft: secondsLeft, total: max(1, phaseSeconds),
-                          tint: ShellTheme.violet, label: "VOTE", size: 220)
+                          tint: ShellTheme.violet, label: "VOTE", size: 180)
             HStack(spacing: 12) {
                 ForEach(0..<max(voterCount, 0), id: \.self) { i in
                     Circle()
@@ -643,14 +643,14 @@ private struct HotTakesRevealBars: View {
     private var maxVotes: Int { max(1, max(result.forVotes, result.againstVotes)) }
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 12) {
             HStack(alignment: .bottom, spacing: 50) {
                 column(votes: result.forVotes, label: "FOR",
                        color: TalkPalette.forColor, isWinner: result.winnerSide == "for")
                 column(votes: result.againstVotes, label: "AGAINST",
                        color: TalkPalette.againstColor, isWinner: result.winnerSide == "against")
             }
-            .frame(height: 330)
+            .frame(height: 250)
             verdict
                 .scaleEffect(stamped ? 1.0 : 2.2)
                 .opacity(stamped ? 1 : 0)
@@ -662,17 +662,17 @@ private struct HotTakesRevealBars: View {
     }
 
     private func column(votes: Int, label: String, color: Color, isWinner: Bool) -> some View {
-        let fullHeight: CGFloat = 240
+        let fullHeight: CGFloat = 150
         let height: CGFloat = grown ? max(14, fullHeight * CGFloat(votes) / CGFloat(maxVotes)) : 14
         return VStack(spacing: 10) {
             Text("\(grown ? votes : 0)")
-                .font(ShellTheme.display(54, weight: .black))
+                .font(ShellTheme.display(46, weight: .black))
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(LinearGradient(colors: [Color.white.opacity(0.9), color],
                                      startPoint: .top, endPoint: .bottom))
-                .frame(width: 150, height: height)
+                .frame(width: 140, height: height)
                 .shadow(color: color.opacity(isWinner ? 0.9 : 0.3), radius: isWinner ? 28 : 8)
             Text(label)
                 .font(ShellTheme.eyebrow(24))
@@ -695,7 +695,7 @@ private struct HotTakesRevealBars: View {
             VStack(spacing: 6) {
                 if result.landslide {
                     Text("LANDSLIDE!")
-                        .font(ShellTheme.display(56, weight: .black))
+                        .font(ShellTheme.display(46, weight: .black))
                         .foregroundColor(.black)
                         .padding(.horizontal, 26)
                         .padding(.vertical, 6)
@@ -704,7 +704,7 @@ private struct HotTakesRevealBars: View {
                         .shadow(color: TalkPalette.gold.opacity(0.8), radius: 20)
                 }
                 Text("\(result.winnerName) wins!")
-                    .font(ShellTheme.display(46, weight: .black))
+                    .font(ShellTheme.display(40, weight: .black))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)

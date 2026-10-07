@@ -168,7 +168,7 @@ struct TVTwentyQuestionsBoardView: View {
         ZStack {
             TalkStageBackground(leftColor: accent, leftStrength: 0.7,
                                 rightColor: ShellTheme.violet, rightStrength: 0.5)
-            VStack(spacing: 22) {
+            VStack(spacing: 18) {
                 TalkTopBar(symbol: "questionmark.bubble.fill", title: "20 Questions",
                            round: state.round, totalRounds: state.totalRounds,
                            phaseLabel: phaseLabel, accent: accent)
@@ -177,7 +177,7 @@ struct TVTwentyQuestionsBoardView: View {
                     .frame(maxHeight: .infinity)
                 TalkPodRow(players: state.players, badges: podBadges,
                            checked: [], spotlight: spotlight)
-                    .padding(.bottom, 26)
+                    .padding(.bottom, 12)
             }
             if confettiKey > 0 {
                 ShellConfetti(particleCount: 150, duration: 4.5,
@@ -295,22 +295,22 @@ private struct TwentyQCategoryPanel: View {
     let accent: Color
 
     var body: some View {
-        ShellGlassCard(cornerRadius: 36, tint: accent, padding: 30) {
-            VStack(spacing: 20) {
+        ShellGlassCard(cornerRadius: 36, tint: accent, padding: 26) {
+            VStack(spacing: 14) {
                 Text("CATEGORY")
                     .font(ShellTheme.eyebrow(24))
                     .tracking(6)
                     .foregroundColor(accent)
                 ShellIconOrb(symbol: TwentyQCategoryArt.symbol(state.categoryKey),
                              top: accent, bottom: accent.opacity(0.5), accent: accent,
-                             size: 150, isLit: true)
+                             size: 112, isLit: true)
                     .phaseAnimator([false, true]) { content, up in
                         content.offset(y: up ? -6 : 6)
                     } animation: { _ in
                         Animation.easeInOut(duration: 1.6)
                     }
                 Text(state.category.isEmpty ? "?" : state.category)
-                    .font(ShellTheme.display(76, weight: .black))
+                    .font(ShellTheme.display(66, weight: .black))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
@@ -320,7 +320,7 @@ private struct TwentyQCategoryPanel: View {
                 Divider().background(Color.white.opacity(0.2))
                 HStack(spacing: 16) {
                     if !state.answererID.isEmpty {
-                        ShellAvatarToken(id: state.answererID, name: state.answererName, size: 70)
+                        ShellAvatarToken(id: state.answererID, name: state.answererName, size: 64)
                     }
                     VStack(alignment: .leading, spacing: 4) {
                         Text("THE ANSWERER")
@@ -359,7 +359,7 @@ private struct TwentyQQuestionMeter: View {
         VStack(spacing: 24) {
             HStack(alignment: .firstTextBaseline, spacing: 14) {
                 Text("\(left)")
-                    .font(ShellTheme.display(130, weight: .black))
+                    .font(ShellTheme.display(110, weight: .black))
                     .monospacedDigit()
                     .foregroundColor(left <= 5 ? TalkPalette.no : .white)
                     .contentTransition(.numericText(countsDown: true))
@@ -583,7 +583,7 @@ private struct TwentyQRevealStage: View {
     }
 
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 24) {
             Text("IT WAS...")
                 .font(ShellTheme.eyebrow(30))
                 .tracking(8)
@@ -593,7 +593,7 @@ private struct TwentyQRevealStage: View {
             } back: {
                 card(text: "?", glow: ShellTheme.violet, big: true)
             }
-            .frame(width: 1100, height: 260)
+            .frame(width: 1100, height: 230)
             if let r = state.result {
                 verdict(r)
                     .opacity(detailsShown ? 1 : 0)
