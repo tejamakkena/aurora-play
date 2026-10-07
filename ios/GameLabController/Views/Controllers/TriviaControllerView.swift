@@ -388,16 +388,23 @@ struct TriviaControllerView: View {
 /// hue order as the TV's tiles (red, blue, amber, green) so players can
 /// match them across the room.
 enum QuizPadStyle {
-    static let gold: Color = PhonePlayDesign.yellow
+    /// Not Phone Play tokens on purpose: a player tapping tile B has to be
+    /// tapping the same colour the TV is showing for B, so the tiles, the
+    /// doors and the show's gold are the TV's values verbatim -- see
+    /// `TShowPalette` in TVTriviaBoardView.swift. Everything else on this
+    /// screen comes from PhonePlayDesign.
+    static let gold: Color = Color(hex: "FACC15")
     /// Dark ink for text and icons sitting on the gold.
     static let ink: Color = PhonePlayDesign.bg
     static let tileColors: [Color] = [
-        PhonePlayDesign.red, PhonePlayDesign.blue, PhonePlayDesign.yellow, PhonePlayDesign.green,
+        Color(hex: "FF3D7F"), Color(hex: "3D8BFF"), Color(hex: "FFB020"), Color(hex: "22C77A"),
     ]
     static let tileShapes: [String] = ["triangle.fill", "diamond.fill", "circle.fill", "square.fill"]
-    static let doorColors: [Color] = [PhonePlayDesign.pink, PhonePlayDesign.blue, PhonePlayDesign.yellow]
-    /// Not Phone Play tokens on purpose: these must match the TV's avatar
-    /// palette exactly.
+    static let doorColors: [Color] = [
+        Color(hex: "FF4D8D"), Color(hex: "3DA5FF"), Color(hex: "FFB020"),
+    ]
+    /// The TV's avatar palette exactly, so a player is one colour on both
+    /// screens.
     static let avatarColors: [Color] = [
         Color(hex: "F43F5E"), Color(hex: "F97316"), Color(hex: "EAB308"), Color(hex: "22C55E"),
         Color(hex: "14B8A6"), Color(hex: "06B6D4"), Color(hex: "3B82F6"), Color(hex: "6366F1"),

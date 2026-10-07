@@ -524,7 +524,7 @@ private struct ChessPieceGlyph: View {
             Text(solid)
                 .font(.system(size: 30))
                 .minimumScaleFactor(0.5)
-                .foregroundColor(isWhite ? .white : Color(hex: "16161E"))
+                .foregroundColor(isWhite ? GamePieceColors.chessWhite : GamePieceColors.chessBlack)
                 .shadow(color: isWhite ? Color.black.opacity(0.75) : Color.white.opacity(0.35),
                         radius: 1, x: 0, y: 0.5)
         } else {
@@ -614,7 +614,7 @@ struct ChessControllerView: View {
         let white: Bool = myColor == "white"
         return HStack(spacing: 6) {
             Circle()
-                .fill(white ? Color.white : Color(hex: "16161E"))
+                .fill(white ? GamePieceColors.chessWhite : GamePieceColors.chessBlack)
                 .overlay(Circle().strokeBorder(Color.white.opacity(0.6), lineWidth: 1))
                 .frame(width: 14, height: 14)
             Text(myColor.capitalized)
@@ -658,7 +658,7 @@ struct ChessControllerView: View {
                 Rectangle().fill(
                     isSelected ? PhonePlayDesign.yellow.opacity(0.75) :
                     isValidTarget ? PhonePlayDesign.green.opacity(0.45) :
-                    isLight ? Color(hex: "f0d9b5") : Color(hex: "b58863")
+                    isLight ? GamePieceColors.chessLightSquare : GamePieceColors.chessDarkSquare
                 )
                 if !piece.isEmpty {
                     ChessPieceGlyph(piece: piece)

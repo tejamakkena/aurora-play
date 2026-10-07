@@ -197,7 +197,7 @@ private struct DiceFaceView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.18, style: .continuous)
-                .fill(LinearGradient(colors: [Color.white, Color(hex: "E8E8F0")],
+                .fill(LinearGradient(colors: [GamePieceColors.faceWhite, GamePieceColors.faceWhiteEdge],
                                      startPoint: .top, endPoint: .bottom))
             RoundedRectangle(cornerRadius: size * 0.18, style: .continuous)
                 .stroke(Color.black.opacity(0.08), lineWidth: 2)

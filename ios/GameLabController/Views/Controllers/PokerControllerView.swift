@@ -488,10 +488,11 @@ private struct PKCCardFace: View {
         GeometryReader { geo in
             let w: CGFloat = geo.size.width
             let parts = PKCSuit.parse(card)
-            let ink: Color = PKCSuit.isRed(parts.suit) ? Color(hex: "d61f2c") : Color(hex: "121826")
+            let ink: Color = PKCSuit.isRed(parts.suit) ? GamePieceColors.cardRedInk
+                                                       : GamePieceColors.cardBlackInk
             let shape = RoundedRectangle(cornerRadius: w * 0.11, style: .continuous)
             ZStack {
-                shape.fill(LinearGradient(colors: [Color.white, Color(hex: "eef0f4")],
+                shape.fill(LinearGradient(colors: [GamePieceColors.faceWhite, GamePieceColors.faceWhiteEdge],
                                           startPoint: .top, endPoint: .bottom))
                 shape.strokeBorder(Color.black.opacity(0.14), lineWidth: 1)
                 VStack(spacing: 0) {
@@ -524,7 +525,7 @@ private struct PKCCardBack: View {
             ZStack {
                 shape.fill(Color.white)
                 inner
-                    .fill(LinearGradient(colors: [Color(hex: "1e3a8a"), Color(hex: "0b1640")],
+                    .fill(LinearGradient(colors: [GamePieceColors.cardBackTop, GamePieceColors.cardBackBottom],
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
                     .overlay(inner.strokeBorder(PKCColors.gold.opacity(0.75), lineWidth: 2))
                     .padding(w * 0.07)

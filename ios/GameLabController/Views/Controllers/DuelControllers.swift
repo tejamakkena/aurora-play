@@ -852,10 +852,13 @@ struct TeenPattiControllerView: View {
                                         Text(c.suit)
                                             .font(.system(size: 24))
                                     }
-                                    .foregroundColor(c.suit == "♥" || c.suit == "♦" ? PhonePlayDesign.red
-                                                                                     : Color(hex: "16161E"))
+                                    .foregroundColor(c.suit == "♥" || c.suit == "♦"
+                                                     ? GamePieceColors.cardRedInk
+                                                     : GamePieceColors.cardBlackInk)
                                     .frame(width: 74, height: 106)
-                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white))
+                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(PhonePlayDesign.gradient([GamePieceColors.faceWhite,
+                                                                        GamePieceColors.faceWhiteEdge])))
                                     .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
                                     .rotationEffect(.degrees(fanAngle(i, of: cards.count)))
                                     .offset(y: CGFloat(abs(fanAngle(i, of: cards.count))))
