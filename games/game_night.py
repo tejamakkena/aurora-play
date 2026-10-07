@@ -55,6 +55,8 @@ CATALOG: dict[str, dict] = {
     "mafia":              {"minutes": 20, "kids": False, "tags": ["social"]},
     "poker":              {"minutes": 25, "kids": False, "tags": ["cards"]},
     "teen_patti":         {"minutes": 15, "kids": False, "tags": ["cards"]},
+    "hot_takes":          {"minutes": 10, "kids": False, "tags": ["social", "debate"]},
+    "twenty_questions":   {"minutes": 10, "kids": True,  "tags": ["brain", "words"]},
 }
 
 NIGHT_POINTS = (10, 7, 5, 3)
