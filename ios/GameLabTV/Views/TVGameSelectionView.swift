@@ -219,7 +219,7 @@ struct TVGameSelectionView: View {
                 // Each pill carries its category's own accent (the same one
                 // its cards wear), so the sidebar doubles as the grid's
                 // colour legend rather than nine identical cyan pills.
-                ForEach(GameCategory.allCases, id: \.self) { cat in
+                ForEach(GameID.listedCategories, id: \.self) { cat in
                     CategoryPill(label: cat.rawValue,
                                  accent: cat.tvStyle.accent,
                                  isSelected: selectedCategory == cat) {

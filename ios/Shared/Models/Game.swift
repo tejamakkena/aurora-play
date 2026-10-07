@@ -282,7 +282,7 @@ enum GameID: String, Codable, CaseIterable {
             // false here routes Atlas through the plain join flow instead,
             // same as Trivia or Poker -- a phone is required from the very
             // first player, which is the only way this game ever works.
-            return .init(displayName: "Atlas", sfSymbol: "globe", category: .solo,
+            return .init(displayName: "Atlas", sfSymbol: "globe", category: .party,
                          minPlayers: 1, maxPlayers: 8, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
 
@@ -332,10 +332,29 @@ enum GameID: String, Codable, CaseIterable {
     var soloPlayable: Bool           { meta.soloPlayable }
 
     /// Games playable alone on the TV with nothing but the remote.
-    /// Games shown in the apps. Chess stays decodable (older rooms, the
-    /// server registry) but is no longer offered: it plays better on one
-    /// screen than as a phone-plus-TV game.
-    static var listed: [GameID] { allCases.filter { $0 != .chess } }
+    /// Games no longer offered. Each stays decodable (older rooms, the
+    /// server registry) but failed the "does this really need a TV and
+    /// phones, and does it get people talking?" test:
+    ///  - phone-as-joystick real-time games are laggy and frustrating:
+    ///    Pong, Air Hockey, Carrom, Blast Runners;
+    ///  - solo or cluttered games with no conversation: Neon Snake, 2048,
+    ///    Brick Breaker, Simon Says, Memory, Digit Guess, Hot Grid, Chess;
+    ///  - everyone staring at their own phone: Stock Panic, Roulette;
+    ///  - KBC overlaps Trivia Showdown; Story Chain moved to Phone Play.
+    static let retired: Set<GameID> = [
+        .chess, .pong, .airHockey, .carrom, .blastRunners,
+        .neonSnake, .twenty48, .brickBreaker, .simonSays,
+        .memory, .digitGuess, .hotGrid, .stockPanic, .roulette,
+        .kbc, .storyChain,
+    ]
+
+    /// Games shown in the apps.
+    static var listed: [GameID] { allCases.filter { !retired.contains($0) } }
+
+    /// Categories that still have at least one listed game.
+    static var listedCategories: [GameCategory] {
+        GameCategory.allCases.filter { cat in listed.contains { $0.category == cat } }
+    }
 
     static var soloGames: [GameID] { listed.filter(\.soloPlayable) }
 }

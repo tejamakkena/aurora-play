@@ -324,3 +324,12 @@ def test_end_night_drops_the_kids_topic(server):
     assert latest(tv, "room_updated")["topic"] in game_night.KIDS_TOPICS
     tv.emit("end_night", {"roomCode": code}, namespace=NS)
     assert latest(tv, "room_updated")["topic"] == ""
+
+
+def test_retired_games_are_not_picked_for_a_night():
+    retired = {"kbc", "pong", "memory", "hot_grid", "digit_guess", "stock_panic",
+               "roulette", "air_hockey", "carrom", "blast_runners", "neon_snake",
+               "twenty48", "brick_breaker", "simon_says", "story_chain", "chess"}
+    assert not retired & set(game_night.CATALOG)
+    for players in (2, 4, 8):
+        assert not retired & {g["id"] for g in game_night.pick_games(players)}
