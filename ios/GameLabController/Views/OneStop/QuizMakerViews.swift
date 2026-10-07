@@ -376,7 +376,7 @@ struct QuizMakerView: View {
                 }
                 OneStopPrimaryButton(title: completeCount == 1 ? "Use this question" : "Use these \(completeCount) questions",
                                      systemImage: "paperplane.fill",
-                                     colors: [.green, .teal],
+                                     colors: [PhonePlayDesign.green, PhonePlayDesign.cyan],
                                      enabled: completeCount > 0) {
                     useQuestions()
                 }
@@ -516,7 +516,7 @@ struct QuizDraftCard: View {
                     .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .oneStopCard(tint: draft.isComplete ? .cyan : .orange, padding: 14)
+        .oneStopCard(tint: draft.isComplete ? PhonePlayDesign.cyan : PhonePlayDesign.orange, padding: 14)
     }
 
     private var correctText: String {

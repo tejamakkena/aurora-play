@@ -479,7 +479,7 @@ struct NightStandingsList: View {
                         .background(Circle().fill(Self.rankColor(row.rank)))
                     Text(row.name)
                         .font(.subheadline.weight(me ? .bold : .regular))
-                        .foregroundColor(me ? .cyan : .white)
+                        .foregroundColor(me ? PhonePlayDesign.cyan : .white)
                         .lineLimit(1)
                     if row.isBot ?? false {
                         Text("BOT").font(.caption2).foregroundColor(PhonePlayDesign.orange)
@@ -511,9 +511,9 @@ struct NightStandingsList: View {
 
     static func rankColor(_ rank: Int) -> Color {
         switch rank {
-        case 1: return .yellow
+        case 1: return PhonePlayDesign.yellow
         case 2: return Color(white: 0.8)
-        case 3: return .orange
+        case 3: return PhonePlayDesign.orange
         default: return Color.white.opacity(0.1)
         }
     }
@@ -529,7 +529,7 @@ struct NightChampionBanner: View {
             Image(systemName: "crown.fill")
                 .font(.system(size: 30, weight: .bold))
                 .foregroundColor(PhonePlayDesign.yellow)
-                .shadow(color: .yellow.opacity(glow ? 0.8 : 0.2), radius: glow ? 12 : 4)
+                .shadow(color: PhonePlayDesign.yellow.opacity(glow ? 0.8 : 0.2), radius: glow ? 12 : 4)
                 .symbolEffect(.bounce, value: glow)
             VStack(alignment: .leading, spacing: 2) {
                 Text("CHAMPION")

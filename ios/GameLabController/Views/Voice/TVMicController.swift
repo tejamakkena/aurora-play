@@ -132,7 +132,7 @@ struct MicClaimBar: View {
                         .foregroundColor(.white)
                         .frame(width: 52, height: 52)
                         .background(Circle().fill(
-                            mic.isListening ? Color.green : Color.white.opacity(0.15)))
+                            mic.isListening ? PhonePlayDesign.green : Color.white.opacity(0.15)))
                 }
                 .buttonStyle(.plain)
                 .simultaneousGesture(

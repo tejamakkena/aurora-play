@@ -22,19 +22,23 @@ enum ProfilePalette {
 
     static let defaultAvatar = "person.fill"
 
+    /// The ten swatches are the Phone Play palette, not Apple's defaults, so
+    /// a profile colour sits beside the rest of the app. `teal` and `brown`
+    /// are the only two the server names that Phone Play has no token for, so
+    /// they get hexes mixed to the same recipe (saturated, slightly warm).
     static func color(_ name: String) -> Color {
         switch name {
-        case "red":    return .red
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green":  return .green
-        case "teal":   return .teal
-        case "blue":   return .blue
-        case "indigo": return .indigo
-        case "purple": return .purple
-        case "pink":   return .pink
-        case "brown":  return .brown
-        default:       return .cyan
+        case "red":    return PhonePlayDesign.red
+        case "orange": return PhonePlayDesign.orange
+        case "yellow": return PhonePlayDesign.yellow
+        case "green":  return PhonePlayDesign.green
+        case "teal":   return Color(hex: "2BD9C0")
+        case "blue":   return PhonePlayDesign.blue
+        case "indigo": return PhonePlayDesign.indigo
+        case "purple": return PhonePlayDesign.purple
+        case "pink":   return PhonePlayDesign.pink
+        case "brown":  return Color(hex: "C98A5E")
+        default:       return PhonePlayDesign.cyan
         }
     }
 
@@ -361,11 +365,11 @@ struct ProfileEditorView: View {
             }
             if let s = store.stats {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-                    statTile("Games", s.played ?? 0, "gamecontroller.fill", .cyan)
-                    statTile("Wins", s.wins ?? 0, "trophy.fill", .yellow)
-                    statTile("Podiums", s.podiums ?? 0, "medal.fill", .orange)
-                    statTile("Nights", s.nights ?? 0, "moon.stars.fill", .purple)
-                    statTile("Night wins", s.nightWins ?? 0, "crown.fill", .pink)
+                    statTile("Games", s.played ?? 0, "gamecontroller.fill", PhonePlayDesign.cyan)
+                    statTile("Wins", s.wins ?? 0, "trophy.fill", PhonePlayDesign.yellow)
+                    statTile("Podiums", s.podiums ?? 0, "medal.fill", PhonePlayDesign.orange)
+                    statTile("Nights", s.nights ?? 0, "moon.stars.fill", PhonePlayDesign.purple)
+                    statTile("Night wins", s.nightWins ?? 0, "crown.fill", PhonePlayDesign.pink)
                 }
             } else {
                 Text(store.isSyncing ? "Fetching your stats..."

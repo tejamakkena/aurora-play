@@ -31,7 +31,9 @@ struct BrainCell: Hashable {
 /// screens show exactly the same shapes.
 struct BrainShapeView: View {
     let cells: [BrainCell]
-    var color: Color = Color(hex: "38BDF8")
+    /// PhonePlayDesign.cyan / ShellTheme.cyan by value -- Shared/ compiles
+    /// into both targets and so can reference neither kit.
+    var color: Color = Color(hex: "38D6F5")
     /// Number of extrusion layers drawn under the top face.
     var depth: Int = 3
 

@@ -1,5 +1,32 @@
 import SwiftUI
 
+/// The design tokens this file is allowed to use.
+///
+/// `Shared/` compiles into BOTH targets, so it can reference neither
+/// `PhonePlayDesign` (phone) nor `ShellTheme` (TV). One palette therefore
+/// exists in three copies, and these are the third: every hex below is the
+/// same number those two kits carry for the same role, and the radii are
+/// Phone Play's cards-24 / buttons-18 / chips-14. If a token moves in one
+/// kit, move it in all three.
+private enum RulesDesign {
+    static let bg = Color(hex: "0B0B12")
+    static let surface = Color(hex: "15151F")
+    static let surface2 = Color(hex: "1E1E2B")
+    static let text2 = Color(hex: "A7A7B8")
+    static let text3 = Color(hex: "6B6B7E")
+    static let green = Color(hex: "2FE07A")
+    static let cyan = Color(hex: "38D6F5")
+    static let indigo = Color(hex: "6C5CFF")
+    static let pink = Color(hex: "FF5FC8")
+    /// The TV shell's own accent pair (ShellTheme.cyan / ShellTheme.violet).
+    static let tvAccent = Color(hex: "38D6F5")
+    static let tvViolet = Color(hex: "7C3AED")
+
+    static let cardRadius: CGFloat = 24
+    static let buttonRadius: CGFloat = 18
+    static let chipRadius: CGFloat = 14
+}
+
 /// How-to-play interstitial shown once, right after Start Game is pressed.
 ///
 /// The TV presents the `.tv` layout (full screen, large type); the phone
@@ -44,9 +71,6 @@ struct RulesInterstitialView: View {
     // button lifts and glows on focus. Everything here is plain SwiftUI that
     // exists on both iOS 17 and tvOS 17 -- this file compiles into the phone
     // app too -- so it cannot use the TV-only ShellTheme kit.
-
-    private static let tvAccent = Color(hex: "22D3EE")
-    private static let tvViolet = Color(hex: "7C3AED")
 
     private var tvBody: some View {
         ZStack {
@@ -107,16 +131,16 @@ struct RulesInterstitialView: View {
                     .frame(width: 420)
                     .padding(.vertical, 22)
                     .background {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: RulesDesign.buttonRadius, style: .continuous)
                             .fill(LinearGradient(colors: startFocused
                                                     ? [Color.white, Color.white]
-                                                    : [Color.white.opacity(0.9), Self.tvAccent],
+                                                    : [Color.white.opacity(0.9), RulesDesign.tvAccent],
                                                  startPoint: .top,
                                                  endPoint: .bottom))
                     }
                     .foregroundColor(.black)
                     .compositingGroup()
-                    .shadow(color: Self.tvAccent.opacity(startFocused ? 0.75 : 0.25),
+                    .shadow(color: RulesDesign.tvAccent.opacity(startFocused ? 0.75 : 0.25),
                             radius: startFocused ? 34 : 12)
                     .scaleEffect(startFocused ? 1.08 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.65), value: startFocused)
@@ -132,7 +156,7 @@ struct RulesInterstitialView: View {
         } else {
             HStack(spacing: 16) {
                 ProgressView()
-                    .tint(Self.tvAccent)
+                    .tint(RulesDesign.tvAccent)
                     .scaleEffect(1.4)
                 Text("Waiting for host to begin...")
                     .font(.title2)
@@ -149,11 +173,11 @@ struct RulesInterstitialView: View {
     private var tvBackdrop: some View {
         ZStack {
             Color.black.opacity(0.8)
-            RadialGradient(colors: [Self.tvViolet.opacity(0.35), Color.clear],
+            RadialGradient(colors: [RulesDesign.tvViolet.opacity(0.35), Color.clear],
                            center: .topLeading,
                            startRadius: 0,
                            endRadius: 900)
-            RadialGradient(colors: [Self.tvAccent.opacity(0.22), Color.clear],
+            RadialGradient(colors: [RulesDesign.tvAccent.opacity(0.22), Color.clear],
                            center: .bottomTrailing,
                            startRadius: 0,
                            endRadius: 800)
@@ -163,16 +187,16 @@ struct RulesInterstitialView: View {
 
     private var tvPanel: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 44, style: .continuous)
-                .fill(Color(hex: "120C2C").opacity(0.9))
-            RoundedRectangle(cornerRadius: 44, style: .continuous)
+            RoundedRectangle(cornerRadius: RulesDesign.cardRadius, style: .continuous)
+                .fill(RulesDesign.surface.opacity(0.9))
+            RoundedRectangle(cornerRadius: RulesDesign.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color.white.opacity(0.1), Color.white.opacity(0.01)],
                                      startPoint: .topLeading,
                                      endPoint: .bottomTrailing))
-            RoundedRectangle(cornerRadius: 44, style: .continuous)
+            RoundedRectangle(cornerRadius: RulesDesign.cardRadius, style: .continuous)
                 .strokeBorder(LinearGradient(colors: [Color.white.opacity(0.4),
                                                       Color.white.opacity(0.05),
-                                                      Self.tvAccent.opacity(0.35)],
+                                                      RulesDesign.tvAccent.opacity(0.35)],
                                              startPoint: .topLeading,
                                              endPoint: .bottomTrailing),
                               lineWidth: 1.5)
@@ -188,7 +212,7 @@ struct RulesInterstitialView: View {
                 .fill(Color.black.opacity(0.4))
                 .offset(y: 12)
             Circle()
-                .fill(LinearGradient(colors: [Self.tvAccent, Self.tvViolet],
+                .fill(LinearGradient(colors: [RulesDesign.tvAccent, RulesDesign.tvViolet],
                                      startPoint: .topLeading,
                                      endPoint: .bottomTrailing))
             Circle()
@@ -204,7 +228,7 @@ struct RulesInterstitialView: View {
                 .shadow(color: Color.black.opacity(0.3), radius: 3, x: 0, y: 4)
         }
         .frame(width: 180, height: 180)
-        .shadow(color: Self.tvAccent.opacity(0.45), radius: 30)
+        .shadow(color: RulesDesign.tvAccent.opacity(0.45), radius: 30)
         .phaseAnimator([false, true]) { content, phase in
             content
                 .rotation3DEffect(.degrees(phase ? 14 : -14),
@@ -225,18 +249,18 @@ struct RulesInterstitialView: View {
 
             Text(rules.title)
                 .font(.system(size: 64, weight: .heavy, design: .rounded))
-                .foregroundStyle(LinearGradient(colors: [Color.white, Self.tvAccent],
+                .foregroundStyle(LinearGradient(colors: [Color.white, RulesDesign.tvAccent],
                                                 startPoint: .top,
                                                 endPoint: .bottom))
-                .shadow(color: Self.tvAccent.opacity(0.35), radius: 18)
+                .shadow(color: RulesDesign.tvAccent.opacity(0.35), radius: 18)
 
             Text(rules.objective)
                 .font(.title2)
-                .foregroundColor(Self.tvAccent)
+                .foregroundColor(RulesDesign.tvAccent)
 
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(Array(rules.rules.enumerated()), id: \.offset) { index, rule in
-                    TVRuleRow(number: index + 1, text: rule, accent: Self.tvAccent) {
+                    TVRuleRow(number: index + 1, text: rule, accent: RulesDesign.tvAccent) {
                         tvRuleNumber(index + 1)
                     }
                     .opacity(rulesShown ? 1 : 0)
@@ -249,7 +273,7 @@ struct RulesInterstitialView: View {
 
             HStack(spacing: 14) {
                 Image(systemName: "gamecontroller.fill")
-                    .foregroundColor(Self.tvAccent.opacity(0.8))
+                    .foregroundColor(RulesDesign.tvAccent.opacity(0.8))
                 Text(rules.controls)
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.78))
@@ -274,7 +298,7 @@ struct RulesInterstitialView: View {
                         .fill(Color.black.opacity(0.4))
                         .offset(y: 4)
                     Circle()
-                        .fill(LinearGradient(colors: [Self.tvAccent, Self.tvViolet],
+                        .fill(LinearGradient(colors: [RulesDesign.tvAccent, RulesDesign.tvViolet],
                                              startPoint: .topLeading,
                                              endPoint: .bottomTrailing))
                     Circle()
@@ -286,23 +310,11 @@ struct RulesInterstitialView: View {
     // MARK: - Phone card layout
 
     // The phone wears the Phone Play look (dark surface card, party
-    // gradients, rounded heavy type, springy entrance). PhonePlayDesign
-    // lives in the phone target only and this file also compiles for
-    // tvOS, so the matching colours are repeated here.
-    private static let cardBg = Color(hex: "0B0B12")
-    private static let cardSurface = Color(hex: "15151F")
-    private static let cardSurface2 = Color(hex: "1E1E2B")
-    private static let cardText2 = Color(hex: "A7A7B8")
-    private static let cardText3 = Color(hex: "6B6B7E")
-    private static let cardGreen = Color(hex: "2FE07A")
-    private static let cardCyan = Color(hex: "38D6F5")
-    private static let cardIndigo = Color(hex: "6C5CFF")
-    private static let cardPink = Color(hex: "FF5FC8")
-    private static let cardRadius: CGFloat = 24
-
+    // gradients, rounded heavy type, springy entrance), out of the
+    // `RulesDesign` tokens at the top of this file.
     private var cardBody: some View {
         ZStack {
-            Self.cardBg.opacity(0.92).ignoresSafeArea()
+            RulesDesign.bg.opacity(0.92).ignoresSafeArea()
             // Centred when the rules are short, scrollable when long.
             GeometryReader { proxy in
                 ScrollView {
@@ -313,16 +325,16 @@ struct RulesInterstitialView: View {
                                 .foregroundColor(.white)
                                 .frame(width: 56, height: 56)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .fill(LinearGradient(colors: [Self.cardCyan, Self.cardIndigo],
+                                    RoundedRectangle(cornerRadius: RulesDesign.buttonRadius, style: .continuous)
+                                        .fill(LinearGradient(colors: [RulesDesign.cyan, RulesDesign.indigo],
                                                              startPoint: .topLeading, endPoint: .bottomTrailing))
                                 )
-                                .shadow(color: Self.cardCyan.opacity(0.4), radius: 10, y: 4)
+                                .shadow(color: RulesDesign.cyan.opacity(0.4), radius: 10, y: 4)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("HOW TO PLAY")
                                     .font(.system(size: 12, weight: .heavy, design: .rounded))
                                     .tracking(2)
-                                    .foregroundColor(Self.cardText3)
+                                    .foregroundColor(RulesDesign.text3)
                                 Text(rules.title)
                                     .font(.system(size: 28, weight: .black, design: .rounded))
                                     .foregroundColor(.white)
@@ -333,7 +345,7 @@ struct RulesInterstitialView: View {
     
                         Text(rules.objective)
                             .font(.system(size: 16, weight: .bold, design: .rounded))
-                            .foregroundColor(Self.cardCyan)
+                            .foregroundColor(RulesDesign.cyan)
                             .fixedSize(horizontal: false, vertical: true)
     
                         VStack(alignment: .leading, spacing: 10) {
@@ -344,7 +356,7 @@ struct RulesInterstitialView: View {
                                         .foregroundColor(.black)
                                         .frame(width: 28, height: 28)
                                         .background(
-                                            Circle().fill(LinearGradient(colors: [Self.cardGreen, Self.cardCyan],
+                                            Circle().fill(LinearGradient(colors: [RulesDesign.green, RulesDesign.cyan],
                                                                          startPoint: .topLeading,
                                                                          endPoint: .bottomTrailing))
                                         )
@@ -366,18 +378,18 @@ struct RulesInterstitialView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "hand.tap.fill")
                                 .font(.system(size: 15, weight: .bold))
-                                .foregroundColor(Self.cardPink)
+                                .foregroundColor(RulesDesign.pink)
                             Text(rules.controls)
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                .foregroundColor(Self.cardText2)
+                                .foregroundColor(RulesDesign.text2)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 12)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(Self.cardSurface2)
+                            RoundedRectangle(cornerRadius: RulesDesign.chipRadius, style: .continuous)
+                                .fill(RulesDesign.surface2)
                         )
     
                         if let onPrimary {
@@ -392,28 +404,28 @@ struct RulesInterstitialView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 18)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .fill(LinearGradient(colors: [Self.cardGreen, Self.cardCyan],
+                                    RoundedRectangle(cornerRadius: RulesDesign.buttonRadius, style: .continuous)
+                                        .fill(LinearGradient(colors: [RulesDesign.green, RulesDesign.cyan],
                                                              startPoint: .topLeading,
                                                              endPoint: .bottomTrailing))
                                 )
-                                .shadow(color: Self.cardGreen.opacity(0.35), radius: 14, y: 6)
+                                .shadow(color: RulesDesign.green.opacity(0.35), radius: 14, y: 6)
                             }
                             .buttonStyle(RulesCardPressStyle())
                             .padding(.top, 4)
                         } else {
                             HStack(spacing: 10) {
                                 ProgressView()
-                                    .tint(Self.cardCyan)
+                                    .tint(RulesDesign.cyan)
                                 Text("Waiting for host to begin...")
                                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                                    .foregroundColor(Self.cardText2)
+                                    .foregroundColor(RulesDesign.text2)
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(
-                                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                    .fill(Self.cardSurface2)
+                                RoundedRectangle(cornerRadius: RulesDesign.buttonRadius, style: .continuous)
+                                    .fill(RulesDesign.surface2)
                             )
                             .phaseAnimator([false, true]) { content, phase in
                                 content.opacity(phase ? 1.0 : 0.6)
@@ -424,11 +436,11 @@ struct RulesInterstitialView: View {
                     }
                     .padding(22)
                     .background(
-                        RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous)
-                            .fill(Self.cardSurface)
+                        RoundedRectangle(cornerRadius: RulesDesign.cardRadius, style: .continuous)
+                            .fill(RulesDesign.surface)
                     )
                     .overlay(
-                        RoundedRectangle(cornerRadius: Self.cardRadius, style: .continuous)
+                        RoundedRectangle(cornerRadius: RulesDesign.cardRadius, style: .continuous)
                             .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
                     )
                     .shadow(color: Color.black.opacity(0.4), radius: 24, y: 12)
@@ -484,11 +496,11 @@ private struct TVRuleRow<Badge: View>: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: RulesDesign.buttonRadius, style: .continuous)
                 .fill(Color.white.opacity(focused ? 0.1 : 0))
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: RulesDesign.buttonRadius, style: .continuous)
                 .strokeBorder(accent.opacity(focused ? 0.6 : 0), lineWidth: 2)
         }
         .scaleEffect(focused ? 1.02 : 1.0)
