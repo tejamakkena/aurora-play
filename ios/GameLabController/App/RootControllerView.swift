@@ -295,7 +295,14 @@ final class ControllerRootViewModel: ObservableObject {
     @Published var pendingRules: GameRules?
 
     private let socket = GameSocketManager.shared
-    let playerID = AppConstants.deviceID
+
+    /// This phone's seat on the server. It starts as the device id and
+    /// becomes whatever seat `room_joined` hands back: two phones restored
+    /// from one backup send the same device id, and the server seats the
+    /// second one separately (`<id>-2`) rather than letting them share a
+    /// seat, a colour and a score. Everything this phone sends -- actions,
+    /// ready, team moves, reconnects -- is keyed on the seat it was given.
+    @Published private(set) var playerID = AppConstants.deviceID
 
     private static let nameKey = "aurora_player_name"
     /// The name used for the last join, so a reconnect can re-send it.
@@ -343,6 +350,7 @@ final class ControllerRootViewModel: ObservableObject {
             self.pendingJoinCode = nil
             self.showJoinSheet = false
             let room = response.room
+            if !response.playerID.isEmpty { self.playerID = response.playerID }
             self.rememberRoom(room.code)
             switch (room.state, self.screen) {
             case (.playing, .playing(_, let data)):
@@ -437,6 +445,9 @@ final class ControllerRootViewModel: ObservableObject {
         let upper = code.uppercased()
         playerName = name
         pendingRules = nil
+        // Start from the device id: a seat suffix the server handed out in
+        // one room means nothing in the next one.
+        playerID = AppConstants.deviceID
         // Kept until room_joined so an error retry re-opens the sheet with
         // the same code already filled in.
         pendingJoinCode = upper

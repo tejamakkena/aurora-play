@@ -969,7 +969,7 @@ struct ResultsControllerView: View {
     @EnvironmentObject private var vm: ControllerRootViewModel
     @State private var appeared = false
 
-    private var myID: String { AppConstants.deviceID }
+    private var myID: String { vm.playerID }
     private var sorted: [Player] { room.players.sorted { $0.score > $1.score } }
     private var myRank: Int {
         (sorted.firstIndex(where: { $0.id == myID }) ?? 0) + 1
@@ -1093,7 +1093,8 @@ struct ResultsControllerView: View {
             // host moves the room to the next game (or ends the night)
             // instead of replaying this one (Views/OneStop/GameNightViews).
             if let night = room.night {
-                GameNightResultsPanel(room: room, night: night, isHost: vm.isHost)
+                GameNightResultsPanel(room: room, night: night, isHost: vm.isHost,
+                                      myID: vm.playerID)
                     .padding(.horizontal, 20).padding(.bottom, 12)
             } else if vm.isHost {
                 PhonePlayBigButton(title: "Play Again", symbol: "arrow.clockwise",

@@ -221,6 +221,10 @@ struct GameNightStatusCard: View {
     let room: Room
     let night: GameNight
     let isHost: Bool
+    /// This phone's seat (ControllerRootViewModel.playerID), which is the
+    /// device id for the first phone on a device and a seat of its own for
+    /// a second phone sharing that id.
+    var myID: String = AppConstants.deviceID
 
     @State private var confirmEnd = false
 
@@ -253,7 +257,8 @@ struct GameNightStatusCard: View {
             }
 
             if !night.standings.isEmpty {
-                NightStandingsList(standings: night.standings, limit: night.finished ? 8 : 5)
+                NightStandingsList(standings: night.standings,
+                                   limit: night.finished ? 8 : 5, myID: myID)
             }
 
             if isHost {
@@ -318,6 +323,7 @@ struct GameNightResultsPanel: View {
     let room: Room
     let night: GameNight
     let isHost: Bool
+    var myID: String = AppConstants.deviceID
 
     @State private var confirmEnd = false
     @State private var sent = false
@@ -341,7 +347,8 @@ struct GameNightResultsPanel: View {
                 NightChampionBanner(standing: champ)
             }
             if !night.standings.isEmpty {
-                NightStandingsList(standings: night.standings, limit: night.finished ? 5 : 3)
+                NightStandingsList(standings: night.standings,
+                                   limit: night.finished ? 5 : 3, myID: myID)
             }
 
             if isHost {
@@ -464,8 +471,7 @@ struct NightPlaylistStrip: View {
 struct NightStandingsList: View {
     let standings: [NightStanding]
     var limit: Int = 5
-
-    private var myID: String { AppConstants.deviceID }
+    var myID: String = AppConstants.deviceID
 
     var body: some View {
         VStack(spacing: 6) {

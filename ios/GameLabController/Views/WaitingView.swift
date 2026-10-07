@@ -28,7 +28,8 @@ struct WaitingView: View {
 
                     // Game Night scoreboard (everyone sees it while one runs)
                     if let night = room.night {
-                        GameNightStatusCard(room: room, night: night, isHost: vm.isHost)
+                        GameNightStatusCard(room: room, night: night, isHost: vm.isHost,
+                                            myID: vm.playerID)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                     }
 

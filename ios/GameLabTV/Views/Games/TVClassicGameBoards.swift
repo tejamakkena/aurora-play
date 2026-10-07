@@ -308,8 +308,12 @@ struct TVConnect4BoardView: View {
     }
 
     private var subtitle: String {
-        let count = max(seats.count, 2)
-        return "\(count) players  |  \(vm.state.rows) x \(vm.state.cols)  |  four in a row wins"
+        // The real seat count, not a floor of two: it used to read "2
+        // players" whatever the server had actually seated, which hid the
+        // bug where two phones sharing a device id shared one seat.
+        let count = seats.count
+        let who = count == 1 ? "1 player" : "\(count) players"
+        return "\(who)  |  \(vm.state.rows) x \(vm.state.cols)  |  four in a row wins"
     }
 
     private var winnerName: String {
