@@ -73,6 +73,7 @@ struct GameNightPlannerCard: View {
 
     private var header: some View {
         Button {
+            PhonePlayHaptics.tap()
             expanded.toggle()
         } label: {
             HStack(spacing: 12) {
@@ -112,7 +113,10 @@ struct GameNightPlannerCard: View {
                 if loading {
                     ProgressView().scaleEffect(0.7).tint(.white.opacity(0.6))
                 } else {
-                    Button { reloadToken += 1 } label: {
+                    Button {
+                        PhonePlayHaptics.tap()
+                        reloadToken += 1
+                    } label: {
                         Label("Shuffle", systemImage: "shuffle")
                             .font(.system(.caption, design: .rounded, weight: .semibold))
                             .foregroundColor(PhonePlayDesign.orange)
@@ -148,6 +152,7 @@ struct GameNightPlannerCard: View {
                         }
                         if playlist.count > 1 {
                             Button {
+                                PhonePlayHaptics.tap()
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                     playlist.removeAll { $0 == game }
                                 }
@@ -360,7 +365,10 @@ struct GameNightResultsPanel: View {
                             sent = false
                         }
                     }
-                    Button { confirmEnd = true } label: {
+                    Button {
+                        PhonePlayHaptics.tap()
+                        confirmEnd = true
+                    } label: {
                         Text("End night early")
                             .font(.system(.footnote, design: .rounded, weight: .semibold))
                             .foregroundColor(.white.opacity(0.55))

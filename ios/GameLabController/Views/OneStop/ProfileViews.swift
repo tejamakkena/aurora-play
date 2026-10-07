@@ -300,6 +300,7 @@ struct ProfileEditorView: View {
                 ForEach(ProfilePalette.colors, id: \.self) { name in
                     let selected = name == draftColor
                     Button {
+                        PhonePlayHaptics.tap()
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { draftColor = name }
                     } label: {
                         ZStack {
@@ -330,6 +331,7 @@ struct ProfileEditorView: View {
                 ForEach(ProfilePalette.avatars, id: \.self) { symbol in
                     let selected = symbol == draftAvatar
                     Button {
+                        PhonePlayHaptics.tap()
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { draftAvatar = symbol }
                     } label: {
                         Image(systemName: symbol)

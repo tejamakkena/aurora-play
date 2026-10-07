@@ -160,7 +160,10 @@ struct MicClaimBar: View {
                     }
                 }
             } else {
-                Button { mic.claimMic() } label: {
+                Button {
+                    PhonePlayHaptics.tap()
+                    mic.claimMic()
+                } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "mic.fill")
                         Text(mic.micPlayerName ?? "Take the mic")

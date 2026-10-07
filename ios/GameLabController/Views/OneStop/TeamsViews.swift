@@ -123,6 +123,7 @@ struct HostTeamsControl: View {
                 }
                 if current > 0 {
                     Button {
+                        PhonePlayHaptics.tap()
                         TeamEvents.setTeams(roomCode: room.code, count: current)
                     } label: {
                         Image(systemName: "shuffle")

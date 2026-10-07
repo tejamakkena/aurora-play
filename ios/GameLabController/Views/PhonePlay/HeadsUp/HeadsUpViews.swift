@@ -298,6 +298,7 @@ private struct HeadsUpPlayView: View {
     private var playHeader: some View {
         HStack {
             Button {
+                PhonePlayHaptics.tap()
                 game.endEarly()
             } label: {
                 Image(systemName: "xmark")

@@ -72,6 +72,7 @@ struct QuizMakerCard: View {
                         .lineLimit(2)
                     Spacer()
                     Button {
+                        PhonePlayHaptics.tap()
                         OneStopEvents.setCustomQuestions(roomCode: room.code, questions: [])
                         withAnimation { loadedCount = 0; loadedTopic = "" }
                     } label: {
@@ -381,6 +382,7 @@ struct QuizMakerView: View {
                     useQuestions()
                 }
                 Button {
+                    PhonePlayHaptics.tap()
                     stage = .compose
                 } label: {
                     Text("Start over")
@@ -481,7 +483,10 @@ struct QuizDraftCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Button(action: onToggle) {
+            Button {
+                PhonePlayHaptics.tap()
+                onToggle()
+            } label: {
                 HStack(alignment: .top, spacing: 12) {
                     Text("\(number)")
                         .font(.system(.caption, design: .rounded, weight: .heavy))
@@ -538,6 +543,7 @@ struct QuizDraftCard: View {
                 let isCorrect = draft.correct == i
                 HStack(spacing: 10) {
                     Button {
+                        PhonePlayHaptics.tap()
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { draft.correct = i }
                     } label: {
                         ZStack {
@@ -576,7 +582,10 @@ struct QuizDraftCard: View {
                         .foregroundColor(PhonePlayDesign.orange)
                 }
                 Spacer()
-                Button(role: .destructive, action: onDelete) {
+                Button(role: .destructive) {
+                    PhonePlayHaptics.warning()
+                    onDelete()
+                } label: {
                     Label("Delete", systemImage: "trash")
                         .font(.system(.caption, design: .rounded, weight: .semibold))
                         .foregroundColor(PhonePlayDesign.pink)

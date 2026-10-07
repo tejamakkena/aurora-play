@@ -130,15 +130,10 @@ struct OneStopSecondaryButton: View {
     }
 }
 
-/// Subtle squash on press: the Phone Play spring.
-struct OneStopPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-            .brightness(configuration.isPressed ? -0.04 : 0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: configuration.isPressed)
-    }
-}
+/// Subtle squash on press: the Phone Play spring. This used to be a second
+/// copy of `PhonePlayPressStyle`'s body, which is exactly how two presses
+/// drift apart, so it is now the same type under the old name.
+typealias OneStopPressStyle = PhonePlayPressStyle
 
 // MARK: - Socket events
 

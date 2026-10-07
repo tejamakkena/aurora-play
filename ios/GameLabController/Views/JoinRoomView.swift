@@ -265,6 +265,7 @@ struct JoinRoomView: View {
     private var serverSettings: some View {
         VStack(spacing: 10) {
             Button {
+                PhonePlayHaptics.tap()
                 serverText = UserDefaults.standard.string(forKey: AppConstants.serverOverrideKey) ?? ""
                 serverError = false
                 withAnimation(PhonePlayDesign.smooth) { showServer.toggle() }
