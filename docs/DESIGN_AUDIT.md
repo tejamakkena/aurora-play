@@ -34,7 +34,7 @@ colours. `PhonePlayComponents.swift` holds the parts built out of it.
 | `text3` | `6B6B7E` |
 
 Radii: cards **24**, buttons **18**, and -- newly named in this pass -- chips
-**14**. Type: SF Rounded, heavy/black for titles, semibold/medium for body.
+**14** (the TV takes the same three roles at 1.5x; see section 3). Type: SF Rounded, heavy/black for titles, semibold/medium for body.
 Buttons squash (`PhonePlayPressStyle`) and answer (`PhonePlayHaptics`).
 
 ---
@@ -93,9 +93,18 @@ Buttons squash (`PhonePlayPressStyle`) and answer (`PhonePlayHaptics`).
 | indigo | `6C5CFF` | not named | `6C5CFF` |
 | secondary text | `A7A7B8` | white 0.7 (shell) vs 0.62 (boards) | white 0.7 both, plus opaque `A7A7B8` |
 | tertiary text | `6B6B7E` | white 0.45 (shell) vs 0.38 (boards) | white 0.45 both, plus opaque `6B6B7E` |
-| card radius | 24 | 36 (shell) / 28 (boards) / 20-60 ad hoc | 24 |
-| button radius | 18 | 24 | 18 |
-| chip radius | 14 | not named | 14 |
+| card radius | 24 | 36 (shell) / 28 (boards) / 20-60 ad hoc | 24 phone, 36 TV |
+| button radius | 18 | 24 | 18 phone, 27 TV |
+| chip radius | 14 | not named | 14 phone, 21 TV |
+
+The radii are the one place the two apps hold different numbers on purpose.
+tvOS lays out in a 1920-point space, so the phone's 24 on a 390-point-wide
+card is a tenth of the curve the same number gives a 1000-point TV panel --
+across the room it reads as a square box. The TV layer is already scaled
+this way throughout (a 44-point title against the phone's 17), so the radii
+scale with it: `ShellTheme.radiusScale = 1.5` over the phone's three values.
+What is identical is the system -- three roles, one value each, and the same
+ratio between them -- which is what the twenty-two-radii sprawl lacked.
 
 Kept as the TV's own, because Phone Play has no equivalent:
 `violet 7C3AED`, `gold FACC15`, and the ambient backdrop stops

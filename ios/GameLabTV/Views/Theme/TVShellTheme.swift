@@ -48,13 +48,22 @@ enum ShellTheme {
     static let purple = Color(hex: "B07CFF")
     static let indigo = Color(hex: "6C5CFF")
 
-    /// Three radii and no others, the same three Phone Play uses: a card or
-    /// panel is 24, a button or a full-width row is 18, a chip or inline
-    /// pill is 14. Anything smaller belongs to a game piece (a card, a board
-    /// tile, a drawn sprite) and is sized from that piece.
-    static let cardRadius: CGFloat = 24
-    static let buttonRadius: CGFloat = 18
-    static let chipRadius: CGFloat = 14
+    /// Three radii and no others, in Phone Play's three roles: a card or
+    /// panel, a button or full-width row, a chip or inline pill. Anything
+    /// smaller belongs to a game piece (a card, a board tile, a drawn
+    /// sprite) and is sized from that piece.
+    ///
+    /// The values are the phone's 24 / 18 / 14 at the scale this screen
+    /// works in. tvOS lays out in a 1920-point space, so a phone's 24 on a
+    /// 390-point-wide card is a tenth of the curve it would be on a
+    /// 1000-point TV panel -- the same number reads as a square box across
+    /// the room. The whole TV layer is already scaled this way (a 44-point
+    /// title against the phone's 17), so the radii scale with it and the
+    /// ratio between the three roles is what stays identical.
+    static let radiusScale: CGFloat = 1.5
+    static let cardRadius: CGFloat = 24 * radiusScale      // 36
+    static let buttonRadius: CGFloat = 18 * radiusScale    // 27
+    static let chipRadius: CGFloat = 14 * radiusScale      // 21
 
     static let textPrimary = Color.white
     static let textSecondary = Color.white.opacity(0.7)
