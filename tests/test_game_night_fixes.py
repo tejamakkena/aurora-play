@@ -431,6 +431,7 @@ class TestBotPolicies:
         bot = engine.room.add_bot()
         engine.scores[bot.id] = 0
         _trivia_to(engine, "question")
+        engine.choices_at = time.time()     # the question has been read out
         verb, data = bots._policy_trivia(engine, bot.id)
         engine.handle_action(bot.id, verb, data)
         assert bot.id in engine.answered

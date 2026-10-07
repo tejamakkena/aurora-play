@@ -61,6 +61,9 @@ def to_phase(engine, phase, limit=300):
 
 
 def answer(engine, pid, index):
+    """Answer as a phone would: only once the question has been read out
+    (the reading wait is skipped here, as if the TV had just finished)."""
+    engine.choices_at = min(engine.choices_at, time.time())
     engine.handle_action(pid, "answer",
                          {"choiceIndex": index, "questionID": engine.question_id})
 
@@ -495,7 +498,51 @@ class TestBots:
         to_phase(engine, "question")
         verb, data = bots._policy_trivia(engine, bot.id)
         engine.handle_action(bot.id, verb, data)
+        assert bot.id not in engine.answered        # still being read out
+        engine.choices_at = time.time()
+        engine.handle_action(bot.id, verb, data)
         assert bot.id in engine.answered
+
+
+class TestReadingTime:
+    def test_answers_are_locked_while_the_question_is_read(self, monkeypatch):
+        clock = _Clock(monkeypatch)
+        engine, roster = make(players=2, seeds=SEEDS)
+        to_phase(engine, "question")
+        assert engine.choices_at > clock.now
+        engine.handle_action("p0", "answer",
+                             {"choiceIndex": 0, "questionID": engine.question_id})
+        assert "p0" not in engine.answered
+        assert engine.private_state("p0")["showChoices"] is False
+        assert engine.private_state("p0")["answersOpenIn"] > 0
+        # The TV still shows the options while they are read out.
+        assert engine.public_state()["showChoices"] is True
+        assert engine.public_state()["answersOpen"] is False
+        clock.now = engine.choices_at
+        engine.handle_action("p0", "answer",
+                             {"choiceIndex": 0, "questionID": engine.question_id})
+        assert "p0" in engine.answered
+        assert engine.private_state("p1")["showChoices"] is True
+
+    def test_reading_time_follows_the_question_length(self):
+        short = ("Mix", "Capital of Peru?", ["Lima", "Quito", "Bogota", "Cusco"], 0)
+        long = ("Mix", " ".join(["word"] * 30) + "?",
+                ["first long option here", "second long option here",
+                 "third long option here", "fourth long option here"], 1)
+        a, b = TriviaEngine.read_seconds_for(short), TriviaEngine.read_seconds_for(long)
+        assert TriviaEngine.MIN_READ_SECONDS <= a < b <= TriviaEngine.MAX_READ_SECONDS
+
+    def test_bots_wait_for_answers_to_open(self, monkeypatch):
+        clock = _Clock(monkeypatch)
+        engine, roster = make(players=1, bots_count=1, seeds=SEEDS)
+        bot = roster[-1]
+        to_phase(engine, "question")
+        for _ in range(20):                     # tick through the reading
+            clock.advance(0.25)
+            assert bots.maybe_bot_action(engine, bot) is None or clock.now >= engine.choices_at
+        clock.now = engine.choices_at + 10
+        act = bots.maybe_bot_action(engine, bot)
+        assert act is not None and act[0] == "answer"
 
 
 def test_summary_tells_each_phone_its_placing():

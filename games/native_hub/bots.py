@@ -275,6 +275,13 @@ def _maybe_bot_action(engine, player):
         return None
     if now < player.bot_act_at:
         return None
+    # Engines can hold bots back within a phase (Trivia keeps answers locked
+    # while the TV reads the question): think again once it opens.
+    wait_until = getattr(engine, "bot_wait_until", None)
+    opens_at = wait_until() if callable(wait_until) else 0.0
+    if opens_at and now < opens_at:
+        player.bot_act_at = opens_at + random.uniform(THINK_MIN_SECONDS, THINK_MAX_SECONDS)
+        return None
     # Act at most once per phase.
     player.bot_act_at = float("inf")
     return policy(engine, player.id)
