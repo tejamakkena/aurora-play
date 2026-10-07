@@ -86,16 +86,29 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     case daily
     case wordOfDay
     case arcade
+    case mindGym
 
     var id: String { rawValue }
 
     /// Solo games sit in their own section of the home grid.
     var isSolo: Bool {
         switch self {
-        case .daily, .wordOfDay, .arcade:
+        case .daily, .wordOfDay, .arcade, .mindGym:
             return true
         case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .storyChain:
             return false
+        }
+    }
+
+    /// Mind Gym has its own hero card above the party games
+    /// (NeuroHomeCard), so it is not one of the grid cards.
+    var isGridCard: Bool {
+        switch self {
+        case .mindGym:
+            return false
+        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
+             .storyChain, .daily, .wordOfDay, .arcade:
+            return true
         }
     }
 
@@ -111,6 +124,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .daily:          return "Daily Brain"
         case .wordOfDay:      return "Word of the Day"
         case .arcade:         return "Pocket Arcade"
+        case .mindGym:        return "Mind Gym"
         }
     }
 
@@ -126,6 +140,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .daily:          return "Five fresh puzzles a day. Keep your streak."
         case .wordOfDay:      return "One new word a day. Hear it, then use it."
         case .arcade:         return "Reflex games and 2048. Beat your best."
+        case .mindGym:        return "A ten-step brain workout, once a day."
         }
     }
 
@@ -141,6 +156,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .daily:          return "brain.head.profile"
         case .wordOfDay:      return "textformat.abc"
         case .arcade:         return "gamecontroller.fill"
+        case .mindGym:        return "brain.head.profile"
         }
     }
 
@@ -156,6 +172,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .daily:          return [PhonePlayDesign.green, PhonePlayDesign.cyan]
         case .wordOfDay:      return [PhonePlayDesign.purple, PhonePlayDesign.blue]
         case .arcade:         return [PhonePlayDesign.cyan, PhonePlayDesign.indigo]
+        case .mindGym:        return [PhonePlayDesign.indigo, PhonePlayDesign.cyan]
         }
     }
 
@@ -171,6 +188,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .daily:          return "Solo"
         case .wordOfDay:      return "Solo"
         case .arcade:         return "Solo"
+        case .mindGym:        return "Solo"
         }
     }
 }
@@ -334,6 +352,7 @@ final class PhonePlayViewModel: ObservableObject {
     @Published private(set) var storyChain: StoryChainViewModel? = nil
     @Published private(set) var wordOfDay: WordDayViewModel? = nil
     @Published private(set) var arcade: PocketArcadeViewModel? = nil
+    @Published private(set) var mindGym: NeuroPulseViewModel? = nil
 
     /// Travel Mode's narrator voice, reused for the Mafia narrator: one
     /// consistent voice for the whole Phone Play session.
@@ -352,9 +371,19 @@ final class PhonePlayViewModel: ObservableObject {
         case .storyChain:     storyChain = StoryChainViewModel()
         case .wordOfDay:      wordOfDay = WordDayViewModel()
         case .arcade:         arcade = PocketArcadeViewModel()
+        case .mindGym:        mindGym = NeuroPulseViewModel()
         }
         PhonePlayHaptics.tap()
         active = game
+    }
+
+    /// The home card's Progress link: the Mind Gym, opened straight onto
+    /// the Mind Score screen.
+    func openMindScore() {
+        closeGame()
+        mindGym = NeuroPulseViewModel(startOnProgress: true)
+        PhonePlayHaptics.tap()
+        active = .mindGym
     }
 
     /// Back to the Phone Play grid.
@@ -369,6 +398,7 @@ final class PhonePlayViewModel: ObservableObject {
         storyChain?.shutdown()
         wordOfDay?.shutdown()
         arcade?.shutdown()
+        mindGym?.shutdown()
         headsUp = nil
         spy = nil
         mafia = nil
@@ -379,6 +409,7 @@ final class PhonePlayViewModel: ObservableObject {
         storyChain = nil
         wordOfDay = nil
         arcade = nil
+        mindGym = nil
         active = nil
     }
 

@@ -54,8 +54,14 @@ enum NeuroAPI {
     /// `body` is the full POST payload, so a queued session can be replayed
     /// later exactly as it was built.
     static func post(result body: [String: Any]) async -> NeuroSummary? {
-        guard let target = url("api/neuro/result"),
-              let payload = NeuroJSON.data(body) else { return nil }
+        guard let payload = NeuroJSON.data(body) else { return nil }
+        return await post(resultData: payload)
+    }
+
+    /// The payload already serialised, which is what the view model sends:
+    /// `Data` crosses between the main actor and this call cleanly.
+    static func post(resultData payload: Data) async -> NeuroSummary? {
+        guard let target = url("api/neuro/result") else { return nil }
         var request = URLRequest(url: target)
         request.httpMethod = "POST"
         request.timeoutInterval = timeout
