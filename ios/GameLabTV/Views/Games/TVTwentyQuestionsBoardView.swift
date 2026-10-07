@@ -142,7 +142,7 @@ enum TwentyQCategoryArt {
         switch key {
         case "animals": return TVTheme.green
         case "foods":   return TVTheme.orange
-        case "places":  return Color(hex: "60A5FA")
+        case "places":  return TVTheme.blue
         case "movies":  return TVTheme.pink
         case "objects": return TVTheme.gold
         default:        return ShellTheme.cyan

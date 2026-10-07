@@ -34,19 +34,20 @@ struct TalkPlayer: Identifiable, Equatable {
 // MARK: - Palette
 
 enum TalkPalette {
-    /// Hot Takes: FOR is warm, AGAINST is cool.
-    static let forColor = Color(hex: "FF7A2F")
-    static let forColor2 = Color(hex: "FF3D7F")
+    /// Hot Takes: FOR is warm, AGAINST is cool. Same two pairs as
+    /// TalkPad.forColors / againstColors on the phone.
+    static let forColor = TVTheme.orange
+    static let forColor2 = TVTheme.red
     static let againstColor = TVTheme.cyan
-    static let againstColor2 = Color(hex: "4D6BFF")
+    static let againstColor2 = TVTheme.blue
 
-    /// 20 Questions verdicts.
+    /// 20 Questions verdicts, matching TalkPad.verdictColor on the phone.
     static let yes = TVTheme.green
-    static let no = Color(hex: "FF4D6D")
-    static let sometimes = TVTheme.gold
+    static let no = TVTheme.red
+    static let sometimes = TVTheme.yellow
     static let wrongGuess = TVTheme.purple
 
-    static let gold = ShellTheme.gold
+    static let gold = TVTheme.gold
 
     /// A JSON number that may have arrived as an Int or a Double.
     static func number(_ value: Any?) -> Double? {

@@ -47,8 +47,9 @@ struct TVCipherGridBoardView: View {
 
     private func tileColor(_ index: Int) -> Color {
         switch vm.state.revealed[index] {
-        case "red":      return Color(hex: "c0392b")
-        case "blue":     return Color(hex: "2471a3")
+        case "red":      return TVTheme.red
+        case "blue":     return TVTheme.blue
+        // The bystander card's tan card stock, matching the phone's key.
         case "neutral":  return Color(hex: "8d7f6d")
         case "assassin": return .black
         default:         return .white.opacity(0.08)
