@@ -288,9 +288,9 @@ struct TVNeonSnakeBoardView: View {
                 }
             }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .stroke(TVTheme.cyan.opacity(0.3), lineWidth: 3)
         )
         .shadow(color: TVTheme.cyan.opacity(0.18), radius: 30)
@@ -575,7 +575,7 @@ struct TVTwenty48BoardView: View {
                 if vm.state.done { GameOverBanner(score: vm.state.score) }
             }
             .padding(16)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.white.opacity(0.05)))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(.white.opacity(0.05)))
             Spacer()
             RemoteHint(text: "Swipe the remote's touch surface to slide the tiles")
         }
@@ -914,9 +914,9 @@ struct TVBrickBreakerBoardView: View {
             }
         }
         .background(playfield)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(
                     LinearGradient(colors: [Color(hex: "67e8f9").opacity(0.65),
                                             Color(hex: "a78bfa").opacity(0.35)],
@@ -1121,9 +1121,9 @@ struct TVBrickBreakerBoardView: View {
             }
             .padding(.horizontal, 72)
             .padding(.vertical, 46)
-            .background(RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(.black.opacity(0.78)))
-            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(.white.opacity(0.12), lineWidth: 2))
         }
     }
@@ -1247,11 +1247,11 @@ struct TVSimonSaysBoardView: View {
 
     private func pad(_ name: String) -> some View {
         let lit = vm.litPad == name
-        return RoundedRectangle(cornerRadius: 24)
+        return RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
             .fill((colors[name] ?? TVTheme.text3).opacity(lit ? 1.0 : 0.28))
             .frame(width: 220, height: 220)
             .overlay(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
                     .stroke(.white.opacity(lit ? 0.9 : 0.15), lineWidth: lit ? 5 : 2)
             )
             .scaleEffect(lit ? 1.06 : 1.0)

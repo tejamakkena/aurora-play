@@ -813,7 +813,7 @@ private struct TShowDoor: View {
 
     private var interior: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(RadialGradient(colors: [TShowPalette.spotlightCore, TShowPalette.gold, color.opacity(0.9)],
                                      center: .center, startRadius: 10, endRadius: 360))
             VStack(spacing: 18) {
@@ -833,15 +833,15 @@ private struct TShowDoor: View {
 
     private var panel: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(color)
-                .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).fill(Color.black.opacity(0.4)))
+                .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous).fill(Color.black.opacity(0.4)))
                 .offset(x: 10, y: 12)
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [color, color.opacity(0.75)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
             VStack(spacing: 22) {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.35), lineWidth: 5)
                     .frame(height: 150)
                     .overlay(
@@ -857,8 +857,8 @@ private struct TShowDoor: View {
                     .lineLimit(2)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.25)))
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.black.opacity(0.25)))
+                RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.35), lineWidth: 5)
                     .frame(height: 110)
             }
@@ -948,7 +948,7 @@ private struct TShowPowerPickStage: View {
                     .padding(.vertical, 28)
                     .padding(.horizontal, 16)
                     .background(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                             .fill(Color.black.opacity(0.28))
                     )
                 }
@@ -1101,13 +1101,13 @@ private struct TShowHostPlate: View {
         .padding(.vertical, 30)
         .background(
             ZStack {
-                RoundedRectangle(cornerRadius: 36, style: .continuous)
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                     .fill(TShowPalette.stageNight)
                     .offset(y: 12)
-                RoundedRectangle(cornerRadius: 36, style: .continuous)
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                     .fill(LinearGradient(colors: [TShowPalette.stageDeep, TShowPalette.stageFloor],
                                          startPoint: .top, endPoint: .bottom))
-                RoundedRectangle(cornerRadius: 36, style: .continuous)
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                     .strokeBorder(LinearGradient(colors: [TShowPalette.gold, TShowPalette.goldWarm],
                                                  startPoint: .top, endPoint: .bottom),
                                   lineWidth: 6)
@@ -1199,14 +1199,14 @@ private struct TShowAnswerTile: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(color)
-                .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color.black.opacity(0.42)))
+                .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous).fill(Color.black.opacity(0.42)))
                 .offset(y: 12)
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [color, color.opacity(0.78)],
                                      startPoint: .top, endPoint: .bottom))
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0)],
                                      startPoint: .top, endPoint: .center))
                 .padding(4)
@@ -1341,7 +1341,7 @@ private struct TShowPod: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(isLocked ? Color.white.opacity(0.16) : Color.black.opacity(0.25))
         )
         .animation(.spring(response: 0.4, dampingFraction: 0.6), value: result)
@@ -1459,11 +1459,11 @@ private struct TShowStandingRow: View {
         .padding(.horizontal, 26)
         .frame(height: height)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(player.rank == 1 ? TShowPalette.stageDeep : Color.black.opacity(0.32))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(player.rank == 1 ? TShowPalette.gold : Color.white.opacity(0.1), lineWidth: 3)
         )
     }

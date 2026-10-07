@@ -455,7 +455,7 @@ struct TVEmojiMovieBoardView: View {
                             Text(e.owner).font(.caption).foregroundColor(.white.opacity(0.4))
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 22)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(.white.opacity(0.06)))
+                        .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(.white.opacity(0.06)))
                     }
                 }
                 .padding(.horizontal, 90)
@@ -550,7 +550,7 @@ struct TVNPATBoardView: View {
     private var categoryChips: some View {
         HStack(spacing: 22) {
             ForEach(Array(TVNPATBoardView.categories.enumerated()), id: \.offset) { index, category in
-                TVGlassCard(cornerRadius: 22, tint: TVTheme.aurora.blobs[index % 3], padding: 0) {
+                TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: TVTheme.aurora.blobs[index % 3], padding: 0) {
                     HStack(spacing: 12) {
                         Image(systemName: category.symbol)
                             .foregroundColor(TVTheme.aurora.accent)
@@ -603,7 +603,7 @@ private struct PartyPromptCard: View {
     let accent: Color
 
     var body: some View {
-        TVGlassCard(cornerRadius: 32, tint: accent, padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: accent, padding: 0) {
             Text(text)
                 .font(.system(size: size, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
@@ -689,7 +689,7 @@ private struct BluffOptionCard: View {
     }
 
     var body: some View {
-        TVGlassCard(cornerRadius: 24, tint: TVTheme.festival.blobs[index % 3], padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: TVTheme.festival.blobs[index % 3], padding: 0) {
             HStack(spacing: 18) {
                 Text(letter)
                     .font(TVTheme.display(30))

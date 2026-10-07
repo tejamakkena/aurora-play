@@ -175,8 +175,8 @@ struct TVRevealBoardView: View {
             }
         }
         .padding(.horizontal, 60).padding(.vertical, 28)
-        .background(RoundedRectangle(cornerRadius: 24).fill(TVTheme.yellow.opacity(0.12)))
-        .overlay(RoundedRectangle(cornerRadius: 24).stroke(TVTheme.yellow, lineWidth: 3))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(TVTheme.yellow.opacity(0.12)))
+        .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).stroke(TVTheme.yellow, lineWidth: 3))
         .shadow(color: TVTheme.yellow.opacity(0.5), radius: 40)
     }
 }

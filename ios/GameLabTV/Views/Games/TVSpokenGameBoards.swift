@@ -158,11 +158,11 @@ struct SpokenVerdictFlash: View {
                 .padding(.horizontal, 100)
                 .padding(.vertical, 50)
                 .background {
-                    RoundedRectangle(cornerRadius: 60, style: .continuous)
+                    RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                         .fill(ShellTheme.ink.opacity(0.78))
                 }
                 .overlay {
-                    RoundedRectangle(cornerRadius: 60, style: .continuous)
+                    RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                         .strokeBorder(tint.opacity(0.85), lineWidth: 5)
                 }
                 .rotationEffect(.degrees(-4))
@@ -420,7 +420,7 @@ struct TVAtlasBoardView: View {
     }
 
     private var speakerCard: some View {
-        ShellGlassCard(cornerRadius: 34, tint: ShellTheme.cyan, padding: 26) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.cyan, padding: 26) {
             HStack(spacing: 24) {
                 ShellAvatarToken(id: state.currentPlayerID.isEmpty ? "none" : state.currentPlayerID,
                                  name: state.currentName, size: 104)
@@ -600,7 +600,7 @@ private struct SpokenAtlasStopView: View {
 
     var body: some View {
         let tint: Color = isLatest ? ShellTheme.gold : ShellTheme.cyan
-        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
         return VStack(spacing: 4) {
             HStack(spacing: 8) {
                 Text(stop.letter)
@@ -1041,7 +1041,7 @@ private struct SpokenTeamPanel: View {
 
     var body: some View {
         let color: Color = team.color
-        return ShellGlassCard(cornerRadius: 36, tint: color, padding: 28) {
+        return ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: color, padding: 28) {
             VStack(spacing: 14) {
                 Text(roleText)
                     .font(ShellTheme.eyebrow(18))
@@ -1107,7 +1107,7 @@ private struct SpokenSongTurnChip: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: ShellTheme.chipRadius, style: .continuous)
         return HStack(spacing: 8) {
             Circle().fill(color).frame(width: 14, height: 14)
             Text(turn.letter)

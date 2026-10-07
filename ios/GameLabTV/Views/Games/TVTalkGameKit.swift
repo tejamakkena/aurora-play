@@ -277,11 +277,11 @@ struct TalkPod: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(isSpotlit ? Color.white.opacity(0.16) : Color.black.opacity(0.25))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder((badge?.color ?? Color.white).opacity(isSpotlit ? 0.8 : 0), lineWidth: 2)
         )
         .scaleEffect(isSpotlit ? 1.06 : 1.0)

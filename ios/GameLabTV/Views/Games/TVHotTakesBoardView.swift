@@ -328,7 +328,7 @@ private struct HotTakesPromptCard: View {
     }
 
     var body: some View {
-        ShellGlassCard(cornerRadius: 36, tint: ShellTheme.pink, padding: 24) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.pink, padding: 24) {
             VStack(spacing: 10) {
                 Text("THE HOT TAKE")
                     .font(ShellTheme.eyebrow(20))
@@ -424,10 +424,10 @@ private struct HotTakesDebaterPanel: View {
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
         .background {
-            ShellGlassSurface(cornerRadius: 36, tint: color)
+            ShellGlassSurface(cornerRadius: ShellTheme.cardRadius, tint: color)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 36, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(LinearGradient(colors: [color, color2],
                                              startPoint: .topLeading, endPoint: .bottomTrailing),
                               lineWidth: isActive || isWinner ? 5 : 0)
@@ -669,7 +669,7 @@ private struct HotTakesRevealBars: View {
                 .font(ShellTheme.display(46, weight: .black))
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color.white.opacity(0.9), color],
                                      startPoint: .top, endPoint: .bottom))
                 .frame(width: 140, height: height)

@@ -295,7 +295,7 @@ private struct TwentyQCategoryPanel: View {
     let accent: Color
 
     var body: some View {
-        ShellGlassCard(cornerRadius: 36, tint: accent, padding: 26) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: accent, padding: 26) {
             VStack(spacing: 14) {
                 Text("CATEGORY")
                     .font(ShellTheme.eyebrow(24))
@@ -484,7 +484,7 @@ private struct TwentyQTallyPanel: View {
     let state: TwentyQBoardState
 
     var body: some View {
-        ShellGlassCard(cornerRadius: 34, tint: ShellTheme.violet, padding: 26) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.violet, padding: 26) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
                     tallyChip("YES", state.yesCount, TalkPalette.yes)
@@ -529,8 +529,8 @@ private struct TwentyQTallyPanel: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(color.opacity(0.14)))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous).fill(color.opacity(0.14)))
+        .overlay(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
             .strokeBorder(color.opacity(0.5), lineWidth: 1.5))
     }
 }
@@ -608,7 +608,7 @@ private struct TwentyQRevealStage: View {
 
     private func card(text: String, glow: Color, big: Bool) -> some View {
         ZStack {
-            ShellGlassSurface(cornerRadius: 44, tint: glow)
+            ShellGlassSurface(cornerRadius: ShellTheme.cardRadius, tint: glow)
             Text(text)
                 .font(ShellTheme.display(big ? 110 : 60, weight: .black))
                 .foregroundStyle(LinearGradient(colors: [Color.white, glow],

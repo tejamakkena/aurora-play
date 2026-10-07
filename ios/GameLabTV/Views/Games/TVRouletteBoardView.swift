@@ -714,7 +714,7 @@ struct TVRouletteBoardView: View {
                 .frame(minWidth: 120)
                 .padding(.vertical, 12)
                 .padding(.horizontal, 16)
-                .background(RoundedRectangle(cornerRadius: 14).fill(.white.opacity(0.06)))
+                .background(RoundedRectangle(cornerRadius: ShellTheme.chipRadius).fill(.white.opacity(0.06)))
             }
             Spacer()
         }

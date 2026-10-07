@@ -122,9 +122,9 @@ struct TVCipherGridBoardView: View {
             Text("\(left)").font(.system(size: 46, weight: .heavy)).foregroundColor(.white)
         }
         .frame(width: 160).padding(.vertical, 16)
-        .background(RoundedRectangle(cornerRadius: 16)
+        .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
             .fill(color.opacity(active ? 0.35 : 0.12)))
-        .overlay(RoundedRectangle(cornerRadius: 16)
+        .overlay(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
             .stroke(color, lineWidth: active ? 3 : 0))
     }
 }

@@ -125,7 +125,7 @@ struct TVChessBoardView: View {
             }
         }
         .padding(18)
-        .background(RoundedRectangle(cornerRadius: 18).fill(Color(hex: "3b2a1a")))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color(hex: "3b2a1a")))
         .shadow(color: .black.opacity(0.6), radius: 30, y: 12)
     }
 
@@ -193,7 +193,7 @@ struct TVChessBoardView: View {
             }
         }
         .padding(18)
-        .background(RoundedRectangle(cornerRadius: 14)
+        .background(RoundedRectangle(cornerRadius: ShellTheme.chipRadius)
             .fill(active ? TVTheme.yellow.opacity(0.12) : Color.white.opacity(0.05)))
     }
 

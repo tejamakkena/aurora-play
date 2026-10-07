@@ -588,7 +588,7 @@ private struct BrainGlassCard: View {
     let accent: Color
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 36, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
         return ZStack {
             shape.fill(.ultraThinMaterial)
             shape.fill(LinearGradient(colors: [Color.white.opacity(0.14), Color.white.opacity(0.03)],
@@ -677,11 +677,11 @@ private struct BrainDigitBubble: View {
             .foregroundColor(.white)
             .frame(width: 104, height: 132)
             .background(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                     .fill(LinearGradient(colors: [accent.opacity(0.85), accent.opacity(0.35)],
                                          startPoint: .top, endPoint: .bottom))
             )
-            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous)
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.4), lineWidth: 2))
             .shadow(color: accent.opacity(0.7), radius: 18, y: 6)
             .scaleEffect(visible ? 1.0 : 0.2)
@@ -709,7 +709,7 @@ private struct BrainAnswerTile: View {
     @State private var pulse: Bool = false
 
     private var tall: Bool { !shape.isEmpty }
-    private var corner: RoundedRectangle { RoundedRectangle(cornerRadius: 28, style: .continuous) }
+    private var corner: RoundedRectangle { RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous) }
 
     var body: some View {
         HStack(spacing: 22) {
@@ -934,7 +934,7 @@ private struct BrainLockedPanel: View {
         }
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.white.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous).fill(Color.white.opacity(0.06)))
     }
 }
 
@@ -972,7 +972,7 @@ private struct BrainLeaderboard: View {
             }
         }
         .padding(20)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.white.opacity(0.05)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous).fill(Color.white.opacity(0.05)))
         .animation(.spring(response: 0.7, dampingFraction: 0.8), value: orderKey)
     }
 }
@@ -1207,11 +1207,11 @@ private struct BrainTitleCard: View {
         }
         .padding(compact ? 16 : 22)
         .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [accent.opacity(0.28), Color.white.opacity(0.05)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
         )
-        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous)
+        .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
             .stroke(row.rank == 1 ? medal : accent.opacity(0.5), lineWidth: row.rank == 1 ? 3 : 1.5))
         .shadow(color: (row.rank == 1 ? medal : accent).opacity(0.35), radius: 18)
     }

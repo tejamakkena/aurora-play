@@ -98,8 +98,8 @@ private struct BlastBanner: View {
             .foregroundColor(tint)
             .padding(.horizontal, 28)
             .padding(.vertical, 16)
-            .background(RoundedRectangle(cornerRadius: 16).fill(tint.opacity(0.16)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(tint.opacity(0.5), lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(tint.opacity(0.16)))
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).stroke(tint.opacity(0.5), lineWidth: 1))
     }
 }
 

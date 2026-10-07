@@ -89,7 +89,7 @@ struct TVLobbyView: View {
 
     /// The join card with less air, so a Game Night panel fits below it.
     private var compactJoinPanel: some View {
-        ShellGlassCard(cornerRadius: 40, tint: ShellTheme.cyan, padding: 30) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.cyan, padding: 30) {
             VStack(spacing: 18) {
                 Text("JOIN ON YOUR PHONE")
                     .font(ShellTheme.eyebrow(20))
@@ -132,7 +132,7 @@ struct TVLobbyView: View {
     }
 
     private var fullJoinPanel: some View {
-        ShellGlassCard(cornerRadius: 44, tint: ShellTheme.cyan, padding: 44) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.cyan, padding: 44) {
             VStack(spacing: 30) {
                 Text("JOIN ON YOUR PHONE")
                     .font(ShellTheme.eyebrow(24))
@@ -227,7 +227,7 @@ struct TVLobbyView: View {
                 }
             }
 
-            ShellGlassCard(cornerRadius: 36, tint: style.accent, padding: 28) {
+            ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: style.accent, padding: 28) {
                 if let teams = room.teams {
                     TVTeamsRoster(teams: teams, players: room.players)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -471,7 +471,7 @@ private struct LobbyQRCode: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 40, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(RadialGradient(colors: [ShellTheme.cyan.opacity(0.55), ShellTheme.cyan.opacity(0)],
                                      center: .center,
                                      startRadius: side * 0.22,

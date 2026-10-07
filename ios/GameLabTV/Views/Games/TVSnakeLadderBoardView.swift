@@ -360,7 +360,7 @@ private struct SnakeLadderLastRollCard: View {
                 .frame(maxWidth: 180)
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.45)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.black.opacity(0.45)))
     }
 }
 

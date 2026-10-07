@@ -91,7 +91,7 @@ private struct PongScorePanel: View {
     let alignTrailing: Bool
 
     var body: some View {
-        TVGlassCard(cornerRadius: 26, tint: color, glow: color, padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: color, glow: color, padding: 0) {
             HStack(spacing: 22) {
                 if alignTrailing { scoreView }
                 VStack(alignment: alignTrailing ? .trailing : .leading, spacing: 4) {
@@ -966,11 +966,11 @@ private struct Connect4PlayerChip: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 22)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
                 .fill(highlighted ? palette.base.opacity(0.22) : Color.white.opacity(0.05))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
                 .strokeBorder(highlighted ? palette.glow.opacity(0.9) : Color.white.opacity(0.08),
                               lineWidth: highlighted ? 3 : 1)
         )
@@ -997,7 +997,7 @@ private struct Connect4PlayerChip: View {
         }
         .frame(width: 66)
         .padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.25)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.chipRadius).fill(Color.black.opacity(0.25)))
     }
 }
 
@@ -1261,11 +1261,11 @@ private struct TVMemoryCard: View {
     let card: MemoryCard
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
                 .fill(card.state == .matched ? TVTheme.green.opacity(0.25)
                       : card.state == .flipped ? Color.white.opacity(0.15)
                       : Color(hex: "1e1e3a"))
-                .overlay(RoundedRectangle(cornerRadius: 16)
+                .overlay(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
                     .strokeBorder(card.state == .matched ? TVTheme.green.opacity(0.5) : Color.white.opacity(0.06),
                                   lineWidth: 2))
                 .frame(width: 112, height: 112)
@@ -1372,7 +1372,7 @@ struct TVMafiaBoardView: View {
                     }
                 }
                 .padding(20)
-                .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.05)))
+                .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.05)))
                 .padding(.horizontal, 60)
             }
 
@@ -1495,7 +1495,7 @@ struct TVDigitGuessBoardView: View {
                         Spacer()
                     }
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.05)))
+                    .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.05)))
                     .frame(maxWidth: .infinity)
                 }
             }
@@ -1595,7 +1595,7 @@ struct TVRajaMantriBoard: View {
                 }
             }
             .padding(.vertical, 16)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.04)))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.04)))
             .padding(.horizontal, 60)
 
             Spacer()
@@ -1626,7 +1626,7 @@ private struct RajaMantriPlayerCard: View {
             }
         }
         .padding(20)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.06)))
     }
 
     private func roleEmoji(_ r: String) -> String {
@@ -1697,7 +1697,7 @@ struct TVTambolaBoardView: View {
                         Text("Last Called").font(.subheadline).foregroundColor(.white.opacity(0.4))
                     }
                     .padding(24)
-                    .background(RoundedRectangle(cornerRadius: 20).fill(TVTheme.yellow.opacity(0.1)))
+                    .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(TVTheme.yellow.opacity(0.1)))
                 }
 
                 Text("Called: \(vm.state.calledNumbers.count)").font(.body).foregroundColor(.white.opacity(0.5))
@@ -1817,7 +1817,7 @@ struct TVStockPanicBoardView: View {
                 }
             }
             .padding(20)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.04)))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.04)))
             .padding(.horizontal, 60)
 
             Spacer()
@@ -1848,7 +1848,7 @@ private struct StockTile: View {
             .foregroundColor(stock.change >= 0 ? TVTheme.green : TVTheme.red)
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.chipRadius).fill(Color.white.opacity(0.06)))
     }
 }
 
@@ -2016,7 +2016,7 @@ struct TVHotGridBoardView: View {
             TVGlowText(text: "Hot Grid", size: 54, color: TVTheme.ember.accent)
             Spacer()
             if !vm.state.currentPlayerName.isEmpty {
-                TVGlassCard(cornerRadius: 22, tint: TVTheme.gold, glow: TVTheme.gold, padding: 0) {
+                TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: TVTheme.gold, glow: TVTheme.gold, padding: 0) {
                     HStack(spacing: 12) {
                         Image(systemName: "hand.point.up.left.fill").foregroundColor(TVTheme.gold)
                         Text("\(vm.state.currentPlayerName)'s turn")
@@ -2046,10 +2046,10 @@ struct TVHotGridBoardView: View {
         }
         .padding(26)
         .background(
-            RoundedRectangle(cornerRadius: 34, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "2a1206"), Color(hex: "120703")],
                                      startPoint: .top, endPoint: .bottom))
-                .overlay(RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                     .strokeBorder(LinearGradient(colors: [TVTheme.gold.opacity(0.6), Color(hex: "b45309").opacity(0.2)],
                                                  startPoint: .top, endPoint: .bottom),
                                   lineWidth: 2))
@@ -2086,10 +2086,10 @@ private struct HotGridTileView: View {
 
     private var back: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "3f2a1e"), Color(hex: "1c120c")],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(LinearGradient(colors: [Color.white.opacity(0.28), Color.white.opacity(0.04)],
                                              startPoint: .top, endPoint: .bottom),
                               lineWidth: 1.5)
@@ -2103,10 +2103,10 @@ private struct HotGridTileView: View {
 
     private var face: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [faceColors.0, faceColors.1],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color.white.opacity(0.3), Color.white.opacity(0)],
                                      startPoint: .top, endPoint: .center))
             faceContent

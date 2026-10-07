@@ -818,7 +818,7 @@ private struct BattleshipFleetCard: View {
     let isTarget: Bool
 
     var body: some View {
-        TVGlassCard(cornerRadius: 30, tint: TVTheme.ocean.accent,
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: TVTheme.ocean.accent,
                     glow: isTarget ? TVTheme.ocean.accent2 : nil, padding: 28) {
             VStack(spacing: 18) {
                 header
@@ -857,11 +857,11 @@ private struct BattleshipFleetCard: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "0c4a6e"), Color(hex: "082f49")],
                                      startPoint: .top, endPoint: .bottom))
         )
-        .overlay(OceanSheen().clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous)))
+        .overlay(OceanSheen().clipShape(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)))
         .shadow(color: Color.black.opacity(0.5), radius: 24, x: 0, y: 18)
     }
 }
@@ -1038,7 +1038,7 @@ private struct AirHockeyScorePanel: View {
     let alignTrailing: Bool
 
     var body: some View {
-        TVGlassCard(cornerRadius: 26, tint: color, glow: color, padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: color, glow: color, padding: 0) {
             HStack(spacing: 22) {
                 if alignTrailing { TVPopNumber(value: score, size: 64, color: color) }
                 VStack(alignment: alignTrailing ? .trailing : .leading, spacing: 4) {
@@ -1666,9 +1666,9 @@ private struct LudoSidePanel: View {
                         .font(.callout).foregroundColor(.white.opacity(0.6))
                 }
                 .padding(20)
-                .background(RoundedRectangle(cornerRadius: 16)
+                .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
                     .fill(colors[cs % 4].opacity(0.22))
-                    .overlay(RoundedRectangle(cornerRadius: 16)
+                    .overlay(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
                         .stroke(colors[cs % 4], lineWidth: 3)))
             }
             ForEach(state.seats.sorted { $0.seat < $1.seat }, id: \.seat) { seat in
@@ -1697,9 +1697,9 @@ private struct LudoSidePanel: View {
                         .foregroundColor(.white.opacity(0.45))
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
-                .background(RoundedRectangle(cornerRadius: 14)
+                .background(RoundedRectangle(cornerRadius: ShellTheme.chipRadius)
                     .fill(active ? .white.opacity(0.12) : .white.opacity(0.04))
-                    .overlay(RoundedRectangle(cornerRadius: 14)
+                    .overlay(RoundedRectangle(cornerRadius: ShellTheme.chipRadius)
                         .stroke(active ? colors[seat.seat % 4] : .clear, lineWidth: 2)))
             }
             Spacer()
@@ -1717,8 +1717,8 @@ private struct LudoWinnerBanner: View {
             Text(name).font(.system(size: 64, weight: .heavy)).foregroundColor(.white)
         }
         .padding(.horizontal, 70).padding(.vertical, 36)
-        .background(RoundedRectangle(cornerRadius: 24).fill(.black.opacity(0.78))
-            .overlay(RoundedRectangle(cornerRadius: 24).stroke(TVTheme.yellow, lineWidth: 3)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(.black.opacity(0.78))
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).stroke(TVTheme.yellow, lineWidth: 3)))
     }
 }
 
@@ -1824,7 +1824,7 @@ private struct CarromPlayerRow: View {
     }
 
     var body: some View {
-        TVGlassCard(cornerRadius: 22, tint: isCurrent ? TVTheme.gold : Color.white,
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: isCurrent ? TVTheme.gold : Color.white,
                     glow: isCurrent ? TVTheme.gold : nil, padding: 0) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
@@ -1985,7 +1985,7 @@ private struct TPChipBadge: View {
     let glows: Bool
 
     var body: some View {
-        TVGlassCard(cornerRadius: 24, tint: color, glow: glows ? color : nil, padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: color, glow: glows ? color : nil, padding: 0) {
             HStack(spacing: 14) {
                 chip
                 VStack(alignment: .leading, spacing: 0) {
@@ -2041,7 +2041,7 @@ private struct TPSeatCard: View {
     let isCurrent: Bool
 
     var body: some View {
-        TVGlassCard(cornerRadius: 24, tint: isCurrent ? TVTheme.gold : Color.white,
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: isCurrent ? TVTheme.gold : Color.white,
                     glow: isCurrent ? TVTheme.gold : nil, padding: 0) {
             VStack(spacing: 12) {
                 fan
@@ -2192,7 +2192,7 @@ private struct TPShowdownRow: View {
     let cardHeight: CGFloat
 
     var body: some View {
-        TVGlassCard(cornerRadius: 26, tint: isWinner ? TVTheme.gold : Color.white,
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: isWinner ? TVTheme.gold : Color.white,
                     glow: isWinner ? TVTheme.gold : nil, padding: 0) {
             HStack(spacing: 28) {
                 nameLabel

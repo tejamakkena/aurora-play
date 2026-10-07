@@ -1594,12 +1594,12 @@ private struct PKTNamePlate: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "1a1f2b").opacity(0.94), Color(hex: "0a0d13").opacity(0.94)],
                                      startPoint: .top, endPoint: .bottom))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .strokeBorder(edge, lineWidth: isActive || isWinner ? 2.5 : 1.2)
         )
         .shadow(color: Color.black.opacity(0.55), radius: 10, x: 0, y: 6)
@@ -1881,12 +1881,12 @@ private struct PKTScoreboard: View {
         .padding(.vertical, 26)
         .frame(width: 760)
         .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "151a26"), Color(hex: "07090e")],
                                      startPoint: .top, endPoint: .bottom))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(PKTColors.gold.opacity(0.45), lineWidth: 2)
         )
         .shadow(color: Color.black.opacity(0.7), radius: 30, x: 0, y: 16)
@@ -1925,7 +1925,7 @@ private struct PKTScoreboard: View {
         }
         .padding(.horizontal, 18)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .fill(isWinner ? PKTColors.gold.opacity(0.14) : Color.white.opacity(0.04))
         )
     }

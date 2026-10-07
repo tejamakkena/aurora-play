@@ -189,7 +189,7 @@ private struct WinnerBanner: View {
         .frame(maxWidth: .infinity)
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
                 .fill(winner == .guard ? TVTheme.red.opacity(0.15) : TVTheme.green.opacity(0.15))
         )
     }

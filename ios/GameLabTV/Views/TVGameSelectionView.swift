@@ -730,7 +730,7 @@ private struct TVGameHero: View {
         .padding(.vertical, 26)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            ShellGlassSurface(cornerRadius: 40, tint: style.accent)
+            ShellGlassSurface(cornerRadius: ShellTheme.cardRadius, tint: style.accent)
         }
         .accessibilityElement(children: .combine)
     }

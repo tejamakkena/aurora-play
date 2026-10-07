@@ -68,11 +68,11 @@ private struct TVTeamColumn: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(team.tint.opacity(0.14))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(team.tint.opacity(0.55), lineWidth: 2)
         )
         .animation(.spring(response: 0.45, dampingFraction: 0.8), value: team.members)
