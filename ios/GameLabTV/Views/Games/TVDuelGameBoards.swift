@@ -967,7 +967,7 @@ struct TVAirHockeyBoardView: View {
     let room: Room
     @StateObject private var vm = TVBoardModel(initial: AirHockeyState()) { $0.update(from: $1) }
 
-    private static let colors: [Color] = [Color(hex: "22d3ee"), Color(hex: "fb5c8c")]
+    private static let colors: [Color] = [TVTheme.cyan, Color(hex: "fb5c8c")]
 
     private var leaderName: String {
         let sorted = vm.state.paddles.sorted { $0.score > $1.score }
@@ -2080,7 +2080,7 @@ private struct TPSeatCard: View {
         if folded {
             Text("FOLDED").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.textTertiary)
         } else if blind {
-            Text("BLIND").font(.caption.bold()).tracking(2).foregroundColor(Color(hex: "fb923c"))
+            Text("BLIND").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.orange)
         } else if stake > 0 {
             Text("IN FOR \(stake)").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.textSecondary)
         } else {

@@ -11,7 +11,7 @@ struct PlaceholderBoardView: View {
             Text("Coming soon").foregroundColor(.white.opacity(0.4))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
     }
 }
 
@@ -66,13 +66,13 @@ struct TVPongBoardView: View {
             VStack {
                 HStack(alignment: .top) {
                     PongScorePanel(name: vm.state.leftPlayerName, score: vm.state.scoreLeft,
-                                   color: Color(hex: "22d3ee"), alignTrailing: false)
+                                   color: TVTheme.cyan, alignTrailing: false)
                     Spacer()
                     TVGlowText(text: "PONG", size: 46, color: Color(hex: "a78bfa"))
                         .padding(.top, 14)
                     Spacer()
                     PongScorePanel(name: vm.state.rightPlayerName, score: vm.state.scoreRight,
-                                   color: Color(hex: "f472b6"), alignTrailing: true)
+                                   color: TVTheme.pink, alignTrailing: true)
                 }
                 .padding(.horizontal, 70)
                 .padding(.top, 40)
@@ -1244,7 +1244,7 @@ struct TVMemoryBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1383,7 +1383,7 @@ struct TVMafiaBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: vm.state.phase == "day" ? "0a0814" : "00000a").ignoresSafeArea())
+        .background((vm.state.phase == "day" ? TVTheme.bg : Color(hex: "00000a")).ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1503,7 +1503,7 @@ struct TVDigitGuessBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1600,7 +1600,7 @@ struct TVRajaMantriBoard: View {
 
             Spacer()
         }
-        .background(Color(hex: "0a0814").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1743,7 +1743,7 @@ struct TVTambolaBoardView: View {
             .padding(24)
         }
         .padding(60)
-        .background(Color(hex: "0a0814").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1822,7 +1822,7 @@ struct TVStockPanicBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1938,7 +1938,7 @@ struct TVMindMeldBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: "0d0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -2142,7 +2142,7 @@ private struct HotGridTileView: View {
         switch tile {
         case .coin: return (Color(hex: "f59e0b"), Color(hex: "92400e"))
         case .trap: return (Color(hex: "ef4444"), Color(hex: "7f1d1d"))
-        case .teleport: return (Color(hex: "a855f7"), Color(hex: "4c1d95"))
+        case .teleport: return (TVTheme.purple, Color(hex: "4c1d95"))
         case .hidden, .none: return (Color(hex: "3f2a1e"), Color(hex: "1c120c"))
         }
     }
@@ -2219,7 +2219,7 @@ struct TVSpeedSculptorBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }

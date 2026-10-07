@@ -60,13 +60,13 @@ struct SpokenSkip: Equatable {
 
 enum SpokenTVStyle {
     static let valid: Color = ShellTheme.mint
-    static let out: Color = Color(hex: "F43F5E")
+    static let out: Color = TVTheme.red
     static let warn: Color = ShellTheme.orange
 
     /// Team colour names come from games/teams.py ("red", "blue", ...).
     static func teamColor(_ name: String, index: Int) -> Color {
         switch name.lowercased() {
-        case "red": return Color(hex: "F43F5E")
+        case "red": return TVTheme.red
         case "blue": return Color(hex: "3B82F6")
         case "green": return ShellTheme.mint
         case "yellow", "gold": return ShellTheme.gold

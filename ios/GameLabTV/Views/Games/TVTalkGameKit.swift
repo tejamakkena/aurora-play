@@ -37,14 +37,14 @@ enum TalkPalette {
     /// Hot Takes: FOR is warm, AGAINST is cool.
     static let forColor = Color(hex: "FF7A2F")
     static let forColor2 = Color(hex: "FF3D7F")
-    static let againstColor = Color(hex: "22D3EE")
+    static let againstColor = TVTheme.cyan
     static let againstColor2 = Color(hex: "4D6BFF")
 
     /// 20 Questions verdicts.
-    static let yes = Color(hex: "34D399")
+    static let yes = TVTheme.green
     static let no = Color(hex: "FF4D6D")
-    static let sometimes = Color(hex: "FACC15")
-    static let wrongGuess = Color(hex: "A855F7")
+    static let sometimes = TVTheme.gold
+    static let wrongGuess = TVTheme.purple
 
     static let gold = ShellTheme.gold
 

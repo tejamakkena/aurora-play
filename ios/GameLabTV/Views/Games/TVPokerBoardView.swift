@@ -587,7 +587,7 @@ private enum PKTColors {
     static let leatherBottom = Color(hex: "120d0a")
     static let ink = Color(hex: "0b0f17")
     static let red = Color(hex: "ef4444")
-    static let mint = Color(hex: "34d399")
+    static let mint = TVTheme.green
 }
 
 // MARK: - The stage

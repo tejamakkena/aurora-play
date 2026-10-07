@@ -29,7 +29,7 @@ struct TVHeistBoardView: View {
         HStack(spacing: 0) {
             // Main board — 5/7 width
             ZStack {
-                Color(hex: "0a0a14").ignoresSafeArea()
+                TVTheme.bg.ignoresSafeArea()
 
                 HeistCinematicBoardSceneView(state: vm.state)
                     .ignoresSafeArea()

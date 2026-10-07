@@ -140,11 +140,11 @@ enum TwentyQCategoryArt {
 
     static func color(_ key: String) -> Color {
         switch key {
-        case "animals": return Color(hex: "34D399")
-        case "foods":   return Color(hex: "FB923C")
+        case "animals": return TVTheme.green
+        case "foods":   return TVTheme.orange
         case "places":  return Color(hex: "60A5FA")
-        case "movies":  return Color(hex: "F472B6")
-        case "objects": return Color(hex: "FACC15")
+        case "movies":  return TVTheme.pink
+        case "objects": return TVTheme.gold
         default:        return ShellTheme.cyan
         }
     }

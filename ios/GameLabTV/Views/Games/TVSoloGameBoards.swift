@@ -923,7 +923,7 @@ struct TVBrickBreakerBoardView: View {
                                    startPoint: .top, endPoint: .bottom),
                     lineWidth: 3)
         )
-        .shadow(color: Color(hex: "22d3ee").opacity(0.22), radius: 44)
+        .shadow(color: TVTheme.cyan.opacity(0.22), radius: 44)
         .overlay(alignment: .top) { hud }
         .overlay { readyBadge }
         .overlay { banner }
@@ -1033,13 +1033,13 @@ struct TVBrickBreakerBoardView: View {
                             height: paddleH)
         ctx.fill(Path(roundedRect: paddle.insetBy(dx: -paddleH * 1.5, dy: -paddleH * 1.5),
                       cornerRadius: paddleH * 2),
-                 with: .color(Color(hex: "22d3ee").opacity(0.13)))
+                 with: .color(TVTheme.cyan.opacity(0.13)))
         ctx.fill(Path(roundedRect: paddle.insetBy(dx: -paddleH * 0.55, dy: -paddleH * 0.55),
                       cornerRadius: paddleH * 1.3),
-                 with: .color(Color(hex: "22d3ee").opacity(0.26)))
+                 with: .color(TVTheme.cyan.opacity(0.26)))
         ctx.fill(Path(roundedRect: paddle, cornerRadius: paddleH / 2),
                  with: .linearGradient(
-                    Gradient(colors: [Color(hex: "f0fdff"), Color(hex: "22d3ee"), Color(hex: "0e7490")]),
+                    Gradient(colors: [Color(hex: "f0fdff"), TVTheme.cyan, Color(hex: "0e7490")]),
                     startPoint: CGPoint(x: paddle.midX, y: paddle.minY),
                     endPoint: CGPoint(x: paddle.midX, y: paddle.maxY)))
 
@@ -1099,7 +1099,7 @@ struct TVBrickBreakerBoardView: View {
                 .font(.system(size: 40, weight: .heavy, design: .rounded))
                 .tracking(8)
                 .foregroundColor(.white.opacity(0.82))
-                .shadow(color: Color(hex: "22d3ee").opacity(0.6), radius: 18)
+                .shadow(color: TVTheme.cyan.opacity(0.6), radius: 18)
                 .transition(.opacity)
         }
     }

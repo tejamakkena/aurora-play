@@ -169,11 +169,11 @@ enum BrainPalette {
 
     static func skillColor(_ skill: String) -> Color {
         switch skill {
-        case "Patterns":     return Color(hex: "A855F7")
+        case "Patterns":     return TVTheme.purple
         case "Number Speed": return Color(hex: "F59E0B")
-        case "Memory":       return Color(hex: "EC4899")
-        case "Logic":        return Color(hex: "22D3EE")
-        case "Word Smarts":  return Color(hex: "34D399")
+        case "Memory":       return TVTheme.pink
+        case "Logic":        return TVTheme.cyan
+        case "Word Smarts":  return TVTheme.green
         case "Spatial":      return Color(hex: "60A5FA")
         default:             return Color(hex: "818CF8")
         }
@@ -873,7 +873,7 @@ private struct BrainTimerRing: View {
     }
 
     private var urgent: Bool { label == "SECONDS" && secondsLeft > 0 && secondsLeft <= 5 }
-    private var ringColor: Color { urgent ? Color(hex: "F43F5E") : tint }
+    private var ringColor: Color { urgent ? TVTheme.red : tint }
 
     var body: some View {
         ZStack {
