@@ -15,7 +15,8 @@ def isolated_content_service(tmp_path, monkeypatch):
     monkeypatch.setenv("BRAIN_SCORES_PATH", str(tmp_path / "brain_scores.json"))
     for var, name in (("PROFILES_PATH", "profiles.json"),
                       ("DAILY_SCORES_PATH", "daily_scores.json"),
-                      ("DECKS_CACHE_PATH", "decks_cache.json")):
+                      ("DECKS_CACHE_PATH", "decks_cache.json"),
+                      ("NEURO_PATH", "neuropulse.json")):
         monkeypatch.setenv(var, str(tmp_path / name))
     content_service.reset_for_tests()
     yield

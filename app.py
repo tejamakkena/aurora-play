@@ -139,7 +139,9 @@ def create_app(config_name='default'):
     from games.game_night import game_night_bp
     from games.daily import daily_bp
     from games.ai_decks import decks_bp
-    for bp in (profiles_bp, game_night_bp, daily_bp, decks_bp):
+    # NeuroPulse: the daily ten-step brain workout and its ELO ratings.
+    from games.neuropulse import neuro_bp
+    for bp in (profiles_bp, game_night_bp, daily_bp, decks_bp, neuro_bp):
         app.register_blueprint(bp, url_prefix='/api')
 
     # Apply rate limiting to all game blueprints (configurable via RATE_LIMIT env var, default: 100/hour)
