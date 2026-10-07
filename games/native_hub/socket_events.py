@@ -52,6 +52,38 @@ def _rate_limited(sid: str) -> bool:
     return False
 
 
+# A phone's player id is a UUID kept in UserDefaults, and UserDefaults rides
+# along in an iCloud/iTunes backup. Two phones set up from the same backup
+# therefore send the *same* player id, and the old join path read that as
+# "this device is reclaiming its seat": both phones ended up driving one
+# seat, with one colour, one turn and one score. Connect 4 showed it most
+# plainly -- every disc came out the same colour however many people were
+# playing -- but it broke every turn-based game the same way.
+#
+# So a seat is only handed back when nobody is holding it. ``_seat_for``
+# returns the seat id this socket should own: the shared id itself when it
+# is free or already this socket's, otherwise a seat of its own.
+MAX_SEATS_PER_DEVICE = 8
+
+
+def _seat_for(room, player_id: str, sid: str) -> str | None:
+    """The seat id this socket owns. None when the id is exhausted.
+
+    The first phone keeps the plain device id, so a normal reconnect (and
+    every room, game and profile record keyed on that id) is untouched. A
+    second live phone sharing the id gets ``<id>-2``, a third ``<id>-3``.
+    The suffixed seat is just as reclaimable as the plain one: the same
+    phone reconnecting lands back on the first seat that is free, which is
+    its own, because the other phone still holds the one in front of it.
+    """
+    for index in range(1, MAX_SEATS_PER_DEVICE + 1):
+        seat = player_id if index == 1 else f"{player_id}-{index}"
+        held = room.player(seat)
+        if held is None or held.sid == sid or not held.connected:
+            return seat
+    return None
+
+
 def _valid_pack(raw) -> str:
     """Sanitize the client-supplied content-pack id. Unknown -> 'en'."""
     pack = str(raw or "en").strip().lower()[:8]
@@ -126,7 +158,7 @@ def register_native_events(socketio):
             host_id = v.player_id(data.get("hostID"))
             if solo and host_id:
                 # Not added to room.players yet -- reported directly that
-                # solo games (e.g. Atlas, which needs typed answers) had no
+                # solo games (e.g. Atlas, which needs phones to play) had no
                 # way to bring in a phone at all, because this player used to
                 # be created immediately and the room auto-started before a
                 # phone could ever join it. Held here instead, and only
@@ -188,9 +220,19 @@ def register_native_events(socketio):
         resumed = False
 
         with room.lock:
+            # One seat per phone, even when two phones share a player id
+            # (see _seat_for). The seat id replaces `pid` from here on: it
+            # is what the room, the engine and this phone all key on, and
+            # it is echoed back in room_joined so the phone adopts it.
+            seat = _seat_for(room, pid, sid)
+            if seat is None:
+                push_error(socketio, sid, "Too many phones on this device id",
+                           "DEVICE_SEATS_EXHAUSTED")
+                return
+            pid = seat
             existing = room.player(pid)
             if existing is not None:
-                # Same device reclaiming its seat after a drop.
+                # Same phone reclaiming its seat after a drop.
                 existing.sid = sid
                 existing.connected = True
                 existing.disconnected_at = None

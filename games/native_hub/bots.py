@@ -6,7 +6,7 @@ each bot waits a short random "thinking" delay after a phase starts, acts at
 most once per phase, and then stays quiet. Policies are pure functions of
 engine state -- no sockets, no threads -- so they stay unit-testable.
 
-Only round-based party games get policies. A game with no policy simply gets
+Only party games and the spoken games get policies. A game with no policy simply gets
 no bot actions (bots abstain) rather than a wrong guess at its protocol.
 """
 
@@ -36,10 +36,18 @@ _LIES = [
 
 
 def _phase_key(engine) -> str:
-    """Identify the current decision point for "act once per phase" tracking."""
+    """Identify the current decision point for "act once per phase" tracking.
+
+    An engine whose single phase holds many decisions (the 20 Questions
+    Answerer replies once per question) exposes ``bot_step`` so each one
+    counts as a fresh decision point.
+    """
     round_no = getattr(engine, "round", 0)
     phase = getattr(engine, "phase", "")
-    return f"{round_no}:{phase}"
+    step = getattr(engine, "bot_step", None)
+    if step is None:
+        return f"{round_no}:{phase}"
+    return f"{round_no}:{phase}:{step}"
 
 
 #: How often a trivia bot knows the answer: a fair opponent, not a wall.
@@ -107,28 +115,67 @@ def _policy_bluff_it(engine, bot_id):
     return None
 
 
+# ---- Spoken games (spoken.py) ------------------------------------------------
+# A bot cannot talk or sing, so in Atlas and Antakshari it only does what a
+# phone does: judge the speaker (mostly generously) and, after its own turn,
+# tap a plausible last letter.
+
+#: How often a bot judge waves a turn through.
+SPOKEN_BOT_GENEROSITY = 0.8
+#: How often a bot speaker is stumped and lets the Atlas clock run out.
+ATLAS_BOT_STUMPED = 0.15
+
+#: Common last letters of place names and of (transliterated) Hindi songs,
+#: weighted by repetition.
+_PLACE_ENDINGS = "AAAAANNNYYLLDOESRIK"
+_SONG_ENDINGS = "AAAEEIIINNHHRRMKLY"
+
+
+def _atlas_bot_place(engine):
+    """A real place for the letter the bot was asked for, or ''."""
+    from games.native_hub.engines import _content as C
+    chain = getattr(engine, "chain", None) or []
+    letter = (chain[-1].get("letter") if chain else "") or getattr(engine, "letter", "")
+    used = {(e.get("place") or "").lower() for e in chain}
+    pool = sorted(p for p in C.ATLAS_PLACES
+                  if letter and p.startswith(letter.lower()) and p not in used)
+    return random.choice(pool).title() if pool else ""
+
+
+def _policy_atlas(engine, bot_id):
+    phase = getattr(engine, "phase", "")
+    speaker = getattr(engine, "speaker", None)
+    if phase == "say":
+        if bot_id == speaker:
+            if random.random() < ATLAS_BOT_STUMPED:
+                return None
+            return ("said", {})
+        speaker_player = engine.room.player(speaker) if speaker else None
+        if speaker_player is not None and speaker_player.is_bot:
+            # Nothing was said out loud: leave a bot's turn to its own
+            # "said" (or the clock), and to any human who calls Out!.
+            return None
+        verdict = "valid" if random.random() < SPOKEN_BOT_GENEROSITY else "out"
+        return ("judge", {"verdict": verdict})
+    if phase == "letter" and bot_id == speaker:
+        place = _atlas_bot_place(engine)
+        letter = place[-1].upper() if place else random.choice(_PLACE_ENDINGS)
+        return ("pick_letter", {"letter": letter, "place": place})
+    return None
+
+
 def _policy_antakshari(engine, bot_id):
-    if engine.phase != "sing":
+    phase = getattr(engine, "phase", "")
+    team = getattr(engine, "team_of", {}).get(bot_id)
+    singing = getattr(engine, "singing", 0)
+    if team is None:
         return None
-    # The first valid song takes the round, and a bot "types" in seconds;
-    # sitting out about half the rounds leaves the humans something to win.
-    if random.random() < 0.5:
-        return None
-    letter = (getattr(engine, "letter", "") or "").upper()
-    songs = getattr(engine, "songs", None) or _ANTAKSHARI_SONGS
-    fitting = [s for s in songs if s.upper().startswith(letter)] if letter else []
-    pool = fitting or songs
-    return ("submit_song", {"song": random.choice(pool)})
-
-
-_ANTAKSHARI_SONGS = [
-    "Aaja Nachle", "Bommarillu", "Chaiyya Chaiyya", "Dhoom Machale",
-    "Enna Solla Pogirai", "Gerua", "Hosanna", "Illahi",
-    "Jai Ho", "Kabhi Khushi Kabhie Gham", "Lungi Dance", "Maa Tujhe Salaam",
-    "Natu Natu", "O Antava", "Pinga", "Que Sera Sera",
-    "Radha", "Saami Saami", "Tum Hi Ho", "Udta Punjab",
-    "Vaste", "Why This Kolaveri", "Yeh Dosti", "Zinda",
-]
+    if phase == "sing" and team != singing:
+        verdict = "sang" if random.random() < SPOKEN_BOT_GENEROSITY else "missed"
+        return ("judge", {"verdict": verdict})
+    if phase == "letter" and team == singing:
+        return ("pick_letter", {"letter": random.choice(_SONG_ENDINGS)})
+    return None
 
 
 def _policy_most_likely_to(engine, bot_id):
@@ -154,6 +201,33 @@ def _policy_brain_battle(engine, bot_id):
     return ("answer", {"choice": random.choice(options)})
 
 
+def _policy_hot_takes(engine, bot_id):
+    """A bot cannot argue out loud: as a debater it hands the floor back
+    straight away (so the room is not left with 30 s of silence); as a
+    voter it votes for a random side."""
+    phase = getattr(engine, "phase", "")
+    if phase in ("for", "against"):
+        speaker = engine.for_id if phase == "for" else engine.against_id
+        if speaker == bot_id:
+            return ("done_speaking", {})
+        return None
+    if phase == "vote" and engine.is_voter(bot_id) and bot_id not in engine.votes:
+        return ("vote", {"side": random.choice(["for", "against"])})
+    return None
+
+
+def _policy_twenty_questions(engine, bot_id):
+    """As the Answerer, answer yes or no at random (it cannot hear the
+    question). Never guesses."""
+    if getattr(engine, "phase", "") != "ask":
+        return None
+    if getattr(engine, "answerer_id", None) != bot_id:
+        return None
+    if str(getattr(engine, "bot_step", "")).endswith("wait"):
+        return None                       # give the room time to ask
+    return ("answer", {"value": random.choice(["yes", "no"])})
+
+
 #: game_id -> policy. Deliberately explicit: adding a game here is a
 #: conscious decision that the bot understands that game's protocol.
 #: NOTE: emoji_movie is intentionally excluded -- bot emoji output would be
@@ -164,8 +238,11 @@ POLICIES = {
     "kbc": _policy_kbc,
     "bluff_it": _policy_bluff_it,
     "antakshari": _policy_antakshari,
+    "atlas": _policy_atlas,
     "most_likely_to": _policy_most_likely_to,
     "brain_battle": _policy_brain_battle,
+    "hot_takes": _policy_hot_takes,
+    "twenty_questions": _policy_twenty_questions,
 }
 
 
@@ -197,6 +274,13 @@ def _maybe_bot_action(engine, player):
                                                 THINK_MAX_SECONDS)
         return None
     if now < player.bot_act_at:
+        return None
+    # Engines can hold bots back within a phase (Trivia keeps answers locked
+    # while the TV reads the question): think again once it opens.
+    wait_until = getattr(engine, "bot_wait_until", None)
+    opens_at = wait_until() if callable(wait_until) else 0.0
+    if opens_at and now < opens_at:
+        player.bot_act_at = opens_at + random.uniform(THINK_MIN_SECONDS, THINK_MAX_SECONDS)
         return None
     # Act at most once per phase.
     player.bot_act_at = float("inf")

@@ -82,7 +82,7 @@ private struct HeadsUpPickView: View {
                         }
                         .tint(PhonePlayDesign.orange)
                         .padding(16)
-                        .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .fill(PhonePlayDesign.surface))
                     }
                 }
@@ -104,7 +104,7 @@ private struct HeadsUpDeckCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: deck.symbol)
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 Spacer(minLength: 0)
                 Text(deck.title)
@@ -120,7 +120,7 @@ private struct HeadsUpDeckCard: View {
             .padding(16)
             .frame(maxWidth: .infinity, minHeight: 140, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.gradient(deck.colors))
             )
             .shadow(color: (deck.colors.first ?? .clear).opacity(0.3), radius: 10, y: 5)
@@ -147,7 +147,7 @@ private struct HeadsUpReadyView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     Image(systemName: "iphone.landscape")
-                        .font(.system(size: 80, weight: .regular))
+                        .font(.system(size: 80, weight: .regular, design: .rounded))
                         .foregroundStyle(PhonePlayDesign.gradient(game.deck.colors))
                         .phonePlayIdle(tilt: 22, duration: 0.7)
                         .padding(.top, 20)
@@ -203,7 +203,7 @@ private struct HeadsUpRuleTile: View {
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: symbol)
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundColor(color)
             Text(title)
                 .font(.system(size: 17, weight: .heavy, design: .rounded))
@@ -214,7 +214,7 @@ private struct HeadsUpRuleTile: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(color.opacity(0.12)))
     }
 }
@@ -298,10 +298,11 @@ private struct HeadsUpPlayView: View {
     private var playHeader: some View {
         HStack {
             Button {
+                PhonePlayHaptics.tap()
                 game.endEarly()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(Color.black.opacity(0.2)))
@@ -339,7 +340,7 @@ private struct HeadsUpPlayView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
-                        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .fill(PhonePlayDesign.orange))
                 }
                 .buttonStyle(PhonePlayPressStyle())
@@ -351,7 +352,7 @@ private struct HeadsUpPlayView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
-                        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .fill(PhonePlayDesign.green))
                 }
                 .buttonStyle(PhonePlayPressStyle())
@@ -387,7 +388,7 @@ private struct HeadsUpFlashView: View {
                 .ignoresSafeArea()
             VStack(spacing: 8) {
                 Image(systemName: isCorrect ? "checkmark.circle.fill" : "arrow.uturn.right.circle.fill")
-                    .font(.system(size: max(50, shortSide * 0.18), weight: .bold))
+                    .font(.system(size: max(50, shortSide * 0.18), weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .scaleEffect(popped ? 1 : 0.4)
                 Text(isCorrect ? "CORRECT" : "PASS")
@@ -469,7 +470,7 @@ private struct HeadsUpResultRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: result.correct ? "checkmark.circle.fill" : "arrow.uturn.right.circle.fill")
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundColor(result.correct ? PhonePlayDesign.green : PhonePlayDesign.orange)
             Text(result.word)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -479,7 +480,7 @@ private struct HeadsUpResultRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(PhonePlayDesign.surface))
     }
 }

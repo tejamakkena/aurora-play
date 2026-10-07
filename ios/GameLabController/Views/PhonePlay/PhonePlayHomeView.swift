@@ -36,6 +36,8 @@ struct PhonePlayRootView: View {
             WouldRatherRootView(game: game, onExit: play.closeGame)
         } else if play.active == .hotPotato, let game = play.hotPotato {
             HotPotatoRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .storyChain, let game = play.storyChain {
+            StoryChainRootView(game: game, onExit: play.closeGame)
         } else if play.active == .wordOfDay, let game = play.wordOfDay {
             WordDayRootView(game: game, onExit: play.closeGame)
         } else if play.active == .arcade, let game = play.arcade {
@@ -155,7 +157,7 @@ struct PhonePlayHomeView: View {
             return "New today"
         case .wordOfDay:
             return wordSeen ? nil : "New word"
-        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .arcade:
+        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .storyChain, .arcade:
             return nil
         }
     }
@@ -233,7 +235,7 @@ private struct PhonePlayGameCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top) {
                     Image(systemName: info.symbol)
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
                         .phonePlayIdle(dy: 3, degrees: 4, duration: 1.4 + Double(index) * 0.15)

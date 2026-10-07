@@ -24,11 +24,14 @@ enum HeistPhase: String {
         case .reveal:      return "Reveal"
         }
     }
+    /// Shared/ compiles into both targets, so it can reference neither
+    /// `PhonePlayDesign` nor `ShellTheme`. These are those kits' red, cyan
+    /// and yellow by value; if a token moves there, move it here too.
     var color: Color {
         switch self {
-        case .guardSets:   return .red
-        case .thievesMove: return .cyan
-        case .reveal:      return .yellow
+        case .guardSets:   return Color(hex: "FF4D6D")
+        case .thievesMove: return Color(hex: "38D6F5")
+        case .reveal:      return Color(hex: "FFC531")
         }
     }
 }

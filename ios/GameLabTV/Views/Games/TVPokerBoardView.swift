@@ -587,7 +587,7 @@ private enum PKTColors {
     static let leatherBottom = Color(hex: "120d0a")
     static let ink = Color(hex: "0b0f17")
     static let red = Color(hex: "ef4444")
-    static let mint = Color(hex: "34d399")
+    static let mint = TVTheme.green
 }
 
 // MARK: - The stage
@@ -953,12 +953,12 @@ private struct PKTFeltPrint: View {
     var body: some View {
         HStack(spacing: 18) {
             Image(systemName: "suit.spade.fill")
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 26, weight: .bold, design: .rounded))
             Text("AURORA HOLD'EM")
                 .font(.system(size: 30, weight: .heavy, design: .serif))
                 .tracking(10)
             Image(systemName: "suit.spade.fill")
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 26, weight: .bold, design: .rounded))
         }
         .foregroundColor(PKTColors.gold.opacity(0.22))
         .rotation3DEffect(.degrees(58), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.55)
@@ -1010,7 +1010,7 @@ private struct PKTCardFace: View {
                                       weight: .heavy, design: .rounded))
                         .tracking(parts.rank.count > 1 ? -2 : 0)
                     Image(systemName: PKTSuit.symbol(parts.suit))
-                        .font(.system(size: width * 0.22, weight: .bold))
+                        .font(.system(size: width * 0.22, weight: .bold, design: .rounded))
                 }
                 .foregroundColor(ink)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -1018,7 +1018,7 @@ private struct PKTCardFace: View {
                 .padding(.top, width * 0.06)
 
                 Image(systemName: PKTSuit.symbol(parts.suit))
-                    .font(.system(size: width * 0.5, weight: .bold))
+                    .font(.system(size: width * 0.5, weight: .bold, design: .rounded))
                     .foregroundColor(ink)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(width * 0.1)
@@ -1063,7 +1063,7 @@ private struct PKTCardBack: View {
                 .overlay(inner.strokeBorder(PKTColors.gold.opacity(0.75), lineWidth: max(1, width * 0.025)))
                 .padding(width * 0.07)
             Image(systemName: "suit.spade.fill")
-                .font(.system(size: width * 0.3, weight: .bold))
+                .font(.system(size: width * 0.3, weight: .bold, design: .rounded))
                 .foregroundColor(PKTColors.gold)
                 .shadow(color: Color.black.opacity(0.5), radius: 2)
         }
@@ -1508,7 +1508,7 @@ private struct PKTSeatPod: View {
         .overlay(alignment: .top) {
             if isWinner {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [Color(hex: "fff3c4"), PKTColors.gold],
                                                     startPoint: .top, endPoint: .bottom))
                     .shadow(color: PKTColors.gold.opacity(0.9), radius: 10)
@@ -1594,12 +1594,12 @@ private struct PKTNamePlate: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "1a1f2b").opacity(0.94), Color(hex: "0a0d13").opacity(0.94)],
                                      startPoint: .top, endPoint: .bottom))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .strokeBorder(edge, lineWidth: isActive || isWinner ? 2.5 : 1.2)
         )
         .shadow(color: Color.black.opacity(0.55), radius: 10, x: 0, y: 6)
@@ -1675,7 +1675,7 @@ private struct PKTTitleBlock: View {
     var body: some View {
         HStack(spacing: 18) {
             Image(systemName: "suit.spade.fill")
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundColor(PKTColors.ink)
                 .frame(width: 60, height: 60)
                 .background(Circle().fill(LinearGradient(colors: [Color(hex: "fde68a"), PKTColors.gold],
@@ -1881,12 +1881,12 @@ private struct PKTScoreboard: View {
         .padding(.vertical, 26)
         .frame(width: 760)
         .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "151a26"), Color(hex: "07090e")],
                                      startPoint: .top, endPoint: .bottom))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(PKTColors.gold.opacity(0.45), lineWidth: 2)
         )
         .shadow(color: Color.black.opacity(0.7), radius: 30, x: 0, y: 16)
@@ -1907,7 +1907,7 @@ private struct PKTScoreboard: View {
                 .lineLimit(1)
             if isWinner {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundColor(PKTColors.gold)
             }
             Spacer(minLength: 12)
@@ -1925,7 +1925,7 @@ private struct PKTScoreboard: View {
         }
         .padding(.horizontal, 18)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .fill(isWinner ? PKTColors.gold.opacity(0.14) : Color.white.opacity(0.04))
         )
     }

@@ -17,18 +17,18 @@ private struct SoloHUD: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
             if let subtitle {
                 Text(subtitle)
-                    .font(.title3)
+                    .font(.system(.title3, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text("SCORE").font(.caption.bold()).tracking(3)
+                Text("SCORE").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                     .foregroundColor(.white.opacity(0.4))
-                TVPopNumber(value: score, size: 40, color: .cyan)
+                TVPopNumber(value: score, size: 40, color: TVTheme.cyan)
             }
         }
         .padding(.horizontal, 80)
@@ -40,7 +40,7 @@ private struct RemoteHint: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(.callout)
+            .font(.system(.callout, design: .rounded))
             .foregroundColor(.white.opacity(0.35))
             .padding(.bottom, 40)
     }
@@ -284,21 +284,21 @@ struct TVNeonSnakeBoardView: View {
                         let y = CGFloat(r) / CGFloat(rows) * size.height
                         grid.move(to: CGPoint(x: 0, y: y)); grid.addLine(to: CGPoint(x: size.width, y: y))
                     }
-                    ctx.stroke(grid, with: .color(.cyan.opacity(0.05)), lineWidth: 1)
+                    ctx.stroke(grid, with: .color(TVTheme.cyan.opacity(0.05)), lineWidth: 1)
                 }
             }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.cyan.opacity(0.3), lineWidth: 3)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
+                .stroke(TVTheme.cyan.opacity(0.3), lineWidth: 3)
         )
-        .shadow(color: .cyan.opacity(0.18), radius: 30)
+        .shadow(color: TVTheme.cyan.opacity(0.18), radius: 30)
         .shadow(color: Color(hex: "a78bfa").opacity(0.16), radius: 60)
         .overlay {
             TVParticleBurst(trigger: eatCount,
                             origin: CGPoint(x: (eatCell.x + 0.5) * scale, y: (eatCell.y + 0.5) * scale),
-                            color: .yellow, count: 22, reach: max(80, scale * 3.2))
+                            color: TVTheme.yellow, count: 22, reach: max(80, scale * 3.2))
         }
         .overlay { if vm.state.finished { GameOverBanner(score: vm.state.score) } }
     }
@@ -311,11 +311,11 @@ struct TVNeonSnakeBoardView: View {
         let pulse = CGFloat(1.0 + 0.12 * sin(now.timeIntervalSinceReferenceDate * 4))
         ctx.fill(Path(ellipseIn: CGRect(x: foodCenter.x - foodR * 2.2, y: foodCenter.y - foodR * 2.2,
                                         width: foodR * 4.4, height: foodR * 4.4)),
-                 with: .radialGradient(Gradient(colors: [.yellow.opacity(0.35), .clear]),
+                 with: .radialGradient(Gradient(colors: [TVTheme.yellow.opacity(0.35), .clear]),
                                        center: foodCenter, startRadius: 0, endRadius: foodR * 2.2))
         ctx.fill(Path(ellipseIn: CGRect(x: foodCenter.x - foodR * pulse, y: foodCenter.y - foodR * pulse,
                                         width: foodR * 2 * pulse, height: foodR * 2 * pulse)),
-                 with: .color(.yellow))
+                 with: .color(TVTheme.yellow))
 
         // ---- Snakes -------------------------------------------------------
         for i in vm.state.bodies.indices {
@@ -575,7 +575,7 @@ struct TVTwenty48BoardView: View {
                 if vm.state.done { GameOverBanner(score: vm.state.score) }
             }
             .padding(16)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.white.opacity(0.05)))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(.white.opacity(0.05)))
             Spacer()
             RemoteHint(text: "Swipe the remote's touch surface to slide the tiles")
         }
@@ -914,16 +914,16 @@ struct TVBrickBreakerBoardView: View {
             }
         }
         .background(playfield)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(
                     LinearGradient(colors: [Color(hex: "67e8f9").opacity(0.65),
                                             Color(hex: "a78bfa").opacity(0.35)],
                                    startPoint: .top, endPoint: .bottom),
                     lineWidth: 3)
         )
-        .shadow(color: Color(hex: "22d3ee").opacity(0.22), radius: 44)
+        .shadow(color: TVTheme.cyan.opacity(0.22), radius: 44)
         .overlay(alignment: .top) { hud }
         .overlay { readyBadge }
         .overlay { banner }
@@ -1033,13 +1033,13 @@ struct TVBrickBreakerBoardView: View {
                             height: paddleH)
         ctx.fill(Path(roundedRect: paddle.insetBy(dx: -paddleH * 1.5, dy: -paddleH * 1.5),
                       cornerRadius: paddleH * 2),
-                 with: .color(Color(hex: "22d3ee").opacity(0.13)))
+                 with: .color(TVTheme.cyan.opacity(0.13)))
         ctx.fill(Path(roundedRect: paddle.insetBy(dx: -paddleH * 0.55, dy: -paddleH * 0.55),
                       cornerRadius: paddleH * 1.3),
-                 with: .color(Color(hex: "22d3ee").opacity(0.26)))
+                 with: .color(TVTheme.cyan.opacity(0.26)))
         ctx.fill(Path(roundedRect: paddle, cornerRadius: paddleH / 2),
                  with: .linearGradient(
-                    Gradient(colors: [Color(hex: "f0fdff"), Color(hex: "22d3ee"), Color(hex: "0e7490")]),
+                    Gradient(colors: [Color(hex: "f0fdff"), TVTheme.cyan, Color(hex: "0e7490")]),
                     startPoint: CGPoint(x: paddle.midX, y: paddle.minY),
                     endPoint: CGPoint(x: paddle.midX, y: paddle.maxY)))
 
@@ -1072,7 +1072,7 @@ struct TVBrickBreakerBoardView: View {
             HStack(spacing: 10) {
                 ForEach(0..<max(3, vm.state.lives), id: \.self) { index in
                     Image(systemName: index < vm.state.lives ? "heart.fill" : "heart")
-                        .font(.system(size: 26))
+                        .font(.system(size: 26, weight: .regular, design: .rounded))
                         .foregroundColor(index < vm.state.lives
                                          ? Color(hex: "fb7185") : .white.opacity(0.16))
                 }
@@ -1081,7 +1081,7 @@ struct TVBrickBreakerBoardView: View {
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: -2) {
                 Text("SCORE")
-                    .font(.system(size: 15, weight: .bold)).tracking(5)
+                    .font(.system(size: 15, weight: .bold, design: .rounded)).tracking(5)
                     .foregroundColor(.white.opacity(0.45))
                 Text("\(vm.state.score)")
                     .font(.system(size: 46, weight: .heavy, design: .rounded))
@@ -1099,7 +1099,7 @@ struct TVBrickBreakerBoardView: View {
                 .font(.system(size: 40, weight: .heavy, design: .rounded))
                 .tracking(8)
                 .foregroundColor(.white.opacity(0.82))
-                .shadow(color: Color(hex: "22d3ee").opacity(0.6), radius: 18)
+                .shadow(color: TVTheme.cyan.opacity(0.6), radius: 18)
                 .transition(.opacity)
         }
     }
@@ -1116,14 +1116,14 @@ struct TVBrickBreakerBoardView: View {
                             : [Color(hex: "fca5a5"), Color(hex: "dc2626")],
                         startPoint: .top, endPoint: .bottom))
                 Text("Final score \(vm.state.score)")
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.system(size: 30, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.75))
             }
             .padding(.horizontal, 72)
             .padding(.vertical, 46)
-            .background(RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(.black.opacity(0.78)))
-            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(.white.opacity(0.12), lineWidth: 2))
         }
     }
@@ -1133,7 +1133,7 @@ struct TVBrickBreakerBoardView: View {
             Text(root.isSolo
                  ? "Slide your thumb across the remote's touch surface to move the paddle"
                  : "Slide on your phone to move the paddle")
-                .font(.system(size: 21, weight: .semibold))
+                .font(.system(size: 21, weight: .semibold, design: .rounded))
                 .foregroundColor(.white.opacity(0.68))
                 .padding(.horizontal, 26)
                 .padding(.vertical, 12)
@@ -1214,7 +1214,7 @@ struct TVSimonSaysBoardView: View {
 
     private let pads = ["up", "right", "down", "left"]
     private let colors: [String: Color] = [
-        "up": .green, "right": .red, "down": .yellow, "left": .blue,
+        "up": TVTheme.green, "right": TVTheme.red, "down": TVTheme.yellow, "left": TVTheme.blue,
     ]
 
     var body: some View {
@@ -1247,174 +1247,14 @@ struct TVSimonSaysBoardView: View {
 
     private func pad(_ name: String) -> some View {
         let lit = vm.litPad == name
-        return RoundedRectangle(cornerRadius: 24)
-            .fill((colors[name] ?? .gray).opacity(lit ? 1.0 : 0.28))
+        return RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
+            .fill((colors[name] ?? TVTheme.text3).opacity(lit ? 1.0 : 0.28))
             .frame(width: 220, height: 220)
             .overlay(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
                     .stroke(.white.opacity(lit ? 0.9 : 0.15), lineWidth: lit ? 5 : 2)
             )
             .scaleEffect(lit ? 1.06 : 1.0)
             .animation(.easeOut(duration: 0.12), value: lit)
-    }
-}
-
-// MARK: - Atlas
-
-struct AtlasState {
-    var letter = ""
-    var chain: [(place: String, name: String)] = []
-    var chainLength = 0
-    var secondsLeft = 0
-    var currentName = ""
-    var finished = false
-
-    mutating func update(from data: [String: AnyCodable]) {
-        if let v = data["letter"]?.value as? String { letter = v }
-        if let v = data["chainLength"]?.value as? Int { chainLength = v }
-        if let v = data["secondsLeft"]?.value as? Int { secondsLeft = v }
-        if let v = data["currentName"]?.value as? String { currentName = v }
-        if let v = data["finished"]?.value as? Bool { finished = v }
-        if let raw = data["chain"]?.value as? [Any] {
-            chain = raw.compactMap { item in
-                guard let c = item as? [String: Any],
-                      let place = c["place"] as? String else { return nil }
-                return (place, c["name"] as? String ?? "")
-            }
-        }
-    }
-}
-
-@MainActor final class AtlasViewModel: ObservableObject {
-    @Published var state = AtlasState()
-    private let socket = GameSocketManager.shared
-    func bind(roomCode: String) {
-        socket.on(.gameState) { [weak self] (r: GameStateResponse) in
-            guard r.roomCode == roomCode else { return }
-            self?.state.update(from: r.boardState)
-        }
-    }
-}
-
-struct TVAtlasBoardView: View {
-    let room: Room
-    @StateObject private var vm = AtlasViewModel()
-
-    private let palette = TVTheme.jungle
-
-    var body: some View {
-        ZStack {
-            TVAnimatedBackground(palette: palette)
-
-            VStack(spacing: 0) {
-                SoloHUD(title: "Atlas", score: vm.state.chainLength,
-                        subtitle: vm.state.currentName.isEmpty ? nil : "\(vm.state.currentName)'s turn")
-                Spacer()
-                VStack(spacing: 30) {
-                    Text("NEXT PLACE STARTS WITH")
-                        .font(.caption.bold()).tracking(5)
-                        .foregroundColor(TVTheme.textSecondary)
-                    HStack(spacing: 70) {
-                        TVHeroLetter(letter: vm.state.letter, palette: palette, tileSize: 220)
-                        AtlasTimerRing(secondsLeft: vm.state.secondsLeft, total: 20, palette: palette)
-                    }
-                    chainStrip
-                }
-                Spacer()
-                // "...or pass the remote around" used to sit here too, but the
-                // remote has no text entry at all -- that half of the hint was
-                // never actually possible. A phone is the only way to answer.
-                RemoteHint(text: "Type the next place on your phone")
-            }
-
-            if vm.state.finished {
-                GameOverBanner(score: vm.state.chainLength)
-            }
-        }
-        .onAppear { vm.bind(roomCode: room.code) }
-    }
-
-    /// The journey so far: a row of glass stops joined by arrows; each new
-    /// stop rises in and the strip follows it.
-    private var chainStrip: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(Array(vm.state.chain.enumerated()), id: \.offset) { index, entry in
-                        if index > 0 {
-                            Image(systemName: "chevron.right")
-                                .font(.headline.bold())
-                                .foregroundColor(palette.accent.opacity(0.6))
-                        }
-                        AtlasStop(place: entry.place, name: entry.name,
-                                  isLatest: index == vm.state.chain.count - 1, palette: palette)
-                            .id(index)
-                            .tvStaggeredAppear(index: 0)
-                    }
-                }
-                .padding(.horizontal, 80)
-                .padding(.vertical, 30)
-            }
-            .onChange(of: vm.state.chain.count) { _, newCount in
-                guard newCount > 0 else { return }
-                withAnimation(.easeInOut(duration: 0.5)) {
-                    proxy.scrollTo(newCount - 1, anchor: .trailing)
-                }
-            }
-        }
-    }
-}
-
-private struct AtlasStop: View {
-    let place: String
-    let name: String
-    let isLatest: Bool
-    let palette: TVPalette
-
-    var body: some View {
-        TVGlassCard(cornerRadius: 22, tint: palette.accent, glow: isLatest ? palette.accent : nil, padding: 0) {
-            VStack(spacing: 4) {
-                Text(place).font(.title3.bold()).foregroundColor(.white)
-                    .lineLimit(1)
-                Text(name).font(.caption).foregroundColor(TVTheme.textSecondary)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 24).padding(.vertical, 14)
-        }
-        .scaleEffect(isLatest ? 1.08 : 1)
-        .animation(.spring(response: 0.5, dampingFraction: 0.7), value: isLatest)
-    }
-}
-
-/// A glowing countdown ring with the seconds popping in the middle.
-private struct AtlasTimerRing: View {
-    let secondsLeft: Int
-    let total: Int
-    let palette: TVPalette
-
-    private var progress: CGFloat {
-        guard total > 0 else { return 0 }
-        return CGFloat(min(1, max(0, Double(secondsLeft) / Double(total))))
-    }
-
-    private var tint: Color { secondsLeft <= 5 ? TVTheme.danger : palette.accent }
-
-    var body: some View {
-        ZStack {
-            Circle().stroke(Color.white.opacity(0.1), lineWidth: 14)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(AngularGradient(colors: [tint.opacity(0.4), tint], center: .center,
-                                        startAngle: .degrees(0), endAngle: .degrees(360)),
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .shadow(color: tint.opacity(0.8), radius: 12)
-                .animation(.linear(duration: 1), value: secondsLeft)
-            VStack(spacing: 0) {
-                TVPopNumber(value: secondsLeft, size: 58, color: tint)
-                Text("SEC").font(.caption.bold()).tracking(3).foregroundColor(TVTheme.textTertiary)
-            }
-        }
-        .frame(width: 170, height: 170)
     }
 }

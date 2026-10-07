@@ -22,19 +22,23 @@ enum ProfilePalette {
 
     static let defaultAvatar = "person.fill"
 
+    /// The ten swatches are the Phone Play palette, not Apple's defaults, so
+    /// a profile colour sits beside the rest of the app. `teal` and `brown`
+    /// are the only two the server names that Phone Play has no token for, so
+    /// they get hexes mixed to the same recipe (saturated, slightly warm).
     static func color(_ name: String) -> Color {
         switch name {
-        case "red":    return .red
-        case "orange": return .orange
-        case "yellow": return .yellow
-        case "green":  return .green
-        case "teal":   return .teal
-        case "blue":   return .blue
-        case "indigo": return .indigo
-        case "purple": return .purple
-        case "pink":   return .pink
-        case "brown":  return .brown
-        default:       return .cyan
+        case "red":    return PhonePlayDesign.red
+        case "orange": return PhonePlayDesign.orange
+        case "yellow": return PhonePlayDesign.yellow
+        case "green":  return PhonePlayDesign.green
+        case "teal":   return Color(hex: "2BD9C0")
+        case "blue":   return PhonePlayDesign.blue
+        case "indigo": return PhonePlayDesign.indigo
+        case "purple": return PhonePlayDesign.purple
+        case "pink":   return PhonePlayDesign.pink
+        case "brown":  return Color(hex: "C98A5E")
+        default:       return PhonePlayDesign.cyan
         }
     }
 
@@ -144,7 +148,7 @@ struct ProfileAvatarBubble: View {
             Circle()
                 .strokeBorder(Color.white.opacity(0.35), lineWidth: max(1, size / 30))
             Image(systemName: avatar)
-                .font(.system(size: size * 0.46, weight: .bold))
+                .font(.system(size: size * 0.46, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .contentTransition(.symbolEffect(.replace))
         }
@@ -168,7 +172,7 @@ struct ProfileChipButton: View {
                     .foregroundColor(.white.opacity(0.85))
                     .lineLimit(1)
                 Image(systemName: "pencil")
-                    .font(.caption.weight(.bold))
+                    .font(.system(.caption, design: .rounded, weight: .bold))
                     .foregroundColor(.white.opacity(0.4))
             }
             .padding(.leading, 4)
@@ -214,7 +218,7 @@ struct ProfileEditorView: View {
                     if offlineNote {
                         Label("Saved on this phone. It will sync when the server is reachable.",
                               systemImage: "icloud.slash")
-                            .font(.footnote)
+                            .font(.system(.footnote, design: .rounded))
                             .foregroundColor(PhonePlayDesign.orange)
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
@@ -283,8 +287,8 @@ struct ProfileEditorView: View {
                     if draftName.count > 20 { draftName = String(draftName.prefix(20)) }
                 }
                 .padding(14)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.white.opacity(0.06)))
-                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(Color.white.opacity(0.06)))
+                .overlay(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(nameFocused ? tint : Color.white.opacity(0.1), lineWidth: 1.5))
         }
     }
@@ -296,13 +300,14 @@ struct ProfileEditorView: View {
                 ForEach(ProfilePalette.colors, id: \.self) { name in
                     let selected = name == draftColor
                     Button {
+                        PhonePlayHaptics.tap()
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { draftColor = name }
                     } label: {
                         ZStack {
                             Circle().fill(ProfilePalette.color(name))
                             if selected {
                                 Image(systemName: "checkmark")
-                                    .font(.headline.weight(.heavy))
+                                    .font(.system(.headline, design: .rounded, weight: .heavy))
                                     .foregroundColor(.white)
                             }
                         }
@@ -326,19 +331,20 @@ struct ProfileEditorView: View {
                 ForEach(ProfilePalette.avatars, id: \.self) { symbol in
                     let selected = symbol == draftAvatar
                     Button {
+                        PhonePlayHaptics.tap()
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { draftAvatar = symbol }
                     } label: {
                         Image(systemName: symbol)
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(selected ? .white : .white.opacity(0.7))
                             .frame(maxWidth: .infinity)
                             .frame(height: 58)
                             .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                                     .fill(selected ? tint : Color.white.opacity(0.06))
                             )
                             .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                                     .strokeBorder(Color.white.opacity(selected ? 0.5 : 0.08), lineWidth: 1)
                             )
                             .scaleEffect(selected ? 1.05 : 1)
@@ -361,16 +367,16 @@ struct ProfileEditorView: View {
             }
             if let s = store.stats {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
-                    statTile("Games", s.played ?? 0, "gamecontroller.fill", .cyan)
-                    statTile("Wins", s.wins ?? 0, "trophy.fill", .yellow)
-                    statTile("Podiums", s.podiums ?? 0, "medal.fill", .orange)
-                    statTile("Nights", s.nights ?? 0, "moon.stars.fill", .purple)
-                    statTile("Night wins", s.nightWins ?? 0, "crown.fill", .pink)
+                    statTile("Games", s.played ?? 0, "gamecontroller.fill", PhonePlayDesign.cyan)
+                    statTile("Wins", s.wins ?? 0, "trophy.fill", PhonePlayDesign.yellow)
+                    statTile("Podiums", s.podiums ?? 0, "medal.fill", PhonePlayDesign.orange)
+                    statTile("Nights", s.nights ?? 0, "moon.stars.fill", PhonePlayDesign.purple)
+                    statTile("Night wins", s.nightWins ?? 0, "crown.fill", PhonePlayDesign.pink)
                 }
             } else {
                 Text(store.isSyncing ? "Fetching your stats..."
                      : "Stats appear here once the server is reachable and you have played a game.")
-                    .font(.footnote)
+                    .font(.system(.footnote, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
             }
         }
@@ -379,16 +385,16 @@ struct ProfileEditorView: View {
 
     private func statTile(_ title: String, _ value: Int, _ icon: String, _ color: Color) -> some View {
         VStack(spacing: 4) {
-            Image(systemName: icon).font(.caption.weight(.bold)).foregroundColor(color)
+            Image(systemName: icon).font(.system(.caption, design: .rounded, weight: .bold)).foregroundColor(color)
             Text("\(value)")
                 .font(.system(size: 22, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
-            Text(title).font(.caption2).foregroundColor(.white.opacity(0.55)).lineLimit(1)
+            Text(title).font(.system(.caption2, design: .rounded)).foregroundColor(.white.opacity(0.55)).lineLimit(1)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(color.opacity(0.12)))
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(color.opacity(0.12)))
     }
 
     private func sectionTitle(_ text: String) -> some View {

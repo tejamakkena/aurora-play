@@ -701,11 +701,11 @@ def _bundled(kind: str, count: int, seen: set[str]) -> list:
             if _norm(q) not in seen
         ]
     elif kind == "secrets":
-        from games.native_hub.engines.travel import TWENTY_THINGS
+        from games.native_hub.engines.talk import TWENTY_THINGS
         pool = [item for items in TWENTY_THINGS.values() for item in items
                 if _norm(item) not in seen]
     else:  # hot_takes
-        from games.native_hub.engines.travel import HOT_TAKES
+        from games.native_hub.engines.talk import HOT_TAKES
         pool = [p for p in HOT_TAKES if _norm(p) not in seen]
     return random.sample(pool, min(count, len(pool)))
 

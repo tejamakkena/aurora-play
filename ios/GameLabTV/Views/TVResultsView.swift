@@ -191,7 +191,7 @@ struct TVResultsView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 12) {
                 Image(systemName: "moon.stars.fill")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(ShellTheme.gold)
                 Text("NIGHT STANDINGS")
                     .font(ShellTheme.eyebrow(24))
@@ -421,7 +421,7 @@ private struct PodiumColumn: View {
         VStack(spacing: 8) {
             if rank == 1 {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 46, weight: .bold))
+                    .font(.system(size: 46, weight: .bold, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [Color(hex: "FEF08A"), Color(hex: "EAB308")],
                                                     startPoint: .top,
                                                     endPoint: .bottom))

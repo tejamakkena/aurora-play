@@ -28,7 +28,6 @@ from flask import Blueprint, jsonify, request
 #: balanced night.
 CATALOG: dict[str, dict] = {
     "trivia":             {"minutes": 10, "kids": True,  "tags": ["quiz"]},
-    "kbc":                {"minutes": 15, "kids": True,  "tags": ["quiz"]},
     "brain_battle":       {"minutes": 12, "kids": True,  "tags": ["quiz", "brain"]},
     "most_likely_to":     {"minutes": 8,  "kids": False, "tags": ["social"]},
     "herd":               {"minutes": 8,  "kids": False, "tags": ["social"]},
@@ -36,6 +35,7 @@ CATALOG: dict[str, dict] = {
     "emoji_movie":        {"minutes": 10, "kids": False, "tags": ["creative"]},
     "npat":               {"minutes": 10, "kids": True,  "tags": ["words"]},
     "antakshari":         {"minutes": 15, "kids": False, "tags": ["music"]},
+    "atlas":              {"minutes": 8,  "kids": True,  "tags": ["words", "geography"]},
     "bollywood_charades": {"minutes": 12, "kids": False, "tags": ["acting"]},
     "speed_sculptor":     {"minutes": 8,  "kids": False, "tags": ["creative"]},
     "mind_meld":          {"minutes": 8,  "kids": False, "tags": ["social"]},
@@ -48,23 +48,16 @@ CATALOG: dict[str, dict] = {
     "connect4":           {"minutes": 6,  "kids": True,  "tags": ["board"]},
     "ludo":               {"minutes": 20, "kids": False, "tags": ["board"]},
     "snake_ladder":       {"minutes": 12, "kids": True,  "tags": ["board"]},
-    "carrom":             {"minutes": 12, "kids": False, "tags": ["action"]},
-    "memory":             {"minutes": 6,  "kids": True,  "tags": ["board"]},
-    "pong":               {"minutes": 4,  "kids": False, "tags": ["action"]},
-    "air_hockey":         {"minutes": 4,  "kids": False, "tags": ["action"]},
-    "hot_grid":           {"minutes": 6,  "kids": True,  "tags": ["strategy"]},
-    "digit_guess":        {"minutes": 6,  "kids": True,  "tags": ["brain"]},
     "battleship":         {"minutes": 12, "kids": True,  "tags": ["strategy"]},
     "heist":              {"minutes": 15, "kids": False, "tags": ["strategy"]},
     "heist_escape":       {"minutes": 10, "kids": False, "tags": ["action"]},
     "defuse":             {"minutes": 8,  "kids": False, "tags": ["teams"]},
-    "stock_panic":        {"minutes": 10, "kids": False, "tags": ["strategy"]},
-    "blast_runners":      {"minutes": 6,  "kids": False, "tags": ["action"]},
     "raja_mantri":        {"minutes": 8,  "kids": False, "tags": ["classic"]},
     "mafia":              {"minutes": 20, "kids": False, "tags": ["social"]},
     "poker":              {"minutes": 25, "kids": False, "tags": ["cards"]},
     "teen_patti":         {"minutes": 15, "kids": False, "tags": ["cards"]},
-    "roulette":           {"minutes": 8,  "kids": False, "tags": ["casino"]},
+    "hot_takes":          {"minutes": 10, "kids": False, "tags": ["social", "debate"]},
+    "twenty_questions":   {"minutes": 10, "kids": True,  "tags": ["brain", "words"]},
 }
 
 NIGHT_POINTS = (10, 7, 5, 3)

@@ -174,8 +174,8 @@ final class TVRootViewModel: ObservableObject {
             case .lobby:
                 // Used to auto-emit startGame instantly here for a solo
                 // room, skipping the lobby (and its room code) entirely.
-                // Reported directly: that left Atlas -- whose only input is
-                // typed text -- with no way to ever bring in a phone,
+                // Reported directly: that left Atlas (then a typed solo
+                // game, now spoken) with no way to ever bring in a phone,
                 // because the room had already started before one could
                 // join it. Letting the lobby show normally, same as any
                 // other room, means the code stays up long enough for a

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 enum AppConstants {
     // Stable, permanent deployment -- no more rebuilding every time a LAN
@@ -42,12 +43,36 @@ enum AppConstants {
     /// from the browser games so the two cannot collide.
     static let socketNamespace = "/native"
 
-    // Stable per-device identifier (persisted in UserDefaults)
+    /// Stable per-device identifier, persisted in UserDefaults.
+    ///
+    /// UserDefaults rides along in an iCloud/iTunes backup, so a phone set
+    /// up from another phone's backup used to come up with that phone's id.
+    /// The server reads one id as one seat, so the two phones shared a seat:
+    /// one colour, one turn and one score between them, which is what made
+    /// Connect 4 drop the same colour disc for both people.
+    ///
+    /// The vendor identifier is per-device and is not restored from a
+    /// backup, so storing it alongside the id tells us when the id has
+    /// landed on a different handset -- and a fresh one is minted.
     static var deviceID: String {
         let key = "gamelab_device_id"
-        if let existing = UserDefaults.standard.string(forKey: key) { return existing }
+        let vendorKey = "gamelab_device_vendor_id"
+        let vendor = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        let defaults = UserDefaults.standard
+        if let existing = defaults.string(forKey: key), !existing.isEmpty {
+            let recorded = defaults.string(forKey: vendorKey)
+            if recorded == nil {
+                // First run after this shipped: the id predates the check,
+                // so it keeps its id (profiles and ratings are keyed on it)
+                // and records the handset it is on from here on.
+                defaults.set(vendor, forKey: vendorKey)
+                return existing
+            }
+            if vendor.isEmpty || recorded == vendor { return existing }
+        }
         let new = UUID().uuidString
-        UserDefaults.standard.set(new, forKey: key)
+        defaults.set(new, forKey: key)
+        defaults.set(vendor, forKey: vendorKey)
         return new
     }
 }

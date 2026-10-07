@@ -29,7 +29,7 @@ struct TVHeistBoardView: View {
         HStack(spacing: 0) {
             // Main board — 5/7 width
             ZStack {
-                Color(hex: "0a0a14").ignoresSafeArea()
+                TVTheme.bg.ignoresSafeArea()
 
                 HeistCinematicBoardSceneView(state: vm.state)
                     .ignoresSafeArea()
@@ -66,10 +66,10 @@ struct TVHeistBoardView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Heist")
-                    .font(.system(size: 36, weight: .bold))
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 Text("Round \(vm.state.round) of \(HeistConstants.maxRounds)")
-                    .font(.body)
+                    .font(.system(.body, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
             }
 
@@ -93,7 +93,7 @@ struct TVHeistBoardView: View {
     private var playerSidebar: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Players")
-                .font(.headline)
+                .font(.system(.headline, design: .rounded))
                 .foregroundColor(.white.opacity(0.5))
                 .padding(24)
 
@@ -127,7 +127,7 @@ private struct PhaseTag: View {
         HStack(spacing: 6) {
             Circle().fill(phase.color).frame(width: 10, height: 10)
             Text(phase.label)
-                .font(.headline)
+                .font(.system(.headline, design: .rounded))
                 .foregroundColor(phase.color)
         }
         .padding(.horizontal, 16)
@@ -144,28 +144,28 @@ private struct HeistPlayerRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Circle()
-                .fill(status.role == .guard ? Color.red.opacity(0.3) : status.color.opacity(0.3))
+                .fill(status.role == .guard ? TVTheme.red.opacity(0.3) : status.color.opacity(0.3))
                 .frame(width: 36, height: 36)
                 .overlay(
-                    Text(status.role == .guard ? "GUARD" : "THIEF").font(.caption.bold())
-                        .font(.system(size: 18))
+                    Text(status.role == .guard ? "GUARD" : "THIEF").font(.system(.caption, design: .rounded, weight: .bold))
+                        .font(.system(size: 18, weight: .regular, design: .rounded))
                 )
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(status.name)
-                    .font(.body)
+                    .font(.system(.body, design: .rounded))
                     .foregroundColor(status.isCaught ? .white.opacity(0.3) : .white)
                 Text(status.role == .guard ? "Guard" : status.isCaught ? "Caught" : "Thief")
-                    .font(.caption)
-                    .foregroundColor(status.role == .guard ? .red.opacity(0.7) : .white.opacity(0.4))
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundColor(status.role == .guard ? TVTheme.red.opacity(0.7) : .white.opacity(0.4))
             }
 
             Spacer()
 
             if status.hasEscaped {
-                Text("ESCAPED").font(.caption2.bold()).foregroundColor(.green)
+                Text("ESCAPED").font(.system(.caption2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.green)
             } else if status.isCaught {
-                Image(systemName: "xmark.circle.fill").foregroundColor(.red.opacity(0.5))
+                Image(systemName: "xmark.circle.fill").foregroundColor(TVTheme.red.opacity(0.5))
             }
         }
         .padding(.horizontal, 20)
@@ -180,17 +180,17 @@ private struct WinnerBanner: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(winner == .guard ? "Guard Wins!" : "Thieves Win!")
-                .font(.title3.bold())
-                .foregroundColor(winner == .guard ? .red : .green)
+                .font(.system(.title3, design: .rounded, weight: .bold))
+                .foregroundColor(winner == .guard ? TVTheme.red : TVTheme.green)
             Text(winner == .guard ? "All thieves caught." : "A thief escaped!")
-                .font(.caption)
+                .font(.system(.caption, design: .rounded))
                 .foregroundColor(.white.opacity(0.5))
         }
         .frame(maxWidth: .infinity)
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(winner == .guard ? Color.red.opacity(0.15) : Color.green.opacity(0.15))
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
+                .fill(winner == .guard ? TVTheme.red.opacity(0.15) : TVTheme.green.opacity(0.15))
         )
     }
 }
@@ -305,7 +305,7 @@ struct HeistBoardState {
 
         // Player status array
         if let statuses = data["playerStatuses"]?.value as? [[String: Any]] {
-            let palette: [Color] = [.cyan, .yellow, .green, .orange, .purple, .pink]
+            let palette: [Color] = [TVTheme.cyan, TVTheme.yellow, TVTheme.green, TVTheme.orange, TVTheme.purple, TVTheme.pink]
             playerStatuses = statuses.enumerated().compactMap { idx, dict -> HeistPlayerStatus? in
                 guard let id   = dict["id"]   as? String,
                       let name = dict["name"] as? String,

@@ -39,7 +39,7 @@ struct GameNightPlannerCard: View {
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundColor(.white.opacity(0.85))
                             Text("Only quizzes, puzzles, words and brain games, with kid-level questions")
-                                .font(.caption)
+                                .font(.system(.caption, design: .rounded))
                                 .foregroundColor(.white.opacity(0.55))
                         }
                     }
@@ -73,11 +73,12 @@ struct GameNightPlannerCard: View {
 
     private var header: some View {
         Button {
+            PhonePlayHaptics.tap()
             expanded.toggle()
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "moon.stars.fill")
-                    .font(.title2)
+                    .font(.system(.title2, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: OneStopTheme.nightGradient,
                                                     startPoint: .topLeading, endPoint: .bottomTrailing))
                     .symbolEffect(.bounce, value: expanded)
@@ -86,7 +87,7 @@ struct GameNightPlannerCard: View {
                         .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
                     Text("A playlist of games with one big scoreboard")
-                        .font(.caption)
+                        .font(.system(.caption, design: .rounded))
                         .foregroundColor(.white.opacity(0.55))
                 }
                 Spacer()
@@ -112,9 +113,12 @@ struct GameNightPlannerCard: View {
                 if loading {
                     ProgressView().scaleEffect(0.7).tint(.white.opacity(0.6))
                 } else {
-                    Button { reloadToken += 1 } label: {
+                    Button {
+                        PhonePlayHaptics.tap()
+                        reloadToken += 1
+                    } label: {
                         Label("Shuffle", systemImage: "shuffle")
-                            .font(.caption.weight(.semibold))
+                            .font(.system(.caption, design: .rounded, weight: .semibold))
                             .foregroundColor(PhonePlayDesign.orange)
                     }
                     .buttonStyle(.plain)
@@ -123,13 +127,13 @@ struct GameNightPlannerCard: View {
 
             if playlist.isEmpty && !loading {
                 Text("The TV will pick a balanced mix for \(playerCount) player\(playerCount == 1 ? "" : "s") when you start.")
-                    .font(.footnote)
+                    .font(.system(.footnote, design: .rounded))
                     .foregroundColor(.white.opacity(0.55))
             } else {
                 ForEach(Array(playlist.enumerated()), id: \.element) { index, game in
                     HStack(spacing: 12) {
                         Text("\(index + 1)")
-                            .font(.caption.weight(.heavy))
+                            .font(.system(.caption, design: .rounded, weight: .heavy))
                             .foregroundColor(.black)
                             .frame(width: 22, height: 22)
                             .background(Circle().fill(PhonePlayDesign.orange))
@@ -143,11 +147,12 @@ struct GameNightPlannerCard: View {
                         Spacer()
                         if let m = gameMinutes[game] {
                             Text("\(m) min")
-                                .font(.caption)
+                                .font(.system(.caption, design: .rounded))
                                 .foregroundColor(.white.opacity(0.45))
                         }
                         if playlist.count > 1 {
                             Button {
+                                PhonePlayHaptics.tap()
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                                     playlist.removeAll { $0 == game }
                                 }
@@ -161,13 +166,13 @@ struct GameNightPlannerCard: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.white.opacity(0.05)))
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(Color.white.opacity(0.05)))
                     .transition(.asymmetric(insertion: .scale(scale: 0.9).combined(with: .opacity),
                                             removal: .opacity))
                 }
                 if totalMinutes > 0 {
                     Text("About \(totalMinutes) minutes, \(playlist.count) game\(playlist.count == 1 ? "" : "s")")
-                        .font(.caption)
+                        .font(.system(.caption, design: .rounded))
                         .foregroundColor(.white.opacity(0.45))
                 }
             }
@@ -221,6 +226,10 @@ struct GameNightStatusCard: View {
     let room: Room
     let night: GameNight
     let isHost: Bool
+    /// This phone's seat (ControllerRootViewModel.playerID), which is the
+    /// device id for the first phone on a device and a seat of its own for
+    /// a second phone sharing that id.
+    var myID: String = AppConstants.deviceID
 
     @State private var confirmEnd = false
 
@@ -228,7 +237,7 @@ struct GameNightStatusCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
                 Image(systemName: night.finished ? "crown.fill" : "moon.stars.fill")
-                    .font(.title2)
+                    .font(.system(.title2, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: OneStopTheme.nightGradient,
                                                     startPoint: .topLeading, endPoint: .bottomTrailing))
                     .symbolEffect(.pulse, isActive: !night.finished)
@@ -237,7 +246,7 @@ struct GameNightStatusCard: View {
                         .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
                     Text(subtitle)
-                        .font(.caption)
+                        .font(.system(.caption, design: .rounded))
                         .foregroundColor(.white.opacity(0.55))
                 }
                 Spacer()
@@ -253,7 +262,8 @@ struct GameNightStatusCard: View {
             }
 
             if !night.standings.isEmpty {
-                NightStandingsList(standings: night.standings, limit: night.finished ? 8 : 5)
+                NightStandingsList(standings: night.standings,
+                                   limit: night.finished ? 8 : 5, myID: myID)
             }
 
             if isHost {
@@ -302,7 +312,7 @@ struct GameNightStatusCard: View {
                 NightGameRow(label: "THEN", game: next, highlight: false)
             } else if current != nil {
                 Text("Last game of the night")
-                    .font(.caption.weight(.semibold))
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
                     .foregroundColor(PhonePlayDesign.orange)
             }
         }
@@ -318,6 +328,7 @@ struct GameNightResultsPanel: View {
     let room: Room
     let night: GameNight
     let isHost: Bool
+    var myID: String = AppConstants.deviceID
 
     @State private var confirmEnd = false
     @State private var sent = false
@@ -333,7 +344,7 @@ struct GameNightResultsPanel: View {
                     .foregroundColor(.white)
                 Spacer()
                 Text("\(night.gamesPlayed)/\(night.playlist.count)")
-                    .font(.caption.monospacedDigit())
+                    .font(.system(.caption, design: .rounded).monospacedDigit())
                     .foregroundColor(.white.opacity(0.5))
             }
 
@@ -341,7 +352,8 @@ struct GameNightResultsPanel: View {
                 NightChampionBanner(standing: champ)
             }
             if !night.standings.isEmpty {
-                NightStandingsList(standings: night.standings, limit: night.finished ? 5 : 3)
+                NightStandingsList(standings: night.standings,
+                                   limit: night.finished ? 5 : 3, myID: myID)
             }
 
             if isHost {
@@ -360,9 +372,12 @@ struct GameNightResultsPanel: View {
                             sent = false
                         }
                     }
-                    Button { confirmEnd = true } label: {
+                    Button {
+                        PhonePlayHaptics.tap()
+                        confirmEnd = true
+                    } label: {
                         Text("End night early")
-                            .font(.footnote.weight(.semibold))
+                            .font(.system(.footnote, design: .rounded, weight: .semibold))
                             .foregroundColor(.white.opacity(0.55))
                             .frame(maxWidth: .infinity)
                     }
@@ -372,7 +387,7 @@ struct GameNightResultsPanel: View {
                 HStack(spacing: 8) {
                     ProgressView().scaleEffect(0.8).tint(.white.opacity(0.5))
                     Text(waitingText)
-                        .font(.footnote)
+                        .font(.system(.footnote, design: .rounded))
                         .foregroundColor(.white.opacity(0.6))
                 }
             }
@@ -405,11 +420,11 @@ struct NightGameRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: game.sfSymbol)
-                .font(.title3)
+                .font(.system(.title3, design: .rounded))
                 .foregroundColor(.white)
                 .frame(width: 40, height: 40)
                 .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(highlight
                               ? AnyShapeStyle(LinearGradient(colors: OneStopTheme.nightGradient,
                                                              startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -445,7 +460,7 @@ struct NightPlaylistStrip: View {
                 let done = i < night.index
                 let current = i == night.index
                 Image(systemName: GameID(rawValue: gid)?.sfSymbol ?? "questionmark")
-                    .font(.caption.weight(.bold))
+                    .font(.system(.caption, design: .rounded, weight: .bold))
                     .foregroundColor(current ? .black : .white.opacity(done ? 0.4 : 0.8))
                     .frame(width: 30, height: 30)
                     .background(
@@ -464,8 +479,7 @@ struct NightPlaylistStrip: View {
 struct NightStandingsList: View {
     let standings: [NightStanding]
     var limit: Int = 5
-
-    private var myID: String { AppConstants.deviceID }
+    var myID: String = AppConstants.deviceID
 
     var body: some View {
         VStack(spacing: 6) {
@@ -473,36 +487,36 @@ struct NightStandingsList: View {
                 let me = row.playerID == myID
                 HStack(spacing: 10) {
                     Text("\(row.rank)")
-                        .font(.caption.weight(.heavy))
+                        .font(.system(.caption, design: .rounded, weight: .heavy))
                         .foregroundColor(row.rank <= 3 ? .black : .white.opacity(0.7))
                         .frame(width: 24, height: 24)
                         .background(Circle().fill(Self.rankColor(row.rank)))
                     Text(row.name)
-                        .font(.subheadline.weight(me ? .bold : .regular))
-                        .foregroundColor(me ? .cyan : .white)
+                        .font(.system(.subheadline, design: .rounded, weight: me ? .bold : .regular))
+                        .foregroundColor(me ? PhonePlayDesign.cyan : .white)
                         .lineLimit(1)
                     if row.isBot ?? false {
-                        Text("BOT").font(.caption2).foregroundColor(PhonePlayDesign.orange)
+                        Text("BOT").font(.system(.caption2, design: .rounded)).foregroundColor(PhonePlayDesign.orange)
                     }
                     if me {
                         Text("YOU").font(.system(size: 11, weight: .heavy, design: .rounded)).foregroundColor(PhonePlayDesign.cyan)
                     }
                     Spacer()
                     Text("\(row.points) pts")
-                        .font(.subheadline.weight(.bold).monospacedDigit())
+                        .font(.system(.subheadline, design: .rounded, weight: .bold).monospacedDigit())
                         .foregroundColor(.white)
                         .contentTransition(.numericText())
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
                 .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(me ? PhonePlayDesign.cyan.opacity(0.12) : Color.white.opacity(0.04))
                 )
             }
             if standings.count > limit {
                 Text("+ \(standings.count - limit) more")
-                    .font(.caption2)
+                    .font(.system(.caption2, design: .rounded))
                     .foregroundColor(.white.opacity(0.4))
             }
         }
@@ -511,9 +525,9 @@ struct NightStandingsList: View {
 
     static func rankColor(_ rank: Int) -> Color {
         switch rank {
-        case 1: return .yellow
+        case 1: return PhonePlayDesign.yellow
         case 2: return Color(white: 0.8)
-        case 3: return .orange
+        case 3: return PhonePlayDesign.orange
         default: return Color.white.opacity(0.1)
         }
     }
@@ -527,9 +541,9 @@ struct NightChampionBanner: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: "crown.fill")
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundColor(PhonePlayDesign.yellow)
-                .shadow(color: .yellow.opacity(glow ? 0.8 : 0.2), radius: glow ? 12 : 4)
+                .shadow(color: PhonePlayDesign.yellow.opacity(glow ? 0.8 : 0.2), radius: glow ? 12 : 4)
                 .symbolEffect(.bounce, value: glow)
             VStack(alignment: .leading, spacing: 2) {
                 Text("CHAMPION")
@@ -541,14 +555,14 @@ struct NightChampionBanner: View {
                     .foregroundColor(.white)
                     .lineLimit(1)
                 Text("\(standing.points) night points")
-                    .font(.caption)
+                    .font(.system(.caption, design: .rounded))
                     .foregroundColor(.white.opacity(0.6))
             }
             Spacer()
         }
         .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                 .fill(LinearGradient(colors: [PhonePlayDesign.yellow.opacity(0.25), PhonePlayDesign.orange.opacity(0.12)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
         )

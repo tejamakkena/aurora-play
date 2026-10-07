@@ -75,13 +75,20 @@ class TriviaEngine(NativeGameEngine):
     CATEGORY_REVEAL_SECONDS = 3
     POWER_SECONDS = 12
     POWER_REVEAL_SECONDS = 4
-    #: Reading beat before the four options appear.
-    READ_SECONDS = 1.5
+    #: The phones' answer buttons stay locked while the TV voice reads the
+    #: question and its four options aloud; the reading time is estimated
+    #: from the spoken words (see read_seconds_for). These bound it.
+    MIN_READ_SECONDS = 4.0
+    MAX_READ_SECONDS = 18.0
+    #: TV text-to-speech pace, and the time the voice takes to start
+    #: (fetching the line) plus the short pause after each option.
+    SPOKEN_WORDS_PER_SECOND = 2.6
+    VOICE_LEAD_SECONDS = 1.5
+    OPTION_PAUSE_SECONDS = 0.45
     QUESTION_SECONDS = 15
     REVEAL_SECONDS = 5
     STANDINGS_SECONDS = 5
     FINALE_INTRO_SECONDS = 6
-    FINALE_READ_SECONDS = 1.0
     FINALE_QUESTION_SECONDS = 10
     FINALE_REVEAL_SECONDS = 3
     SUMMARY_SECONDS = 9
@@ -480,9 +487,19 @@ class TriviaEngine(NativeGameEngine):
         self.answer_times = {}
         self.pending_points = {}
         self.last_results = []
-        now = time.time()
-        self.choices_at = now + self.READ_SECONDS
-        self._enter("question", self.READ_SECONDS + self.QUESTION_SECONDS)
+        read = self.read_seconds_for(q)
+        self.choices_at = time.time() + read
+        self._enter("question", read + self.QUESTION_SECONDS)
+
+    @classmethod
+    def read_seconds_for(cls, q) -> float:
+        """How long the TV needs to read ``q`` aloud: the question, then
+        "A: ... B: ..." for each option (the board's speakableQuestion)."""
+        _, text, choices = q[0], q[1], q[2]
+        words = len(str(text).split()) + sum(len(str(c).split()) + 1 for c in choices)
+        seconds = (cls.VOICE_LEAD_SECONDS + words / cls.SPOKEN_WORDS_PER_SECOND
+                   + cls.OPTION_PAUSE_SECONDS * len(choices))
+        return max(cls.MIN_READ_SECONDS, min(cls.MAX_READ_SECONDS, seconds))
 
     def points_for(self, answered_at: float) -> int:
         """500 for a right answer plus a speed bonus that drains over the
@@ -558,9 +575,9 @@ class TriviaEngine(NativeGameEngine):
         self.answer_times = {}
         self.pending_points = {}
         self.finale_moves = {}
-        self.choices_at = time.time() + self.FINALE_READ_SECONDS
-        self._enter("finale_question",
-                    self.FINALE_READ_SECONDS + self.FINALE_QUESTION_SECONDS)
+        read = self.read_seconds_for(q)
+        self.choices_at = time.time() + read
+        self._enter("finale_question", read + self.FINALE_QUESTION_SECONDS)
 
     def _finale_reveal(self) -> None:
         correct = self.question[3] if self.question else -1
@@ -626,6 +643,8 @@ class TriviaEngine(NativeGameEngine):
             return
         if data.get("questionID") != self.question_id:
             return
+        if time.time() < self.choices_at:
+            return                  # still being read out: answers not open yet
         idx = data.get("choiceIndex")
         if not isinstance(idx, int) or isinstance(idx, bool):
             return
@@ -718,8 +737,20 @@ class TriviaEngine(NativeGameEngine):
                               "finale_reveal") and self.question is not None
 
     def _show_choices(self) -> bool:
+        """Phones: answer buttons appear once the question has been read."""
         return self._question_visible() and (
             self.phase in ("reveal", "finale_reveal") or time.time() >= self.choices_at)
+
+    def bot_wait_until(self) -> float:
+        """Bots (games/native_hub/bots.py) wait for answers to open too."""
+        if self.phase in ("question", "finale_question"):
+            return self.choices_at
+        return 0.0
+
+    def _answers_open_in(self) -> float:
+        if self.phase not in ("question", "finale_question"):
+            return 0.0
+        return round(max(0.0, self.choices_at - time.time()), 2)
 
     def _is_reveal(self) -> bool:
         return self.phase in ("reveal", "finale_reveal")
@@ -746,7 +777,9 @@ class TriviaEngine(NativeGameEngine):
             "questionText": text,
             "choices": list(choices),
             "category": category if visible else self.chosen_category,
-            "showChoices": self._show_choices(),
+            "showChoices": self._question_visible(),
+            "answersOpen": self._show_choices(),
+            "answersOpenIn": self._answers_open_in(),
             "answeredPlayerIDs": list(self.answered.keys()) if visible else [],
             # Category vote.
             "categories": [{"name": c, "votes": n}
@@ -809,6 +842,7 @@ class TriviaEngine(NativeGameEngine):
             "choices": list(self.question[2]) if visible else [],
             "category": self.question[0] if visible else self.chosen_category,
             "showChoices": self._show_choices(),
+            "answersOpenIn": self._answers_open_in(),
             "myAnswer": self.answered.get(player_id) if visible else None,
             "locked": visible and player_id in self.answered,
             # Finale.

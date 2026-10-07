@@ -2,15 +2,18 @@ import SwiftUI
 
 // MARK: - Pocket Arcade
 //
-// Two quick solo touch games with best scores kept in UserDefaults:
+// Three quick solo touch games with best scores kept in UserDefaults:
 //  - Tap the Lights: one cell of a 4x4 grid lights up at a time; tap it
 //    before it goes out. The window shrinks as you score. 30 seconds.
 //  - Number Rush: tap 1 to 25 in order on a shuffled 5x5 grid as fast as
 //    you can. A wrong tap adds a one-second penalty.
+//  - 2048: swipe to slide and merge tiles (Arcade2048Model.swift). No
+//    countdown and no clock; one undo per game.
 
 enum PocketArcadeGame: String, CaseIterable, Identifiable {
     case lights
     case rush
+    case twenty48
 
     var id: String { rawValue }
 
@@ -18,6 +21,7 @@ enum PocketArcadeGame: String, CaseIterable, Identifiable {
         switch self {
         case .lights: return "Tap the Lights"
         case .rush:   return "Number Rush"
+        case .twenty48: return "2048"
         }
     }
 
@@ -25,6 +29,7 @@ enum PocketArcadeGame: String, CaseIterable, Identifiable {
         switch self {
         case .lights: return "Tap each light before it fades. 30 seconds."
         case .rush:   return "Tap 1 to 25 in order. Wrong taps cost a second."
+        case .twenty48: return "Swipe to slide and merge tiles. One undo per game."
         }
     }
 
@@ -32,6 +37,7 @@ enum PocketArcadeGame: String, CaseIterable, Identifiable {
         switch self {
         case .lights: return "lightbulb.max.fill"
         case .rush:   return "number.square.fill"
+        case .twenty48: return "square.grid.3x3.fill"
         }
     }
 
@@ -39,6 +45,7 @@ enum PocketArcadeGame: String, CaseIterable, Identifiable {
         switch self {
         case .lights: return [PhonePlayDesign.yellow, PhonePlayDesign.orange]
         case .rush:   return [PhonePlayDesign.cyan, PhonePlayDesign.indigo]
+        case .twenty48: return [PhonePlayDesign.orange, PhonePlayDesign.pink]
         }
     }
 }
@@ -46,6 +53,7 @@ enum PocketArcadeGame: String, CaseIterable, Identifiable {
 enum PocketArcadeStore {
     private static let lightsKey = "phoneplay_arcade_lights_best"
     private static let rushKey = "phoneplay_arcade_rush_best"
+    private static let tilesKey = "phoneplay_arcade_2048_best"
 
     /// Most lights hit in a round; 0 when never played.
     static var bestLights: Int {
@@ -55,6 +63,11 @@ enum PocketArcadeStore {
     /// Fastest Number Rush in seconds; 0 when never played.
     static var bestRush: Double {
         UserDefaults.standard.double(forKey: rushKey)
+    }
+
+    /// Highest 2048 score; 0 when never played.
+    static var bestTiles: Int {
+        UserDefaults.standard.integer(forKey: tilesKey)
     }
 
     /// Saves the score if it is a new best and says whether it was.
@@ -68,6 +81,12 @@ enum PocketArcadeStore {
         let best = bestRush
         guard seconds > 0, best <= 0 || seconds < best else { return false }
         UserDefaults.standard.set(seconds, forKey: rushKey)
+        return true
+    }
+
+    static func submitTiles(_ score: Int) -> Bool {
+        guard score > bestTiles else { return false }
+        UserDefaults.standard.set(score, forKey: tilesKey)
         return true
     }
 
@@ -104,6 +123,12 @@ final class PocketArcadeViewModel: ObservableObject {
     @Published private(set) var newBest: Bool = false
     @Published private(set) var bestLights: Int = PocketArcadeStore.bestLights
     @Published private(set) var bestRush: Double = PocketArcadeStore.bestRush
+    @Published private(set) var bestTiles: Int = PocketArcadeStore.bestTiles
+
+    // 2048: the board has its own model; these are the finished game's.
+    let twenty48 = Arcade2048Model()
+    @Published private(set) var tilesScore: Int = 0
+    @Published private(set) var tilesBiggest: Int = 0
 
     let lightsCells: Int = 16
     let lightsColumns: Int = 4
@@ -131,6 +156,12 @@ final class PocketArcadeViewModel: ObservableObject {
     func play(_ choice: PocketArcadeGame) {
         game = choice
         PhonePlayHaptics.thump()
+        if choice == .twenty48 {
+            // Not against the clock, so no countdown.
+            stopLoop()
+            begin()
+            return
+        }
         countdown = 3
         countdownEnds = Date().addingTimeInterval(3)
         stage = .countdown
@@ -143,6 +174,9 @@ final class PocketArcadeViewModel: ObservableObject {
 
     func backToMenu() {
         stopLoop()
+        if game == .twenty48 && stage == .playing {
+            saveTilesBest()
+        }
         litCell = nil
         stage = .menu
     }
@@ -150,6 +184,10 @@ final class PocketArcadeViewModel: ObservableObject {
     func shutdown() {
         isActive = false
         stopLoop()
+        if game == .twenty48 && stage == .playing {
+            saveTilesBest()
+        }
+        twenty48.shutdown()
     }
 
     // MARK: - Loop
@@ -198,6 +236,9 @@ final class PocketArcadeViewModel: ObservableObject {
             case .rush:
                 // Number Rush is driven by taps; the view shows the clock.
                 stopLoop()
+            case .twenty48:
+                // 2048 is driven by swipes and has no clock.
+                stopLoop()
             }
         case .menu, .finished:
             stopLoop()
@@ -224,6 +265,10 @@ final class PocketArcadeViewModel: ObservableObject {
             penalty = 0
             wrongCell = nil
             startedAt = Date()
+            stage = .playing
+            stopLoop()
+        case .twenty48:
+            twenty48.newGame()
             stage = .playing
             stopLoop()
         }
@@ -312,5 +357,24 @@ final class PocketArcadeViewModel: ObservableObject {
         bestRush = PocketArcadeStore.bestRush
         if newBest { PhonePlayHaptics.success() } else { PhonePlayHaptics.thump() }
         stage = .finished
+    }
+
+    // MARK: - 2048
+
+    /// Ends the 2048 game (stuck, or finished after reaching 2048) and
+    /// shows the result screen.
+    func finishTiles() {
+        guard stage == .playing, game == .twenty48 else { return }
+        tilesScore = twenty48.score
+        tilesBiggest = twenty48.biggestTile
+        newBest = twenty48.commitBest()
+        bestTiles = PocketArcadeStore.bestTiles
+        if newBest { PhonePlayHaptics.success() } else { PhonePlayHaptics.thump() }
+        stage = .finished
+    }
+
+    private func saveTilesBest() {
+        twenty48.commitBest()
+        bestTiles = PocketArcadeStore.bestTiles
     }
 }

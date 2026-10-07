@@ -106,7 +106,7 @@ struct TVNightGameTile: View {
             shape
                 .strokeBorder(Color.white.opacity(isCurrent ? 0.9 : 0.3), lineWidth: isCurrent ? 2.5 : 1)
             Image(systemName: status == .done ? "checkmark" : game.sfSymbol)
-                .font(.system(size: size * 0.42, weight: .bold))
+                .font(.system(size: size * 0.42, weight: .bold, design: .rounded))
                 .foregroundColor(Color.white.opacity(status == .done ? 0.8 : 1.0))
                 .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 2)
         }
@@ -326,7 +326,7 @@ private struct TVGameNightCardBody: View {
     @Environment(\.isFocused) private var isFocused: Bool
 
     private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 26, style: .continuous)
+        RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
     }
 
     var body: some View {
@@ -340,7 +340,7 @@ private struct TVGameNightCardBody: View {
                                          startPoint: .topLeading,
                                          endPoint: .bottomTrailing))
                 Image(systemName: "moon.stars.fill")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundColor(Color(hex: "3B1C7A"))
             }
             .frame(width: 56, height: 56)
@@ -369,7 +369,7 @@ private struct TVGameNightCardBody: View {
                     .strokeBorder(Color.white.opacity(isFocused ? 0.9 : 0.35), lineWidth: isFocused ? 2.5 : 1.2)
             }
         }
-        .shellShine(isActive: isFocused, cornerRadius: 26, period: 2.6, intensity: 0.45)
+        .shellShine(isActive: isFocused, cornerRadius: ShellTheme.cardRadius, period: 2.6, intensity: 0.45)
         .compositingGroup()
         .shadow(color: ShellTheme.pink.opacity(isFocused ? 0.7 : 0.3), radius: isFocused ? 28 : 12)
         .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 10)
@@ -409,11 +409,11 @@ struct TVNightSetupPanel: View {
     }
 
     var body: some View {
-        ShellGlassCard(cornerRadius: 36, tint: ShellTheme.pink, padding: 26) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.pink, padding: 26) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
                     Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(ShellTheme.gold)
                     Text("GAME NIGHT")
                         .font(ShellTheme.eyebrow(22))
@@ -522,11 +522,11 @@ struct TVNightLobbyPanel: View {
     }
 
     var body: some View {
-        ShellGlassCard(cornerRadius: 36, tint: ShellTheme.pink, padding: 26) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.pink, padding: 26) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
                     Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(ShellTheme.gold)
                     Text("GAME NIGHT")
                         .font(ShellTheme.eyebrow(22))

@@ -431,6 +431,7 @@ class TestBotPolicies:
         bot = engine.room.add_bot()
         engine.scores[bot.id] = 0
         _trivia_to(engine, "question")
+        engine.choices_at = time.time()     # the question has been read out
         verb, data = bots._policy_trivia(engine, bot.id)
         engine.handle_action(bot.id, verb, data)
         assert bot.id in engine.answered
@@ -540,18 +541,6 @@ class TestHerd:
         assert engine.clusters[0]["size"] == 3
         assert engine.scores[a] == engine.scores[b] == engine.scores[c] > 0
         assert engine.scores[d] == 0
-
-
-class TestAntakshari:
-    def test_first_valid_song_closes_the_round_and_repeats_are_refused(self):
-        engine, roster = make("antakshari", players=2)
-        engine.letter = "T"
-        engine.handle_action(roster[0].id, "submit_song", {"song": "Tum Hi Ho"})
-        assert engine.phase == "reveal" and engine.round_winner == roster[0].id
-        engine.round, engine.phase, engine.letter = 2, "sing", "T"
-        engine.submissions = {}
-        engine.handle_action(roster[1].id, "submit_song", {"song": "tum hi ho"})
-        assert engine.phase == "sing"
 
 
 class TestLudoSafeSquares:

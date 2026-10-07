@@ -354,7 +354,7 @@ private struct PKCStat: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 7)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(PhonePlayDesign.surface))
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(PhonePlayDesign.surface))
     }
 }
 
@@ -488,24 +488,25 @@ private struct PKCCardFace: View {
         GeometryReader { geo in
             let w: CGFloat = geo.size.width
             let parts = PKCSuit.parse(card)
-            let ink: Color = PKCSuit.isRed(parts.suit) ? Color(hex: "d61f2c") : Color(hex: "121826")
+            let ink: Color = PKCSuit.isRed(parts.suit) ? GamePieceColors.cardRedInk
+                                                       : GamePieceColors.cardBlackInk
             let shape = RoundedRectangle(cornerRadius: w * 0.11, style: .continuous)
             ZStack {
-                shape.fill(LinearGradient(colors: [Color.white, Color(hex: "eef0f4")],
+                shape.fill(LinearGradient(colors: [GamePieceColors.faceWhite, GamePieceColors.faceWhiteEdge],
                                           startPoint: .top, endPoint: .bottom))
                 shape.strokeBorder(Color.black.opacity(0.14), lineWidth: 1)
                 VStack(spacing: 0) {
                     Text(parts.rank)
                         .font(.system(size: w * (parts.rank.count > 1 ? 0.34 : 0.4), weight: .heavy, design: .rounded))
                     Image(systemName: PKCSuit.symbol(parts.suit))
-                        .font(.system(size: w * 0.2, weight: .bold))
+                        .font(.system(size: w * 0.2, weight: .bold, design: .rounded))
                 }
                 .foregroundColor(ink)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(.leading, w * 0.09)
                 .padding(.top, w * 0.06)
                 Image(systemName: PKCSuit.symbol(parts.suit))
-                    .font(.system(size: w * 0.5, weight: .bold))
+                    .font(.system(size: w * 0.5, weight: .bold, design: .rounded))
                     .foregroundColor(ink)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(w * 0.1)
@@ -524,12 +525,12 @@ private struct PKCCardBack: View {
             ZStack {
                 shape.fill(Color.white)
                 inner
-                    .fill(LinearGradient(colors: [Color(hex: "1e3a8a"), Color(hex: "0b1640")],
+                    .fill(LinearGradient(colors: [GamePieceColors.cardBackTop, GamePieceColors.cardBackBottom],
                                          startPoint: .topLeading, endPoint: .bottomTrailing))
                     .overlay(inner.strokeBorder(PKCColors.gold.opacity(0.75), lineWidth: 2))
                     .padding(w * 0.07)
                 Image(systemName: "suit.spade.fill")
-                    .font(.system(size: w * 0.3, weight: .bold))
+                    .font(.system(size: w * 0.3, weight: .bold, design: .rounded))
                     .foregroundColor(PKCColors.gold)
             }
         }

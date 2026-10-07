@@ -60,10 +60,10 @@ struct TVBlastRunnersBoardView: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Blast Runners")
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 Text("Level \(vm.state.level) of \(vm.state.maxLevel)")
-                    .font(.body)
+                    .font(.system(.body, design: .rounded))
                     .foregroundColor(.white.opacity(0.55))
             }
 
@@ -73,14 +73,14 @@ struct TVBlastRunnersBoardView: View {
                 HStack(spacing: 6) {
                     ForEach(0..<max(vm.state.livesMax, 1), id: \.self) { index in
                         Image(systemName: index < vm.state.livesCurrent ? "heart.fill" : "heart")
-                            .font(.system(size: 20))
-                            .foregroundColor(index < vm.state.livesCurrent ? .red : .white.opacity(0.25))
+                            .font(.system(size: 20, weight: .regular, design: .rounded))
+                            .foregroundColor(index < vm.state.livesCurrent ? TVTheme.red : .white.opacity(0.25))
                     }
                 }
                 HStack(spacing: 6) {
-                    Image(systemName: "diamond.fill").foregroundColor(.cyan)
+                    Image(systemName: "diamond.fill").foregroundColor(TVTheme.cyan)
                     Text("\(vm.state.gemsRemaining) of \(vm.state.gemsTotal) gems")
-                        .font(.headline)
+                        .font(.system(.headline, design: .rounded))
                         .foregroundColor(.white.opacity(0.8))
                 }
             }
@@ -94,12 +94,12 @@ private struct BlastBanner: View {
 
     var body: some View {
         Text(text)
-            .font(.title2.bold())
+            .font(.system(.title2, design: .rounded, weight: .bold))
             .foregroundColor(tint)
             .padding(.horizontal, 28)
             .padding(.vertical, 16)
-            .background(RoundedRectangle(cornerRadius: 16).fill(tint.opacity(0.16)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(tint.opacity(0.5), lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(tint.opacity(0.16)))
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).stroke(tint.opacity(0.5), lineWidth: 1))
     }
 }
 
@@ -174,8 +174,8 @@ struct BlastRunnersBoardState {
 
     var bannerTint: Color {
         switch phase {
-        case "levelComplete", "gameComplete": return .green
-        case "levelFailed": return .red
+        case "levelComplete", "gameComplete": return TVTheme.green
+        case "levelFailed": return TVTheme.red
         default: return .white
         }
     }
@@ -270,7 +270,11 @@ private let brFloorColorA = UIColor(red: 0.12, green: 0.15, blue: 0.23, alpha: 1
 private let brFloorColorB = UIColor(red: 0.08, green: 0.11, blue: 0.18, alpha: 1)
 private let brRockColor = UIColor(red: 0.58, green: 0.36, blue: 0.17, alpha: 1)
 private let brWallColor = UIColor(red: 0.035, green: 0.04, blue: 0.06, alpha: 1)
-private let brPlayerPalette: [UIColor] = [.cyan, .yellow, .green, .orange]
+// SceneKit wants UIColor, so the shared tokens are bridged rather than
+// re-picked by eye.
+private let brPlayerPalette: [UIColor] = [
+    UIColor(TVTheme.cyan), UIColor(TVTheme.yellow), UIColor(TVTheme.green), UIColor(TVTheme.orange),
+]
 
 struct BlastRunnersCinematicBoardSceneView: UIViewRepresentable {
     var state: BlastRunnersBoardState

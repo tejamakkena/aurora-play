@@ -28,7 +28,8 @@ struct WaitingView: View {
 
                     // Game Night scoreboard (everyone sees it while one runs)
                     if let night = room.night {
-                        GameNightStatusCard(room: room, night: night, isHost: vm.isHost)
+                        GameNightStatusCard(room: room, night: night, isHost: vm.isHost,
+                                            myID: vm.playerID)
                             .transition(.scale(scale: 0.95).combined(with: .opacity))
                     }
 
@@ -50,7 +51,7 @@ struct WaitingView: View {
                     if room.gameID.hasPrivateInfo {
                         HStack(spacing: 10) {
                             Image(systemName: "eye.slash.fill")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                             Text("Your private info will appear here when the game starts")
                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                         }
@@ -82,12 +83,12 @@ struct WaitingView: View {
     private var gameBadge: some View {
         VStack(spacing: 12) {
             Image(systemName: room.gameID.sfSymbol)
-                .font(.system(size: 44, weight: .bold))
+                .font(.system(size: 44, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 96, height: 96)
                 .background(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                         .fill(PhonePlayDesign.gradient(Self.tvColors))
                 )
                 .shadow(color: PhonePlayDesign.cyan.opacity(0.4), radius: 18, y: 8)
@@ -166,7 +167,7 @@ struct WaitingView: View {
                     vm.removeBot(player.id)
                 } label: {
                     Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 20, weight: .regular, design: .rounded))
                         .foregroundColor(PhonePlayDesign.red.opacity(0.85))
                 }
                 .buttonStyle(.plain)
@@ -174,14 +175,14 @@ struct WaitingView: View {
             }
 
             Image(systemName: player.isReady ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundColor(player.isReady ? PhonePlayDesign.green : .white.opacity(0.2))
                 .contentTransition(.symbolEffect(.replace))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                 .fill(me ? PhonePlayDesign.cyan.opacity(0.1) : PhonePlayDesign.surface)
         )
     }
@@ -201,7 +202,7 @@ struct WaitingView: View {
         if isReady {
             HStack(spacing: 10) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .symbolEffect(.bounce, value: isReady)
                 Text("Ready! Waiting for the TV")
                     .font(.system(size: 18, weight: .heavy, design: .rounded))

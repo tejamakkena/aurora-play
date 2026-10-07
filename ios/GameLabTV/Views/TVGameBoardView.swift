@@ -42,6 +42,7 @@ struct TVGameBoardView: View {
         case .emojiMovie:    TVEmojiMovieBoardView(room: room)
         case .npat:          TVNPATBoardView(room: room)
         case .antakshari:    TVAntakshariBoardView(room: room)
+        case .atlas:         TVAtlasBoardView(room: room)
         case .mostLikelyTo:  TVMostLikelyToBoardView(room: room)
         case .brainBattle:   TVBrainBattleBoardView(room: room)
 
@@ -67,15 +68,16 @@ struct TVGameBoardView: View {
         case .twenty48:      TVTwenty48BoardView(room: room)
         case .brickBreaker:  TVBrickBreakerBoardView(room: room)
         case .simonSays:     TVSimonSaysBoardView(room: room)
-        case .atlas:         TVAtlasBoardView(room: room)
 
         // Co-op arcade
         case .blastRunners:  TVBlastRunnersBoardView(room: room)
 
-        // Travel Mode — phone-hosted games; the TV has no board for them.
+        // Talk games — argue and ask out loud.
+        case .hotTakes:       TVHotTakesBoardView(room: room)
+        case .twentyQuestions: TVTwentyQuestionsBoardView(room: room)
+
+        // Travel Mode leftover with no TV board (retired).
         case .storyChain:     PlaceholderBoardView(game: .storyChain)
-        case .twentyQuestions: PlaceholderBoardView(game: .twentyQuestions)
-        case .hotTakes:       PlaceholderBoardView(game: .hotTakes)
         }
     }
 }

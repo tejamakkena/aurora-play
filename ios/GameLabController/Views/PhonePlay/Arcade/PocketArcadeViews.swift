@@ -42,13 +42,13 @@ private struct PocketArcadeMenuView: View {
                 VStack(spacing: 18) {
                     VStack(spacing: 8) {
                         Image(systemName: "gamecontroller.fill")
-                            .font(.system(size: 54, weight: .bold))
+                            .font(.system(size: 54, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.indigo]))
                             .phonePlayIdle(degrees: 5, scale: 0.04, duration: 1.1)
                         Text("Pocket Arcade")
                             .font(.system(size: 32, weight: .black, design: .rounded))
                             .foregroundColor(.white)
-                        Text("Quick reflex games for one. Beat your best.")
+                        Text("Quick games for one. Beat your best.")
                             .font(.system(size: 15, weight: .semibold, design: .rounded))
                             .foregroundColor(PhonePlayDesign.text2)
                             .multilineTextAlignment(.center)
@@ -74,6 +74,8 @@ private struct PocketArcadeMenuView: View {
             return game.bestLights > 0 ? "Best: \(game.bestLights) lights" : "No best yet"
         case .rush:
             return game.bestRush > 0 ? "Best: \(PocketArcadeStore.rushText(game.bestRush))" : "No best yet"
+        case .twenty48:
+            return game.bestTiles > 0 ? "Best: \(game.bestTiles) points" : "No best yet"
         }
     }
 }
@@ -92,7 +94,7 @@ private struct PocketArcadeGameCard: View {
         } label: {
             HStack(spacing: 16) {
                 Image(systemName: choice.symbol)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(width: 64, height: 64)
                     .background(Circle().fill(Color.black.opacity(0.18)))
@@ -114,7 +116,7 @@ private struct PocketArcadeGameCard: View {
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "play.fill")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
             }
             .padding(18)
@@ -168,6 +170,21 @@ private struct PocketArcadePlayView: View {
     @ObservedObject var game: PocketArcadeViewModel
 
     var body: some View {
+        Group {
+            switch game.game {
+            case .lights, .rush:
+                timedGame
+            case .twenty48:
+                Arcade2048PlayView(board: game.twenty48,
+                                   onClose: game.backToMenu,
+                                   onFinish: game.finishTiles)
+            }
+        }
+        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+    }
+
+    private var timedGame: some View {
         VStack(spacing: 18) {
             header
             Spacer(minLength: 0)
@@ -176,13 +193,14 @@ private struct PocketArcadePlayView: View {
                 PocketArcadeLightsGrid(game: game)
             case .rush:
                 PocketArcadeRushGrid(game: game)
+            case .twenty48:
+                // Drawn by Arcade2048PlayView instead.
+                EmptyView()
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 20)
-        .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
-        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
     }
 
     private var header: some View {
@@ -192,7 +210,7 @@ private struct PocketArcadePlayView: View {
                 game.backToMenu()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(Color.white.opacity(0.08)))
@@ -213,6 +231,9 @@ private struct PocketArcadePlayView: View {
                 Spacer()
                 PocketArcadeStat(label: "NEXT", value: "\(min(game.nextNumber, game.rushCount))",
                                  tint: PhonePlayDesign.cyan)
+            case .twenty48:
+                // Arcade2048PlayView has its own score header.
+                EmptyView()
             }
             Spacer()
             Color.clear.frame(width: 40, height: 40)
@@ -295,15 +316,15 @@ private struct PocketArcadeLightCell: View {
     }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(fill)
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(lit ? 0.6 : 0.08), lineWidth: lit ? 3 : 1)
             )
             .overlay(
                 Image(systemName: "lightbulb.max.fill")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.black.opacity(0.55))
                     .opacity(lit ? 1 : 0)
             )
@@ -338,7 +359,7 @@ private struct PocketArcadeNumberCell: View {
     let wrong: Bool
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(wrong ? PhonePlayDesign.red
                         : (cleared ? PhonePlayDesign.surface.opacity(0.4) : PhonePlayDesign.surface2))
             .overlay(
@@ -347,7 +368,7 @@ private struct PocketArcadeNumberCell: View {
                     .foregroundColor(cleared ? PhonePlayDesign.text3.opacity(0.4) : .white)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(PhonePlayDesign.cyan.opacity(cleared ? 0 : 0.25), lineWidth: 1)
             )
             .scaleEffect(cleared ? 0.86 : 1)
@@ -368,6 +389,7 @@ private struct PocketArcadeResultView: View {
         switch game.game {
         case .lights: return "\(game.hits)"
         case .rush:   return PocketArcadeStore.rushText(game.resultSeconds)
+        case .twenty48: return "\(game.tilesScore)"
         }
     }
 
@@ -375,6 +397,7 @@ private struct PocketArcadeResultView: View {
         switch game.game {
         case .lights: return game.hits == 1 ? "light tapped" : "lights tapped"
         case .rush:   return game.penalty > 0 ? "including \(Int(game.penalty))s of penalties" : "no wrong taps"
+        case .twenty48: return "points, biggest tile \(game.tilesBiggest)"
         }
     }
 
@@ -382,6 +405,7 @@ private struct PocketArcadeResultView: View {
         switch game.game {
         case .lights: return "Best: \(game.bestLights) lights"
         case .rush:   return "Best: \(PocketArcadeStore.rushText(game.bestRush))"
+        case .twenty48: return "Best: \(game.bestTiles) points"
         }
     }
 

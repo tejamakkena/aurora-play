@@ -28,7 +28,7 @@ struct PhonePlayTopBar: View {
                 Button(action: onBack) {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
                         Text(backTitle)
                             .font(.system(size: 15, weight: .semibold, design: .rounded))
                     }
@@ -66,7 +66,7 @@ struct PhonePlayBigButton: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: symbol)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                 Text(title)
                     .font(.system(size: 20, weight: .heavy, design: .rounded))
             }
@@ -99,7 +99,7 @@ struct PhonePlayGhostButton: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                 Text(title)
                     .font(.system(size: 17, weight: .bold, design: .rounded))
             }
@@ -274,7 +274,7 @@ struct HoldToRevealCard<Secret: View>: View {
             .overlay(
                 VStack(spacing: 16) {
                     Image(systemName: "hand.tap.fill")
-                        .font(.system(size: 54, weight: .bold))
+                        .font(.system(size: 54, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .symbolEffect(.pulse, options: .repeating)
                     Text(prompt)
@@ -354,7 +354,7 @@ struct PassAndRevealView<Secret: View>: View {
         VStack(spacing: 26) {
             Spacer(minLength: 10)
             Image(systemName: "iphone.and.arrow.forward")
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient([accent, .white]))
                 .phonePlayIdle(dx: 10, duration: 0.9)
             VStack(spacing: 6) {
@@ -455,14 +455,14 @@ struct PhonePlayNamesEditor: View {
                 remove(at: index)
             } label: {
                 Image(systemName: "minus.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.system(size: 22, weight: .regular, design: .rounded))
                     .foregroundColor(.white.opacity(0.35))
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(PhonePlayDesign.surface))
         .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity),
                                 removal: .scale(scale: 0.8).combined(with: .opacity)))
@@ -490,7 +490,7 @@ struct PhonePlayNamesEditor: View {
                 add()
             } label: {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 30))
+                    .font(.system(size: 30, weight: .regular, design: .rounded))
                     .foregroundColor(canAdd ? accent : .white.opacity(0.2))
             }
             .buttonStyle(.plain)
@@ -499,7 +499,7 @@ struct PhonePlayNamesEditor: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.14), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
         )
     }
@@ -561,7 +561,7 @@ struct PhonePlayChip: View {
             .padding(.vertical, subtitle == nil ? 14 : 10)
             .padding(.horizontal, 6)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .fill(selected ? PhonePlayDesign.gradient(colors)
                                    : PhonePlayDesign.gradient([PhonePlayDesign.surface,
                                                                PhonePlayDesign.surface]))
@@ -611,7 +611,7 @@ struct PhonePlayAIButton: View {
                         .controlSize(.small)
                 } else {
                     Image(systemName: symbol)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(accent)
                 }
                 Text(label)
@@ -623,10 +623,10 @@ struct PhonePlayAIButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 13)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .fill(accent.opacity(0.1))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                             .strokeBorder(accent.opacity(0.35), lineWidth: 1)
                     )
             )

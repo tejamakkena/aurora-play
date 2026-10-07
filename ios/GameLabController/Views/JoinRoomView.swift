@@ -103,7 +103,7 @@ struct JoinRoomView: View {
                 onClose()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.75))
                     .frame(width: 36, height: 36)
                     .background(Circle().fill(Color.white.opacity(0.08)))
@@ -131,12 +131,12 @@ struct JoinRoomView: View {
     private var header: some View {
         VStack(spacing: 10) {
             ZStack {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.gradient(Self.tvColors))
                     .frame(width: 92, height: 92)
                     .shadow(color: PhonePlayDesign.cyan.opacity(0.4), radius: 18, y: 8)
                 Image(systemName: "tv.fill")
-                    .font(.system(size: 42, weight: .bold))
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .phonePlayIdle(dy: 3, degrees: 3, duration: 1.3)
             }
@@ -239,11 +239,11 @@ struct JoinRoomView: View {
     private var qrHint: some View {
         HStack(spacing: 14) {
             Image(systemName: "qrcode.viewfinder")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .frame(width: 52, height: 52)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.gradient([PhonePlayDesign.purple, PhonePlayDesign.pink]))
                 )
                 .phonePlayIdle(scale: 0.05, duration: 1.2)
@@ -265,6 +265,7 @@ struct JoinRoomView: View {
     private var serverSettings: some View {
         VStack(spacing: 10) {
             Button {
+                PhonePlayHaptics.tap()
                 serverText = UserDefaults.standard.string(forKey: AppConstants.serverOverrideKey) ?? ""
                 serverError = false
                 withAnimation(PhonePlayDesign.smooth) { showServer.toggle() }
@@ -285,11 +286,11 @@ struct JoinRoomView: View {
                         .keyboardType(.URL)
                         .padding(12)
                         .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .fill(PhonePlayDesign.surface2)
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .strokeBorder(serverError ? PhonePlayDesign.red : Color.white.opacity(0.12),
                                               lineWidth: 1)
                         )

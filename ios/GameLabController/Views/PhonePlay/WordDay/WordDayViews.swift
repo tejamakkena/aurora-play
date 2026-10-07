@@ -155,7 +155,7 @@ private struct WordDayPillButton: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .symbolEffect(.bounce, value: spoken)
                 Text(title)
                     .font(.system(size: 16, weight: .heavy, design: .rounded))
@@ -178,7 +178,7 @@ private struct WordDaySpeakerButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 16, weight: .bold, design: .rounded))
                 .foregroundColor(tint)
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(tint.opacity(0.14)))
@@ -207,7 +207,7 @@ private struct WordDayInfoCard<Content: View>: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(tint)
                 Text(label.uppercased())
                     .font(.system(size: 12, weight: .heavy, design: .rounded))
@@ -219,7 +219,7 @@ private struct WordDayInfoCard<Content: View>: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.surface)
         )
     }
@@ -236,7 +236,7 @@ private struct WordDayChallengeCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: "target")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.green)
                 Text("USE IT TODAY")
                     .font(.system(size: 12, weight: .heavy, design: .rounded))
@@ -259,7 +259,7 @@ private struct WordDayChallengeCard: View {
             if game.usedToday {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.green)
                         .symbolEffect(.bounce, value: celebrate)
                     Text("Done! You used it today.")
@@ -279,10 +279,10 @@ private struct WordDayChallengeCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.surface)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                         .strokeBorder(PhonePlayDesign.green.opacity(game.usedToday ? 0.6 : 0.2), lineWidth: 1.5)
                 )
         )
@@ -322,7 +322,7 @@ private struct WordDayYesterdayCard: View {
                     }
                     Spacer(minLength: 4)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.text2)
                         .rotationEffect(.degrees(expanded ? 180 : 0))
                 }
@@ -358,7 +358,7 @@ private struct WordDayYesterdayCard: View {
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.surface)
         )
         .clipped()

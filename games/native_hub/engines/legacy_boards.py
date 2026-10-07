@@ -72,8 +72,28 @@ class Connect4Engine(TurnBasedEngine):
         seats = min(max(len(self.order), 2), 4)
         self.rows, self.cols = self.BOARD_SIZES[seats]
         self.grid = self._empty_grid()
-        self.colors = {pid: self.COLORS[i % len(self.COLORS)]
-                       for i, pid in enumerate(self.order)}
+        self.colors = {}
+        for pid in self.order:
+            self._color_for(pid)
+
+    def _color_for(self, player_id):
+        """This seat's disc colour, assigned on first use and kept.
+
+        Never falls back to a shared colour. The old code answered
+        ``COLORS[0]`` for any seat it had no colour for, so a seat that
+        appeared after setup dropped red discs alongside player one's --
+        two people, one colour, an unreadable board. Here an unknown seat
+        takes the first colour nobody else holds instead, and only shares
+        one once all four are taken (which the four-seat cap prevents).
+        """
+        known = self.colors.get(player_id)
+        if known:
+            return known
+        taken = set(self.colors.values())
+        color = next((c for c in self.COLORS if c not in taken),
+                     self.COLORS[len(self.colors) % len(self.COLORS)])
+        self.colors[player_id] = color
+        return color
 
     def _drop(self, col):
         for row in range(self.rows - 1, -1, -1):
@@ -123,7 +143,7 @@ class Connect4Engine(TurnBasedEngine):
         row = self._drop(col)
         if row is None:
             return
-        color = self.colors.get(player_id, self.COLORS[0])
+        color = self._color_for(player_id)
         self.grid[row][col] = color
         self.move_count += 1
         self.last_move = {"row": row, "col": col, "color": color}
@@ -196,7 +216,9 @@ class Connect4Engine(TurnBasedEngine):
         state.update(shared)
         state.update({
             "isMyTurn": current is not None and current == player_id,
-            "color": self.colors.get(player_id, self.COLORS[0]),
+            # Read-only: every seat got its colour in setup, and allocating
+            # one here would spend a colour on a phone that has since left.
+            "color": self.colors.get(player_id, ""),
             "fullColumns": self._full_columns(),
         })
         return state

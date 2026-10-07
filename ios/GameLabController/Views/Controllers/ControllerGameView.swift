@@ -56,6 +56,7 @@ struct ControllerGameView: View {
         case .emojiMovie:    EmojiMovieControllerView(privateData: privateData, onAction: onAction)
         case .npat:          NPATControllerView(privateData: privateData, onAction: onAction)
         case .antakshari:    AntakshariControllerView(privateData: privateData, onAction: onAction)
+        case .atlas:         AtlasControllerView(privateData: privateData, onAction: onAction)
         case .mostLikelyTo:  MostLikelyToControllerView(privateData: privateData, onAction: onAction)
         case .brainBattle:   BrainBattleControllerView(privateData: privateData, onAction: onAction)
 
@@ -86,26 +87,27 @@ struct ControllerGameView: View {
             SimonSaysControllerView(privateData: privateData, onAction: onAction)
         case .twenty48:      SwipeControllerView(privateData: privateData, onAction: onAction)
         case .brickBreaker:  PaddleControllerView(privateData: privateData, onAction: onAction)
-        case .atlas:         AtlasControllerView(privateData: privateData, onAction: onAction)
 
         // Co-op arcade
         case .blastRunners:
             BlastRunnersControllerView(privateData: privateData, onAction: onAction)
 
-        // No TV-room experience for these engines.
+        // Talk games — argue and ask out loud.
+        case .hotTakes:
+            HotTakesControllerView(privateData: privateData, onAction: onAction)
+        case .twentyQuestions:
+            TwentyQuestionsControllerView(privateData: privateData, onAction: onAction)
+
+        // Retired Travel Mode leftover: no TV-room experience.
         case .storyChain:
             TravelModeNoticeControllerView(gameID: .storyChain)
-        case .twentyQuestions:
-            TravelModeNoticeControllerView(gameID: .twentyQuestions)
-        case .hotTakes:
-            TravelModeNoticeControllerView(gameID: .hotTakes)
         }
     }
 }
 
-/// Story Chain / Twenty Questions / Hot Takes have no TV board or phone
-/// controller (Travel Mode is now a single quizmaster); if one is ever
-/// picked in a TV room, say so instead of showing a blank screen.
+/// Story Chain has no TV board or phone controller (Travel Mode is now a
+/// single quizmaster); if it is ever picked in a TV room, say so instead
+/// of showing a blank screen.
 private struct TravelModeNoticeControllerView: View {
     let gameID: GameID
 

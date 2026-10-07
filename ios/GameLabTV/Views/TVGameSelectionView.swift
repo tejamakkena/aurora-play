@@ -14,14 +14,14 @@ struct TVGameSelectionView: View {
     @State private var isPulsing = false
 
     // Every soloPlayable game also supports more than one player (Neon
-    // Snake, 2048, Simon Says: up to 4; Brick Breaker: up to 2; Atlas: up to
-    // 8) -- picking one used to always start it solo immediately with no
-    // way to invite anyone, despite the card's own "N–M players" caption
-    // advertising otherwise. Reported directly: Neon Snake showed no room
-    // code and no controller access at all, and Atlas -- whose only input
-    // style is typed text -- had no way to answer, since AtlasControllerView
-    // (the phone UI that types the answer) can never appear if no phone can
-    // ever join. This prompt gives a real choice instead of assuming solo.
+    // Snake, 2048, Simon Says: up to 4; Brick Breaker: up to 2) -- picking
+    // one used to always start it solo immediately with no way to invite
+    // anyone, despite the card's own "N–M players" caption advertising
+    // otherwise. Reported directly: Neon Snake showed no room code and no
+    // controller access at all, and Atlas (back when it was a typed solo
+    // game; it is now a spoken party game that always needs phones) had no
+    // way to answer because no phone could ever join. This prompt gives a
+    // real choice instead of assuming solo.
     @State private var soloChoiceGame: GameID? = nil
 
     // Gives the first game card a deterministic initial focus target instead
@@ -144,10 +144,10 @@ struct TVGameSelectionView: View {
         .overlay {
             if let debugLastInput {
                 Text(debugLastInput)
-                    .font(.system(size: 44, weight: .heavy))
+                    .font(.system(size: 44, weight: .heavy, design: .rounded))
                     .foregroundColor(.black)
                     .padding(40)
-                    .background(Color.yellow)
+                    .background(TVTheme.yellow)
                     .accessibilityIdentifier("debugLastInput")
                     .transition(.opacity)
             }
@@ -219,7 +219,7 @@ struct TVGameSelectionView: View {
                 // Each pill carries its category's own accent (the same one
                 // its cards wear), so the sidebar doubles as the grid's
                 // colour legend rather than nine identical cyan pills.
-                ForEach(GameCategory.allCases, id: \.self) { cat in
+                ForEach(GameID.listedCategories, id: \.self) { cat in
                     CategoryPill(label: cat.rawValue,
                                  accent: cat.tvStyle.accent,
                                  isSelected: selectedCategory == cat) {
@@ -234,9 +234,9 @@ struct TVGameSelectionView: View {
             // so the state reads as "actively retrying", not stuck.
             HStack(spacing: 8) {
                 Circle()
-                    .fill(socket.isConnected ? Color.green : Color.red)
+                    .fill(socket.isConnected ? TVTheme.green : TVTheme.red)
                     .frame(width: 10, height: 10)
-                    .shadow(color: socket.isConnected ? Color.green : Color.red, radius: 5)
+                    .shadow(color: socket.isConnected ? TVTheme.green : TVTheme.red, radius: 5)
                     .opacity(socket.isConnected ? 1 : (isPulsing ? 1 : 0.3))
                     .onAppear {
                         withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
@@ -244,13 +244,13 @@ struct TVGameSelectionView: View {
                         }
                     }
                 Text(socket.isConnected ? "Server connected" : "Reconnecting…")
-                    .font(.caption)
+                    .font(.system(.caption, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
 
                 // Build stamp -- which commit this build came from, so a
                 // glance at the TV answers "is this running the new code?".
                 Text(BuildStamp.displayString)
-                    .font(.caption2)
+                    .font(.system(.caption2, design: .rounded))
                     .foregroundColor(.white.opacity(0.3))
                     .padding(.top, 2)
             }
@@ -528,10 +528,10 @@ private struct TVGameCard: View {
         .overlay(alignment: .topTrailing) {
             VStack(spacing: 6) {
                 if game.hasPrivateInfo {
-                    GameBadge(systemImage: "eye.slash.fill", color: .cyan)
+                    GameBadge(systemImage: "eye.slash.fill", color: TVTheme.cyan)
                 }
                 if game.supportsRemote {
-                    GameBadge(systemImage: "av.remote.fill", color: .green)
+                    GameBadge(systemImage: "av.remote.fill", color: TVTheme.green)
                 }
             }
             .padding(12)
@@ -614,7 +614,7 @@ private struct TVGameCard: View {
 
     private var categoryGlyph: some View {
         Image(systemName: style.symbol)
-            .font(.system(size: 16, weight: .bold))
+            .font(.system(size: 16, weight: .bold, design: .rounded))
             .foregroundColor(.white.opacity(isFocused ? 0.95 : 0.6))
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
@@ -718,7 +718,7 @@ private struct TVGameHero: View {
 
             VStack(spacing: 10) {
                 Image(systemName: "play.circle.fill")
-                    .font(.system(size: 54, weight: .bold))
+                    .font(.system(size: 54, weight: .bold, design: .rounded))
                     .foregroundColor(style.accent)
                     .shadow(color: style.accent.opacity(0.7), radius: 12)
                 Text("Select to play")
@@ -730,7 +730,7 @@ private struct TVGameHero: View {
         .padding(.vertical, 26)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            ShellGlassSurface(cornerRadius: 40, tint: style.accent)
+            ShellGlassSurface(cornerRadius: ShellTheme.cardRadius, tint: style.accent)
         }
         .accessibilityElement(children: .combine)
     }
@@ -769,7 +769,7 @@ private struct GameBadge: View {
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.caption2.bold())
+            .font(.system(.caption2, design: .rounded, weight: .bold))
             .foregroundColor(.white)
             .frame(width: 22, height: 22)
             .background(Circle().fill(color.opacity(0.85)))

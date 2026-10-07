@@ -14,7 +14,7 @@ private struct DuelHint: View {
         HStack(spacing: 8) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
             }
             Text(text)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -44,7 +44,7 @@ private struct DuelArrowButton: View {
             action()
         }) {
             Image(systemName: icon)
-                .font(.system(size: min(30, height * 0.4), weight: .heavy))
+                .font(.system(size: min(30, height * 0.4), weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
                 .frame(width: width, height: height)
                 .background(
@@ -120,7 +120,7 @@ struct DefuseControllerView: View {
             ForEach(0..<3, id: \.self) { i in
                 let hit: Bool = i < strikes
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundColor(hit ? .white : .white.opacity(0.2))
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(hit ? PhonePlayDesign.red : PhonePlayDesign.surface))
@@ -352,7 +352,7 @@ struct BattleshipControllerView: View {
                                 .overlay {
                                     if result == "hit" {
                                         Image(systemName: "xmark")
-                                            .font(.system(size: 11, weight: .heavy))
+                                            .font(.system(size: 11, weight: .heavy, design: .rounded))
                                             .foregroundColor(.white)
                                     } else if result == "miss" {
                                         Circle()
@@ -419,7 +419,7 @@ struct AirHockeyControllerView: View {
                                     .fill(PhonePlayDesign.cyan.opacity(0.15))
                                     .frame(width: 2)
                             )
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .fill(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.blue]))
                             .frame(width: paddleWidth, height: 70)
                             .shadow(color: PhonePlayDesign.cyan.opacity(0.5), radius: 12, y: 4)
@@ -498,11 +498,11 @@ struct HeistEscapeControllerView: View {
                                           : PhonePlayDesign.surface2)
                                 if cell == position {
                                     Image(systemName: "person.fill")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
                                 } else if cell == exitCell {
                                     Image(systemName: "door.left.hand.open")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
                                 }
                             }
@@ -850,12 +850,15 @@ struct TeenPattiControllerView: View {
                                         Text(label(c.rank))
                                             .font(.system(size: 30, weight: .heavy, design: .rounded))
                                         Text(c.suit)
-                                            .font(.system(size: 24))
+                                            .font(.system(size: 24, weight: .regular, design: .rounded))
                                     }
-                                    .foregroundColor(c.suit == "♥" || c.suit == "♦" ? PhonePlayDesign.red
-                                                                                     : Color(hex: "16161E"))
+                                    .foregroundColor(c.suit == "♥" || c.suit == "♦"
+                                                     ? GamePieceColors.cardRedInk
+                                                     : GamePieceColors.cardBlackInk)
                                     .frame(width: 74, height: 106)
-                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(.white))
+                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(PhonePlayDesign.gradient([GamePieceColors.faceWhite,
+                                                                        GamePieceColors.faceWhiteEdge])))
                                     .shadow(color: .black.opacity(0.35), radius: 8, y: 4)
                                     .rotationEffect(.degrees(fanAngle(i, of: cards.count)))
                                     .offset(y: CGFloat(abs(fanAngle(i, of: cards.count))))
@@ -1001,11 +1004,11 @@ struct SimonSaysControllerView: View {
             PhonePlayHaptics.tap()
             onAction("pad", ["pad": direction])
         }) {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.gradient([tint.opacity(canTap ? 0.95 : 0.25),
                                                 tint.opacity(canTap ? 0.65 : 0.15)]))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                         .strokeBorder(Color.white.opacity(canTap ? 0.25 : 0.06), lineWidth: 1.5)
                 )
                 .frame(width: 100, height: 84)
@@ -1035,7 +1038,7 @@ struct SwipeControllerView: View {
                     .overlay(
                         VStack(spacing: 10) {
                             Image(systemName: "hand.draw")
-                                .font(.system(size: 48, weight: .bold))
+                                .font(.system(size: 48, weight: .bold, design: .rounded))
                                 .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.yellow,
                                                                            PhonePlayDesign.orange]))
                                 .phonePlayIdle(dx: 8, duration: 1.0)
@@ -1089,7 +1092,7 @@ struct PaddleControllerView: View {
                         .overlay(
                             VStack(spacing: 10) {
                                 Image(systemName: "arrow.left.and.right")
-                                    .font(.system(size: 40, weight: .bold))
+                                    .font(.system(size: 40, weight: .bold, design: .rounded))
                                     .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.cyan,
                                                                                PhonePlayDesign.blue]))
                                     .phonePlayIdle(dx: 10, duration: 1.0)
@@ -1109,72 +1112,6 @@ struct PaddleControllerView: View {
                 .frame(height: 220).padding(.horizontal, 24)
                 Spacer()
             }
-        }
-    }
-}
-
-/// Text controller for Atlas.
-struct AtlasControllerView: View {
-    let privateData: [String: Any]
-    let onAction: (String, [String: Any]) -> Void
-
-    private var letter: String { privateData.str("letter") }
-    private var isMyTurn: Bool { privateData.bool("isMyTurn") }
-    private var seconds: Int { privateData.int("secondsLeft") }
-    private var error: String { privateData.str("error") }
-    private var isOut: Bool { privateData.bool("isOut") }
-
-    @State private var place = ""
-
-    var body: some View {
-        ControllerShell(title: "Atlas",
-                        subtitle: isOut ? "You're out" : (isMyTurn ? "Your turn" : "Waiting"),
-                        secondsLeft: isMyTurn ? seconds : nil) {
-            VStack(spacing: 16) {
-                VStack(spacing: 2) {
-                    Text("STARTS WITH")
-                        .font(.system(size: 11, weight: .heavy, design: .rounded))
-                        .tracking(3)
-                        .foregroundColor(PhonePlayDesign.text3)
-                    ZStack {
-                        Text(letter)
-                            .font(.system(size: 72, weight: .black, design: .rounded))
-                            .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.blue]))
-                            .id(letter)
-                            .transition(.scale(scale: 0.6).combined(with: .opacity))
-                    }
-                }
-                .frame(width: 150, height: 150)
-                .background(
-                    Circle().fill(PhonePlayDesign.gradient([PhonePlayDesign.cyan.opacity(0.18),
-                                                            PhonePlayDesign.indigo.opacity(0.14)]))
-                )
-                .overlay(Circle().strokeBorder(PhonePlayDesign.cyan.opacity(0.35), lineWidth: 2))
-                .phonePlayIdle(dy: 3, duration: 1.8)
-                .padding(.top, 24)
-
-                if isOut {
-                    WaitingState(systemIcon: "globe", text: "Out of the chain")
-                } else if isMyTurn {
-                    AnswerField(placeholder: "Place name", text: $place)
-                    if !error.isEmpty {
-                        DuelHint(text: error, systemImage: "exclamationmark.circle.fill",
-                                 tint: PhonePlayDesign.orange)
-                            .transition(.scale(scale: 0.9).combined(with: .opacity))
-                    }
-                    BigButton(title: "Submit", systemImage: "paperplane.fill",
-                              enabled: !place.trimmingCharacters(in: .whitespaces).isEmpty) {
-                        onAction("answer", ["place": place])
-                        place = ""
-                    }
-                } else {
-                    WaitingState(systemIcon: "hourglass", text: "Someone else's turn")
-                }
-                Spacer(minLength: 0)
-            }
-            .animation(PhonePlayDesign.pop, value: letter)
-            .animation(PhonePlayDesign.pop, value: isMyTurn)
-            .animation(PhonePlayDesign.pop, value: error)
         }
     }
 }

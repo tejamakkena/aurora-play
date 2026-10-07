@@ -288,7 +288,8 @@ def test_kids_mode_is_learning_games_only():
     ids = {g["id"] for g in game_night.pick_games(4, kids=True)}
     assert ids, "kids mode must still offer games"
     assert ids <= {"trivia", "kbc", "brain_battle", "npat", "cipher_grid", "connect4",
-                   "snake_ladder", "memory", "hot_grid", "digit_guess", "battleship"}
+                   "snake_ladder", "memory", "hot_grid", "digit_guess", "battleship",
+                   "twenty_questions", "atlas"}
     assert not ids & {"most_likely_to", "bluff_it", "pong", "emoji_movie", "poker"}
 
 
@@ -324,3 +325,12 @@ def test_end_night_drops_the_kids_topic(server):
     assert latest(tv, "room_updated")["topic"] in game_night.KIDS_TOPICS
     tv.emit("end_night", {"roomCode": code}, namespace=NS)
     assert latest(tv, "room_updated")["topic"] == ""
+
+
+def test_retired_games_are_not_picked_for_a_night():
+    retired = {"kbc", "pong", "memory", "hot_grid", "digit_guess", "stock_panic",
+               "roulette", "air_hockey", "carrom", "blast_runners", "neon_snake",
+               "twenty48", "brick_breaker", "simon_says", "story_chain", "chess"}
+    assert not retired & set(game_night.CATALOG)
+    for players in (2, 4, 8):
+        assert not retired & {g["id"] for g in game_night.pick_games(players)}
