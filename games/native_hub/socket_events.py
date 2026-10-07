@@ -126,7 +126,7 @@ def register_native_events(socketio):
             host_id = v.player_id(data.get("hostID"))
             if solo and host_id:
                 # Not added to room.players yet -- reported directly that
-                # solo games (e.g. Atlas, which needs typed answers) had no
+                # solo games (e.g. Atlas, which needs phones to play) had no
                 # way to bring in a phone at all, because this player used to
                 # be created immediately and the room auto-started before a
                 # phone could ever join it. Held here instead, and only

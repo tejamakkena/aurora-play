@@ -105,22 +105,6 @@ def test_bluff_it_bot_submits_lie_then_picks():
     assert act[0] == "pick"
 
 
-def test_antakshari_bot_matches_letter(monkeypatch):
-    import games.native_hub.bots as bots_module
-    # The bot sits out about half the rounds; force a round it plays.
-    monkeypatch.setattr(bots_module.random, "random", lambda: 0.9)
-    room, _, bots_ = make_room("antakshari", n_humans=2, n_bots=1)
-    engine = start_engine(room)
-    bot = bots_[0]
-    assert maybe_bot_action(engine, bot) is None  # schedules thinking delay
-    bot.bot_act_at = 0.0
-    act = maybe_bot_action(engine, bot)
-    assert act is not None
-    verb, payload = act
-    assert verb == "submit_song"
-    assert payload["song"].upper().startswith(engine.letter)
-
-
 def test_most_likely_to_bot_votes_for_other():
     room, _, bots_ = make_room("most_likely_to", n_humans=3, n_bots=1)
     engine = start_engine(room)

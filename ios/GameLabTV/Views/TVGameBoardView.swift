@@ -42,6 +42,7 @@ struct TVGameBoardView: View {
         case .emojiMovie:    TVEmojiMovieBoardView(room: room)
         case .npat:          TVNPATBoardView(room: room)
         case .antakshari:    TVAntakshariBoardView(room: room)
+        case .atlas:         TVAtlasBoardView(room: room)
         case .mostLikelyTo:  TVMostLikelyToBoardView(room: room)
         case .brainBattle:   TVBrainBattleBoardView(room: room)
 
@@ -67,7 +68,6 @@ struct TVGameBoardView: View {
         case .twenty48:      TVTwenty48BoardView(room: room)
         case .brickBreaker:  TVBrickBreakerBoardView(room: room)
         case .simonSays:     TVSimonSaysBoardView(room: room)
-        case .atlas:         TVAtlasBoardView(room: room)
 
         // Co-op arcade
         case .blastRunners:  TVBlastRunnersBoardView(room: room)

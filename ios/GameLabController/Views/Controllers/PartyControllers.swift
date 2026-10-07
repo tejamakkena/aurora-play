@@ -18,8 +18,6 @@ private enum PartyPadTint {
     static let herd: Color = PhonePlayDesign.cyan
     static let emoji: Color = PhonePlayDesign.yellow
     static let npat: Color = PhonePlayDesign.cyan
-    static let teamA: Color = PhonePlayDesign.cyan
-    static let teamB: Color = PhonePlayDesign.pink
     static let mostLikely: Color = PhonePlayDesign.purple
 }
 
@@ -573,89 +571,6 @@ struct NPATControllerView: View {
                               lineWidth: 1)
         )
         .animation(PhonePlayDesign.pop, value: filled)
-    }
-}
-
-// MARK: - Antakshari
-
-struct AntakshariControllerView: View {
-    let privateData: [String: Any]
-    let onAction: (String, [String: Any]) -> Void
-
-    private var letter: String { privateData.str("letter") }
-    private var phase: String { privateData.str("phase", "sing") }
-    private var seconds: Int { privateData.int("secondsLeft") }
-    private var myTeam: Int { privateData.int("myTeam") }
-    private var mySong: String? { privateData["mySong"] as? String }
-
-    @State private var song = ""
-    @State private var trackedRound = -1
-
-    /// The server only accepts a song beginning with the required letter, so the
-    /// button mirrors that rule rather than letting a doomed submit through.
-    private var valid: Bool {
-        song.trimmingCharacters(in: .whitespaces).uppercased().hasPrefix(letter)
-    }
-
-    private var teamColor: Color { myTeam == 0 ? PartyPadTint.teamA : PartyPadTint.teamB }
-
-    var body: some View {
-        ControllerShell(title: "Antakshari",
-                        subtitle: "Team \(myTeam == 0 ? "A" : "B")",
-                        secondsLeft: seconds) {
-            VStack(spacing: 16) {
-                VStack(spacing: 4) {
-                    Text("SING A SONG STARTING WITH")
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .tracking(2)
-                        .foregroundColor(PhonePlayDesign.text3)
-                    Text(letter)
-                        .font(.system(size: 84, weight: .black, design: .rounded))
-                        .foregroundStyle(PhonePlayDesign.gradient([teamColor, teamColor.opacity(0.6)]))
-                        .phonePlayIdle(dy: 3, scale: 0.03, duration: 1.4)
-                }
-                .padding(.vertical, 18)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
-                        .fill(PhonePlayDesign.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
-                        .strokeBorder(teamColor.opacity(0.35), lineWidth: 1)
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, 14)
-
-                if phase != "sing" {
-                    WaitingState(systemIcon: "mic.fill", text: "Round over",
-                                 detail: mySong.map { "You sang “\($0)”" })
-                        .transition(.partyPadPop)
-                } else {
-                    VStack(spacing: 12) {
-                        AnswerField(placeholder: "Song name", text: $song)
-                        if !song.isEmpty && !valid {
-                            Text("Must start with \(letter)")
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(PhonePlayDesign.orange)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                        BigButton(title: "Sing It!", systemImage: "music.note",
-                                  tint: teamColor, enabled: valid) {
-                            onAction("submit_song", ["song": song])
-                            song = ""
-                        }
-                    }
-                    .animation(PhonePlayDesign.pop, value: valid)
-                    .transition(.partyPadPop)
-                }
-                Spacer(minLength: 0)
-            }
-            .animation(PhonePlayDesign.pop, value: phase)
-            .onChange(of: privateData.int("round")) { _, newRound in
-                if newRound != trackedRound { trackedRound = newRound; song = "" }
-            }
-        }
     }
 }
 

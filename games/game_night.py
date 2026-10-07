@@ -35,6 +35,7 @@ CATALOG: dict[str, dict] = {
     "emoji_movie":        {"minutes": 10, "kids": False, "tags": ["creative"]},
     "npat":               {"minutes": 10, "kids": True,  "tags": ["words"]},
     "antakshari":         {"minutes": 15, "kids": False, "tags": ["music"]},
+    "atlas":              {"minutes": 8,  "kids": True,  "tags": ["words", "geography"]},
     "bollywood_charades": {"minutes": 12, "kids": False, "tags": ["acting"]},
     "speed_sculptor":     {"minutes": 8,  "kids": False, "tags": ["creative"]},
     "mind_meld":          {"minutes": 8,  "kids": False, "tags": ["social"]},

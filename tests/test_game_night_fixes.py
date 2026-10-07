@@ -542,18 +542,6 @@ class TestHerd:
         assert engine.scores[d] == 0
 
 
-class TestAntakshari:
-    def test_first_valid_song_closes_the_round_and_repeats_are_refused(self):
-        engine, roster = make("antakshari", players=2)
-        engine.letter = "T"
-        engine.handle_action(roster[0].id, "submit_song", {"song": "Tum Hi Ho"})
-        assert engine.phase == "reveal" and engine.round_winner == roster[0].id
-        engine.round, engine.phase, engine.letter = 2, "sing", "T"
-        engine.submissions = {}
-        engine.handle_action(roster[1].id, "submit_song", {"song": "tum hi ho"})
-        assert engine.phase == "sing"
-
-
 class TestLudoSafeSquares:
     """Start squares and star squares must block captures (classic rules)."""
 

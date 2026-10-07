@@ -289,7 +289,7 @@ def test_kids_mode_is_learning_games_only():
     assert ids, "kids mode must still offer games"
     assert ids <= {"trivia", "kbc", "brain_battle", "npat", "cipher_grid", "connect4",
                    "snake_ladder", "memory", "hot_grid", "digit_guess", "battleship",
-                   "twenty_questions"}
+                   "twenty_questions", "atlas"}
     assert not ids & {"most_likely_to", "bluff_it", "pong", "emoji_movie", "poker"}
 
 

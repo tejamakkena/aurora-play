@@ -57,7 +57,29 @@ NPAT_LETTERS = "ABCDGHJKLMNPRSTV"     # letters with enough easy answers
 NPAT_FIELDS = ["name", "place", "animal", "thing"]
 
 # ---- Antakshari: song-chain letters -----------------------------------------
+# Letters with plenty of Bollywood songs behind them. Used for the opening
+# letter, the "skip to a new letter" rule (Q, X, Z) and the phone's
+# suggested letters.
 ANTAKSHARI_LETTERS = "ABCDGHJKLMNPRSTVY"
+
+# Nudges the TV shows when a team is stuck partway through its turn. Never a
+# song title -- the fun is in remembering one.
+ANTAKSHARI_HINTS = [
+    "Hint: try a song from the 70s",
+    "Hint: try a song from the 80s",
+    "Hint: try a song from the 90s",
+    "Hint: try a song from the 2000s",
+    "Hint: try a song from the 2010s",
+    "Hint: try a wedding song",
+    "Hint: try a dance number",
+    "Hint: try a sad song",
+    "Hint: try a Kishore Kumar classic",
+    "Hint: try a Lata Mangeshkar classic",
+    "Hint: try a Shah Rukh Khan song",
+    "Hint: try a Holi or Diwali song",
+    "Hint: try a rain song",
+    "Hint: try a friendship song",
+]
 
 # ---- Odd One Out: shared location, one player is the spy --------------------
 SPY_LOCATIONS = [
@@ -349,8 +371,13 @@ CHARADES_TITLES = [
 # ---- Atlas: place-name chain seeds ------------------------------------------
 ATLAS_SEEDS = ["India", "Nepal", "Kolkata", "Madrid", "Norway", "Cairo"]
 
-# A generous but finite validation set. Solo Atlas checks against this; in a
-# multiplayer game the room adjudicates, which is how it is played anyway.
+# Fresh letters for the "skip to a new letter" rule (Q, X, Z) and for a
+# speaker who never tapped one: all easy to start a place with.
+ATLAS_EASY_LETTERS = "ABCDGHIKLMNPRST"
+
+# Atlas is spoken and the room judges, so nothing validates against this
+# any more. Bots use it: they cannot talk, so the TV shows the place a bot
+# "said".
 ATLAS_PLACES = {
     "india", "indonesia", "iran", "iraq", "ireland", "israel", "italy",
     "japan", "jordan", "jamaica", "kenya", "kuwait", "korea", "kolkata",

@@ -270,14 +270,15 @@ RULES: dict[str, dict] = {
     },
     "antakshari": {
         "title": "Antakshari",
-        "objective": "Keep the song chain going.",
+        "objective": "Out-sing the other team: first to 8 points, or ahead after 15 minutes.",
         "rules": [
-            "Sing a song starting with the last letter of the previous song.",
-            "Submit it before the timer runs out.",
-            "Valid entries score; repeats do not.",
-            "The longest valid streak wins.",
+            "Two teams take turns. The TV shows the letter and a 30 second timer.",
+            "The team on turn SINGS a song starting with that letter, out loud.",
+            "The other team judges on their phones: Sang it scores a point, Missed does not.",
+            "After Sang it, the singers tap the last letter of their song to set the next letter.",
+            "A miss or the buzzer hands the same letter to the other team. Q, X and Z skip to a new letter.",
         ],
-        "controls": "Type your song on your phone.",
+        "controls": "No typing: sing out loud, then tap Sang it, Missed or a letter on your phone.",
     },
     "most_likely_to": {
         "title": "Most Likely To",
@@ -531,14 +532,15 @@ RULES: dict[str, dict] = {
     },
     "atlas": {
         "title": "Atlas",
-        "objective": "Keep the place-name chain alive the longest.",
+        "objective": "Keep the place-name chain alive and be the last player standing.",
         "rules": [
-            "Name a place starting with the last letter of the previous one.",
-            "Type your answer before the timer runs out.",
-            "No repeats -- used places are out.",
-            "The last player still answering wins.",
+            "On your turn, SAY a place out loud that starts with the letter on the TV.",
+            "Everyone else taps Valid or Out! on their phone; a majority decides.",
+            "Tap Next once you have said it, then tap the last letter of your place.",
+            "An Out! majority or running out of time costs a life. Three lives each.",
+            "The clock gets shorter every lap. Q, X and Z skip to a new letter.",
         ],
-        "controls": "Type your answer on your phone.",
+        "controls": "No typing: talk out loud, then tap Next, Valid, Out! or a letter on your phone.",
     },
     # ---- Co-op arcade --------------------------------------------------
     "blast_runners": {

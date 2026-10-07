@@ -46,7 +46,7 @@ ACTIONS = {
                     ("guess", {"index": 0, "text": "Frozen"})],
     "npat": [("submit", {"name": "Amit", "place": "Agra",
                          "animal": "Ant", "thing": "Axe"})],
-    "antakshari": [("submit_song", {"song": "Anything"})],
+    "antakshari": [("judge", {"verdict": "sang"}), ("pick_letter", {"letter": "M"})],
     "most_likely_to": [("vote", {"targetID": "p1"})],
     "brain_battle": [("answer", {"choice": "A"})],
     "cipher_grid": [("give_clue", {"word": "animal", "count": 2}),
@@ -68,7 +68,8 @@ ACTIONS = {
     "twenty48": [("swipe", {"direction": "left"}), ("swipe", {"direction": "up"})],
     "brick_breaker": [("paddle", {"x": 55})],
     "simon_says": [("pad", {"pad": "up"}), ("pad", {"pad": "down"})],
-    "atlas": [("answer", {"place": "Agra"}), ("answer", {"place": "Nepal"})],
+    "atlas": [("judge", {"verdict": "valid"}), ("said", {}),
+              ("pick_letter", {"letter": "M"})],
     "connect4": [("drop", {"column": 0}), ("drop", {"column": 1})],
     "memory": [("flip", {"index": 0}), ("flip", {"index": 1})],
     "chess": [("select", {"row": 6, "col": 0}), ("move", {"from": [6, 0], "to": [4, 0]})],
@@ -338,35 +339,10 @@ class TestGameRules:
         engine._score()
         assert engine.scores[roster[2].id] > engine.scores[roster[0].id]
 
-    def test_antakshari_chains_to_the_last_letter(self):
-        engine, roster = make("antakshari", players=2)
-        song = engine.letter + "melody"
-        engine.handle_action(roster[0].id, "submit_song", {"song": song})
-        engine._score()
-        assert engine.letter == song[-1].upper()
-
-    def test_antakshari_rejects_a_wrong_starting_letter(self):
-        engine, roster = make("antakshari", players=2)
-        wrong = "Z" if engine.letter != "Z" else "A"
-        engine.handle_action(roster[0].id, "submit_song", {"song": wrong + "song"})
-        assert roster[0].id not in engine.submissions
-
     def test_sealed_auction_cannot_bid_beyond_budget(self):
         engine, roster = make("sealed_auction", players=3)
         engine.handle_action(roster[0].id, "bid", {"amount": 10_000})
         assert roster[0].id not in engine.submissions
-
-    def test_atlas_rejects_reused_and_mismatched_places(self):
-        engine, roster = make("atlas", players=2)
-        actor = engine.current_player()
-        engine.letter = "N"
-        engine.handle_action(actor, "answer", {"place": "Agra"})   # wrong letter
-        assert len(engine.chain) == 1
-        engine.handle_action(actor, "answer", {"place": "Nepal"})
-        assert len(engine.chain) == 2
-        engine.letter = "N"
-        engine.handle_action(engine.current_player(), "answer", {"place": "Nepal"})
-        assert len(engine.chain) == 2                              # already used
 
     def test_twenty48_merges_equal_tiles(self):
         engine, roster = make("twenty48", players=1)
