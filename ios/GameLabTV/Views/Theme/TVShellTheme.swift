@@ -12,28 +12,61 @@ import SwiftUI
 
 // MARK: - Tokens
 
+/// The TV's half of one shared palette. Every hex below that has a role on
+/// the phone carries the *same* value as `PhonePlayDesign` in the controller
+/// app (which aliases `TravelDesign`); the two targets cannot share a type,
+/// so they share numbers instead. Keep them in step: if a token moves here it
+/// moves there, and in `RulesInterstitialView` (which is compiled into both
+/// targets and so can reference neither kit).
+///
+/// Phone Play equivalents:
+///   ink -> bg 0B0B12, panel -> surface 15151F, panel2 -> surface2 1E1E2B,
+///   mint/green -> 2FE07A, cyan -> 38D6F5, yellow -> FFC531, purple -> B07CFF,
+///   orange -> FF8A3D, red -> FF4D6D, pink -> FF5FC8, blue -> 4D7CFF,
+///   indigo -> 6C5CFF, text2 -> A7A7B8, text3 -> 6B6B7E.
+/// TV-only: `night`, `deepBlue` (ambient backdrop stops) and `violet`/`gold`
+/// (the shell's own accents, which Phone Play has no equivalent for).
 enum ShellTheme {
-    static let ink = Color(hex: "07051A")
+    static let ink = Color(hex: "0B0B12")
     static let night = Color(hex: "140A33")
     static let deepBlue = Color(hex: "0A1238")
     static let violet = Color(hex: "7C3AED")
-    static let cyan = Color(hex: "22D3EE")
-    static let pink = Color(hex: "EC4899")
-    static let blue = Color(hex: "2563EB")
+    static let cyan = Color(hex: "38D6F5")
+    static let pink = Color(hex: "FF5FC8")
+    static let blue = Color(hex: "4D7CFF")
     static let gold = Color(hex: "FACC15")
-    static let mint = Color(hex: "34D399")
-    static let orange = Color(hex: "FB923C")
-    static let panel = Color(hex: "120C2C")
+    static let mint = Color(hex: "2FE07A")
+    static let orange = Color(hex: "FF8A3D")
+    static let panel = Color(hex: "15151F")
+
+    /// The rest of the Phone Play roles, so a board never has to reach for a
+    /// raw SwiftUI colour.
+    static let panel2 = Color(hex: "1E1E2B")
+    static let green = Color(hex: "2FE07A")
+    static let red = Color(hex: "FF4D6D")
+    static let yellow = Color(hex: "FFC531")
+    static let purple = Color(hex: "B07CFF")
+    static let indigo = Color(hex: "6C5CFF")
+
+    /// Cards 24, buttons 18 -- the same two radii Phone Play uses.
+    static let cardRadius: CGFloat = 24
+    static let buttonRadius: CGFloat = 18
 
     static let textPrimary = Color.white
     static let textSecondary = Color.white.opacity(0.7)
     static let textTertiary = Color.white.opacity(0.45)
 
     static let brandGradient = LinearGradient(
-        colors: [Color(hex: "22D3EE"), Color(hex: "7C3AED"), Color(hex: "EC4899")],
+        colors: [Color(hex: "38D6F5"), Color(hex: "7C3AED"), Color(hex: "FF5FC8")],
         startPoint: .leading,
         endPoint: .trailing
     )
+
+    /// Phone Play's `gradient(_:)`, so a diagonal wash is written the same
+    /// way on both platforms.
+    static func gradient(_ colors: [Color]) -> LinearGradient {
+        LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
 
     /// Big rounded display type -- the "toy-like" Swift Playgrounds voice.
     static func display(_ size: CGFloat, weight: Font.Weight = .heavy) -> Font {
@@ -49,6 +82,10 @@ enum ShellTheme {
         Font.system(size: size, weight: .bold, design: .rounded)
     }
 
+    /// Player identity colours. Deliberately its own ten-step wheel, and
+    /// mirrored exactly by `TriviaPlayerPalette` on the phone -- the same
+    /// player must be the same colour on both screens, so do not fold these
+    /// into the tokens above.
     static let avatarPalette: [Color] = [
         Color(hex: "F43F5E"), Color(hex: "F97316"), Color(hex: "EAB308"),
         Color(hex: "22C55E"), Color(hex: "14B8A6"), Color(hex: "06B6D4"),
@@ -57,8 +94,8 @@ enum ShellTheme {
     ]
 
     static let confettiColors: [Color] = [
-        Color(hex: "FACC15"), Color(hex: "22D3EE"), Color(hex: "EC4899"),
-        Color(hex: "A855F7"), Color(hex: "34D399"), Color(hex: "FB923C"),
+        Color(hex: "FACC15"), Color(hex: "38D6F5"), Color(hex: "FF5FC8"),
+        Color(hex: "B07CFF"), Color(hex: "2FE07A"), Color(hex: "FF8A3D"),
         Color.white
     ]
 
@@ -162,8 +199,8 @@ private struct ShellMeshField: View {
 
     private static let palette: [Color] = [
         ShellTheme.ink, ShellTheme.night, ShellTheme.deepBlue, ShellTheme.ink,
-        ShellTheme.night, ShellTheme.violet, Color(hex: "2563EB"), ShellTheme.deepBlue,
-        ShellTheme.deepBlue, Color(hex: "06B6D4"), ShellTheme.pink, ShellTheme.night,
+        ShellTheme.night, ShellTheme.violet, ShellTheme.blue, ShellTheme.deepBlue,
+        ShellTheme.deepBlue, ShellTheme.cyan, ShellTheme.pink, ShellTheme.night,
         ShellTheme.ink, ShellTheme.deepBlue, ShellTheme.night, ShellTheme.ink,
     ]
 
@@ -208,11 +245,11 @@ enum ShellAmbientPainter {
     }
 
     static let blobs: [Blob] = [
-        Blob(color: Color(hex: "7C3AED"), x: 0.18, y: 0.22, radius: 0.42, driftX: 0.10, driftY: 0.08, speed: 0.11, phase: 0.0),
-        Blob(color: Color(hex: "06B6D4"), x: 0.82, y: 0.20, radius: 0.36, driftX: 0.08, driftY: 0.10, speed: 0.09, phase: 1.7),
-        Blob(color: Color(hex: "EC4899"), x: 0.70, y: 0.78, radius: 0.38, driftX: 0.12, driftY: 0.06, speed: 0.07, phase: 3.1),
-        Blob(color: Color(hex: "2563EB"), x: 0.28, y: 0.80, radius: 0.34, driftX: 0.09, driftY: 0.07, speed: 0.13, phase: 4.4),
-        Blob(color: Color(hex: "A855F7"), x: 0.52, y: 0.45, radius: 0.26, driftX: 0.14, driftY: 0.09, speed: 0.06, phase: 5.2)
+        Blob(color: ShellTheme.violet, x: 0.18, y: 0.22, radius: 0.42, driftX: 0.10, driftY: 0.08, speed: 0.11, phase: 0.0),
+        Blob(color: ShellTheme.cyan, x: 0.82, y: 0.20, radius: 0.36, driftX: 0.08, driftY: 0.10, speed: 0.09, phase: 1.7),
+        Blob(color: ShellTheme.pink, x: 0.70, y: 0.78, radius: 0.38, driftX: 0.12, driftY: 0.06, speed: 0.07, phase: 3.1),
+        Blob(color: ShellTheme.blue, x: 0.28, y: 0.80, radius: 0.34, driftX: 0.09, driftY: 0.07, speed: 0.13, phase: 4.4),
+        Blob(color: ShellTheme.purple, x: 0.52, y: 0.45, radius: 0.26, driftX: 0.14, driftY: 0.09, speed: 0.06, phase: 5.2)
     ]
 
     static func paint(_ context: inout GraphicsContext, size: CGSize, time: Double,
@@ -303,7 +340,7 @@ enum ShellAmbientPainter {
 /// the animated background every frame. This is a tinted translucent fill,
 /// a top-left sheen and a light-catching rim, plus layered shadows for lift.
 struct ShellGlassSurface: View {
-    var cornerRadius: CGFloat = 36
+    var cornerRadius: CGFloat = ShellTheme.cardRadius
     var tint: Color = ShellTheme.cyan
 
     private var shape: RoundedRectangle {
@@ -339,7 +376,7 @@ struct ShellGlassCard<Content: View>: View {
     let padding: CGFloat
     let content: Content
 
-    init(cornerRadius: CGFloat = 36,
+    init(cornerRadius: CGFloat = ShellTheme.cardRadius,
          tint: Color = ShellTheme.cyan,
          padding: CGFloat = 40,
          @ViewBuilder content: () -> Content) {
@@ -592,7 +629,7 @@ extension View {
     }
 
     /// Sweeps a holographic shine band across the view while `isActive`.
-    func shellShine(isActive: Bool, cornerRadius: CGFloat = 24,
+    func shellShine(isActive: Bool, cornerRadius: CGFloat = ShellTheme.cardRadius,
                     period: Double = 2.8, intensity: Double = 0.35) -> some View {
         modifier(ShellShine(isActive: isActive, cornerRadius: cornerRadius,
                             period: period, intensity: intensity))
@@ -629,7 +666,7 @@ struct ShellHopInModifier: ViewModifier {
 /// active, so an idle view carries no extra layer and no timeline.
 struct ShellShine: ViewModifier {
     let isActive: Bool
-    var cornerRadius: CGFloat = 24
+    var cornerRadius: CGFloat = ShellTheme.cardRadius
     var period: Double = 2.8
     var intensity: Double = 0.35
 
@@ -811,7 +848,7 @@ private struct ShellPrimaryButtonBody: View {
     @Environment(\.isEnabled) private var isEnabled: Bool
 
     private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
+        RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
     }
 
     var body: some View {
@@ -822,7 +859,8 @@ private struct ShellPrimaryButtonBody: View {
             .padding(.vertical, 24)
             .frame(minWidth: 380)
             .background { surface }
-            .shellShine(isActive: isFocused && isEnabled, cornerRadius: 24, period: 2.4, intensity: 0.5)
+            .shellShine(isActive: isFocused && isEnabled, cornerRadius: ShellTheme.buttonRadius,
+                        period: 2.4, intensity: 0.5)
             .compositingGroup()
             .shadow(color: tint.opacity(isEnabled ? (isFocused ? 0.7 : 0.3) : 0),
                     radius: isFocused ? 34 : 14, x: 0, y: 0)
@@ -848,7 +886,7 @@ private struct ShellPrimaryButtonBody: View {
                 shape.strokeBorder(Color.white.opacity(0.7), lineWidth: 1.5)
             }
         } else {
-            ShellGlassSurface(cornerRadius: 24, tint: tint)
+            ShellGlassSurface(cornerRadius: ShellTheme.buttonRadius, tint: tint)
         }
     }
 }

@@ -12,6 +12,12 @@ import SwiftUI
 
 /// One board's colour story: three deep backdrop stops, three slowly
 /// drifting glow blobs, and two accents for text and highlights.
+///
+/// These seven moods are deliberately the TV's own -- a lit room's backdrop
+/// has no counterpart on a phone held at arm's length -- so their hexes are
+/// not expected to match `PhonePlayDesign`. Everything a board draws *on
+/// top* of a mood (text, chips, cards, win/lose colour) comes from the
+/// shared tokens in `TVTheme` below.
 struct TVPalette {
     let background: [Color]
     let blobs: [Color]
@@ -55,16 +61,43 @@ enum TVTheme {
         blobs: [Color(hex: "9333ea"), Color(hex: "e11d48"), Color(hex: "2563eb")],
         accent: Color(hex: "f0abfc"), accent2: Color(hex: "fde047"))
 
-    static let gold = Color(hex: "fbbf24")
-    static let danger = Color(hex: "f43f5e")
-    static let success = Color(hex: "4ade80")
-    static let textSecondary = Color.white.opacity(0.62)
-    static let textTertiary = Color.white.opacity(0.38)
+    // MARK: Shared palette
+    //
+    // One palette for the whole product: these all forward to `ShellTheme`,
+    // whose hexes are the same ones `PhonePlayDesign` uses on the phone. A
+    // board reaches for a name here instead of a raw SwiftUI colour, so
+    // "red" means the same red on the TV and in your hand.
 
-    static let confetti: [Color] = [
-        Color(hex: "f472b6"), Color(hex: "22d3ee"), Color(hex: "fde047"),
-        Color(hex: "a78bfa"), Color(hex: "4ade80"), Color(hex: "fb923c"), Color.white,
-    ]
+    static let bg = ShellTheme.ink
+    static let surface = ShellTheme.panel
+    static let surface2 = ShellTheme.panel2
+
+    static let green = ShellTheme.green
+    static let cyan = ShellTheme.cyan
+    static let yellow = ShellTheme.yellow
+    static let purple = ShellTheme.purple
+    static let orange = ShellTheme.orange
+    static let red = ShellTheme.red
+    static let pink = ShellTheme.pink
+    static let blue = ShellTheme.blue
+    static let indigo = ShellTheme.indigo
+    static let violet = ShellTheme.violet
+
+    static let gold = ShellTheme.gold
+    static let danger = ShellTheme.red
+    static let success = ShellTheme.green
+    static let textSecondary = ShellTheme.textSecondary
+    static let textTertiary = ShellTheme.textTertiary
+
+    static let cardRadius: CGFloat = ShellTheme.cardRadius
+    static let buttonRadius: CGFloat = ShellTheme.buttonRadius
+
+    static let confetti: [Color] = ShellTheme.confettiColors
+
+    /// Phone Play's diagonal wash, spelled the same way here.
+    static func gradient(_ colors: [Color]) -> LinearGradient {
+        LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
 
     /// Rounded display face used for every big number and title.
     static func display(_ size: CGFloat, _ weight: Font.Weight = .heavy) -> Font {
@@ -134,7 +167,7 @@ struct TVGlassCard<Content: View>: View {
     private let padding: CGFloat
     private let content: Content
 
-    init(cornerRadius: CGFloat = 28, tint: Color = .white, glow: Color? = nil,
+    init(cornerRadius: CGFloat = ShellTheme.cardRadius, tint: Color = .white, glow: Color? = nil,
          padding: CGFloat = 28, @ViewBuilder content: () -> Content) {
         self.cornerRadius = cornerRadius
         self.tint = tint
@@ -537,7 +570,7 @@ struct TVWinnerBanner: View {
     }
 
     private var card: some View {
-        TVGlassCard(cornerRadius: 34, tint: accent, glow: accent, padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: accent, glow: accent, padding: 0) {
             VStack(spacing: 14) {
                 Image(systemName: symbol)
                     .font(.system(size: 54, weight: .bold))
