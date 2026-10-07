@@ -55,7 +55,7 @@ private struct TruthDareSetupView: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 10) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 54, weight: .bold))
+                            .font(.system(size: 54, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.yellow,
                                                                       PhonePlayDesign.pink]))
                             .phonePlayIdle(dy: 3, scale: 0.05, duration: 0.9)
@@ -242,7 +242,7 @@ private struct TruthDareWheel: View {
                 }
 
                 Image(systemName: "location.north.fill")
-                    .font(.system(size: size * 0.2, weight: .bold))
+                    .font(.system(size: size * 0.2, weight: .bold, design: .rounded))
                     .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.yellow, PhonePlayDesign.pink]))
                     .shadow(color: PhonePlayDesign.pink.opacity(0.5), radius: 10)
                     .rotationEffect(.degrees(angle))
@@ -288,7 +288,7 @@ private struct TruthDareKindButton: View {
         } label: {
             VStack(spacing: 10) {
                 Image(systemName: TruthDareStyle.symbol(for: kind))
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                 Text(kind.title.uppercased())
                     .font(.system(size: 24, weight: .black, design: .rounded))
                     .tracking(2)
@@ -315,7 +315,7 @@ private struct TruthDarePromptCard: View {
         VStack(spacing: 18) {
             HStack(spacing: 8) {
                 Image(systemName: TruthDareStyle.symbol(for: prompt.kind))
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                 Text(prompt.kind.title.uppercased())
                     .font(.system(size: 16, weight: .black, design: .rounded))
                     .tracking(3)

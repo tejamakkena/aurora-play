@@ -627,7 +627,7 @@ private struct TShowTopBar: View {
         HStack(spacing: 24) {
             HStack(spacing: 10) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 34, weight: .heavy))
+                    .font(.system(size: 34, weight: .heavy, design: .rounded))
                     .foregroundColor(TShowPalette.gold)
                 Text("TRIVIA")
                     .font(.system(size: 44, weight: .black, design: .rounded))
@@ -818,7 +818,7 @@ private struct TShowDoor: View {
                                      center: .center, startRadius: 10, endRadius: 360))
             VStack(spacing: 18) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 70, weight: .heavy))
+                    .font(.system(size: 70, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                 Text(door.name)
                     .font(.system(size: 50, weight: .black, design: .rounded))
@@ -1083,7 +1083,7 @@ private struct TShowHostPlate: View {
         VStack(spacing: 18) {
             HStack(spacing: 12) {
                 Image(systemName: "mic.fill")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                 Text(category.uppercased())
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                     .tracking(4)
@@ -1214,7 +1214,7 @@ private struct TShowAnswerTile: View {
                 ZStack {
                     Circle().fill(Color.white)
                     Image(systemName: TShowPalette.shape(index))
-                        .font(.system(size: height * 0.22, weight: .black))
+                        .font(.system(size: height * 0.22, weight: .black, design: .rounded))
                         .foregroundColor(color)
                 }
                 .frame(width: height * 0.6, height: height * 0.6)
@@ -1228,7 +1228,7 @@ private struct TShowAnswerTile: View {
                 pickerStack
                 if isCorrect {
                     Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: height * 0.42, weight: .black))
+                        .font(.system(size: height * 0.42, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .transition(.scale.combined(with: .opacity))
                 }
@@ -1307,7 +1307,7 @@ private struct TShowPod: View {
                             .transition(.scale.combined(with: .opacity))
                     } else {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 34, weight: .bold))
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundColor(TShowPalette.hotPink)
                             .transition(.scale)
                     }
@@ -1315,7 +1315,7 @@ private struct TShowPod: View {
                     HStack(spacing: 4) {
                         ForEach(Array(hits.enumerated()), id: \.offset) { _, power in
                             Image(systemName: TShowPalette.powerSymbol(power))
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                                 .padding(7)
                                 .background(Circle().fill(TShowPalette.powerColor(power)))
@@ -1447,7 +1447,7 @@ private struct TShowStandingRow: View {
                 .lineLimit(1)
             if settled && movement != 0 {
                 Image(systemName: movement > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
-                    .font(.system(size: height * 0.4, weight: .bold))
+                    .font(.system(size: height * 0.4, weight: .bold, design: .rounded))
                     .foregroundColor(movement > 0 ? TVTheme.green : TShowPalette.hotPink)
                     .transition(.scale.combined(with: .opacity))
             }
@@ -1623,14 +1623,14 @@ private struct TShowClimber: View {
                     .overlay(alignment: .top) {
                         if atTop {
                             Image(systemName: "crown.fill")
-                                .font(.system(size: size * 0.4, weight: .bold))
+                                .font(.system(size: size * 0.4, weight: .bold, design: .rounded))
                                 .foregroundColor(TShowPalette.gold)
                                 .offset(y: -size * 0.42)
                         }
                     }
                 if move != 0 {
                     Image(systemName: move > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
-                        .font(.system(size: size * 0.38, weight: .bold))
+                        .font(.system(size: size * 0.38, weight: .bold, design: .rounded))
                         .foregroundColor(move > 0 ? TVTheme.green : TShowPalette.hotPink)
                         .background(Circle().fill(Color.white).padding(3))
                         .offset(x: size * 0.18, y: -size * 0.12)
@@ -1677,7 +1677,7 @@ private struct TShowWinnerStage: View {
                                      isBot: winner.isBot)
                         .overlay(alignment: .top) {
                             Image(systemName: "crown.fill")
-                                .font(.system(size: 110, weight: .bold))
+                                .font(.system(size: 110, weight: .bold, design: .rounded))
                                 .foregroundColor(TShowPalette.gold)
                                 .shadow(color: TShowPalette.goldWarm, radius: 14)
                                 .offset(y: -110)

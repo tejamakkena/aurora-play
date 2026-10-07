@@ -35,7 +35,7 @@ private struct TalkPadStatusCard: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.system(size: 42, weight: .bold))
+                .font(.system(size: 42, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient([tint, .white]))
                 .phonePlayIdle(dy: 3, scale: 0.03, duration: 1.4)
             Text(title)
@@ -278,7 +278,7 @@ private struct HotTakesPadSpeakingCard: View {
     var body: some View {
         VStack(spacing: 10) {
             Image(systemName: "waveform")
-                .font(.system(size: 48, weight: .bold))
+                .font(.system(size: 48, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient(colors))
                 .symbolEffect(.variableColor.iterative, options: .repeating)
             Text("You are on! Talk out loud")
@@ -305,7 +305,7 @@ private struct HotTakesPadHints: View {
             ForEach(Array(hints.enumerated()), id: \.offset) { pair in
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: "quote.opening")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(tint)
                         .padding(.top, 2)
                     Text(pair.element)
@@ -421,7 +421,7 @@ private struct HotTakesPadVoteButton: View {
                 }
                 Spacer()
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .padding(.horizontal, 20)
@@ -730,7 +730,7 @@ private struct TwentyQPadSecretCard: View {
                     onToggle()
                 } label: {
                     Image(systemName: hidden ? "eye.fill" : "eye.slash.fill")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .padding(8)
                         .background(Circle().fill(Color.white.opacity(0.18)))
@@ -777,7 +777,7 @@ private struct TwentyQPadAnswerButton: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: symbol)
-                    .font(.system(size: 26, weight: .black))
+                    .font(.system(size: 26, weight: .black, design: .rounded))
                 Text(title)
                     .font(.system(size: 30, weight: .black, design: .rounded))
             }

@@ -128,7 +128,7 @@ struct MicClaimBar: View {
                 // Hold-to-talk while the TV listens.
                 Button(action: {}) {
                     Image(systemName: mic.isListening ? "mic.fill" : "mic")
-                        .font(.title2)
+                        .font(.system(.title2, design: .rounded))
                         .foregroundColor(.white)
                         .frame(width: 52, height: 52)
                         .background(Circle().fill(
@@ -144,18 +144,18 @@ struct MicClaimBar: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(mic.isListening ? "Listening -- you're the mic"
                                          : "You're the mic")
-                        .font(.subheadline.bold())
+                        .font(.system(.subheadline, design: .rounded, weight: .bold))
                         .foregroundColor(.white)
                     if !mic.liveTranscript.isEmpty {
                         Text(mic.liveTranscript)
-                            .font(.caption)
+                            .font(.system(.caption, design: .rounded))
                             .foregroundColor(.white.opacity(0.6))
                             .lineLimit(1)
                     } else {
                         Text(mic.voiceState == "listen"
                              ? "Hold the button and answer"
                              : "Wait for the question")
-                            .font(.caption)
+                            .font(.system(.caption, design: .rounded))
                             .foregroundColor(.white.opacity(0.5))
                     }
                 }
@@ -164,7 +164,7 @@ struct MicClaimBar: View {
                     HStack(spacing: 8) {
                         Image(systemName: "mic.fill")
                         Text(mic.micPlayerName ?? "Take the mic")
-                            .font(.subheadline.bold())
+                            .font(.system(.subheadline, design: .rounded, weight: .bold))
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 18)

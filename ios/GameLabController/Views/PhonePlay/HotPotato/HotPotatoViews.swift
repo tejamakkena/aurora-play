@@ -47,7 +47,7 @@ private struct HotPotatoSetupView: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 10) {
                         Image(systemName: "flame.fill")
-                            .font(.system(size: 54, weight: .bold))
+                            .font(.system(size: 54, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient(HotPotatoStyle.flame))
                             .phonePlayIdle(degrees: 6, scale: 0.06, duration: 0.5)
                         Text("Hot Potato")
@@ -199,7 +199,7 @@ private struct HotPotatoStandings: View {
                     HStack(spacing: 4) {
                         ForEach(0..<min(pair.element.burns, 6), id: \.self) { _ in
                             Image(systemName: "flame.fill")
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(PhonePlayDesign.orange)
                         }
                     }
@@ -241,7 +241,7 @@ private struct HotPotatoBurningView: View {
                         game.stopRound()
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .heavy))
+                            .font(.system(size: 16, weight: .heavy, design: .rounded))
                             .foregroundColor(.white.opacity(0.8))
                             .frame(width: 40, height: 40)
                             .background(Circle().fill(Color.black.opacity(0.25)))
@@ -288,7 +288,7 @@ private struct HotPotatoBurningView: View {
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "hand.point.right.fill")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
                         Text("PASS")
                             .font(.system(size: 34, weight: .black, design: .rounded))
                             .tracking(4)
@@ -329,7 +329,7 @@ private struct HotPotatoBomb: View {
                 .frame(width: 150, height: 150)
                 .overlay(
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 70, weight: .bold))
+                        .font(.system(size: 70, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 )
                 .shadow(color: PhonePlayDesign.red.opacity(0.6), radius: 20)

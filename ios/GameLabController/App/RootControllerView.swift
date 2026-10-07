@@ -52,7 +52,7 @@ struct RootControllerView: View {
                     HStack {
                         Button { showLeaveConfirm = true } label: {
                             Image(systemName: "xmark")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundColor(.white.opacity(0.75))
                                 .frame(width: 36, height: 36)
                                 .background(Circle().fill(Color.white.opacity(0.08)))
@@ -80,7 +80,7 @@ struct RootControllerView: View {
                     HStack {
                         Button { showLeaveConfirm = true } label: {
                             Image(systemName: "xmark")
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(.white.opacity(0.7))
                                 .frame(width: 30, height: 30)
                                 .background(Circle().fill(Color.white.opacity(0.08)))
@@ -181,7 +181,7 @@ struct LoadingJoinView: View {
                     .frame(width: 120, height: 120)
                     .shadow(color: PhonePlayDesign.cyan.opacity(0.45), radius: 24, y: 8)
                 Image(systemName: "tv.fill")
-                    .font(.system(size: 50, weight: .bold))
+                    .font(.system(size: 50, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .phonePlayIdle(dy: 4, scale: 0.05, duration: 0.9)
             }
@@ -226,7 +226,7 @@ struct ErrorJoinView: View {
                     .frame(width: 112, height: 112)
                     .shadow(color: PhonePlayDesign.red.opacity(0.45), radius: 22, y: 8)
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 48, weight: .bold))
+                    .font(.system(size: 48, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .phonePlayIdle(degrees: 5, duration: 0.8)
             }

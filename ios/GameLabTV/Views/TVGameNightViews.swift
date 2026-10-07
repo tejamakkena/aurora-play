@@ -106,7 +106,7 @@ struct TVNightGameTile: View {
             shape
                 .strokeBorder(Color.white.opacity(isCurrent ? 0.9 : 0.3), lineWidth: isCurrent ? 2.5 : 1)
             Image(systemName: status == .done ? "checkmark" : game.sfSymbol)
-                .font(.system(size: size * 0.42, weight: .bold))
+                .font(.system(size: size * 0.42, weight: .bold, design: .rounded))
                 .foregroundColor(Color.white.opacity(status == .done ? 0.8 : 1.0))
                 .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 2)
         }
@@ -340,7 +340,7 @@ private struct TVGameNightCardBody: View {
                                          startPoint: .topLeading,
                                          endPoint: .bottomTrailing))
                 Image(systemName: "moon.stars.fill")
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundColor(Color(hex: "3B1C7A"))
             }
             .frame(width: 56, height: 56)
@@ -413,7 +413,7 @@ struct TVNightSetupPanel: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
                     Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(ShellTheme.gold)
                     Text("GAME NIGHT")
                         .font(ShellTheme.eyebrow(22))
@@ -526,7 +526,7 @@ struct TVNightLobbyPanel: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 12) {
                     Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(ShellTheme.gold)
                     Text("GAME NIGHT")
                         .font(ShellTheme.eyebrow(22))

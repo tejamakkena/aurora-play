@@ -108,7 +108,7 @@ struct OneStopSecondaryButton: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                 Text(title)
                     .font(.system(size: 16, weight: .bold, design: .rounded))
                     .lineLimit(1)

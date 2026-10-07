@@ -142,7 +142,7 @@ struct WaitingState: View {
                                                     PhonePlayDesign.cyan.opacity(0.35)]))
                     .frame(width: 110, height: 110)
                 Image(systemName: systemIcon)
-                    .font(.system(size: 48, weight: .bold))
+                    .font(.system(size: 48, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .phonePlayIdle(dy: 4, scale: 0.03, duration: 1.6)
@@ -179,7 +179,7 @@ struct BigButton: View {
         }) {
             HStack(spacing: 10) {
                 if let systemImage {
-                    Image(systemName: systemImage).font(.system(size: 19, weight: .bold))
+                    Image(systemName: systemImage).font(.system(size: 19, weight: .bold, design: .rounded))
                 }
                 Text(title).font(.system(size: 19, weight: .heavy, design: .rounded))
             }
@@ -256,7 +256,7 @@ struct ChoiceRow: View {
                 Spacer()
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.green)
                         .transition(.scale.combined(with: .opacity))
                 }

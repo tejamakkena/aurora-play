@@ -489,7 +489,7 @@ struct TVRouletteBoardView: View {
                 Spacer()
                 if vm.state.maxRounds > 0 {
                     Text("Round \(min(vm.state.round + 1, vm.state.maxRounds)) / \(vm.state.maxRounds)")
-                        .font(.title3)
+                        .font(.system(.title3, design: .rounded))
                         .foregroundColor(.white.opacity(0.55))
                 }
             }
@@ -512,7 +512,7 @@ struct TVRouletteBoardView: View {
                     .tint(Color(hex: "ffe9a8"))
                     .frame(width: 104, height: 104)
                 Text("No more bets…")
-                    .font(.system(size: 34, weight: .semibold))
+                    .font(.system(size: 34, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.75))
             } else if let result = vm.state.lastResult {
                 ZStack {
@@ -527,15 +527,15 @@ struct TVRouletteBoardView: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(RouletteWheel.name(for: result))
-                        .font(.system(size: 34, weight: .heavy))
+                        .font(.system(size: 34, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
                     Text(Self.subtitle(for: result))
-                        .font(.title3)
+                        .font(.system(.title3, design: .rounded))
                         .foregroundColor(.white.opacity(0.5))
                 }
             } else {
                 Text("Place your bets")
-                    .font(.system(size: 34, weight: .semibold))
+                    .font(.system(size: 34, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.6))
                     .frame(height: 104)
             }
@@ -616,7 +616,7 @@ struct TVRouletteBoardView: View {
     private func outsideCell(_ label: String, target: String, tint: Color? = nil) -> some View {
         let isWinner = !vm.state.isSpinning && winningTargets.contains(target)
         return Text(label)
-            .font(.system(size: 19, weight: .heavy))
+            .font(.system(size: 19, weight: .heavy, design: .rounded))
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 46)
@@ -649,7 +649,7 @@ struct TVRouletteBoardView: View {
                         .offset(y: -CGFloat(i) * 4)
                 }
                 Text("\(amount)")
-                    .font(.system(size: 9, weight: .heavy))
+                    .font(.system(size: 9, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .offset(y: -CGFloat(min(2, amount / 50)) * 4)
             }
@@ -700,7 +700,7 @@ struct TVRouletteBoardView: View {
             ForEach(room.players) { player in
                 VStack(spacing: 4) {
                     Text(player.name)
-                        .font(.headline)
+                        .font(.system(.headline, design: .rounded))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     Text("$\(vm.state.chips[player.id] ?? player.score)")
@@ -708,7 +708,7 @@ struct TVRouletteBoardView: View {
                         .foregroundColor(Color(hex: "ffe9a8"))
                     let bet = vm.state.playerBets[player.id] ?? 0
                     Text(bet > 0 ? "Bet $\(bet)" : "—")
-                        .font(.caption)
+                        .font(.system(.caption, design: .rounded))
                         .foregroundColor(bet > 0 ? TVTheme.cyan : .white.opacity(0.3))
                 }
                 .frame(minWidth: 120)

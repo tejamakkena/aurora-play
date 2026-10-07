@@ -47,7 +47,7 @@ private struct DailyStreakBadge: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "flame.fill")
-                .font(.system(size: large ? 30 : 20, weight: .bold))
+                .font(.system(size: large ? 30 : 20, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient(DailyStyle.flame))
                 .symbolEffect(.bounce, value: bump)
             Text("\(streak)")
@@ -94,7 +94,7 @@ private struct DailyIntroView: View {
                         .tracking(2)
                         .foregroundColor(PhonePlayDesign.text3)
                     Image(systemName: "brain.head.profile")
-                        .font(.system(size: 70, weight: .bold))
+                        .font(.system(size: 70, weight: .bold, design: .rounded))
                         .foregroundStyle(PhonePlayDesign.gradient(DailyStyle.colors))
                         .scaleEffect(appeared ? 1 : 0.6)
                         .rotationEffect(.degrees(appeared ? 0 : -15))
@@ -114,7 +114,7 @@ private struct DailyIntroView: View {
                     ForEach(Array(kinds.enumerated()), id: \.offset) { pair in
                         VStack(spacing: 6) {
                             Image(systemName: pair.element.0)
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
                                 .foregroundColor(PhonePlayDesign.cyan)
                                 .frame(width: 46, height: 46)
                                 .background(Circle().fill(PhonePlayDesign.surface))
@@ -220,7 +220,7 @@ private struct DailyPuzzleCard: View {
             VStack(spacing: 14) {
                 HStack(spacing: 8) {
                     Image(systemName: puzzle.symbol)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                     Text(puzzle.kind.uppercased())
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                         .tracking(2)
@@ -332,12 +332,12 @@ private struct DailyOptionButton: View {
                 Spacer(minLength: 0)
                 if state == .right {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(.black)
                         .transition(.scale.combined(with: .opacity))
                 } else if state == .wrong {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .transition(.scale.combined(with: .opacity))
                 }
@@ -383,7 +383,7 @@ private struct DailyFinishedView: View {
                         HStack(spacing: 8) {
                             ForEach(Array(game.answers.enumerated()), id: \.offset) { pair in
                                 Image(systemName: pair.element ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                    .font(.system(size: 26, weight: .bold))
+                                    .font(.system(size: 26, weight: .bold, design: .rounded))
                                     .foregroundColor(pair.element ? PhonePlayDesign.green : PhonePlayDesign.red)
                             }
                         }
@@ -412,7 +412,7 @@ private struct DailyFinishedView: View {
         TimelineView(.periodic(from: Date(), by: 1)) { context in
             VStack(spacing: 8) {
                 Image(systemName: "moon.stars.fill")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.yellow)
                 Text("Come back tomorrow")
                     .font(.system(size: 22, weight: .black, design: .rounded))

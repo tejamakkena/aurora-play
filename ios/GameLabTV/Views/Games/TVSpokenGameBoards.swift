@@ -139,7 +139,7 @@ struct SpokenVerdictFlash: View {
             if visible {
                 VStack(spacing: 12) {
                     Image(systemName: symbol)
-                        .font(.system(size: 110, weight: .heavy))
+                        .font(.system(size: 110, weight: .heavy, design: .rounded))
                     Text(text)
                         .font(ShellTheme.display(150))
                         .lineLimit(1)
@@ -195,7 +195,7 @@ private struct SpokenBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
             Text(text)
                 .font(.system(size: 28, weight: .bold, design: .rounded))
                 .lineLimit(1)
@@ -481,7 +481,7 @@ struct TVAtlasBoardView: View {
     private func voteRow(symbol: String, label: String, count: Int, tint: Color) -> some View {
         HStack(spacing: 14) {
             Image(systemName: symbol)
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundColor(tint)
             Text(label)
                 .font(.system(size: 30, weight: .heavy, design: .rounded))
@@ -503,7 +503,7 @@ struct TVAtlasBoardView: View {
                             .tvStaggeredAppear(index: 0)
                         if stop.id != state.chain.last?.id {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
                                 .foregroundColor(palette.accent.opacity(0.6))
                         }
                     }
@@ -607,7 +607,7 @@ private struct SpokenAtlasStopView: View {
                     .font(ShellTheme.display(34))
                     .foregroundColor(.white)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(ShellTheme.textTertiary)
                 Text(stop.endLetter.isEmpty ? "?" : stop.endLetter)
                     .font(ShellTheme.display(34))
@@ -663,7 +663,7 @@ private struct SpokenAtlasPod: View {
             HStack(spacing: 4) {
                 ForEach(0..<max(maxLives, 0), id: \.self) { index in
                     Image(systemName: index < player.lives ? "heart.fill" : "heart")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(index < player.lives ? SpokenTVStyle.out : Color.white.opacity(0.25))
                 }
             }
@@ -1115,14 +1115,14 @@ private struct SpokenSongTurnChip: View {
                 .foregroundColor(.white)
             if turn.result == "sang" {
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundColor(ShellTheme.textTertiary)
                 Text(turn.endLetter.isEmpty ? "?" : turn.endLetter)
                     .font(ShellTheme.display(32))
                     .foregroundColor(ShellTheme.gold)
             }
             Image(systemName: resultSymbol)
-                .font(.system(size: 20, weight: .heavy))
+                .font(.system(size: 20, weight: .heavy, design: .rounded))
                 .foregroundColor(resultColor)
         }
         .padding(.horizontal, 18)

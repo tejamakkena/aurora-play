@@ -261,7 +261,7 @@ struct TVHotTakesBoardView: View {
         case "final":
             VStack(spacing: 14) {
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 80, weight: .bold))
+                    .font(.system(size: 80, weight: .bold, design: .rounded))
                     .foregroundColor(TalkPalette.gold)
                     .shadow(color: TalkPalette.gold.opacity(0.7), radius: 20)
                 Text("That is a wrap!")
@@ -567,7 +567,7 @@ private struct HotTakesSwitchOverlay: View {
             Color.black.opacity(0.45).ignoresSafeArea()
             VStack(spacing: 20) {
                 Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 120, weight: .black))
+                    .font(.system(size: 120, weight: .black, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [TalkPalette.forColor, TalkPalette.againstColor],
                                                     startPoint: .leading, endPoint: .trailing))
                     .rotationEffect(.degrees(spin))

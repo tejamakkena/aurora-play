@@ -534,7 +534,7 @@ private struct QuizPadMessage: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: symbol)
-                .font(.system(size: 54, weight: .bold))
+                .font(.system(size: 54, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .frame(width: 110, height: 110)
                 .background(Circle().fill(tint.opacity(0.85)))
@@ -585,7 +585,7 @@ private struct QuizPadDoorButton: View {
                     .lineLimit(2)
                 Spacer(minLength: 0)
                 Image(systemName: isPicked ? "checkmark.circle.fill" : "door.left.hand.closed")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .padding(.horizontal, 18)
@@ -637,7 +637,7 @@ private struct QuizPadPowerGrid: View {
                         } label: {
                             VStack(spacing: 10) {
                                 Image(systemName: QuizPadStyle.powerSymbol(power))
-                                    .font(.system(size: 38, weight: .bold))
+                                    .font(.system(size: 38, weight: .bold, design: .rounded))
                                     .foregroundColor(.white)
                                     .frame(width: 74, height: 74)
                                     .background(Circle().fill(QuizPadStyle.powerColor(power)))
@@ -701,7 +701,7 @@ private struct QuizPadTargetPicker: View {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                             Text("Back")
                                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                         }
@@ -714,7 +714,7 @@ private struct QuizPadTargetPicker: View {
                     Spacer()
                 }
                 Image(systemName: QuizPadStyle.powerSymbol(power))
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(width: 70, height: 70)
                     .background(Circle().fill(QuizPadStyle.powerColor(power)))
@@ -738,7 +738,7 @@ private struct QuizPadTargetPicker: View {
                                 .lineLimit(1)
                             Spacer()
                             Image(systemName: "scope")
-                                .font(.system(size: 24, weight: .bold))
+                                .font(.system(size: 24, weight: .bold, design: .rounded))
                                 .foregroundColor(QuizPadStyle.powerColor(power))
                         }
                         .padding(14)
@@ -797,7 +797,7 @@ private struct QuizPadAnswerPanel: View {
             .allowsHitTesting(!frozen)
             if fogged && fogBlur > 0.5 {
                 Image(systemName: "cloud.fog.fill")
-                    .font(.system(size: 60, weight: .bold))
+                    .font(.system(size: 60, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
                     .allowsHitTesting(false)
             }
@@ -860,7 +860,7 @@ private struct QuizPadIce: View {
                 .stroke(Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
             VStack(spacing: 10) {
                 Image(systemName: "snowflake")
-                    .font(.system(size: 54, weight: .bold))
+                    .font(.system(size: 54, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .shadow(color: Color(hex: "0369A1").opacity(0.6), radius: 4)
                 Text("FROZEN!")
@@ -923,7 +923,7 @@ private struct QuizPadAnswerButton: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 Image(systemName: QuizPadStyle.shape(index))
-                    .font(.system(size: 22, weight: .black))
+                    .font(.system(size: 22, weight: .black, design: .rounded))
                     .foregroundColor(color)
                     .frame(width: 46, height: 46)
                     .background(Circle().fill(Color.white))
@@ -961,7 +961,7 @@ private struct QuizPadLockedCard: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "lock.fill")
-                .font(.system(size: 40, weight: .bold))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
                 .foregroundColor(QuizPadStyle.ink)
                 .frame(width: 84, height: 84)
                 .background(Circle().fill(QuizPadStyle.gold))
@@ -971,7 +971,7 @@ private struct QuizPadLockedCard: View {
                 .foregroundColor(.white)
             HStack(spacing: 12) {
                 Image(systemName: QuizPadStyle.shape(index))
-                    .font(.system(size: 18, weight: .black))
+                    .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundColor(QuizPadStyle.tile(index))
                     .frame(width: 36, height: 36)
                     .background(Circle().fill(Color.white))
@@ -1023,7 +1023,7 @@ private struct QuizPadRevealCard: View {
     var body: some View {
         VStack(spacing: 18) {
             Image(systemName: wasCorrect ? (isFinale ? "arrow.up" : "checkmark") : (answered ? "xmark" : "hourglass"))
-                .font(.system(size: 54, weight: .black))
+                .font(.system(size: 54, weight: .black, design: .rounded))
                 .foregroundColor(.white)
                 .frame(width: 120, height: 120)
                 .background(Circle().fill(tint))
@@ -1044,7 +1044,7 @@ private struct QuizPadRevealCard: View {
                         .foregroundColor(PhonePlayDesign.text2)
                     HStack(spacing: 10) {
                         Image(systemName: QuizPadStyle.shape(correctIndex))
-                            .font(.system(size: 16, weight: .black))
+                            .font(.system(size: 16, weight: .black, design: .rounded))
                             .foregroundColor(QuizPadStyle.tile(correctIndex))
                             .frame(width: 32, height: 32)
                             .background(Circle().fill(Color.white))
@@ -1090,7 +1090,7 @@ private struct QuizPadSummary: View {
     var body: some View {
         VStack(spacing: 18) {
             Image(systemName: isWinner ? "crown.fill" : "star.fill")
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64, weight: .bold, design: .rounded))
                 .foregroundColor(isWinner ? QuizPadStyle.ink : .white)
                 .frame(width: 140, height: 140)
                 .background(Circle().fill(isWinner ? QuizPadStyle.gold : PhonePlayDesign.purple))

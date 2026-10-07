@@ -103,7 +103,7 @@ struct JoinRoomView: View {
                 onClose()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.75))
                     .frame(width: 36, height: 36)
                     .background(Circle().fill(Color.white.opacity(0.08)))
@@ -136,7 +136,7 @@ struct JoinRoomView: View {
                     .frame(width: 92, height: 92)
                     .shadow(color: PhonePlayDesign.cyan.opacity(0.4), radius: 18, y: 8)
                 Image(systemName: "tv.fill")
-                    .font(.system(size: 42, weight: .bold))
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .phonePlayIdle(dy: 3, degrees: 3, duration: 1.3)
             }
@@ -239,7 +239,7 @@ struct JoinRoomView: View {
     private var qrHint: some View {
         HStack(spacing: 14) {
             Image(systemName: "qrcode.viewfinder")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .frame(width: 52, height: 52)
                 .background(

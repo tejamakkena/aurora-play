@@ -14,7 +14,7 @@ private struct DuelHint: View {
         HStack(spacing: 8) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
             }
             Text(text)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -44,7 +44,7 @@ private struct DuelArrowButton: View {
             action()
         }) {
             Image(systemName: icon)
-                .font(.system(size: min(30, height * 0.4), weight: .heavy))
+                .font(.system(size: min(30, height * 0.4), weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
                 .frame(width: width, height: height)
                 .background(
@@ -120,7 +120,7 @@ struct DefuseControllerView: View {
             ForEach(0..<3, id: \.self) { i in
                 let hit: Bool = i < strikes
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundColor(hit ? .white : .white.opacity(0.2))
                     .frame(width: 38, height: 38)
                     .background(Circle().fill(hit ? PhonePlayDesign.red : PhonePlayDesign.surface))
@@ -352,7 +352,7 @@ struct BattleshipControllerView: View {
                                 .overlay {
                                     if result == "hit" {
                                         Image(systemName: "xmark")
-                                            .font(.system(size: 11, weight: .heavy))
+                                            .font(.system(size: 11, weight: .heavy, design: .rounded))
                                             .foregroundColor(.white)
                                     } else if result == "miss" {
                                         Circle()
@@ -498,11 +498,11 @@ struct HeistEscapeControllerView: View {
                                           : PhonePlayDesign.surface2)
                                 if cell == position {
                                     Image(systemName: "person.fill")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
                                 } else if cell == exitCell {
                                     Image(systemName: "door.left.hand.open")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
                                 }
                             }
@@ -850,7 +850,7 @@ struct TeenPattiControllerView: View {
                                         Text(label(c.rank))
                                             .font(.system(size: 30, weight: .heavy, design: .rounded))
                                         Text(c.suit)
-                                            .font(.system(size: 24))
+                                            .font(.system(size: 24, weight: .regular, design: .rounded))
                                     }
                                     .foregroundColor(c.suit == "♥" || c.suit == "♦"
                                                      ? GamePieceColors.cardRedInk
@@ -1038,7 +1038,7 @@ struct SwipeControllerView: View {
                     .overlay(
                         VStack(spacing: 10) {
                             Image(systemName: "hand.draw")
-                                .font(.system(size: 48, weight: .bold))
+                                .font(.system(size: 48, weight: .bold, design: .rounded))
                                 .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.yellow,
                                                                            PhonePlayDesign.orange]))
                                 .phonePlayIdle(dx: 8, duration: 1.0)
@@ -1092,7 +1092,7 @@ struct PaddleControllerView: View {
                         .overlay(
                             VStack(spacing: 10) {
                                 Image(systemName: "arrow.left.and.right")
-                                    .font(.system(size: 40, weight: .bold))
+                                    .font(.system(size: 40, weight: .bold, design: .rounded))
                                     .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.cyan,
                                                                                PhonePlayDesign.blue]))
                                     .phonePlayIdle(dx: 10, duration: 1.0)

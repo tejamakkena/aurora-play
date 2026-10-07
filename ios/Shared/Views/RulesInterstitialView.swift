@@ -127,7 +127,7 @@ struct RulesInterstitialView: View {
                         Image(systemName: "play.fill")
                         Text(primaryTitle)
                     }
-                    .font(.title.bold())
+                    .font(.system(.title, design: .rounded, weight: .bold))
                     .frame(width: 420)
                     .padding(.vertical, 22)
                     .background {
@@ -149,7 +149,7 @@ struct RulesInterstitialView: View {
                 .focused($startFocused)
 
                 Text("or press Play/Pause")
-                    .font(.title3)
+                    .font(.system(.title3, design: .rounded))
                     .foregroundColor(.white.opacity(0.55))
                 Spacer(minLength: 0)
             }
@@ -159,7 +159,7 @@ struct RulesInterstitialView: View {
                     .tint(RulesDesign.tvAccent)
                     .scaleEffect(1.4)
                 Text("Waiting for host to begin...")
-                    .font(.title2)
+                    .font(.system(.title2, design: .rounded))
                     .foregroundColor(.white.opacity(0.7))
             }
             .phaseAnimator([false, true]) { content, phase in
@@ -223,7 +223,7 @@ struct RulesInterstitialView: View {
             Circle()
                 .strokeBorder(Color.white.opacity(0.5), lineWidth: 3)
             Image(systemName: "gamecontroller.fill")
-                .font(.system(size: 78, weight: .bold))
+                .font(.system(size: 78, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .shadow(color: Color.black.opacity(0.3), radius: 3, x: 0, y: 4)
         }
@@ -243,7 +243,7 @@ struct RulesInterstitialView: View {
     private var tvContent: some View {
         VStack(alignment: .leading, spacing: 28) {
             Text("HOW TO PLAY")
-                .font(.title3).bold()
+                .font(.system(.title3, design: .rounded)).bold()
                 .foregroundColor(.white.opacity(0.6))
                 .tracking(6)
 
@@ -255,7 +255,7 @@ struct RulesInterstitialView: View {
                 .shadow(color: RulesDesign.tvAccent.opacity(0.35), radius: 18)
 
             Text(rules.objective)
-                .font(.title2)
+                .font(.system(.title2, design: .rounded))
                 .foregroundColor(RulesDesign.tvAccent)
 
             VStack(alignment: .leading, spacing: 12) {
@@ -275,7 +275,7 @@ struct RulesInterstitialView: View {
                 Image(systemName: "gamecontroller.fill")
                     .foregroundColor(RulesDesign.tvAccent.opacity(0.8))
                 Text(rules.controls)
-                    .font(.title3)
+                    .font(.system(.title3, design: .rounded))
                     .foregroundColor(.white.opacity(0.78))
             }
             .padding(.horizontal, 22)
@@ -321,7 +321,7 @@ struct RulesInterstitialView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(alignment: .center, spacing: 14) {
                             Image(systemName: "gamecontroller.fill")
-                                .font(.system(size: 26, weight: .bold))
+                                .font(.system(size: 26, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                                 .frame(width: 56, height: 56)
                                 .background(
@@ -377,7 +377,7 @@ struct RulesInterstitialView: View {
     
                         HStack(spacing: 10) {
                             Image(systemName: "hand.tap.fill")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                                 .foregroundColor(RulesDesign.pink)
                             Text(rules.controls)
                                 .font(.system(size: 14, weight: .semibold, design: .rounded))
@@ -396,7 +396,7 @@ struct RulesInterstitialView: View {
                             Button(action: onPrimary) {
                                 HStack(spacing: 10) {
                                     Image(systemName: "play.fill")
-                                        .font(.system(size: 18, weight: .bold))
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
                                     Text(primaryTitle)
                                         .font(.system(size: 20, weight: .heavy, design: .rounded))
                                 }
@@ -487,7 +487,7 @@ private struct TVRuleRow<Badge: View>: View {
         HStack(alignment: .top, spacing: 20) {
             badge()
             Text(text)
-                .font(.title2)
+                .font(.system(.title2, design: .rounded))
                 .foregroundColor(.white.opacity(focused ? 1.0 : 0.88))
                 .padding(.top, 6)
                 .fixedSize(horizontal: false, vertical: true)

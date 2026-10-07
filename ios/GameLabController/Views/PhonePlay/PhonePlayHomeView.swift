@@ -235,7 +235,7 @@ private struct PhonePlayGameCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top) {
                     Image(systemName: info.symbol)
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
                         .phonePlayIdle(dy: 3, degrees: 4, duration: 1.4 + Double(index) * 0.15)

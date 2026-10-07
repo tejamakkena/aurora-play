@@ -63,10 +63,10 @@ struct TVRevealBoardView: View {
         VStack(spacing: 44) {
             VStack(spacing: 10) {
                 Text(header.uppercased())
-                    .font(.caption.bold()).tracking(4)
+                    .font(.system(.caption, design: .rounded, weight: .bold)).tracking(4)
                     .foregroundColor(TVTheme.cyan.opacity(0.8))
                 Text(headline)
-                    .font(.system(size: 54, weight: .heavy))
+                    .font(.system(size: 54, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 120)
@@ -74,7 +74,7 @@ struct TVRevealBoardView: View {
 
             if rows.isEmpty && spotlight == nil {
                 Text(emptyMessage)
-                    .font(.title2).foregroundColor(.white.opacity(0.5))
+                    .font(.system(.title2, design: .rounded)).foregroundColor(.white.opacity(0.5))
             } else {
                 VStack(spacing: 14) {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
@@ -121,23 +121,23 @@ struct TVRevealBoardView: View {
         HStack(spacing: 20) {
             if row.isWinner {
                 Image(systemName: "crown.fill")
-                    .font(.title2).foregroundColor(TVTheme.yellow)
+                    .font(.system(.title2, design: .rounded)).foregroundColor(TVTheme.yellow)
                     .frame(width: 44)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Text(row.name)
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundColor(row.isWinner ? TVTheme.yellow : .white)
                     .lineLimit(1)
                 if let sublabel = row.sublabel {
                     Text(sublabel)
-                        .font(.body).foregroundColor(.white.opacity(0.55))
+                        .font(.system(.body, design: .rounded)).foregroundColor(.white.opacity(0.55))
                         .lineLimit(2)
                 }
             }
             Spacer()
             Text(row.detail)
-                .font(.title2)
+                .font(.system(.title2, design: .rounded))
                 .foregroundColor(row.isWinner ? TVTheme.yellow : .white.opacity(0.9))
                 .multilineTextAlignment(.trailing)
                 .lineLimit(2)
@@ -158,20 +158,20 @@ struct TVRevealBoardView: View {
     private func spotlightCard(_ spotlight: TVRevealSpotlight) -> some View {
         VStack(spacing: 12) {
             Text(spotlight.title)
-                .font(.caption.bold()).tracking(4)
+                .font(.system(.caption, design: .rounded, weight: .bold)).tracking(4)
                 .foregroundColor(TVTheme.yellow.opacity(0.85))
             HStack(spacing: 18) {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 54)).foregroundColor(TVTheme.yellow)
+                    .font(.system(size: 54, weight: .regular, design: .rounded)).foregroundColor(TVTheme.yellow)
                 Text(spotlight.name)
-                    .font(.system(size: 64, weight: .heavy))
+                    .font(.system(size: 64, weight: .heavy, design: .rounded))
                     .foregroundColor(TVTheme.yellow)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
             }
             if let detail = spotlight.detail {
                 Text(detail)
-                    .font(.title2.bold()).foregroundColor(.white.opacity(0.85))
+                    .font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white.opacity(0.85))
             }
         }
         .padding(.horizontal, 60).padding(.vertical, 28)

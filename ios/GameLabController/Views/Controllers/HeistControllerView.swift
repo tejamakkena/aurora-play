@@ -117,7 +117,7 @@ private struct GuardControllerView: View {
             if hasSubmitted {
                 HStack(spacing: 10) {
                     Image(systemName: "checkmark.shield.fill")
-                        .font(.system(size: 19, weight: .bold))
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
                     Text("Cameras Locked")
                         .font(.system(size: 19, weight: .heavy, design: .rounded))
                 }
@@ -274,7 +274,7 @@ private struct ThiefControllerView: View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
                 Image(systemName: "location.fill")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.cyan)
                 Text("Position")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -346,7 +346,7 @@ private struct ThiefControllerView: View {
     private var cameraWarning: some View {
         HStack(spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundColor(PhonePlayDesign.yellow)
             Text("Avoid red-lit tiles on the TV!")
                 .font(.system(size: 14, weight: .bold, design: .rounded))
@@ -383,7 +383,7 @@ private struct HeistHeader: View {
                     .fill(PhonePlayDesign.gradient([tint.opacity(0.75), tint.opacity(0.3)]))
                     .frame(width: 48, height: 48)
                 Image(systemName: symbol)
-                    .font(.system(size: 21, weight: .bold))
+                    .font(.system(size: 21, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .phonePlayIdle(dy: 2, scale: 0.03, duration: 1.6)
@@ -444,7 +444,7 @@ private struct HeistHero: View {
                 .fill(PhonePlayDesign.gradient([tint.opacity(0.6), tint.opacity(0.25)]))
                 .frame(width: 110, height: 110)
             Image(systemName: systemImage)
-                .font(.system(size: 46, weight: .bold))
+                .font(.system(size: 46, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
         }
         .shadow(color: tint.opacity(0.35), radius: 18, y: 8)
@@ -462,7 +462,7 @@ private struct HeistPill: View {
         HStack(spacing: 8) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
             }
             Text(text)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -538,7 +538,7 @@ private struct DirectionButton: View {
         }) {
             VStack(spacing: 4) {
                 Image(systemName: symbol)
-                    .font(.system(size: 26, weight: .heavy))
+                    .font(.system(size: 26, weight: .heavy, design: .rounded))
                 Text(label)
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundColor(PhonePlayDesign.text2)

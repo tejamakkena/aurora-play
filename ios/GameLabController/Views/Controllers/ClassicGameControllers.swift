@@ -69,7 +69,7 @@ private struct ClassicPill: View {
         HStack(spacing: 8) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
             }
             Text(text)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -123,7 +123,7 @@ private struct ClassicHero: View {
                 .fill(PhonePlayDesign.gradient([tint.opacity(0.6), tint.opacity(0.25)]))
                 .frame(width: size, height: size)
             Image(systemName: systemImage)
-                .font(.system(size: size * 0.44, weight: .bold))
+                .font(.system(size: size * 0.44, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
         }
         .shadow(color: tint.opacity(0.35), radius: 18, y: 8)
@@ -166,7 +166,7 @@ private struct ClassicPickRow: View {
                     .transition(.scale.combined(with: .opacity))
                 } else if let systemImage {
                     Image(systemName: systemImage)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(tint.opacity(0.85))
                 }
             }
@@ -402,7 +402,7 @@ struct Connect4ControllerView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 } else {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .heavy))
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
                         .foregroundColor(.white.opacity(full ? 0.1 : 0.35))
                 }
             }
@@ -416,7 +416,7 @@ struct Connect4ControllerView: View {
                 )
                 .overlay(
                     full ? Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
                         .foregroundColor(.white.opacity(0.25)) : nil
                 )
                 .shadow(color: aimed ? palette.base.opacity(0.45) : .clear, radius: 10, y: 4)
@@ -522,14 +522,14 @@ private struct ChessPieceGlyph: View {
     var body: some View {
         if isChess {
             Text(solid)
-                .font(.system(size: 30))
+                .font(.system(size: 30, weight: .regular, design: .rounded))
                 .minimumScaleFactor(0.5)
                 .foregroundColor(isWhite ? GamePieceColors.chessWhite : GamePieceColors.chessBlack)
                 .shadow(color: isWhite ? Color.black.opacity(0.75) : Color.white.opacity(0.35),
                         radius: 1, x: 0, y: 0.5)
         } else {
             Text(piece)
-                .font(.system(size: 28))
+                .font(.system(size: 28, weight: .regular, design: .rounded))
                 .minimumScaleFactor(0.5)
                 .foregroundColor(.black)
         }
@@ -586,7 +586,7 @@ struct ChessControllerView: View {
                     }) {
                         HStack(spacing: 6) {
                             Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
                             Text("Deselect \(chessCellLabel(sel[0], sel[1]))")
                                 .font(.system(size: 15, weight: .bold, design: .rounded))
                         }
@@ -792,7 +792,7 @@ private struct MemoryTile: View {
             )
             .overlay(
                 Image(systemName: "questionmark")
-                    .font(.system(size: 22, weight: .heavy))
+                    .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.45))
             )
     }
@@ -807,7 +807,7 @@ private struct MemoryTile: View {
             )
             .overlay(
                 Text(value)
-                    .font(.system(size: 30))
+                    .font(.system(size: 30, weight: .regular, design: .rounded))
                     .minimumScaleFactor(0.5)
             )
     }
@@ -979,7 +979,7 @@ struct RouletteControllerView: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "trash.fill")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
                 Text(hasBets ? "Clear bets · $\(stakedTotal)" : "Clear bets")
                     .font(.system(size: 16, weight: .bold, design: .rounded))
                     .lineLimit(1)
@@ -1278,7 +1278,7 @@ struct MafiaControllerView: View {
     private var phaseChip: some View {
         HStack(spacing: 6) {
             Image(systemName: isDay ? "sun.max.fill" : "moon.stars.fill")
-                .font(.system(size: 13, weight: .bold))
+                .font(.system(size: 13, weight: .bold, design: .rounded))
             Text(isDay ? "Day" : "Night")
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
         }
@@ -1305,7 +1305,7 @@ struct MafiaControllerView: View {
                     .fill(PhonePlayDesign.gradient([info.color.opacity(0.75), info.color.opacity(0.3)]))
                     .frame(width: 54, height: 54)
                 Image(systemName: info.symbol)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .phonePlayIdle(dy: 2, scale: 0.03, duration: 1.6)
@@ -1574,7 +1574,7 @@ struct DigitGuessControllerView: View {
             action()
         }) {
             Image(systemName: icon)
-                .font(.system(size: 18, weight: .heavy))
+                .font(.system(size: 18, weight: .heavy, design: .rounded))
                 .foregroundColor(.white.opacity(0.75))
                 .frame(width: 64, height: 40)
                 .background(

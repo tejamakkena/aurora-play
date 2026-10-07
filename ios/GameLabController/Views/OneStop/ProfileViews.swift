@@ -148,7 +148,7 @@ struct ProfileAvatarBubble: View {
             Circle()
                 .strokeBorder(Color.white.opacity(0.35), lineWidth: max(1, size / 30))
             Image(systemName: avatar)
-                .font(.system(size: size * 0.46, weight: .bold))
+                .font(.system(size: size * 0.46, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .contentTransition(.symbolEffect(.replace))
         }
@@ -172,7 +172,7 @@ struct ProfileChipButton: View {
                     .foregroundColor(.white.opacity(0.85))
                     .lineLimit(1)
                 Image(systemName: "pencil")
-                    .font(.caption.weight(.bold))
+                    .font(.system(.caption, design: .rounded, weight: .bold))
                     .foregroundColor(.white.opacity(0.4))
             }
             .padding(.leading, 4)
@@ -218,7 +218,7 @@ struct ProfileEditorView: View {
                     if offlineNote {
                         Label("Saved on this phone. It will sync when the server is reachable.",
                               systemImage: "icloud.slash")
-                            .font(.footnote)
+                            .font(.system(.footnote, design: .rounded))
                             .foregroundColor(PhonePlayDesign.orange)
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
@@ -306,7 +306,7 @@ struct ProfileEditorView: View {
                             Circle().fill(ProfilePalette.color(name))
                             if selected {
                                 Image(systemName: "checkmark")
-                                    .font(.headline.weight(.heavy))
+                                    .font(.system(.headline, design: .rounded, weight: .heavy))
                                     .foregroundColor(.white)
                             }
                         }
@@ -333,7 +333,7 @@ struct ProfileEditorView: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { draftAvatar = symbol }
                     } label: {
                         Image(systemName: symbol)
-                            .font(.system(size: 24, weight: .bold))
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundColor(selected ? .white : .white.opacity(0.7))
                             .frame(maxWidth: .infinity)
                             .frame(height: 58)
@@ -374,7 +374,7 @@ struct ProfileEditorView: View {
             } else {
                 Text(store.isSyncing ? "Fetching your stats..."
                      : "Stats appear here once the server is reachable and you have played a game.")
-                    .font(.footnote)
+                    .font(.system(.footnote, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
             }
         }
@@ -383,12 +383,12 @@ struct ProfileEditorView: View {
 
     private func statTile(_ title: String, _ value: Int, _ icon: String, _ color: Color) -> some View {
         VStack(spacing: 4) {
-            Image(systemName: icon).font(.caption.weight(.bold)).foregroundColor(color)
+            Image(systemName: icon).font(.system(.caption, design: .rounded, weight: .bold)).foregroundColor(color)
             Text("\(value)")
                 .font(.system(size: 22, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
-            Text(title).font(.caption2).foregroundColor(.white.opacity(0.55)).lineLimit(1)
+            Text(title).font(.system(.caption2, design: .rounded)).foregroundColor(.white.opacity(0.55)).lineLimit(1)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 10)

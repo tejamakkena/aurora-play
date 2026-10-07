@@ -499,14 +499,14 @@ private struct PKCCardFace: View {
                     Text(parts.rank)
                         .font(.system(size: w * (parts.rank.count > 1 ? 0.34 : 0.4), weight: .heavy, design: .rounded))
                     Image(systemName: PKCSuit.symbol(parts.suit))
-                        .font(.system(size: w * 0.2, weight: .bold))
+                        .font(.system(size: w * 0.2, weight: .bold, design: .rounded))
                 }
                 .foregroundColor(ink)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding(.leading, w * 0.09)
                 .padding(.top, w * 0.06)
                 Image(systemName: PKCSuit.symbol(parts.suit))
-                    .font(.system(size: w * 0.5, weight: .bold))
+                    .font(.system(size: w * 0.5, weight: .bold, design: .rounded))
                     .foregroundColor(ink)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(w * 0.1)
@@ -530,7 +530,7 @@ private struct PKCCardBack: View {
                     .overlay(inner.strokeBorder(PKCColors.gold.opacity(0.75), lineWidth: 2))
                     .padding(w * 0.07)
                 Image(systemName: "suit.spade.fill")
-                    .font(.system(size: w * 0.3, weight: .bold))
+                    .font(.system(size: w * 0.3, weight: .bold, design: .rounded))
                     .foregroundColor(PKCColors.gold)
             }
         }

@@ -6,8 +6,8 @@ struct PlaceholderBoardView: View {
     let game: GameID
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: game.sfSymbol).font(.system(size: 80)).foregroundColor(.white.opacity(0.7))
-            Text(game.displayName).font(.largeTitle.bold()).foregroundColor(.white)
+            Image(systemName: game.sfSymbol).font(.system(size: 80, weight: .regular, design: .rounded)).foregroundColor(.white.opacity(0.7))
+            Text(game.displayName).font(.system(.largeTitle, design: .rounded, weight: .bold)).foregroundColor(.white)
             Text("Coming soon").foregroundColor(.white.opacity(0.4))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -28,7 +28,7 @@ private struct TVScoreHeader: View {
                         .fill(p.id == currentPlayerID ? TVTheme.cyan : Color.white.opacity(0.15))
                         .frame(width: 12, height: 12)
                     Text(p.name).foregroundColor(p.id == currentPlayerID ? .white : .white.opacity(0.5))
-                    Text("\(p.score)").font(.headline.bold()).foregroundColor(TVTheme.cyan)
+                    Text("\(p.score)").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
                 }
                 .padding(.horizontal, 14).padding(.vertical, 8)
                 .background(Capsule().fill(p.id == currentPlayerID ? TVTheme.cyan.opacity(0.15) : Color.white.opacity(0.05)))
@@ -95,10 +95,10 @@ private struct PongScorePanel: View {
             HStack(spacing: 22) {
                 if alignTrailing { scoreView }
                 VStack(alignment: alignTrailing ? .trailing : .leading, spacing: 4) {
-                    Text("PLAYER").font(.caption.bold()).tracking(3)
+                    Text("PLAYER").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                         .foregroundColor(color.opacity(0.9))
                     Text(name)
-                        .font(.title2.bold())
+                        .font(.system(.title2, design: .rounded, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -384,7 +384,7 @@ struct TVConnect4BoardView: View {
     private var moveCounter: some View {
         HStack(spacing: 10) {
             Image(systemName: "circle.grid.3x3.fill")
-                .font(.system(size: 22))
+                .font(.system(size: 22, weight: .regular, design: .rounded))
                 .foregroundColor(Color(hex: "7fa8ff"))
             Text("\(vm.state.filledCount) / \(vm.state.rows * vm.state.cols) discs played")
                 .font(.system(size: 22, weight: .medium, design: .rounded))
@@ -814,7 +814,7 @@ private struct Connect4DropRail: View {
     private func marker(colorID: String) -> some View {
         let palette = Connect4Palette.of(colorID)
         return Image(systemName: "arrowtriangle.down.fill")
-            .font(.system(size: 22, weight: .bold))
+            .font(.system(size: 22, weight: .bold, design: .rounded))
             .foregroundColor(palette.base)
             .shadow(color: palette.glow.opacity(0.8), radius: 8)
     }
@@ -899,12 +899,12 @@ private struct Connect4TurnBannerCapsule: View {
         return HStack(spacing: 18) {
             if isFinal && !colorID.isEmpty {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(palette.light)
             }
             if colorID.isEmpty {
                 Image(systemName: "equal.circle.fill")
-                    .font(.system(size: 36))
+                    .font(.system(size: 36, weight: .regular, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
             } else {
                 Connect4Disc(colorID: colorID, size: 46)
@@ -1230,10 +1230,10 @@ struct TVMemoryBoardView: View {
             TVScoreHeader(players: room.players, currentPlayerID: vm.state.currentPlayerID)
                 .padding(.top, 40)
 
-            Text("Memory").font(.largeTitle.bold()).foregroundColor(.white)
+            Text("Memory").font(.system(.largeTitle, design: .rounded, weight: .bold)).foregroundColor(.white)
 
             Text(vm.state.currentPlayerName.isEmpty ? "" : "\(vm.state.currentPlayerName)'s turn")
-                .font(.title3).foregroundColor(.white.opacity(0.5))
+                .font(.system(.title3, design: .rounded)).foregroundColor(.white.opacity(0.5))
 
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(120), spacing: 16), count: cols), spacing: 16) {
                 ForEach(Array(vm.state.cards.enumerated()), id: \.offset) { idx, card in
@@ -1277,13 +1277,13 @@ private struct TVMemoryCard: View {
                 // glyph (e.g. words or asymmetric emoji read backwards).
                 // Counter-rotating the revealed face by the same 180
                 // degrees nets to zero, so revealed tiles read correctly.
-                Text(card.value).font(.system(size: 48))
+                Text(card.value).font(.system(size: 48, weight: .regular, design: .rounded))
                     .rotation3DEffect(
                         .degrees(180),
                         axis: (x: 0, y: 1, z: 0)
                     )
             } else {
-                Image(systemName: "questionmark").font(.system(size: 32))
+                Image(systemName: "questionmark").font(.system(size: 32, weight: .regular, design: .rounded))
                     .foregroundColor(.white.opacity(0.2))
             }
         }
@@ -1337,10 +1337,10 @@ struct TVMafiaBoardView: View {
         VStack(spacing: 32) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Mafia").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+                    Text("Mafia").font(.system(size: 48, weight: .bold, design: .rounded)).foregroundColor(.white)
                     Text(vm.state.phase == "day" ? "Day \(vm.state.round) — Vote to eliminate"
                          : "Night — Mafia is choosing")
-                        .font(.title3).foregroundColor(.white.opacity(0.5))
+                        .font(.system(.title3, design: .rounded)).foregroundColor(.white.opacity(0.5))
                 }
                 Spacer()
                 TimerRing(secondsLeft: vm.state.secondsLeft, total: vm.state.phase == "day" ? 60 : 30)
@@ -1358,7 +1358,7 @@ struct TVMafiaBoardView: View {
             // Vote tally (day only)
             if vm.state.phase == "day" && !vm.state.votes.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Vote Tally").font(.headline).foregroundColor(.white.opacity(0.5))
+                    Text("Vote Tally").font(.system(.headline, design: .rounded)).foregroundColor(.white.opacity(0.5))
                     ForEach(vm.state.votes.sorted(by: { $0.value > $1.value }), id: \.key) { name, count in
                         HStack {
                             Text(name).foregroundColor(.white)
@@ -1378,7 +1378,7 @@ struct TVMafiaBoardView: View {
 
             if let eliminated = vm.state.lastEliminated {
                 Text("\(eliminated) was eliminated!")
-                    .font(.title3.bold()).foregroundColor(TVTheme.red)
+                    .font(.system(.title3, design: .rounded, weight: .bold)).foregroundColor(TVTheme.red)
             }
 
             Spacer()
@@ -1404,13 +1404,13 @@ private struct MafiaPlayerTile: View {
                     .fill(player.isAlive ? Color.white.opacity(0.1) : TVTheme.red.opacity(0.15))
                     .frame(width: 64, height: 64)
                 Text(player.isAlive ? String(player.name.prefix(1)) : "–")
-                    .font(.title.bold()).foregroundColor(.white)
+                    .font(.system(.title, design: .rounded, weight: .bold)).foregroundColor(.white)
             }
-            Text(player.name).font(.subheadline)
+            Text(player.name).font(.system(.subheadline, design: .rounded))
                 .foregroundColor(player.isAlive ? .white : .white.opacity(0.3))
                 .strikethrough(!player.isAlive)
             if let role = player.revealedRole {
-                Text(role).font(.caption2.bold()).foregroundColor(TVTheme.red)
+                Text(role).font(.system(.caption2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.red)
             }
         }
         .opacity(player.isAlive ? 1 : 0.5)
@@ -1467,17 +1467,17 @@ struct TVDigitGuessBoardView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("Digit Guess").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+            Text("Digit Guess").font(.system(size: 48, weight: .bold, design: .rounded)).foregroundColor(.white)
                 .padding(.top, 40)
 
             Text(vm.state.solved ? "Code cracked!" : "Guess the secret 4-digit code")
-                .font(.title3).foregroundColor(vm.state.solved ? TVTheme.green : .white.opacity(0.5))
+                .font(.system(.title3, design: .rounded)).foregroundColor(vm.state.solved ? TVTheme.green : .white.opacity(0.5))
 
             // Player columns
             HStack(alignment: .top, spacing: 24) {
                 ForEach(vm.state.playerColumns) { col in
                     VStack(spacing: 8) {
-                        Text(col.playerName).font(.headline).foregroundColor(.white)
+                        Text(col.playerName).font(.system(.headline, design: .rounded)).foregroundColor(.white)
                             .padding(.bottom, 4)
                         ForEach(Array(col.guesses.enumerated()), id: \.offset) { _, guess in
                             HStack {
@@ -1486,7 +1486,7 @@ struct TVDigitGuessBoardView: View {
                                     .foregroundColor(.white)
                                 Spacer()
                                 Text("Bulls \(guess.bulls) · Cows \(guess.cows)")
-                                    .font(.caption).foregroundColor(.white.opacity(0.6))
+                                    .font(.system(.caption, design: .rounded)).foregroundColor(.white.opacity(0.6))
                             }
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(RoundedRectangle(cornerRadius: 8)
@@ -1562,13 +1562,13 @@ struct TVRajaMantriBoard: View {
     var body: some View {
         VStack(spacing: 32) {
             HStack {
-                Text("Raja Mantri").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
+                Text("Raja Mantri").font(.system(size: 44, weight: .bold, design: .rounded)).foregroundColor(.white)
                 Spacer()
-                Text("Round \(vm.state.round)").font(.title3).foregroundColor(.white.opacity(0.4))
+                Text("Round \(vm.state.round)").font(.system(.title3, design: .rounded)).foregroundColor(.white.opacity(0.4))
             }
             .padding(.horizontal, 60).padding(.top, 40)
 
-            Text(vm.state.phaseLabel).font(.title2).foregroundColor(TVTheme.cyan.opacity(0.8))
+            Text(vm.state.phaseLabel).font(.system(.title2, design: .rounded)).foregroundColor(TVTheme.cyan.opacity(0.8))
 
             // Player role cards (revealed after round ends)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: min(room.players.count, 4)),
@@ -1580,7 +1580,7 @@ struct TVRajaMantriBoard: View {
             .padding(.horizontal, 60)
 
             if let result = vm.state.roundResult {
-                Text(result).font(.title3.bold()).foregroundColor(TVTheme.yellow)
+                Text(result).font(.system(.title3, design: .rounded, weight: .bold)).foregroundColor(TVTheme.yellow)
             }
 
             // Score table
@@ -1589,7 +1589,7 @@ struct TVRajaMantriBoard: View {
                     HStack {
                         Text(p.name).foregroundColor(.white)
                         Spacer()
-                        Text("\(p.score) pts").font(.headline.bold()).foregroundColor(TVTheme.cyan)
+                        Text("\(p.score) pts").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
                     }
                     .padding(.horizontal, 24)
                 }
@@ -1616,13 +1616,13 @@ private struct RajaMantriPlayerCard: View {
     let player: RajaPlayer
     var body: some View {
         VStack(spacing: 10) {
-            Text(player.revealedRole.map { roleEmoji($0) } ?? "?").font(.system(size: 48))
-            Text(player.name).font(.headline).foregroundColor(.white)
+            Text(player.revealedRole.map { roleEmoji($0) } ?? "?").font(.system(size: 48, weight: .regular, design: .rounded))
+            Text(player.name).font(.system(.headline, design: .rounded)).foregroundColor(.white)
             if let role = player.revealedRole {
-                Text(role).font(.caption.bold()).foregroundColor(roleColor(role))
+                Text(role).font(.system(.caption, design: .rounded, weight: .bold)).foregroundColor(roleColor(role))
             }
             if player.isAccused {
-                Text("← ACCUSED").font(.caption2.bold()).foregroundColor(TVTheme.red)
+                Text("← ACCUSED").font(.system(.caption2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.red)
             }
         }
         .padding(20)
@@ -1688,26 +1688,26 @@ struct TVTambolaBoardView: View {
         HStack(spacing: 60) {
             // Left — caller column
             VStack(spacing: 20) {
-                Text("Tambola").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
+                Text("Tambola").font(.system(size: 40, weight: .bold, design: .rounded)).foregroundColor(.white)
 
                 if let last = vm.state.lastCalled {
                     VStack(spacing: 8) {
-                        Text("\(last)").font(.system(size: 96, weight: .black))
+                        Text("\(last)").font(.system(size: 96, weight: .black, design: .rounded))
                             .foregroundColor(TVTheme.yellow)
-                        Text("Last Called").font(.subheadline).foregroundColor(.white.opacity(0.4))
+                        Text("Last Called").font(.system(.subheadline, design: .rounded)).foregroundColor(.white.opacity(0.4))
                     }
                     .padding(24)
                     .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(TVTheme.yellow.opacity(0.1)))
                 }
 
-                Text("Called: \(vm.state.calledNumbers.count)").font(.body).foregroundColor(.white.opacity(0.5))
+                Text("Called: \(vm.state.calledNumbers.count)").font(.system(.body, design: .rounded)).foregroundColor(.white.opacity(0.5))
 
                 Spacer()
 
                 // Prize board: every prize and who took it.
                 if vm.state.prizes.isEmpty {
                     ForEach(vm.state.claims, id: \.self) { claim in
-                        Text("\(claim)").font(.headline).foregroundColor(TVTheme.green)
+                        Text("\(claim)").font(.system(.headline, design: .rounded)).foregroundColor(TVTheme.green)
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
@@ -1715,10 +1715,10 @@ struct TVTambolaBoardView: View {
                             HStack(spacing: 10) {
                                 Image(systemName: prize.winner == nil ? "circle" : "checkmark.seal.fill")
                                     .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : TVTheme.green)
-                                Text(prize.label).font(.headline)
+                                Text(prize.label).font(.system(.headline, design: .rounded))
                                     .foregroundColor(prize.winner == nil ? .white : .white.opacity(0.5))
                                 Spacer()
-                                Text(prize.winner ?? "open").font(.headline)
+                                Text(prize.winner ?? "open").font(.system(.headline, design: .rounded))
                                     .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : TVTheme.green)
                                     .lineLimit(1)
                             }
@@ -1785,12 +1785,12 @@ struct TVStockPanicBoardView: View {
     var body: some View {
         VStack(spacing: 24) {
             HStack {
-                Text("Stock Panic").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
+                Text("Stock Panic").font(.system(size: 44, weight: .bold, design: .rounded)).foregroundColor(.white)
                 Spacer()
                 if let news = vm.state.latestNews {
                     HStack(spacing: 8) {
                         Image(systemName: "newspaper.fill").foregroundColor(TVTheme.yellow)
-                        Text(news).font(.subheadline).foregroundColor(TVTheme.yellow)
+                        Text(news).font(.system(.subheadline, design: .rounded)).foregroundColor(TVTheme.yellow)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Capsule().fill(TVTheme.yellow.opacity(0.15)))
@@ -1810,8 +1810,8 @@ struct TVStockPanicBoardView: View {
             HStack(alignment: .top, spacing: 0) {
                 ForEach(room.players.sorted(by: { $0.score > $1.score })) { p in
                     VStack(spacing: 4) {
-                        Text(p.name).font(.subheadline).foregroundColor(.white)
-                        Text("$\(p.score)").font(.headline.bold()).foregroundColor(TVTheme.green)
+                        Text(p.name).font(.system(.subheadline, design: .rounded)).foregroundColor(.white)
+                        Text("$\(p.score)").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.green)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -1838,12 +1838,12 @@ private struct StockTile: View {
     let stock: StockEntry
     var body: some View {
         VStack(spacing: 6) {
-            Text(stock.name).font(.headline).foregroundColor(.white)
-            Text("$\(stock.price)").font(.system(size: 32, weight: .bold))
+            Text(stock.name).font(.system(.headline, design: .rounded)).foregroundColor(.white)
+            Text("$\(stock.price)").font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundColor(stock.change >= 0 ? TVTheme.green : TVTheme.red)
             HStack(spacing: 4) {
                 Image(systemName: stock.change >= 0 ? "arrow.up" : "arrow.down")
-                Text("\(abs(stock.change))").font(.caption)
+                Text("\(abs(stock.change))").font(.system(.caption, design: .rounded))
             }
             .foregroundColor(stock.change >= 0 ? TVTheme.green : TVTheme.red)
         }
@@ -1888,24 +1888,24 @@ struct TVMindMeldBoardView: View {
 
     var body: some View {
         VStack(spacing: 32) {
-            Text("Mind Meld").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+            Text("Mind Meld").font(.system(size: 48, weight: .bold, design: .rounded)).foregroundColor(.white)
                 .padding(.top, 40)
 
             if let category = vm.state.category {
-                Text("Category: \(category)").font(.title2).foregroundColor(TVTheme.cyan)
+                Text("Category: \(category)").font(.system(.title2, design: .rounded)).foregroundColor(TVTheme.cyan)
             }
 
             if vm.state.showReveal {
                 // Reveal all words
                 VStack(spacing: 16) {
-                    Text("Words submitted:").font(.headline).foregroundColor(.white.opacity(0.5))
+                    Text("Words submitted:").font(.system(.headline, design: .rounded)).foregroundColor(.white.opacity(0.5))
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
                         ForEach(vm.state.submissions) { sub in
                             VStack(spacing: 4) {
-                                Text(sub.word).font(.title2.bold()).foregroundColor(.white)
-                                Text(sub.playerName).font(.caption).foregroundColor(.white.opacity(0.5))
+                                Text(sub.word).font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white)
+                                Text(sub.playerName).font(.system(.caption, design: .rounded)).foregroundColor(.white.opacity(0.5))
                                 if sub.isMeld {
-                                    Text("MELD +\(sub.meldCount)!").font(.caption.bold()).foregroundColor(TVTheme.green)
+                                    Text("MELD +\(sub.meldCount)!").font(.system(.caption, design: .rounded, weight: .bold)).foregroundColor(TVTheme.green)
                                 }
                             }
                             .padding(12)
@@ -1920,14 +1920,14 @@ struct TVMindMeldBoardView: View {
                 VStack(spacing: 16) {
                     let submitted = vm.state.submissions.count
                     let total = room.players.count
-                    Text("\(submitted) / \(total) submitted").font(.title2).foregroundColor(.white.opacity(0.6))
+                    Text("\(submitted) / \(total) submitted").font(.system(.title2, design: .rounded)).foregroundColor(.white.opacity(0.6))
                     HStack(spacing: 12) {
                         ForEach(room.players) { p in
                             VStack(spacing: 6) {
                                 Image(systemName: vm.state.submittedIDs.contains(p.id)
                                       ? "checkmark.circle.fill" : "circle")
-                                    .font(.title).foregroundColor(vm.state.submittedIDs.contains(p.id) ? TVTheme.green : .white.opacity(0.3))
-                                Text(p.name).font(.caption).foregroundColor(.white.opacity(0.6))
+                                    .font(.system(.title, design: .rounded)).foregroundColor(vm.state.submittedIDs.contains(p.id) ? TVTheme.green : .white.opacity(0.3))
+                                Text(p.name).font(.system(.caption, design: .rounded)).foregroundColor(.white.opacity(0.6))
                             }
                         }
                     }
@@ -2020,7 +2020,7 @@ struct TVHotGridBoardView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "hand.point.up.left.fill").foregroundColor(TVTheme.gold)
                         Text("\(vm.state.currentPlayerName)'s turn")
-                            .font(.title3.bold()).foregroundColor(.white)
+                            .font(.system(.title3, design: .rounded, weight: .bold)).foregroundColor(.white)
                             .lineLimit(1).truncationMode(.tail)
                     }
                     .padding(.horizontal, 24).padding(.vertical, 12)
@@ -2120,18 +2120,18 @@ private struct HotGridTileView: View {
         case .coin(let v):
             VStack(spacing: 2) {
                 Image(systemName: "dollarsign.circle.fill")
-                    .font(.system(size: size * 0.36))
+                    .font(.system(size: size * 0.36, weight: .regular, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [Color.white, Color(hex: "fde047")],
                                                     startPoint: .top, endPoint: .bottom))
                 Text("+\(v)").font(TVTheme.display(size * 0.18)).foregroundColor(.white)
             }
         case .trap:
             Image(systemName: "burst.fill")
-                .font(.system(size: size * 0.42))
+                .font(.system(size: size * 0.42, weight: .regular, design: .rounded))
                 .foregroundColor(.white)
         case .teleport:
             Image(systemName: "tornado")
-                .font(.system(size: size * 0.42))
+                .font(.system(size: size * 0.42, weight: .regular, design: .rounded))
                 .foregroundColor(.white)
         case .hidden, .none:
             EmptyView()
@@ -2188,10 +2188,10 @@ struct TVSpeedSculptorBoardView: View {
     var body: some View {
         VStack(spacing: 24) {
             HStack {
-                Text("Speed Sculptor").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
+                Text("Speed Sculptor").font(.system(size: 40, weight: .bold, design: .rounded)).foregroundColor(.white)
                 Spacer()
                 if let prompt = vm.state.prompt {
-                    Text("Drawing: \(prompt)").font(.title2.bold()).foregroundColor(TVTheme.yellow)
+                    Text("Drawing: \(prompt)").font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.yellow)
                 }
             }
             .padding(.horizontal, 60).padding(.top, 40)
@@ -2210,10 +2210,10 @@ struct TVSpeedSculptorBoardView: View {
                 VStack(spacing: 24) {
                     TimerRing(secondsLeft: vm.state.secondsLeft, total: 20)
                         .frame(width: 120, height: 120)
-                    Text("Players are drawing…").font(.title2).foregroundColor(.white.opacity(0.5))
+                    Text("Players are drawing…").font(.system(.title2, design: .rounded)).foregroundColor(.white.opacity(0.5))
                     let submitted = vm.state.submittedCount
                     Text("\(submitted) / \(room.players.count) submitted")
-                        .font(.subheadline).foregroundColor(.white.opacity(0.4))
+                        .font(.system(.subheadline, design: .rounded)).foregroundColor(.white.opacity(0.4))
                 }
             }
 
@@ -2253,11 +2253,11 @@ private struct DrawingCard: View {
             .cornerRadius(12)
 
             HStack {
-                Text(drawing.playerName).font(.headline).foregroundColor(.white)
+                Text(drawing.playerName).font(.system(.headline, design: .rounded)).foregroundColor(.white)
                 Spacer()
                 HStack(spacing: 4) {
                     Image(systemName: "hand.thumbsup.fill").foregroundColor(TVTheme.cyan)
-                    Text("\(drawing.voteCount)").font(.headline.bold()).foregroundColor(TVTheme.cyan)
+                    Text("\(drawing.voteCount)").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
                 }
             }
         }

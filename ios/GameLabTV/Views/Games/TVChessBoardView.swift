@@ -75,7 +75,7 @@ private struct ChessPieceText: View {
     var body: some View {
         if let g = chessGlyph(piece) {
             Text(g.glyph)
-                .font(.system(size: size))
+                .font(.system(size: size, weight: .regular, design: .rounded))
                 .foregroundColor(g.isWhite ? Color(hex: "fdf8ec") : Color(hex: "1b1b1f"))
                 .shadow(color: g.isWhite ? .black.opacity(0.85) : .white.opacity(0.35),
                         radius: 1.5)
@@ -109,7 +109,7 @@ struct TVChessBoardView: View {
             ForEach(0..<8, id: \.self) { row in
                 HStack(spacing: 0) {
                     Text("\(8 - row)")
-                        .font(.headline).foregroundColor(.white.opacity(0.4))
+                        .font(.system(.headline, design: .rounded)).foregroundColor(.white.opacity(0.4))
                         .frame(width: 34)
                     ForEach(0..<8, id: \.self) { col in
                         square(row: row, col: col)
@@ -119,7 +119,7 @@ struct TVChessBoardView: View {
             HStack(spacing: 0) {
                 Spacer().frame(width: 34)
                 ForEach(files, id: \.self) { f in
-                    Text(f).font(.headline).foregroundColor(.white.opacity(0.4))
+                    Text(f).font(.system(.headline, design: .rounded)).foregroundColor(.white.opacity(0.4))
                         .frame(width: cell, height: 34)
                 }
             }
@@ -148,8 +148,8 @@ struct TVChessBoardView: View {
     private var sidePanel: some View {
         VStack(alignment: .leading, spacing: 30) {
             HStack(spacing: 14) {
-                Image(systemName: "checkerboard.rectangle").font(.system(size: 40))
-                Text("Chess").font(.system(size: 52, weight: .heavy))
+                Image(systemName: "checkerboard.rectangle").font(.system(size: 40, weight: .regular, design: .rounded))
+                Text("Chess").font(.system(size: 52, weight: .heavy, design: .rounded))
             }
             .foregroundColor(.white)
 
@@ -160,7 +160,7 @@ struct TVChessBoardView: View {
 
             if !vm.state.capturedByWhite.isEmpty || !vm.state.capturedByBlack.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("CAPTURED").font(.caption.bold()).tracking(3)
+                    Text("CAPTURED").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                         .foregroundColor(.white.opacity(0.4))
                     capturedRow(vm.state.capturedByWhite)
                     capturedRow(vm.state.capturedByBlack)
@@ -168,7 +168,7 @@ struct TVChessBoardView: View {
             }
             Spacer()
             Text("Move on your phone: tap a piece, then its destination. Pawns promote to queens. Capture the king to win.")
-                .font(.callout).foregroundColor(.white.opacity(0.35))
+                .font(.system(.callout, design: .rounded)).foregroundColor(.white.opacity(0.35))
         }
         .padding(.vertical, 60)
     }
@@ -181,12 +181,12 @@ struct TVChessBoardView: View {
                 .overlay(Circle().strokeBorder(Color.white.opacity(0.5), lineWidth: 2))
                 .frame(width: 34, height: 34)
             Text(vm.state.name(for: color))
-                .font(.system(size: 32, weight: .bold))
+                .font(.system(size: 32, weight: .bold, design: .rounded))
                 .foregroundColor(active ? TVTheme.yellow : .white.opacity(0.8))
                 .lineLimit(1)
             Spacer()
             if active {
-                Text("TO MOVE").font(.caption.bold()).tracking(2)
+                Text("TO MOVE").font(.system(.caption, design: .rounded, weight: .bold)).tracking(2)
                     .foregroundColor(.black)
                     .padding(.horizontal, 12).padding(.vertical, 6)
                     .background(Capsule().fill(TVTheme.yellow))
@@ -202,14 +202,14 @@ struct TVChessBoardView: View {
         if let winner = vm.state.winner {
             let name = vm.state.players.first(where: { $0.id == winner })?.name ?? "Winner"
             Label("\(name) captured the king!", systemImage: "crown.fill")
-                .font(.title2.bold()).foregroundColor(TVTheme.yellow)
+                .font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.yellow)
         } else if vm.state.draw {
             Label("Stalemate: no legal moves", systemImage: "equal.circle.fill")
-                .font(.title2.bold()).foregroundColor(TVTheme.cyan)
+                .font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
         } else if vm.state.inCheck {
             Label("Check! \(vm.state.name(for: vm.state.turnColor ?? "white")) must save the king",
                   systemImage: "exclamationmark.triangle.fill")
-                .font(.title2.bold()).foregroundColor(TVTheme.red)
+                .font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.red)
         }
     }
 

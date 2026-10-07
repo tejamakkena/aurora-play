@@ -17,16 +17,16 @@ private struct SoloHUD: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
             if let subtitle {
                 Text(subtitle)
-                    .font(.title3)
+                    .font(.system(.title3, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text("SCORE").font(.caption.bold()).tracking(3)
+                Text("SCORE").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                     .foregroundColor(.white.opacity(0.4))
                 TVPopNumber(value: score, size: 40, color: TVTheme.cyan)
             }
@@ -40,7 +40,7 @@ private struct RemoteHint: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(.callout)
+            .font(.system(.callout, design: .rounded))
             .foregroundColor(.white.opacity(0.35))
             .padding(.bottom, 40)
     }
@@ -1072,7 +1072,7 @@ struct TVBrickBreakerBoardView: View {
             HStack(spacing: 10) {
                 ForEach(0..<max(3, vm.state.lives), id: \.self) { index in
                     Image(systemName: index < vm.state.lives ? "heart.fill" : "heart")
-                        .font(.system(size: 26))
+                        .font(.system(size: 26, weight: .regular, design: .rounded))
                         .foregroundColor(index < vm.state.lives
                                          ? Color(hex: "fb7185") : .white.opacity(0.16))
                 }
@@ -1081,7 +1081,7 @@ struct TVBrickBreakerBoardView: View {
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: -2) {
                 Text("SCORE")
-                    .font(.system(size: 15, weight: .bold)).tracking(5)
+                    .font(.system(size: 15, weight: .bold, design: .rounded)).tracking(5)
                     .foregroundColor(.white.opacity(0.45))
                 Text("\(vm.state.score)")
                     .font(.system(size: 46, weight: .heavy, design: .rounded))
@@ -1116,7 +1116,7 @@ struct TVBrickBreakerBoardView: View {
                             : [Color(hex: "fca5a5"), Color(hex: "dc2626")],
                         startPoint: .top, endPoint: .bottom))
                 Text("Final score \(vm.state.score)")
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.system(size: 30, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.75))
             }
             .padding(.horizontal, 72)
@@ -1133,7 +1133,7 @@ struct TVBrickBreakerBoardView: View {
             Text(root.isSolo
                  ? "Slide your thumb across the remote's touch surface to move the paddle"
                  : "Slide on your phone to move the paddle")
-                .font(.system(size: 21, weight: .semibold))
+                .font(.system(size: 21, weight: .semibold, design: .rounded))
                 .foregroundColor(.white.opacity(0.68))
                 .padding(.horizontal, 26)
                 .padding(.vertical, 12)

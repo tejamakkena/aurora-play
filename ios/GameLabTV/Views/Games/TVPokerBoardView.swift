@@ -953,12 +953,12 @@ private struct PKTFeltPrint: View {
     var body: some View {
         HStack(spacing: 18) {
             Image(systemName: "suit.spade.fill")
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 26, weight: .bold, design: .rounded))
             Text("AURORA HOLD'EM")
                 .font(.system(size: 30, weight: .heavy, design: .serif))
                 .tracking(10)
             Image(systemName: "suit.spade.fill")
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 26, weight: .bold, design: .rounded))
         }
         .foregroundColor(PKTColors.gold.opacity(0.22))
         .rotation3DEffect(.degrees(58), axis: (x: 1, y: 0, z: 0), anchor: .center, perspective: 0.55)
@@ -1010,7 +1010,7 @@ private struct PKTCardFace: View {
                                       weight: .heavy, design: .rounded))
                         .tracking(parts.rank.count > 1 ? -2 : 0)
                     Image(systemName: PKTSuit.symbol(parts.suit))
-                        .font(.system(size: width * 0.22, weight: .bold))
+                        .font(.system(size: width * 0.22, weight: .bold, design: .rounded))
                 }
                 .foregroundColor(ink)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -1018,7 +1018,7 @@ private struct PKTCardFace: View {
                 .padding(.top, width * 0.06)
 
                 Image(systemName: PKTSuit.symbol(parts.suit))
-                    .font(.system(size: width * 0.5, weight: .bold))
+                    .font(.system(size: width * 0.5, weight: .bold, design: .rounded))
                     .foregroundColor(ink)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(width * 0.1)
@@ -1063,7 +1063,7 @@ private struct PKTCardBack: View {
                 .overlay(inner.strokeBorder(PKTColors.gold.opacity(0.75), lineWidth: max(1, width * 0.025)))
                 .padding(width * 0.07)
             Image(systemName: "suit.spade.fill")
-                .font(.system(size: width * 0.3, weight: .bold))
+                .font(.system(size: width * 0.3, weight: .bold, design: .rounded))
                 .foregroundColor(PKTColors.gold)
                 .shadow(color: Color.black.opacity(0.5), radius: 2)
         }
@@ -1508,7 +1508,7 @@ private struct PKTSeatPod: View {
         .overlay(alignment: .top) {
             if isWinner {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [Color(hex: "fff3c4"), PKTColors.gold],
                                                     startPoint: .top, endPoint: .bottom))
                     .shadow(color: PKTColors.gold.opacity(0.9), radius: 10)
@@ -1675,7 +1675,7 @@ private struct PKTTitleBlock: View {
     var body: some View {
         HStack(spacing: 18) {
             Image(systemName: "suit.spade.fill")
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundColor(PKTColors.ink)
                 .frame(width: 60, height: 60)
                 .background(Circle().fill(LinearGradient(colors: [Color(hex: "fde68a"), PKTColors.gold],
@@ -1907,7 +1907,7 @@ private struct PKTScoreboard: View {
                 .lineLimit(1)
             if isWinner {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundColor(PKTColors.gold)
             }
             Spacer(minLength: 12)

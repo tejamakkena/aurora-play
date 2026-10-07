@@ -627,15 +627,15 @@ struct TVDefuseBoardView: View {
             VStack(spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Defuse").font(.system(size: 38, weight: .bold))
+                        Text("Defuse").font(.system(size: 38, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                         Text("\(vm.state.defuserName) holds the bomb — everyone else has the manual")
-                            .font(.headline).foregroundColor(.white.opacity(0.55))
+                            .font(.system(.headline, design: .rounded)).foregroundColor(.white.opacity(0.55))
                     }
                     Spacer()
                     HStack(spacing: 8) {
                         ForEach(0..<vm.state.maxStrikes, id: \.self) { i in
-                            Image(systemName: "xmark").font(.title.bold()).foregroundColor(.white.opacity(0.7))
+                            Image(systemName: "xmark").font(.system(.title, design: .rounded, weight: .bold)).foregroundColor(.white.opacity(0.7))
                                 .foregroundColor(i < vm.state.strikes ? TVTheme.red : .white.opacity(0.2))
                         }
                     }
@@ -648,7 +648,7 @@ struct TVDefuseBoardView: View {
 
                 if !vm.state.finished {
                     Text("MODULE \(vm.state.moduleIndex + 1) OF \(vm.state.moduleCount)")
-                        .font(.caption.bold()).tracking(4).foregroundColor(.white.opacity(0.65))
+                        .font(.system(.caption, design: .rounded, weight: .bold)).tracking(4).foregroundColor(.white.opacity(0.65))
                         .padding(.top, 18)
                 }
 
@@ -656,9 +656,9 @@ struct TVDefuseBoardView: View {
 
                 if vm.state.finished {
                     VStack(spacing: 16) {
-                        Image(systemName: vm.state.won ? "heart.fill" : "burst.fill").font(.system(size: 120)).foregroundColor(vm.state.won ? TVTheme.green : TVTheme.red)
+                        Image(systemName: vm.state.won ? "heart.fill" : "burst.fill").font(.system(size: 120, weight: .regular, design: .rounded)).foregroundColor(vm.state.won ? TVTheme.green : TVTheme.red)
                         Text(vm.state.won ? "DEFUSED" : "BOOM")
-                            .font(.system(size: 64, weight: .heavy)).tracking(6)
+                            .font(.system(size: 64, weight: .heavy, design: .rounded)).tracking(6)
                             .foregroundColor(vm.state.won ? TVTheme.green : TVTheme.red)
                             .shadow(color: .black.opacity(0.7), radius: 10)
                     }
@@ -667,7 +667,7 @@ struct TVDefuseBoardView: View {
                 Spacer()
                 HStack(spacing: 16) {
                     ForEach(vm.state.log, id: \.self) { entry in
-                        Text(entry).font(.callout)
+                        Text(entry).font(.system(.callout, design: .rounded))
                             .foregroundColor(entry.hasPrefix("Strike") ? TVTheme.red : TVTheme.green)
                     }
                 }
@@ -833,14 +833,14 @@ private struct BattleshipFleetCard: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 14) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(isTarget ? "UNDER FIRE" : "FLEET").font(.caption.bold()).tracking(3)
+                Text(isTarget ? "UNDER FIRE" : "FLEET").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                     .foregroundColor(isTarget ? TVTheme.ocean.accent2 : TVTheme.textSecondary)
-                Text(ownerName).font(.title2.bold()).foregroundColor(.white)
+                Text(ownerName).font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white)
                     .lineLimit(1).truncationMode(.tail)
             }
             Spacer()
             TVPopNumber(value: sunk, size: 40, color: TVTheme.ocean.accent)
-            Text(sunk == 1 ? "ship sunk" : "ships sunk").font(.callout)
+            Text(sunk == 1 ? "ship sunk" : "ships sunk").font(.system(.callout, design: .rounded))
                 .foregroundColor(TVTheme.textSecondary)
         }
     }
@@ -903,7 +903,7 @@ private struct BattleshipCell: View {
                 .frame(width: size * 0.72, height: size * 0.72)
                 .shadow(color: Color(hex: "f97316").opacity(0.9), radius: size * 0.3)
             Image(systemName: "flame.fill")
-                .font(.system(size: size * 0.36, weight: .bold))
+                .font(.system(size: size * 0.36, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
         }
     }
@@ -1020,7 +1020,7 @@ struct TVAirHockeyBoardView: View {
                     Spacer()
                     VStack(spacing: 4) {
                         TVGlowText(text: "AIR HOCKEY", size: 40, color: Color(hex: "7dd3fc"))
-                        Text("FIRST TO \(vm.state.winScore)").font(.caption.bold()).tracking(4)
+                        Text("FIRST TO \(vm.state.winScore)").font(.system(.caption, design: .rounded, weight: .bold)).tracking(4)
                             .foregroundColor(TVTheme.textSecondary)
                     }
                     .padding(.top, 10)
@@ -1042,9 +1042,9 @@ private struct AirHockeyScorePanel: View {
             HStack(spacing: 22) {
                 if alignTrailing { TVPopNumber(value: score, size: 64, color: color) }
                 VStack(alignment: alignTrailing ? .trailing : .leading, spacing: 4) {
-                    Text(alignTrailing ? "RIGHT GOAL" : "LEFT GOAL").font(.caption.bold()).tracking(3)
+                    Text(alignTrailing ? "RIGHT GOAL" : "LEFT GOAL").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                         .foregroundColor(color.opacity(0.9))
-                    Text(name).font(.title2.bold()).foregroundColor(.white)
+                    Text(name).font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white)
                         .lineLimit(1).truncationMode(.tail)
                 }
                 if !alignTrailing { TVPopNumber(value: score, size: 64, color: color) }
@@ -1092,9 +1092,9 @@ struct TVHeistEscapeBoardView: View {
             Spacer()
             if vm.state.finished {
                 VStack(spacing: 16) {
-                    Image(systemName: vm.state.won ? "party.popper.fill" : "exclamationmark.triangle.fill").font(.system(size: 120)).foregroundColor(vm.state.won ? TVTheme.yellow : TVTheme.red)
+                    Image(systemName: vm.state.won ? "party.popper.fill" : "exclamationmark.triangle.fill").font(.system(size: 120, weight: .regular, design: .rounded)).foregroundColor(vm.state.won ? TVTheme.yellow : TVTheme.red)
                     Text(vm.state.won ? "ESCAPED" : "CAUGHT")
-                        .font(.system(size: 60, weight: .heavy)).tracking(5)
+                        .font(.system(size: 60, weight: .heavy, design: .rounded)).tracking(5)
                         .foregroundColor(vm.state.won ? TVTheme.green : TVTheme.red)
                 }
             } else {
@@ -1108,9 +1108,9 @@ struct TVHeistEscapeBoardView: View {
                                       : vm.state.trail.contains(cell) ? TVTheme.cyan.opacity(0.2)
                                       : Color.white.opacity(0.05))
                             if cell == vm.state.position {
-                                Image(systemName: "person.fill").font(.system(size: 40)).foregroundColor(.white)
+                                Image(systemName: "person.fill").font(.system(size: 40, weight: .regular, design: .rounded)).foregroundColor(.white)
                             } else if cell == vm.state.exitCell {
-                                Image(systemName: "door.left.hand.open").font(.system(size: 34)).foregroundColor(.white)
+                                Image(systemName: "door.left.hand.open").font(.system(size: 34, weight: .regular, design: .rounded)).foregroundColor(.white)
                             }
                         }
                         .frame(width: 90, height: 90)
@@ -1509,11 +1509,11 @@ private struct LudoTrackCell: View {
                 .fill(startColor ?? Color.white.opacity(0.94))
             if isStar {
                 Image(systemName: "star.fill")
-                    .font(.system(size: cell * 0.6))
+                    .font(.system(size: cell * 0.6, weight: .regular, design: .rounded))
                     .foregroundColor(Color(hex: "b8860b").opacity(0.4))
             }
             Text("\(abs + 1)")
-                .font(.system(size: cell * 0.32, weight: .bold))
+                .font(.system(size: cell * 0.32, weight: .bold, design: .rounded))
                 .foregroundColor(startColor == nil ? Color(hex: "1a2340") : .white)
         }
         .frame(width: cell * 0.94, height: cell * 0.94)
@@ -1534,7 +1534,7 @@ private struct LudoHomeRunCell: View {
             RoundedRectangle(cornerRadius: cell * 0.18)
                 .fill(color.opacity(0.92))
             Text("\(step + 1)")
-                .font(.system(size: cell * 0.3, weight: .bold))
+                .font(.system(size: cell * 0.3, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
         }
         .frame(width: cell * 0.94, height: cell * 0.94)
@@ -1651,11 +1651,11 @@ private struct LudoSidePanel: View {
             if let cs = currentSeat,
                let seat = state.seats.first(where: { $0.seat == cs }) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("TURN").font(.caption.bold()).tracking(3)
+                    Text("TURN").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                         .foregroundColor(.white.opacity(0.5))
                     HStack(spacing: 12) {
                         Circle().fill(colors[cs % 4]).frame(width: 26, height: 26)
-                        Text(seat.name).font(.title2.bold()).foregroundColor(.white)
+                        Text(seat.name).font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white)
                         Spacer()
                         Text(state.rolled ? "\(state.die)" : "-")
                             .font(.system(size: 44, weight: .heavy, design: .rounded))
@@ -1663,7 +1663,7 @@ private struct LudoSidePanel: View {
                     }
                     Text(state.rolled ? "Pick a token - highlighted on the board"
                                       : "Roll the dice on your phone")
-                        .font(.callout).foregroundColor(.white.opacity(0.6))
+                        .font(.system(.callout, design: .rounded)).foregroundColor(.white.opacity(0.6))
                 }
                 .padding(20)
                 .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
@@ -1677,7 +1677,7 @@ private struct LudoSidePanel: View {
                 HStack(spacing: 12) {
                     Circle().fill(colors[seat.seat % 4]).frame(width: 22, height: 22)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(seat.name).font(.headline)
+                        Text(seat.name).font(.system(.headline, design: .rounded))
                             .foregroundColor(active ? .white : .white.opacity(0.55))
                         HStack(spacing: 6) {
                             ForEach(0..<4, id: \.self) { i in
@@ -1693,7 +1693,7 @@ private struct LudoSidePanel: View {
                     Text("\(done)/4")
                         .font(.system(size: 30, weight: .heavy, design: .rounded))
                         .foregroundColor(active ? .white : .white.opacity(0.55))
-                    Text("HOME").font(.caption.bold()).tracking(2)
+                    Text("HOME").font(.system(.caption, design: .rounded, weight: .bold)).tracking(2)
                         .foregroundColor(.white.opacity(0.45))
                 }
                 .padding(.horizontal, 20).padding(.vertical, 14)
@@ -1712,9 +1712,9 @@ private struct LudoWinnerBanner: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            Text("WINNER").font(.caption.bold()).tracking(4)
+            Text("WINNER").font(.system(.caption, design: .rounded, weight: .bold)).tracking(4)
                 .foregroundColor(.white.opacity(0.7))
-            Text(name).font(.system(size: 64, weight: .heavy)).foregroundColor(.white)
+            Text(name).font(.system(size: 64, weight: .heavy, design: .rounded)).foregroundColor(.white)
         }
         .padding(.horizontal, 70).padding(.vertical, 36)
         .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(.black.opacity(0.78))
@@ -1831,7 +1831,7 @@ private struct CarromPlayerRow: View {
                     if isCurrent {
                         Image(systemName: "scope").foregroundColor(TVTheme.gold)
                     }
-                    Text(player.name).font(.title3.bold()).foregroundColor(.white)
+                    Text(player.name).font(.system(.title3, design: .rounded, weight: .bold)).foregroundColor(.white)
                         .lineLimit(1).truncationMode(.tail)
                     Spacer()
                     TVPopNumber(value: player.score, size: 40,
@@ -1989,7 +1989,7 @@ private struct TPChipBadge: View {
             HStack(spacing: 14) {
                 chip
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(label).font(.caption.bold()).tracking(3).foregroundColor(TVTheme.textSecondary)
+                    Text(label).font(.system(.caption, design: .rounded, weight: .bold)).tracking(3).foregroundColor(TVTheme.textSecondary)
                     TVPopNumber(value: value, size: 40, color: color)
                 }
             }
@@ -2045,7 +2045,7 @@ private struct TPSeatCard: View {
                     glow: isCurrent ? TVTheme.gold : nil, padding: 0) {
             VStack(spacing: 12) {
                 fan
-                Text(name).font(.title3.bold())
+                Text(name).font(.system(.title3, design: .rounded, weight: .bold))
                     .foregroundColor(folded ? Color.white.opacity(0.35) : Color.white)
                     .lineLimit(1).truncationMode(.tail)
                 HStack(spacing: 8) {
@@ -2078,13 +2078,13 @@ private struct TPSeatCard: View {
 
     @ViewBuilder private var badge: some View {
         if folded {
-            Text("FOLDED").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.textTertiary)
+            Text("FOLDED").font(.system(.caption, design: .rounded, weight: .bold)).tracking(2).foregroundColor(TVTheme.textTertiary)
         } else if blind {
-            Text("BLIND").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.orange)
+            Text("BLIND").font(.system(.caption, design: .rounded, weight: .bold)).tracking(2).foregroundColor(TVTheme.orange)
         } else if stake > 0 {
-            Text("IN FOR \(stake)").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.textSecondary)
+            Text("IN FOR \(stake)").font(.system(.caption, design: .rounded, weight: .bold)).tracking(2).foregroundColor(TVTheme.textSecondary)
         } else {
-            Text("SEEN").font(.caption.bold()).tracking(2).foregroundColor(TVTheme.textSecondary)
+            Text("SEEN").font(.system(.caption, design: .rounded, weight: .bold)).tracking(2).foregroundColor(TVTheme.textSecondary)
         }
     }
 }
@@ -2105,7 +2105,7 @@ private struct TPCardBack: View {
                 .strokeBorder(TVTheme.gold.opacity(0.8), lineWidth: 1.5)
                 .padding(width * 0.14)
             Image(systemName: "suit.diamond.fill")
-                .font(.system(size: width * 0.34))
+                .font(.system(size: width * 0.34, weight: .regular, design: .rounded))
                 .foregroundColor(TVTheme.gold.opacity(0.85))
         }
         .frame(width: width, height: height)
@@ -2142,7 +2142,7 @@ private struct TPCardFace: View {
                                      startPoint: .top, endPoint: .bottom))
             RoundedRectangle(cornerRadius: width * 0.12, style: .continuous)
                 .strokeBorder(Color.black.opacity(0.12), lineWidth: 1)
-            Text(suit).font(.system(size: width * 0.5)).foregroundColor(ink)
+            Text(suit).font(.system(size: width * 0.5, weight: .regular, design: .rounded)).foregroundColor(ink)
             corner
         }
         .frame(width: width, height: height)
@@ -2152,7 +2152,7 @@ private struct TPCardFace: View {
     private var corner: some View {
         VStack(spacing: -4) {
             Text(label).font(.system(size: width * 0.27, weight: .heavy, design: .rounded))
-            Text(suit).font(.system(size: width * 0.2))
+            Text(suit).font(.system(size: width * 0.2, weight: .regular, design: .rounded))
         }
         .foregroundColor(ink)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -2216,7 +2216,7 @@ private struct TPShowdownRow: View {
             if isWinner {
                 Image(systemName: "crown.fill").foregroundColor(TVTheme.gold)
             }
-            Text(name).font(.title2.bold()).foregroundColor(.white)
+            Text(name).font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white)
                 .lineLimit(1).truncationMode(.tail)
         }
         .frame(width: 280, alignment: .leading)
@@ -2224,7 +2224,7 @@ private struct TPShowdownRow: View {
 
     private var rankPill: some View {
         Text(rankName.uppercased())
-            .font(.headline.weight(.heavy)).tracking(2)
+            .font(.system(.headline, design: .rounded, weight: .heavy)).tracking(2)
             .foregroundColor(isWinner ? Color.black : TVTheme.gold)
             .padding(.horizontal, 18).padding(.vertical, 10)
             .background(Capsule().fill(isWinner ? TVTheme.gold : TVTheme.gold.opacity(0.14)))

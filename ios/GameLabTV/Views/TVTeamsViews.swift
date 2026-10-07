@@ -50,7 +50,7 @@ private struct TVTeamColumn: View {
             ForEach(members) { player in
                 HStack(spacing: 10) {
                     Image(systemName: player.isBot ? "cpu" : "person.fill")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundColor(team.tint.opacity(0.9))
                     Text(player.name)
                         .font(.system(size: 22, weight: .semibold, design: .rounded))
@@ -88,7 +88,7 @@ struct TVTeamScoreStrip: View {
     var body: some View {
         HStack(spacing: 18) {
             Image(systemName: "person.3.fill")
-                .font(.system(size: 26, weight: .bold))
+                .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundColor(ShellTheme.gold)
             ForEach(Array(teams.ranked.enumerated()), id: \.element.id) { index, team in
                 HStack(spacing: 12) {

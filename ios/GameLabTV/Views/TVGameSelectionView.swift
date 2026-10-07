@@ -144,7 +144,7 @@ struct TVGameSelectionView: View {
         .overlay {
             if let debugLastInput {
                 Text(debugLastInput)
-                    .font(.system(size: 44, weight: .heavy))
+                    .font(.system(size: 44, weight: .heavy, design: .rounded))
                     .foregroundColor(.black)
                     .padding(40)
                     .background(TVTheme.yellow)
@@ -244,13 +244,13 @@ struct TVGameSelectionView: View {
                         }
                     }
                 Text(socket.isConnected ? "Server connected" : "Reconnecting…")
-                    .font(.caption)
+                    .font(.system(.caption, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
 
                 // Build stamp -- which commit this build came from, so a
                 // glance at the TV answers "is this running the new code?".
                 Text(BuildStamp.displayString)
-                    .font(.caption2)
+                    .font(.system(.caption2, design: .rounded))
                     .foregroundColor(.white.opacity(0.3))
                     .padding(.top, 2)
             }
@@ -614,7 +614,7 @@ private struct TVGameCard: View {
 
     private var categoryGlyph: some View {
         Image(systemName: style.symbol)
-            .font(.system(size: 16, weight: .bold))
+            .font(.system(size: 16, weight: .bold, design: .rounded))
             .foregroundColor(.white.opacity(isFocused ? 0.95 : 0.6))
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
@@ -718,7 +718,7 @@ private struct TVGameHero: View {
 
             VStack(spacing: 10) {
                 Image(systemName: "play.circle.fill")
-                    .font(.system(size: 54, weight: .bold))
+                    .font(.system(size: 54, weight: .bold, design: .rounded))
                     .foregroundColor(style.accent)
                     .shadow(color: style.accent.opacity(0.7), radius: 12)
                 Text("Select to play")
@@ -769,7 +769,7 @@ private struct GameBadge: View {
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.caption2.bold())
+            .font(.system(.caption2, design: .rounded, weight: .bold))
             .foregroundColor(.white)
             .frame(width: 22, height: 22)
             .background(Circle().fill(color.opacity(0.85)))

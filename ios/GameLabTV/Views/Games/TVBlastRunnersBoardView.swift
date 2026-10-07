@@ -60,10 +60,10 @@ struct TVBlastRunnersBoardView: View {
         HStack(alignment: .top) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Blast Runners")
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 Text("Level \(vm.state.level) of \(vm.state.maxLevel)")
-                    .font(.body)
+                    .font(.system(.body, design: .rounded))
                     .foregroundColor(.white.opacity(0.55))
             }
 
@@ -73,14 +73,14 @@ struct TVBlastRunnersBoardView: View {
                 HStack(spacing: 6) {
                     ForEach(0..<max(vm.state.livesMax, 1), id: \.self) { index in
                         Image(systemName: index < vm.state.livesCurrent ? "heart.fill" : "heart")
-                            .font(.system(size: 20))
+                            .font(.system(size: 20, weight: .regular, design: .rounded))
                             .foregroundColor(index < vm.state.livesCurrent ? TVTheme.red : .white.opacity(0.25))
                     }
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "diamond.fill").foregroundColor(TVTheme.cyan)
                     Text("\(vm.state.gemsRemaining) of \(vm.state.gemsTotal) gems")
-                        .font(.headline)
+                        .font(.system(.headline, design: .rounded))
                         .foregroundColor(.white.opacity(0.8))
                 }
             }
@@ -94,7 +94,7 @@ private struct BlastBanner: View {
 
     var body: some View {
         Text(text)
-            .font(.title2.bold())
+            .font(.system(.title2, design: .rounded, weight: .bold))
             .foregroundColor(tint)
             .padding(.horizontal, 28)
             .padding(.vertical, 16)

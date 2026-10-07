@@ -40,7 +40,7 @@ struct PhoneTeamsCard: View {
                 Spacer()
                 if let mine = teams.team(of: myID) {
                     Text("You're on \(mine.name)")
-                        .font(.caption.weight(.semibold))
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
                         .foregroundColor(mine.tint)
                 }
             }
@@ -49,7 +49,7 @@ struct PhoneTeamsCard: View {
             }
             if room.state == .lobby {
                 Text("Tap a team to switch")
-                    .font(.caption)
+                    .font(.system(.caption, design: .rounded))
                     .foregroundColor(.white.opacity(0.45))
             }
         }
@@ -80,12 +80,12 @@ struct PhoneTeamsCard: View {
                         Spacer()
                         if team.points > 0 {
                             Text("\(team.points) pts")
-                                .font(.caption.weight(.heavy))
+                                .font(.system(.caption, design: .rounded, weight: .heavy))
                                 .foregroundColor(team.tint)
                         }
                     }
                     Text(names.isEmpty ? "Nobody yet" : names.joined(separator: ", "))
-                        .font(.caption)
+                        .font(.system(.caption, design: .rounded))
                         .foregroundColor(.white.opacity(0.6))
                         .multilineTextAlignment(.leading)
                 }

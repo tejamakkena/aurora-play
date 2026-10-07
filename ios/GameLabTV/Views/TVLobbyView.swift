@@ -492,7 +492,7 @@ private struct LobbyQRCode: View {
                     image.resizable().interpolation(.none).scaledToFit()
                 default:
                     Image(systemName: "qrcode")
-                        .font(.system(size: side * 0.44))
+                        .font(.system(size: side * 0.44, weight: .regular, design: .rounded))
                         .foregroundColor(Color.black.opacity(0.35))
                 }
             }

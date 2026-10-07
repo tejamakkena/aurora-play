@@ -46,7 +46,7 @@ struct QuizMakerCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
                 Image(systemName: "wand.and.stars")
-                    .font(.title2)
+                    .font(.system(.title2, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: OneStopTheme.quizGradient,
                                                     startPoint: .topLeading, endPoint: .bottomTrailing))
                     .symbolEffect(.bounce, value: loadedCount)
@@ -57,7 +57,7 @@ struct QuizMakerCard: View {
                     Text(room.gameID == .trivia
                          ? "Any topic. Your questions play first."
                          : "Any topic. Your questions play first in Trivia.")
-                        .font(.caption)
+                        .font(.system(.caption, design: .rounded))
                         .foregroundColor(.white.opacity(0.55))
                 }
                 Spacer()
@@ -67,7 +67,7 @@ struct QuizMakerCard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.seal.fill").foregroundColor(PhonePlayDesign.green)
                     Text(loadedSummary)
-                        .font(.footnote.weight(.semibold))
+                        .font(.system(.footnote, design: .rounded, weight: .semibold))
                         .foregroundColor(.white.opacity(0.85))
                         .lineLimit(2)
                     Spacer()
@@ -76,7 +76,7 @@ struct QuizMakerCard: View {
                         withAnimation { loadedCount = 0; loadedTopic = "" }
                     } label: {
                         Text("Clear")
-                            .font(.caption.weight(.bold))
+                            .font(.system(.caption, design: .rounded, weight: .bold))
                             .foregroundColor(PhonePlayDesign.pink)
                     }
                     .buttonStyle(.plain)
@@ -188,7 +188,7 @@ struct QuizMakerView: View {
                         .placeholder(when: topic.isEmpty) {
                             Text("e.g. Tollywood 2000s").foregroundColor(.white.opacity(0.25))
                         }
-                        .font(.title3.weight(.semibold))
+                        .font(.system(.title3, design: .rounded, weight: .semibold))
                         .foregroundColor(.white)
                         .focused($topicFocused)
                         .submitLabel(.go)
@@ -248,7 +248,7 @@ struct QuizMakerView: View {
                 }
 
                 Text("The first request can take up to a minute while the server wakes up.")
-                    .font(.caption)
+                    .font(.system(.caption, design: .rounded))
                     .foregroundColor(.white.opacity(0.4))
                     .frame(maxWidth: .infinity)
                     .multilineTextAlignment(.center)
@@ -264,12 +264,12 @@ struct QuizMakerView: View {
         VStack(spacing: 22) {
             Spacer()
             Image(systemName: "wand.and.stars")
-                .font(.system(size: 64, weight: .semibold))
+                .font(.system(size: 64, weight: .semibold, design: .rounded))
                 .foregroundStyle(LinearGradient(colors: OneStopTheme.quizGradient,
                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
                 .symbolEffect(.variableColor.iterative, options: .repeating)
             Text("Writing \(count) questions about \(trimmedTopic)")
-                .font(.title3.weight(.bold))
+                .font(.system(.title3, design: .rounded, weight: .bold))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
             ProgressView().tint(PhonePlayDesign.cyan)
@@ -277,7 +277,7 @@ struct QuizMakerView: View {
                 Text(retrying
                      ? "Almost there. The server just woke up, asking again."
                      : "The server is waking up. This can take up to a minute the first time.")
-                    .font(.subheadline)
+                    .font(.system(.subheadline, design: .rounded))
                     .foregroundColor(.white.opacity(0.6))
                     .multilineTextAlignment(.center)
                     .transition(.opacity)
@@ -299,13 +299,13 @@ struct QuizMakerView: View {
         VStack(spacing: 20) {
             Spacer()
             Image(systemName: "cloud.drizzle.fill")
-                .font(.system(size: 56))
+                .font(.system(size: 56, weight: .regular, design: .rounded))
                 .foregroundColor(PhonePlayDesign.orange)
             Text("No questions this time")
-                .font(.title3.weight(.bold))
+                .font(.system(.title3, design: .rounded, weight: .bold))
                 .foregroundColor(.white)
             Text(message)
-                .font(.subheadline)
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundColor(.white.opacity(0.65))
                 .multilineTextAlignment(.center)
             Spacer()
@@ -329,10 +329,10 @@ struct QuizMakerView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(trimmedTopic)
-                                .font(.title3.weight(.heavy))
+                                .font(.system(.title3, design: .rounded, weight: .heavy))
                                 .foregroundColor(.white)
                             Text("Tap a question to edit it. Tap an answer to mark it correct.")
-                                .font(.caption)
+                                .font(.system(.caption, design: .rounded))
                                 .foregroundColor(.white.opacity(0.55))
                         }
                         Spacer()
@@ -359,7 +359,7 @@ struct QuizMakerView: View {
 
                     if drafts.isEmpty {
                         Text("All questions deleted. Start over to write a new set.")
-                            .font(.footnote)
+                            .font(.system(.footnote, design: .rounded))
                             .foregroundColor(.white.opacity(0.55))
                             .padding(.top, 20)
                     }
@@ -371,7 +371,7 @@ struct QuizMakerView: View {
             VStack(spacing: 10) {
                 if completeCount < drafts.count {
                     Text("\(drafts.count - completeCount) unfinished question\(drafts.count - completeCount == 1 ? "" : "s") will be skipped.")
-                        .font(.caption)
+                        .font(.system(.caption, design: .rounded))
                         .foregroundColor(PhonePlayDesign.orange)
                 }
                 OneStopPrimaryButton(title: completeCount == 1 ? "Use this question" : "Use these \(completeCount) questions",
@@ -384,7 +384,7 @@ struct QuizMakerView: View {
                     stage = .compose
                 } label: {
                     Text("Start over")
-                        .font(.footnote.weight(.semibold))
+                        .font(.system(.footnote, design: .rounded, weight: .semibold))
                         .foregroundColor(.white.opacity(0.55))
                 }
                 .buttonStyle(.plain)
@@ -484,7 +484,7 @@ struct QuizDraftCard: View {
             Button(action: onToggle) {
                 HStack(alignment: .top, spacing: 12) {
                     Text("\(number)")
-                        .font(.caption.weight(.heavy))
+                        .font(.system(.caption, design: .rounded, weight: .heavy))
                         .foregroundColor(.black)
                         .frame(width: 26, height: 26)
                         .background(Circle().fill(draft.isComplete ? PhonePlayDesign.cyan : PhonePlayDesign.orange))
@@ -496,14 +496,14 @@ struct QuizDraftCard: View {
                             .lineLimit(expanded ? nil : 2)
                         if !expanded {
                             Label(correctText, systemImage: "checkmark.circle.fill")
-                                .font(.caption)
+                                .font(.system(.caption, design: .rounded))
                                 .foregroundColor(PhonePlayDesign.green)
                                 .lineLimit(1)
                         }
                     }
                     Spacer(minLength: 4)
                     Image(systemName: "chevron.down")
-                        .font(.caption.weight(.bold))
+                        .font(.system(.caption, design: .rounded, weight: .bold))
                         .foregroundColor(.white.opacity(0.45))
                         .rotationEffect(.degrees(expanded ? 180 : 0))
                 }
@@ -528,7 +528,7 @@ struct QuizDraftCard: View {
     private var editor: some View {
         VStack(alignment: .leading, spacing: 10) {
             TextField("Question", text: $draft.question, axis: .vertical)
-                .font(.subheadline)
+                .font(.system(.subheadline, design: .rounded))
                 .foregroundColor(.white)
                 .lineLimit(1...4)
                 .padding(10)
@@ -544,11 +544,11 @@ struct QuizDraftCard: View {
                             Circle().fill(isCorrect ? PhonePlayDesign.green : Color.white.opacity(0.08))
                             if isCorrect {
                                 Image(systemName: "checkmark")
-                                    .font(.caption.weight(.heavy))
+                                    .font(.system(.caption, design: .rounded, weight: .heavy))
                                     .foregroundColor(.black)
                             } else {
                                 Text(Self.letters[i])
-                                    .font(.caption.weight(.bold))
+                                    .font(.system(.caption, design: .rounded, weight: .bold))
                                     .foregroundColor(.white.opacity(0.7))
                             }
                         }
@@ -558,7 +558,7 @@ struct QuizDraftCard: View {
                     .accessibilityLabel("Mark option \(Self.letters[i]) correct")
 
                     TextField("Option \(Self.letters[i])", text: option(i))
-                        .font(.subheadline)
+                        .font(.system(.subheadline, design: .rounded))
                         .foregroundColor(.white)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
@@ -572,13 +572,13 @@ struct QuizDraftCard: View {
             HStack {
                 if !draft.isComplete {
                     Label("Needs a question and 4 different answers", systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption2)
+                        .font(.system(.caption2, design: .rounded))
                         .foregroundColor(PhonePlayDesign.orange)
                 }
                 Spacer()
                 Button(role: .destructive, action: onDelete) {
                     Label("Delete", systemImage: "trash")
-                        .font(.caption.weight(.semibold))
+                        .font(.system(.caption, design: .rounded, weight: .semibold))
                         .foregroundColor(PhonePlayDesign.pink)
                 }
                 .buttonStyle(.plain)

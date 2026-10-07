@@ -28,7 +28,7 @@ struct PhonePlayTopBar: View {
                 Button(action: onBack) {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
                         Text(backTitle)
                             .font(.system(size: 15, weight: .semibold, design: .rounded))
                     }
@@ -66,7 +66,7 @@ struct PhonePlayBigButton: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: symbol)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                 Text(title)
                     .font(.system(size: 20, weight: .heavy, design: .rounded))
             }
@@ -99,7 +99,7 @@ struct PhonePlayGhostButton: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                 Text(title)
                     .font(.system(size: 17, weight: .bold, design: .rounded))
             }
@@ -274,7 +274,7 @@ struct HoldToRevealCard<Secret: View>: View {
             .overlay(
                 VStack(spacing: 16) {
                     Image(systemName: "hand.tap.fill")
-                        .font(.system(size: 54, weight: .bold))
+                        .font(.system(size: 54, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .symbolEffect(.pulse, options: .repeating)
                     Text(prompt)
@@ -354,7 +354,7 @@ struct PassAndRevealView<Secret: View>: View {
         VStack(spacing: 26) {
             Spacer(minLength: 10)
             Image(systemName: "iphone.and.arrow.forward")
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient([accent, .white]))
                 .phonePlayIdle(dx: 10, duration: 0.9)
             VStack(spacing: 6) {
@@ -455,7 +455,7 @@ struct PhonePlayNamesEditor: View {
                 remove(at: index)
             } label: {
                 Image(systemName: "minus.circle.fill")
-                    .font(.system(size: 22))
+                    .font(.system(size: 22, weight: .regular, design: .rounded))
                     .foregroundColor(.white.opacity(0.35))
             }
             .buttonStyle(.plain)
@@ -490,7 +490,7 @@ struct PhonePlayNamesEditor: View {
                 add()
             } label: {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 30))
+                    .font(.system(size: 30, weight: .regular, design: .rounded))
                     .foregroundColor(canAdd ? accent : .white.opacity(0.2))
             }
             .buttonStyle(.plain)
@@ -611,7 +611,7 @@ struct PhonePlayAIButton: View {
                         .controlSize(.small)
                 } else {
                     Image(systemName: symbol)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(accent)
                 }
                 Text(label)

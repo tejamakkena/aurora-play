@@ -348,7 +348,7 @@ struct EmojiMovieControllerView: View {
                     Text(composed.isEmpty ? "Tap emoji below" : composed)
                         .font(composed.isEmpty
                               ? Font.system(size: 17, weight: .semibold, design: .rounded)
-                              : Font.system(size: 40))
+                              : Font.system(size: 40, weight: .regular, design: .rounded))
                         .foregroundColor(composed.isEmpty ? PhonePlayDesign.text3 : .white)
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
@@ -377,7 +377,7 @@ struct EmojiMovieControllerView: View {
                                 PhonePlayHaptics.tap()
                                 composed += e
                             }) {
-                                Text(e).font(.system(size: 30))
+                                Text(e).font(.system(size: 30, weight: .regular, design: .rounded))
                                     .frame(maxWidth: .infinity).padding(.vertical, 8)
                                     .background(
                                         RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
@@ -395,7 +395,7 @@ struct EmojiMovieControllerView: View {
                             composed = String(composed.dropLast())
                         }) {
                             Image(systemName: "delete.left")
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
                                 .foregroundColor(.white.opacity(0.85))
                                 .frame(width: 66, height: 60)
                                 .background(
@@ -430,7 +430,7 @@ struct EmojiMovieControllerView: View {
                 ForEach(entries, id: \.index) { entry in
                     VStack(spacing: 10) {
                         Text(entry.emoji)
-                            .font(.system(size: 40))
+                            .font(.system(size: 40, weight: .regular, design: .rounded))
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
                         if entry.isMine {
@@ -549,7 +549,7 @@ struct NPATControllerView: View {
         let filled: Bool = !(values[key] ?? "").trimmingCharacters(in: .whitespaces).isEmpty
         return HStack(spacing: 12) {
             Image(systemName: filled ? "checkmark.circle.fill" : icon)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(filled ? PhonePlayDesign.green : PartyPadTint.npat)
                 .frame(width: 26)
             TextField(label, text: Binding(

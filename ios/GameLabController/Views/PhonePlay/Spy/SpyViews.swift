@@ -50,7 +50,7 @@ private struct SpySetupView: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 10) {
                         Image(systemName: "binoculars.fill")
-                            .font(.system(size: 54, weight: .bold))
+                            .font(.system(size: 54, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient(SpyStyle.colors))
                             .symbolEffect(.pulse)
                         Text("Who is the Spy?")
@@ -153,7 +153,7 @@ private struct SpySecretCard: View {
         VStack(spacing: 14) {
             if isSpy {
                 Image(systemName: "eye.slash.fill")
-                    .font(.system(size: 54, weight: .bold))
+                    .font(.system(size: 54, weight: .bold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.red)
                 Text("You are the")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -167,7 +167,7 @@ private struct SpySecretCard: View {
                     .multilineTextAlignment(.center)
             } else {
                 Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 50, weight: .bold))
+                    .font(.system(size: 50, weight: .bold, design: .rounded))
                     .foregroundColor(SpyStyle.accent2)
                 Text("LOCATION")
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
@@ -470,7 +470,7 @@ private struct SpyResultView: View {
             .fill(PhonePlayDesign.gradient(SpyStyle.colors))
             .overlay(
                 Image(systemName: "questionmark")
-                    .font(.system(size: 80, weight: .black))
+                    .font(.system(size: 80, weight: .black, design: .rounded))
                     .foregroundColor(.white.opacity(0.9))
             )
     }
@@ -494,7 +494,7 @@ private struct SpyResultView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
                     Image(systemName: "eye.slash.fill")
-                        .font(.system(size: 30, weight: .bold))
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.red)
                 }
                 .padding(20)

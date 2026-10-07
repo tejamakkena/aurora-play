@@ -240,7 +240,7 @@ struct TVTwentyQuestionsBoardView: View {
         case "final":
             VStack(spacing: 14) {
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 90, weight: .bold))
+                    .font(.system(size: 90, weight: .bold, design: .rounded))
                     .foregroundColor(TalkPalette.gold)
                     .shadow(color: TalkPalette.gold.opacity(0.7), radius: 20)
                 Text("That is a wrap!")
@@ -452,7 +452,7 @@ private struct TwentyQTypingBanner: View {
             if !names.isEmpty {
                 HStack(spacing: 14) {
                     Image(systemName: "lightbulb.max.fill")
-                        .font(.system(size: 34, weight: .bold))
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundColor(TalkPalette.gold)
                         .symbolEffect(.pulse, options: .repeating)
                     Text(bannerText)

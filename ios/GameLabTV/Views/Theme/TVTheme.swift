@@ -575,19 +575,19 @@ struct TVWinnerBanner: View {
         TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: accent, glow: accent, padding: 0) {
             VStack(spacing: 14) {
                 Image(systemName: symbol)
-                    .font(.system(size: 54, weight: .bold))
+                    .font(.system(size: 54, weight: .bold, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [Color.white, accent],
                                                     startPoint: .top, endPoint: .bottom))
                     .shadow(color: accent.opacity(0.8), radius: 16)
                 Text(title.uppercased())
-                    .font(.system(size: 24, weight: .heavy)).tracking(6)
+                    .font(.system(size: 24, weight: .heavy, design: .rounded)).tracking(6)
                     .foregroundColor(Color.white.opacity(0.75))
                 TVGlowText(text: headline, size: 76, color: accent)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                 if let detail {
                     Text(detail)
-                        .font(.title3.weight(.semibold))
+                        .font(.system(.title3, design: .rounded, weight: .semibold))
                         .foregroundColor(TVTheme.textSecondary)
                 }
             }

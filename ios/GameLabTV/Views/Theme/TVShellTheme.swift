@@ -422,7 +422,7 @@ struct ShellChip: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: systemImage)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
             Text(text)
                 .font(.system(size: 21, weight: .semibold, design: .rounded))
                 .lineLimit(1)
@@ -472,7 +472,7 @@ struct ShellIconOrb: View {
                                              endPoint: .bottom),
                               lineWidth: max(1.5, size * 0.02))
             Image(systemName: symbol)
-                .font(.system(size: size * 0.44, weight: .bold))
+                .font(.system(size: size * 0.44, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .shadow(color: Color.black.opacity(0.35), radius: 2, x: 0, y: size * 0.03)
                 .shadow(color: accent.opacity(isLit ? 0.9 : 0), radius: size * 0.12)
@@ -527,7 +527,7 @@ struct ShellAvatarToken: View {
         .overlay(alignment: .top) {
             if isHost {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: size * 0.24, weight: .bold))
+                    .font(.system(size: size * 0.24, weight: .bold, design: .rounded))
                     .foregroundColor(ShellTheme.gold)
                     .shadow(color: ShellTheme.gold.opacity(0.7), radius: 6)
                     .offset(y: -size * 0.24)
@@ -555,7 +555,7 @@ private struct ShellTokenBadge: View {
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: size * 0.5, weight: .heavy))
+            .font(.system(size: size * 0.5, weight: .heavy, design: .rounded))
             .foregroundColor(.white)
             .frame(width: size, height: size)
             .background { Circle().fill(color) }
@@ -575,7 +575,7 @@ struct ShellGhostToken: View {
                 .strokeBorder(Color.white.opacity(0.28),
                               style: StrokeStyle(lineWidth: 2, dash: [8, 8]))
             Image(systemName: "person.fill")
-                .font(.system(size: size * 0.32, weight: .semibold))
+                .font(.system(size: size * 0.32, weight: .semibold, design: .rounded))
                 .foregroundColor(Color.white.opacity(0.18))
         }
         .frame(width: size, height: size)

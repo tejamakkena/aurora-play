@@ -282,7 +282,7 @@ struct TVSnakeLadderBoardView: View {
                     } icon: {
                         Image(systemName: "trophy.fill")
                     }
-                    .font(.system(size: 42, weight: .bold))
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
                     .foregroundColor(TVTheme.yellow)
                     .padding(.bottom, 24)
                 } else if vm.state.currentPlayerID != nil {
@@ -315,7 +315,7 @@ private struct SnakeLadderTurnBanner: View {
                 } icon: {
                     Image(systemName: "arrow.counterclockwise.circle.fill")
                 }
-                .font(.system(size: 30, weight: .heavy))
+                .font(.system(size: 30, weight: .heavy, design: .rounded))
                 .foregroundColor(.black)
                 .padding(.horizontal, 28).padding(.vertical, 10)
                 .background(Capsule().fill(TVTheme.yellow))
@@ -327,7 +327,7 @@ private struct SnakeLadderTurnBanner: View {
                     .frame(width: 28, height: 28)
                     .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 3))
                 Text("\(name)'s turn")
-                    .font(.system(size: 40, weight: .heavy))
+                    .font(.system(size: 40, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -349,11 +349,11 @@ private struct SnakeLadderLastRollCard: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Text("LAST ROLL").font(.caption.bold()).tracking(2)
+            Text("LAST ROLL").font(.system(.caption, design: .rounded, weight: .bold)).tracking(2)
                 .foregroundColor(.white.opacity(0.6))
             SnakeLadderDieFace(value: value, size: 84)
             Text(rollerName)
-                .font(.headline)
+                .font(.system(.headline, design: .rounded))
                 .foregroundColor(color)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -446,13 +446,13 @@ private struct SnakeLadderPositionRow: View {
             // A long name must truncate with an ellipsis, never wrap
             // mid-word ("Gand"/"hi" on two lines). The fixed-width parent
             // below gives the truncation a bound to work against.
-            Text(entry.name).font(.headline)
+            Text(entry.name).font(.system(.headline, design: .rounded))
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .foregroundColor(isCurrent ? .white : .white.opacity(0.6))
             Spacer()
             Text(entry.position == 0 ? "start" : "\(entry.position)")
-                .font(.subheadline.bold()).foregroundColor(TVTheme.cyan)
+                .font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
         .frame(width: 260)

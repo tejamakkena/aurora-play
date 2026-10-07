@@ -15,7 +15,7 @@ struct TVVoiceOverlay: View {
                     .foregroundColor(host.micPlayerID == nil ? TVTheme.text3 : TVTheme.green)
                 Text(host.micPlayerName.map { "\($0)'s phone" }
                      ?? "No mic -- claim it on your phone")
-                    .font(.callout)
+                    .font(.system(.callout, design: .rounded))
                     .foregroundColor(.white.opacity(0.75))
             }
             .padding(.horizontal, 16)
@@ -25,7 +25,7 @@ struct TVVoiceOverlay: View {
             // Loop state
             if host.voiceState != "idle" {
                 Text(stateLabel)
-                    .font(.headline)
+                    .font(.system(.headline, design: .rounded))
                     .foregroundColor(stateColor)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
@@ -35,7 +35,7 @@ struct TVVoiceOverlay: View {
             // Live caption
             if !host.liveTranscript.isEmpty && host.voiceState == "listen" {
                 Text("“\(host.liveTranscript)”")
-                    .font(.title3)
+                    .font(.system(.title3, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.trailing)
                     .lineLimit(2)
@@ -49,7 +49,7 @@ struct TVVoiceOverlay: View {
             // Verdict
             if let verdict = host.lastVerdict {
                 Text(verdict)
-                    .font(.headline)
+                    .font(.system(.headline, design: .rounded))
                     .foregroundColor(host.lastVerdictCorrect == true
                                      ? TVTheme.green : .white.opacity(0.85))
                     .padding(.horizontal, 16)
