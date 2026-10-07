@@ -35,7 +35,7 @@ private struct OtherPadPill: View {
         HStack(spacing: 6) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
             }
             Text(text)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -197,7 +197,7 @@ private struct DiceFaceView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: size * 0.18, style: .continuous)
-                .fill(LinearGradient(colors: [Color.white, Color(hex: "E8E8F0")],
+                .fill(LinearGradient(colors: [GamePieceColors.faceWhite, GamePieceColors.faceWhiteEdge],
                                      startPoint: .top, endPoint: .bottom))
             RoundedRectangle(cornerRadius: size * 0.18, style: .continuous)
                 .stroke(Color.black.opacity(0.08), lineWidth: 2)
@@ -229,7 +229,7 @@ struct PongControllerView: View {
                 Spacer()
 
                 Image(systemName: "iphone.gen3")
-                    .font(.system(size: 40, weight: .bold))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.indigo]))
                     .rotationEffect(.degrees(motion.roll * 30))
 
@@ -442,12 +442,12 @@ struct HotGridControllerView: View {
                         let tile = idx < tiles.count ? tiles[idx] : "hidden"
                         let hidden = tile == "hidden"
                         Button(action: { pick(idx) }) {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .fill(fill(for: tile, pending: pendingPick == idx))
                                 .frame(height: 56)
                                 .overlay(label(for: tile))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                         .strokeBorder(Color.white.opacity(hidden ? 0.08 : 0), lineWidth: 1)
                                 )
                         }
@@ -487,11 +487,11 @@ struct HotGridControllerView: View {
                 .foregroundColor(.white.opacity(0.4))
         case "trap":
             Image(systemName: "flame.fill")
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(PhonePlayDesign.red)
         case "teleport":
             Image(systemName: "sparkles")
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: 20, weight: .bold, design: .rounded))
                 .foregroundColor(PhonePlayDesign.purple)
         default:
             Text("+\(tile)")
@@ -580,11 +580,11 @@ struct StockPanicControllerView: View {
                 .padding(.vertical, 11)
                 .padding(.horizontal, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(tint.opacity(0.16))
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .strokeBorder(tint.opacity(0.35), lineWidth: 1)
                 )
         }
@@ -642,7 +642,7 @@ struct SpeedSculptorControllerView: View {
                                 }) {
                                     HStack(spacing: 6) {
                                         Image(systemName: "trash")
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(.system(size: 13, weight: .bold, design: .rounded))
                                         Text("Clear")
                                             .font(.system(size: 15, weight: .bold, design: .rounded))
                                     }
@@ -900,7 +900,7 @@ struct TambolaControllerView: View {
                                 .frame(maxWidth: .infinity, minHeight: 50)
                                 .padding(.horizontal, 6)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                         .fill(prize.winner == nil
                                               ? PhonePlayDesign.gradient([PhonePlayDesign.yellow, PhonePlayDesign.orange])
                                               : PhonePlayDesign.gradient([PhonePlayDesign.surface, PhonePlayDesign.surface]))
@@ -936,7 +936,7 @@ struct GenericTapControllerView: View {
                                                     PhonePlayDesign.cyan.opacity(0.35)]))
                     .frame(width: 120, height: 120)
                 Image(systemName: room.gameID.sfSymbol)
-                    .font(.system(size: 52, weight: .bold))
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .phonePlayIdle(dy: 4, scale: 0.03, duration: 1.6)
@@ -1007,7 +1007,7 @@ struct ResultsControllerView: View {
             // My rank callout
             HStack(spacing: 14) {
                 Image(systemName: myRank == 1 ? "trophy.fill" : (myRank <= 3 ? "medal.fill" : "star.fill"))
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
                     .phonePlayIdle(dy: 3, degrees: 5, duration: 1.2)
@@ -1069,7 +1069,7 @@ struct ResultsControllerView: View {
                         }
                         .padding(.horizontal, 14).padding(.vertical, 10)
                         .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                                 .fill(player.id == myID ? PhonePlayDesign.cyan.opacity(0.12) : PhonePlayDesign.surface)
                         )
                         .offset(y: appeared ? 0 : 24)
@@ -1218,7 +1218,7 @@ struct BlastRunnersControllerView: View {
             HStack(spacing: 5) {
                 ForEach(0..<max(livesMax, 1), id: \.self) { index in
                     Image(systemName: index < livesCurrent ? "heart.fill" : "heart")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(index < livesCurrent ? PhonePlayDesign.red : .white.opacity(0.25))
                 }
             }
@@ -1226,7 +1226,7 @@ struct BlastRunnersControllerView: View {
             Spacer()
             HStack(spacing: 6) {
                 Image(systemName: "diamond.fill")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
                 Text("\(gemsRemaining)")
                     .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .monospacedDigit()
@@ -1284,15 +1284,15 @@ struct BlastRunnersControllerView: View {
             }
         }) {
             Image(systemName: icon)
-                .font(.system(size: 26, weight: .heavy))
+                .font(.system(size: 26, weight: .heavy, design: .rounded))
                 .foregroundColor(canAct ? .white : .white.opacity(0.3))
                 .frame(width: 64, height: 58)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.surface2)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
                 )
         }
@@ -1309,7 +1309,7 @@ struct BlastRunnersControllerView: View {
         }) {
             VStack(spacing: 6) {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
                 Text("BLAST")
                     .font(.system(size: 18, weight: .black, design: .rounded))
                     .tracking(1)

@@ -50,7 +50,7 @@ private struct SpySetupView: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 10) {
                         Image(systemName: "binoculars.fill")
-                            .font(.system(size: 54, weight: .bold))
+                            .font(.system(size: 54, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient(SpyStyle.colors))
                             .symbolEffect(.pulse)
                         Text("Who is the Spy?")
@@ -107,7 +107,7 @@ private struct SpyChoiceChip: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(selected ? PhonePlayDesign.gradient(SpyStyle.colors)
                                        : PhonePlayDesign.gradient([PhonePlayDesign.surface,
                                                                    PhonePlayDesign.surface]))
@@ -153,7 +153,7 @@ private struct SpySecretCard: View {
         VStack(spacing: 14) {
             if isSpy {
                 Image(systemName: "eye.slash.fill")
-                    .font(.system(size: 54, weight: .bold))
+                    .font(.system(size: 54, weight: .bold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.red)
                 Text("You are the")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -167,7 +167,7 @@ private struct SpySecretCard: View {
                     .multilineTextAlignment(.center)
             } else {
                 Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 50, weight: .bold))
+                    .font(.system(size: 50, weight: .bold, design: .rounded))
                     .foregroundColor(SpyStyle.accent2)
                 Text("LOCATION")
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
@@ -289,7 +289,7 @@ private struct SpyLocationsSheet: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                     .fill(PhonePlayDesign.surface2))
                         }
                     }
@@ -376,10 +376,10 @@ private struct SpySuspectButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 16)
             .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                     .fill(PhonePlayDesign.surface)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                             .strokeBorder(selected ? PhonePlayDesign.red : Color.clear, lineWidth: 2)
                     )
             )
@@ -470,7 +470,7 @@ private struct SpyResultView: View {
             .fill(PhonePlayDesign.gradient(SpyStyle.colors))
             .overlay(
                 Image(systemName: "questionmark")
-                    .font(.system(size: 80, weight: .black))
+                    .font(.system(size: 80, weight: .black, design: .rounded))
                     .foregroundColor(.white.opacity(0.9))
             )
     }
@@ -494,7 +494,7 @@ private struct SpyResultView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
                     Image(systemName: "eye.slash.fill")
-                        .font(.system(size: 30, weight: .bold))
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.red)
                 }
                 .padding(20)

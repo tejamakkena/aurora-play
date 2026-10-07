@@ -59,7 +59,7 @@ private struct StoryChainSetupView: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 10) {
                         Image(systemName: "text.book.closed.fill")
-                            .font(.system(size: 54, weight: .bold))
+                            .font(.system(size: 54, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient(StoryChainStyle.colors))
                             .phonePlayIdle(dy: 3, degrees: 5, duration: 1.1)
                         Text("Story Chain")
@@ -87,7 +87,7 @@ private struct StoryChainSetupView: View {
                     }
                     .tint(PhonePlayDesign.pink)
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.surface))
 
                     Text("\(StoryChainDeck.openers.count) openers and \(StoryChainDeck.twists.count) twists ready. \(StoryChainViewModel.turnSeconds) seconds a turn.")
@@ -164,7 +164,7 @@ private struct StoryChainOpenerCard: View {
         VStack(spacing: large ? 14 : 6) {
             HStack(spacing: 6) {
                 Image(systemName: "quote.opening")
-                    .font(.system(size: large ? 14 : 11, weight: .heavy))
+                    .font(.system(size: large ? 14 : 11, weight: .heavy, design: .rounded))
                 Text(large ? "ONCE UPON A TIME" : "THE STORY BEGAN")
                     .font(.system(size: large ? 14 : 11, weight: .heavy, design: .rounded))
                     .tracking(3)
@@ -208,7 +208,7 @@ private struct StoryChainReadyView: View {
 
                     VStack(spacing: 14) {
                         Image(systemName: "iphone.and.arrow.forward")
-                            .font(.system(size: 54, weight: .bold))
+                            .font(.system(size: 54, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.pink, .white]))
                             .phonePlayIdle(dx: 10, duration: 0.9)
                         VStack(spacing: 4) {
@@ -298,7 +298,7 @@ private struct StoryChainTwistCard: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: "tornado")
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundColor(.black.opacity(0.75))
                 .phonePlayIdle(degrees: 10, duration: 0.6)
             VStack(alignment: .leading, spacing: 2) {
@@ -334,7 +334,7 @@ private struct StoryChainFinalBanner: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "flag.checkered")
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
             Text("Last line! Bring the story to an end.")
                 .font(.system(size: 16, weight: .heavy, design: .rounded))
                 .fixedSize(horizontal: false, vertical: true)
@@ -468,7 +468,7 @@ private struct StoryChainTimerRing: View {
                 if timeUp {
                     VStack(spacing: 0) {
                         Image(systemName: "bell.and.waves.left.and.right.fill")
-                            .font(.system(size: 30, weight: .bold))
+                            .font(.system(size: 30, weight: .bold, design: .rounded))
                             .foregroundColor(PhonePlayDesign.yellow)
                         Text("TIME!")
                             .font(.system(size: 54, weight: .black, design: .rounded))
@@ -509,7 +509,7 @@ private struct StoryChainEndView: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 6) {
                         Image(systemName: "book.closed.fill")
-                            .font(.system(size: 64, weight: .bold))
+                            .font(.system(size: 64, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient(StoryChainStyle.colors))
                             .rotationEffect(.degrees(appeared ? 0 : -25))
                             .scaleEffect(appeared ? 1 : 0.3)
@@ -571,7 +571,7 @@ private struct StoryChainStat: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(PhonePlayDesign.surface))
     }
 }
@@ -634,7 +634,7 @@ private struct StoryChainBallot: View {
     private var passStep: some View {
         VStack(spacing: 26) {
             Image(systemName: "iphone.and.arrow.forward")
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.yellow, .white]))
                 .phonePlayIdle(dx: 10, duration: 0.9)
                 .padding(.top, 30)
@@ -678,7 +678,7 @@ private struct StoryChainBallot: View {
                 } label: {
                     HStack(spacing: 12) {
                         Image(systemName: "crown")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
                             .foregroundColor(PhonePlayDesign.yellow)
                         Text(pair.element)
                             .font(.system(size: 20, weight: .heavy, design: .rounded))
@@ -687,7 +687,7 @@ private struct StoryChainBallot: View {
                             .minimumScaleFactor(0.6)
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
                             .foregroundColor(.white.opacity(0.4))
                     }
                     .padding(.horizontal, 18)
@@ -747,7 +747,7 @@ private struct StoryChainCrownView: View {
                                                  center: .center, startRadius: 6, endRadius: 110))
                             .frame(width: 220, height: 220)
                         Image(systemName: "crown.fill")
-                            .font(.system(size: 84, weight: .bold))
+                            .font(.system(size: 84, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient(StoryChainStyle.crown))
                             .shadow(color: PhonePlayDesign.orange.opacity(0.6), radius: 16)
                             .offset(y: appeared ? 0 : -220)
@@ -776,7 +776,7 @@ private struct StoryChainCrownView: View {
                             let crowned: Bool = game.winners.contains(pair.element.name)
                             HStack(spacing: 12) {
                                 Image(systemName: crowned ? "crown.fill" : "person.fill")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
                                     .foregroundColor(crowned ? .black : .white.opacity(0.7))
                                     .frame(width: 30, height: 30)
                                     .background(Circle().fill(crowned ? PhonePlayDesign.yellow : PhonePlayDesign.surface2))
@@ -791,7 +791,7 @@ private struct StoryChainCrownView: View {
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
-                            .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                                 .fill(PhonePlayDesign.surface))
                         }
                     }

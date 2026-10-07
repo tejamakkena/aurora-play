@@ -50,7 +50,7 @@ private struct MidPadPill: View {
         HStack(spacing: 6) {
             if let systemImage {
                 Image(systemName: systemImage)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
             }
             Text(text)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
@@ -218,7 +218,7 @@ struct CipherGridControllerView: View {
             action()
         }) {
             Image(systemName: symbol)
-                .font(.system(size: 17, weight: .heavy))
+                .font(.system(size: 17, weight: .heavy, design: .rounded))
                 .foregroundColor(enabled ? .white : .white.opacity(0.25))
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(enabled ? teamColor.opacity(0.35) : Color.white.opacity(0.06)))
@@ -330,7 +330,7 @@ struct OddOneOutControllerView: View {
         if isSpy {
             VStack(spacing: 8) {
                 Image(systemName: "eyeglasses")
-                    .font(.system(size: 52, weight: .bold))
+                    .font(.system(size: 52, weight: .bold, design: .rounded))
                     .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.red, PhonePlayDesign.pink]))
                     .phonePlayIdle(degrees: 4, duration: 1.2)
                 Text("YOU ARE THE SPY")
@@ -641,7 +641,7 @@ struct KBCControllerView: View {
                             }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "figure.walk")
-                                        .font(.system(size: 15, weight: .bold))
+                                        .font(.system(size: 15, weight: .bold, design: .rounded))
                                     Text("Walk away with ₹\(prize)")
                                         .font(.system(size: 16, weight: .bold, design: .rounded))
                                 }
@@ -684,7 +684,7 @@ struct KBCControllerView: View {
                 .strikethrough(!available, color: .white.opacity(0.25))
                 .frame(maxWidth: .infinity).padding(.vertical, 14)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(available ? PhonePlayDesign.gradient([PhonePlayDesign.purple, PhonePlayDesign.indigo])
                                         : PhonePlayDesign.gradient([Color.white.opacity(0.05),
                                                                     Color.white.opacity(0.05)]))
@@ -718,7 +718,7 @@ struct BollywoodCharadesControllerView: View {
                 if isActor {
                     VStack(spacing: 12) {
                         Image(systemName: "theatermasks.fill")
-                            .font(.system(size: 58, weight: .bold))
+                            .font(.system(size: 58, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.orange,
                                                                        PhonePlayDesign.pink]))
                             .phonePlayIdle(degrees: 5, scale: 0.04, duration: 1.2)

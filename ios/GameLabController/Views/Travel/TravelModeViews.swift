@@ -68,7 +68,7 @@ private struct TravelVoiceBadge: View {
             Image(systemName: speech.usingCloudVoice ? "sparkles" : "speaker.wave.2.fill")
             Text(speech.usingCloudVoice ? "AI voice" : "Phone voice")
         }
-        .font(.caption2.bold())
+        .font(.system(.caption2, design: .rounded, weight: .bold))
         .foregroundColor(speech.usingCloudVoice ? TravelDesign.primary : .white.opacity(0.5))
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -80,7 +80,7 @@ struct TravelSafetyFooter: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "steeringwheel")
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
             Text(TravelCopy.safetyLine)
                 .font(.system(size: 14, weight: .bold, design: .rounded))
                 .multilineTextAlignment(.leading)
@@ -110,12 +110,12 @@ struct TravelPickView: View {
             VStack(spacing: 16) {
                 VStack(spacing: 10) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                             .fill(PhonePlayDesign.gradient([PhonePlayDesign.green, PhonePlayDesign.cyan]))
                             .frame(width: 92, height: 92)
                             .shadow(color: PhonePlayDesign.green.opacity(0.4), radius: 18, y: 8)
                         Image(systemName: "mic.and.signal.meter.fill")
-                            .font(.system(size: 40, weight: .bold))
+                            .font(.system(size: 40, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                             .phonePlayIdle(scale: 0.06, duration: 1.0)
                     }
@@ -175,11 +175,11 @@ private struct TravelStyleCard: View {
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: style.sfSymbol)
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .frame(width: 60, height: 60)
                 .background(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.gradient([tint, tint.opacity(0.55)]))
                 )
                 .shadow(color: tint.opacity(0.35), radius: 8, y: 4)
@@ -194,7 +194,7 @@ private struct TravelStyleCard: View {
             }
             Spacer()
             Image(systemName: "play.fill")
-                .font(.system(size: 16, weight: .heavy))
+                .font(.system(size: 16, weight: .heavy, design: .rounded))
                 .foregroundColor(.black)
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(tint))
@@ -276,11 +276,11 @@ struct TravelPlayView: View {
             Spacer()
             if travel.micReady && travel.asked > 0 {
                 Text("\(travel.correct) of \(travel.asked) right")
-                    .font(.headline)
+                    .font(.system(.headline, design: .rounded))
                     .foregroundColor(TravelDesign.text2)
             } else if travel.asked > 0 {
                 Text("Question \(travel.asked)")
-                    .font(.headline)
+                    .font(.system(.headline, design: .rounded))
                     .foregroundColor(TravelDesign.text2)
             }
         }
@@ -300,19 +300,19 @@ struct TravelPlayView: View {
 
                 if let options = item.options, travel.gotIt == nil {
                     Text(options.joined(separator: "  /  "))
-                        .font(.headline)
+                        .font(.system(.headline, design: .rounded))
                         .foregroundColor(TravelDesign.text2)
                         .multilineTextAlignment(.center)
                 }
 
                 if travel.hintShown && travel.gotIt == nil {
                     Label(item.hint, systemImage: "lightbulb.fill")
-                        .font(.title3.bold())
+                        .font(.system(.title3, design: .rounded, weight: .bold))
                         .foregroundColor(TravelDesign.warning)
                         .multilineTextAlignment(.center)
                         .padding(14)
                         .frame(maxWidth: .infinity)
-                        .background(RoundedRectangle(cornerRadius: 14)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius)
                             .fill(TravelDesign.warning.opacity(0.1)))
                 }
 
@@ -343,7 +343,7 @@ struct TravelPlayView: View {
         let tint = gotIt ? TravelDesign.primary : TravelDesign.info
         return VStack(spacing: 8) {
             Text(gotIt ? "YOU GOT IT!" : "THE ANSWER")
-                .font(.caption.bold())
+                .font(.system(.caption, design: .rounded, weight: .bold))
                 .tracking(2)
                 .foregroundColor(tint)
             Text(String(item.answer.prefix(1)).uppercased() + String(item.answer.dropFirst()))
@@ -352,7 +352,7 @@ struct TravelPlayView: View {
                 .multilineTextAlignment(.center)
             if let fact = item.fact {
                 Text(fact)
-                    .font(.body)
+                    .font(.system(.body, design: .rounded))
                     .foregroundColor(TravelDesign.text2)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -360,7 +360,7 @@ struct TravelPlayView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 14).fill(tint.opacity(0.12)))
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius).fill(tint.opacity(0.12)))
     }
 
     // MARK: Controls (all optional)
@@ -409,7 +409,7 @@ private struct TravelControl: View {
             action()
         } label: {
             VStack(spacing: 6) {
-                Image(systemName: systemImage).font(.system(size: 20, weight: .bold))
+                Image(systemName: systemImage).font(.system(size: 20, weight: .bold, design: .rounded))
                 Text(title).font(.system(size: 15, weight: .heavy, design: .rounded))
             }
             .foregroundColor(tint)
@@ -441,20 +441,20 @@ struct TravelStatusLine: View {
         VStack(spacing: 6) {
             HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.title2.weight(.semibold))
+                    .font(.system(.title2, design: .rounded, weight: .semibold))
                     .foregroundColor(color)
                     .scaleEffect(travel.phase == .listening && pulse ? 1.18 : 1)
                     .animation(travel.phase == .listening
                                ? Animation.easeInOut(duration: 0.7).repeatForever(autoreverses: true)
                                : Animation.default, value: pulse)
                 Text(text)
-                    .font(.headline)
+                    .font(.system(.headline, design: .rounded))
                     .foregroundColor(color)
             }
             if !travel.heard.isEmpty,
                travel.phase == .listening || travel.phase == .reacting {
                 Text("Heard: \(travel.heard)")
-                    .font(.title3)
+                    .font(.system(.title3, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

@@ -6,12 +6,12 @@ struct PlaceholderBoardView: View {
     let game: GameID
     var body: some View {
         VStack(spacing: 20) {
-            Image(systemName: game.sfSymbol).font(.system(size: 80)).foregroundColor(.white.opacity(0.7))
-            Text(game.displayName).font(.largeTitle.bold()).foregroundColor(.white)
+            Image(systemName: game.sfSymbol).font(.system(size: 80, weight: .regular, design: .rounded)).foregroundColor(.white.opacity(0.7))
+            Text(game.displayName).font(.system(.largeTitle, design: .rounded, weight: .bold)).foregroundColor(.white)
             Text("Coming soon").foregroundColor(.white.opacity(0.4))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
     }
 }
 
@@ -25,13 +25,13 @@ private struct TVScoreHeader: View {
             ForEach(players) { p in
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(p.id == currentPlayerID ? Color.cyan : Color.white.opacity(0.15))
+                        .fill(p.id == currentPlayerID ? TVTheme.cyan : Color.white.opacity(0.15))
                         .frame(width: 12, height: 12)
                     Text(p.name).foregroundColor(p.id == currentPlayerID ? .white : .white.opacity(0.5))
-                    Text("\(p.score)").font(.headline.bold()).foregroundColor(.cyan)
+                    Text("\(p.score)").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
                 }
                 .padding(.horizontal, 14).padding(.vertical, 8)
-                .background(Capsule().fill(p.id == currentPlayerID ? Color.cyan.opacity(0.15) : Color.white.opacity(0.05)))
+                .background(Capsule().fill(p.id == currentPlayerID ? TVTheme.cyan.opacity(0.15) : Color.white.opacity(0.05)))
             }
             Spacer()
         }
@@ -66,13 +66,13 @@ struct TVPongBoardView: View {
             VStack {
                 HStack(alignment: .top) {
                     PongScorePanel(name: vm.state.leftPlayerName, score: vm.state.scoreLeft,
-                                   color: Color(hex: "22d3ee"), alignTrailing: false)
+                                   color: TVTheme.cyan, alignTrailing: false)
                     Spacer()
                     TVGlowText(text: "PONG", size: 46, color: Color(hex: "a78bfa"))
                         .padding(.top, 14)
                     Spacer()
                     PongScorePanel(name: vm.state.rightPlayerName, score: vm.state.scoreRight,
-                                   color: Color(hex: "f472b6"), alignTrailing: true)
+                                   color: TVTheme.pink, alignTrailing: true)
                 }
                 .padding(.horizontal, 70)
                 .padding(.top, 40)
@@ -91,14 +91,14 @@ private struct PongScorePanel: View {
     let alignTrailing: Bool
 
     var body: some View {
-        TVGlassCard(cornerRadius: 26, tint: color, glow: color, padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: color, glow: color, padding: 0) {
             HStack(spacing: 22) {
                 if alignTrailing { scoreView }
                 VStack(alignment: alignTrailing ? .trailing : .leading, spacing: 4) {
-                    Text("PLAYER").font(.caption.bold()).tracking(3)
+                    Text("PLAYER").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                         .foregroundColor(color.opacity(0.9))
                     Text(name)
-                        .font(.title2.bold())
+                        .font(.system(.title2, design: .rounded, weight: .bold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -388,7 +388,7 @@ struct TVConnect4BoardView: View {
     private var moveCounter: some View {
         HStack(spacing: 10) {
             Image(systemName: "circle.grid.3x3.fill")
-                .font(.system(size: 22))
+                .font(.system(size: 22, weight: .regular, design: .rounded))
                 .foregroundColor(Color(hex: "7fa8ff"))
             Text("\(vm.state.filledCount) / \(vm.state.rows * vm.state.cols) discs played")
                 .font(.system(size: 22, weight: .medium, design: .rounded))
@@ -818,7 +818,7 @@ private struct Connect4DropRail: View {
     private func marker(colorID: String) -> some View {
         let palette = Connect4Palette.of(colorID)
         return Image(systemName: "arrowtriangle.down.fill")
-            .font(.system(size: 22, weight: .bold))
+            .font(.system(size: 22, weight: .bold, design: .rounded))
             .foregroundColor(palette.base)
             .shadow(color: palette.glow.opacity(0.8), radius: 8)
     }
@@ -903,12 +903,12 @@ private struct Connect4TurnBannerCapsule: View {
         return HStack(spacing: 18) {
             if isFinal && !colorID.isEmpty {
                 Image(systemName: "crown.fill")
-                    .font(.system(size: 30, weight: .bold))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(palette.light)
             }
             if colorID.isEmpty {
                 Image(systemName: "equal.circle.fill")
-                    .font(.system(size: 36))
+                    .font(.system(size: 36, weight: .regular, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
             } else {
                 Connect4Disc(colorID: colorID, size: 46)
@@ -970,11 +970,11 @@ private struct Connect4PlayerChip: View {
         .padding(.horizontal, 18)
         .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 22)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
                 .fill(highlighted ? palette.base.opacity(0.22) : Color.white.opacity(0.05))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
                 .strokeBorder(highlighted ? palette.glow.opacity(0.9) : Color.white.opacity(0.08),
                               lineWidth: highlighted ? 3 : 1)
         )
@@ -1001,7 +1001,7 @@ private struct Connect4PlayerChip: View {
         }
         .frame(width: 66)
         .padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.black.opacity(0.25)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.chipRadius).fill(Color.black.opacity(0.25)))
     }
 }
 
@@ -1234,10 +1234,10 @@ struct TVMemoryBoardView: View {
             TVScoreHeader(players: room.players, currentPlayerID: vm.state.currentPlayerID)
                 .padding(.top, 40)
 
-            Text("Memory").font(.largeTitle.bold()).foregroundColor(.white)
+            Text("Memory").font(.system(.largeTitle, design: .rounded, weight: .bold)).foregroundColor(.white)
 
             Text(vm.state.currentPlayerName.isEmpty ? "" : "\(vm.state.currentPlayerName)'s turn")
-                .font(.title3).foregroundColor(.white.opacity(0.5))
+                .font(.system(.title3, design: .rounded)).foregroundColor(.white.opacity(0.5))
 
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(120), spacing: 16), count: cols), spacing: 16) {
                 ForEach(Array(vm.state.cards.enumerated()), id: \.offset) { idx, card in
@@ -1248,7 +1248,7 @@ struct TVMemoryBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1265,12 +1265,12 @@ private struct TVMemoryCard: View {
     let card: MemoryCard
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(card.state == .matched ? Color.green.opacity(0.25)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
+                .fill(card.state == .matched ? TVTheme.green.opacity(0.25)
                       : card.state == .flipped ? Color.white.opacity(0.15)
                       : Color(hex: "1e1e3a"))
-                .overlay(RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(card.state == .matched ? Color.green.opacity(0.5) : Color.white.opacity(0.06),
+                .overlay(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
+                    .strokeBorder(card.state == .matched ? TVTheme.green.opacity(0.5) : Color.white.opacity(0.06),
                                   lineWidth: 2))
                 .frame(width: 112, height: 112)
 
@@ -1281,13 +1281,13 @@ private struct TVMemoryCard: View {
                 // glyph (e.g. words or asymmetric emoji read backwards).
                 // Counter-rotating the revealed face by the same 180
                 // degrees nets to zero, so revealed tiles read correctly.
-                Text(card.value).font(.system(size: 48))
+                Text(card.value).font(.system(size: 48, weight: .regular, design: .rounded))
                     .rotation3DEffect(
                         .degrees(180),
                         axis: (x: 0, y: 1, z: 0)
                     )
             } else {
-                Image(systemName: "questionmark").font(.system(size: 32))
+                Image(systemName: "questionmark").font(.system(size: 32, weight: .regular, design: .rounded))
                     .foregroundColor(.white.opacity(0.2))
             }
         }
@@ -1341,10 +1341,10 @@ struct TVMafiaBoardView: View {
         VStack(spacing: 32) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Mafia").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+                    Text("Mafia").font(.system(size: 48, weight: .bold, design: .rounded)).foregroundColor(.white)
                     Text(vm.state.phase == "day" ? "Day \(vm.state.round) — Vote to eliminate"
                          : "Night — Mafia is choosing")
-                        .font(.title3).foregroundColor(.white.opacity(0.5))
+                        .font(.system(.title3, design: .rounded)).foregroundColor(.white.opacity(0.5))
                 }
                 Spacer()
                 TimerRing(secondsLeft: vm.state.secondsLeft, total: vm.state.phase == "day" ? 60 : 30)
@@ -1362,32 +1362,32 @@ struct TVMafiaBoardView: View {
             // Vote tally (day only)
             if vm.state.phase == "day" && !vm.state.votes.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Vote Tally").font(.headline).foregroundColor(.white.opacity(0.5))
+                    Text("Vote Tally").font(.system(.headline, design: .rounded)).foregroundColor(.white.opacity(0.5))
                     ForEach(vm.state.votes.sorted(by: { $0.value > $1.value }), id: \.key) { name, count in
                         HStack {
                             Text(name).foregroundColor(.white)
                             Spacer()
                             HStack(spacing: 4) {
                                 ForEach(0..<count, id: \.self) { _ in
-                                    Circle().fill(Color.red).frame(width: 12, height: 12)
+                                    Circle().fill(TVTheme.red).frame(width: 12, height: 12)
                                 }
                             }
                         }
                     }
                 }
                 .padding(20)
-                .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.05)))
+                .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.05)))
                 .padding(.horizontal, 60)
             }
 
             if let eliminated = vm.state.lastEliminated {
                 Text("\(eliminated) was eliminated!")
-                    .font(.title3.bold()).foregroundColor(.red)
+                    .font(.system(.title3, design: .rounded, weight: .bold)).foregroundColor(TVTheme.red)
             }
 
             Spacer()
         }
-        .background(Color(hex: vm.state.phase == "day" ? "0a0814" : "00000a").ignoresSafeArea())
+        .background((vm.state.phase == "day" ? TVTheme.bg : Color(hex: "00000a")).ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1405,16 +1405,16 @@ private struct MafiaPlayerTile: View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
-                    .fill(player.isAlive ? Color.white.opacity(0.1) : Color.red.opacity(0.15))
+                    .fill(player.isAlive ? Color.white.opacity(0.1) : TVTheme.red.opacity(0.15))
                     .frame(width: 64, height: 64)
                 Text(player.isAlive ? String(player.name.prefix(1)) : "–")
-                    .font(.title.bold()).foregroundColor(.white)
+                    .font(.system(.title, design: .rounded, weight: .bold)).foregroundColor(.white)
             }
-            Text(player.name).font(.subheadline)
+            Text(player.name).font(.system(.subheadline, design: .rounded))
                 .foregroundColor(player.isAlive ? .white : .white.opacity(0.3))
                 .strikethrough(!player.isAlive)
             if let role = player.revealedRole {
-                Text(role).font(.caption2.bold()).foregroundColor(.red)
+                Text(role).font(.system(.caption2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.red)
             }
         }
         .opacity(player.isAlive ? 1 : 0.5)
@@ -1471,17 +1471,17 @@ struct TVDigitGuessBoardView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Text("Digit Guess").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+            Text("Digit Guess").font(.system(size: 48, weight: .bold, design: .rounded)).foregroundColor(.white)
                 .padding(.top, 40)
 
             Text(vm.state.solved ? "Code cracked!" : "Guess the secret 4-digit code")
-                .font(.title3).foregroundColor(vm.state.solved ? .green : .white.opacity(0.5))
+                .font(.system(.title3, design: .rounded)).foregroundColor(vm.state.solved ? TVTheme.green : .white.opacity(0.5))
 
             // Player columns
             HStack(alignment: .top, spacing: 24) {
                 ForEach(vm.state.playerColumns) { col in
                     VStack(spacing: 8) {
-                        Text(col.playerName).font(.headline).foregroundColor(.white)
+                        Text(col.playerName).font(.system(.headline, design: .rounded)).foregroundColor(.white)
                             .padding(.bottom, 4)
                         ForEach(Array(col.guesses.enumerated()), id: \.offset) { _, guess in
                             HStack {
@@ -1490,16 +1490,16 @@ struct TVDigitGuessBoardView: View {
                                     .foregroundColor(.white)
                                 Spacer()
                                 Text("Bulls \(guess.bulls) · Cows \(guess.cows)")
-                                    .font(.caption).foregroundColor(.white.opacity(0.6))
+                                    .font(.system(.caption, design: .rounded)).foregroundColor(.white.opacity(0.6))
                             }
                             .padding(.horizontal, 12).padding(.vertical, 6)
                             .background(RoundedRectangle(cornerRadius: 8)
-                                .fill(guess.bulls == 4 ? Color.green.opacity(0.3) : Color.white.opacity(0.05)))
+                                .fill(guess.bulls == 4 ? TVTheme.green.opacity(0.3) : Color.white.opacity(0.05)))
                         }
                         Spacer()
                     }
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.05)))
+                    .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.05)))
                     .frame(maxWidth: .infinity)
                 }
             }
@@ -1507,7 +1507,7 @@ struct TVDigitGuessBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1566,13 +1566,13 @@ struct TVRajaMantriBoard: View {
     var body: some View {
         VStack(spacing: 32) {
             HStack {
-                Text("Raja Mantri").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
+                Text("Raja Mantri").font(.system(size: 44, weight: .bold, design: .rounded)).foregroundColor(.white)
                 Spacer()
-                Text("Round \(vm.state.round)").font(.title3).foregroundColor(.white.opacity(0.4))
+                Text("Round \(vm.state.round)").font(.system(.title3, design: .rounded)).foregroundColor(.white.opacity(0.4))
             }
             .padding(.horizontal, 60).padding(.top, 40)
 
-            Text(vm.state.phaseLabel).font(.title2).foregroundColor(.cyan.opacity(0.8))
+            Text(vm.state.phaseLabel).font(.system(.title2, design: .rounded)).foregroundColor(TVTheme.cyan.opacity(0.8))
 
             // Player role cards (revealed after round ends)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: min(room.players.count, 4)),
@@ -1584,7 +1584,7 @@ struct TVRajaMantriBoard: View {
             .padding(.horizontal, 60)
 
             if let result = vm.state.roundResult {
-                Text(result).font(.title3.bold()).foregroundColor(.yellow)
+                Text(result).font(.system(.title3, design: .rounded, weight: .bold)).foregroundColor(TVTheme.yellow)
             }
 
             // Score table
@@ -1593,18 +1593,18 @@ struct TVRajaMantriBoard: View {
                     HStack {
                         Text(p.name).foregroundColor(.white)
                         Spacer()
-                        Text("\(p.score) pts").font(.headline.bold()).foregroundColor(.cyan)
+                        Text("\(p.score) pts").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
                     }
                     .padding(.horizontal, 24)
                 }
             }
             .padding(.vertical, 16)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.04)))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.04)))
             .padding(.horizontal, 60)
 
             Spacer()
         }
-        .background(Color(hex: "0a0814").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1620,24 +1620,24 @@ private struct RajaMantriPlayerCard: View {
     let player: RajaPlayer
     var body: some View {
         VStack(spacing: 10) {
-            Text(player.revealedRole.map { roleEmoji($0) } ?? "?").font(.system(size: 48))
-            Text(player.name).font(.headline).foregroundColor(.white)
+            Text(player.revealedRole.map { roleEmoji($0) } ?? "?").font(.system(size: 48, weight: .regular, design: .rounded))
+            Text(player.name).font(.system(.headline, design: .rounded)).foregroundColor(.white)
             if let role = player.revealedRole {
-                Text(role).font(.caption.bold()).foregroundColor(roleColor(role))
+                Text(role).font(.system(.caption, design: .rounded, weight: .bold)).foregroundColor(roleColor(role))
             }
             if player.isAccused {
-                Text("← ACCUSED").font(.caption2.bold()).foregroundColor(.red)
+                Text("← ACCUSED").font(.system(.caption2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.red)
             }
         }
         .padding(20)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.06)))
     }
 
     private func roleEmoji(_ r: String) -> String {
         switch r { case "Raja": return "R"; case "Mantri": return "M"; case "Chor": return "C"; default: return "?" }
     }
     private func roleColor(_ r: String) -> Color {
-        switch r { case "Raja": return .yellow; case "Mantri": return .purple; case "Chor": return .red; default: return .cyan }
+        switch r { case "Raja": return TVTheme.yellow; case "Mantri": return TVTheme.purple; case "Chor": return TVTheme.red; default: return TVTheme.cyan }
     }
 }
 
@@ -1692,38 +1692,38 @@ struct TVTambolaBoardView: View {
         HStack(spacing: 60) {
             // Left — caller column
             VStack(spacing: 20) {
-                Text("Tambola").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
+                Text("Tambola").font(.system(size: 40, weight: .bold, design: .rounded)).foregroundColor(.white)
 
                 if let last = vm.state.lastCalled {
                     VStack(spacing: 8) {
-                        Text("\(last)").font(.system(size: 96, weight: .black))
-                            .foregroundColor(.yellow)
-                        Text("Last Called").font(.subheadline).foregroundColor(.white.opacity(0.4))
+                        Text("\(last)").font(.system(size: 96, weight: .black, design: .rounded))
+                            .foregroundColor(TVTheme.yellow)
+                        Text("Last Called").font(.system(.subheadline, design: .rounded)).foregroundColor(.white.opacity(0.4))
                     }
                     .padding(24)
-                    .background(RoundedRectangle(cornerRadius: 20).fill(Color.yellow.opacity(0.1)))
+                    .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(TVTheme.yellow.opacity(0.1)))
                 }
 
-                Text("Called: \(vm.state.calledNumbers.count)").font(.body).foregroundColor(.white.opacity(0.5))
+                Text("Called: \(vm.state.calledNumbers.count)").font(.system(.body, design: .rounded)).foregroundColor(.white.opacity(0.5))
 
                 Spacer()
 
                 // Prize board: every prize and who took it.
                 if vm.state.prizes.isEmpty {
                     ForEach(vm.state.claims, id: \.self) { claim in
-                        Text("\(claim)").font(.headline).foregroundColor(.green)
+                        Text("\(claim)").font(.system(.headline, design: .rounded)).foregroundColor(TVTheme.green)
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(vm.state.prizes, id: \.label) { prize in
                             HStack(spacing: 10) {
                                 Image(systemName: prize.winner == nil ? "circle" : "checkmark.seal.fill")
-                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : .green)
-                                Text(prize.label).font(.headline)
+                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : TVTheme.green)
+                                Text(prize.label).font(.system(.headline, design: .rounded))
                                     .foregroundColor(prize.winner == nil ? .white : .white.opacity(0.5))
                                 Spacer()
-                                Text(prize.winner ?? "open").font(.headline)
-                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : .green)
+                                Text(prize.winner ?? "open").font(.system(.headline, design: .rounded))
+                                    .foregroundColor(prize.winner == nil ? .white.opacity(0.3) : TVTheme.green)
                                     .lineLimit(1)
                             }
                         }
@@ -1741,13 +1741,13 @@ struct TVTambolaBoardView: View {
                         .frame(width: 50, height: 40)
                         .background(RoundedRectangle(cornerRadius: 6)
                             .fill(vm.state.calledNumbers.contains(num)
-                                  ? Color.yellow : Color.white.opacity(0.06)))
+                                  ? TVTheme.yellow : Color.white.opacity(0.06)))
                 }
             }
             .padding(24)
         }
         .padding(60)
-        .background(Color(hex: "0a0814").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1789,15 +1789,15 @@ struct TVStockPanicBoardView: View {
     var body: some View {
         VStack(spacing: 24) {
             HStack {
-                Text("Stock Panic").font(.system(size: 44, weight: .bold)).foregroundColor(.white)
+                Text("Stock Panic").font(.system(size: 44, weight: .bold, design: .rounded)).foregroundColor(.white)
                 Spacer()
                 if let news = vm.state.latestNews {
                     HStack(spacing: 8) {
-                        Image(systemName: "newspaper.fill").foregroundColor(.yellow)
-                        Text(news).font(.subheadline).foregroundColor(.yellow)
+                        Image(systemName: "newspaper.fill").foregroundColor(TVTheme.yellow)
+                        Text(news).font(.system(.subheadline, design: .rounded)).foregroundColor(TVTheme.yellow)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 8)
-                    .background(Capsule().fill(Color.yellow.opacity(0.15)))
+                    .background(Capsule().fill(TVTheme.yellow.opacity(0.15)))
                 }
             }
             .padding(.horizontal, 60).padding(.top, 40)
@@ -1814,19 +1814,19 @@ struct TVStockPanicBoardView: View {
             HStack(alignment: .top, spacing: 0) {
                 ForEach(room.players.sorted(by: { $0.score > $1.score })) { p in
                     VStack(spacing: 4) {
-                        Text(p.name).font(.subheadline).foregroundColor(.white)
-                        Text("$\(p.score)").font(.headline.bold()).foregroundColor(.green)
+                        Text(p.name).font(.system(.subheadline, design: .rounded)).foregroundColor(.white)
+                        Text("$\(p.score)").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.green)
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
             .padding(20)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.04)))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.white.opacity(0.04)))
             .padding(.horizontal, 60)
 
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -1842,17 +1842,17 @@ private struct StockTile: View {
     let stock: StockEntry
     var body: some View {
         VStack(spacing: 6) {
-            Text(stock.name).font(.headline).foregroundColor(.white)
-            Text("$\(stock.price)").font(.system(size: 32, weight: .bold))
-                .foregroundColor(stock.change >= 0 ? .green : .red)
+            Text(stock.name).font(.system(.headline, design: .rounded)).foregroundColor(.white)
+            Text("$\(stock.price)").font(.system(size: 32, weight: .bold, design: .rounded))
+                .foregroundColor(stock.change >= 0 ? TVTheme.green : TVTheme.red)
             HStack(spacing: 4) {
                 Image(systemName: stock.change >= 0 ? "arrow.up" : "arrow.down")
-                Text("\(abs(stock.change))").font(.caption)
+                Text("\(abs(stock.change))").font(.system(.caption, design: .rounded))
             }
-            .foregroundColor(stock.change >= 0 ? .green : .red)
+            .foregroundColor(stock.change >= 0 ? TVTheme.green : TVTheme.red)
         }
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.chipRadius).fill(Color.white.opacity(0.06)))
     }
 }
 
@@ -1892,29 +1892,29 @@ struct TVMindMeldBoardView: View {
 
     var body: some View {
         VStack(spacing: 32) {
-            Text("Mind Meld").font(.system(size: 48, weight: .bold)).foregroundColor(.white)
+            Text("Mind Meld").font(.system(size: 48, weight: .bold, design: .rounded)).foregroundColor(.white)
                 .padding(.top, 40)
 
             if let category = vm.state.category {
-                Text("Category: \(category)").font(.title2).foregroundColor(.cyan)
+                Text("Category: \(category)").font(.system(.title2, design: .rounded)).foregroundColor(TVTheme.cyan)
             }
 
             if vm.state.showReveal {
                 // Reveal all words
                 VStack(spacing: 16) {
-                    Text("Words submitted:").font(.headline).foregroundColor(.white.opacity(0.5))
+                    Text("Words submitted:").font(.system(.headline, design: .rounded)).foregroundColor(.white.opacity(0.5))
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
                         ForEach(vm.state.submissions) { sub in
                             VStack(spacing: 4) {
-                                Text(sub.word).font(.title2.bold()).foregroundColor(.white)
-                                Text(sub.playerName).font(.caption).foregroundColor(.white.opacity(0.5))
+                                Text(sub.word).font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white)
+                                Text(sub.playerName).font(.system(.caption, design: .rounded)).foregroundColor(.white.opacity(0.5))
                                 if sub.isMeld {
-                                    Text("MELD +\(sub.meldCount)!").font(.caption.bold()).foregroundColor(.green)
+                                    Text("MELD +\(sub.meldCount)!").font(.system(.caption, design: .rounded, weight: .bold)).foregroundColor(TVTheme.green)
                                 }
                             }
                             .padding(12)
                             .background(RoundedRectangle(cornerRadius: 12)
-                                .fill(sub.isMeld ? Color.green.opacity(0.2) : Color.white.opacity(0.06)))
+                                .fill(sub.isMeld ? TVTheme.green.opacity(0.2) : Color.white.opacity(0.06)))
                         }
                     }
                 }
@@ -1924,14 +1924,14 @@ struct TVMindMeldBoardView: View {
                 VStack(spacing: 16) {
                     let submitted = vm.state.submissions.count
                     let total = room.players.count
-                    Text("\(submitted) / \(total) submitted").font(.title2).foregroundColor(.white.opacity(0.6))
+                    Text("\(submitted) / \(total) submitted").font(.system(.title2, design: .rounded)).foregroundColor(.white.opacity(0.6))
                     HStack(spacing: 12) {
                         ForEach(room.players) { p in
                             VStack(spacing: 6) {
                                 Image(systemName: vm.state.submittedIDs.contains(p.id)
                                       ? "checkmark.circle.fill" : "circle")
-                                    .font(.title).foregroundColor(vm.state.submittedIDs.contains(p.id) ? .green : .white.opacity(0.3))
-                                Text(p.name).font(.caption).foregroundColor(.white.opacity(0.6))
+                                    .font(.system(.title, design: .rounded)).foregroundColor(vm.state.submittedIDs.contains(p.id) ? TVTheme.green : .white.opacity(0.3))
+                                Text(p.name).font(.system(.caption, design: .rounded)).foregroundColor(.white.opacity(0.6))
                             }
                         }
                     }
@@ -1942,7 +1942,7 @@ struct TVMindMeldBoardView: View {
 
             Spacer()
         }
-        .background(Color(hex: "0d0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -2020,11 +2020,11 @@ struct TVHotGridBoardView: View {
             TVGlowText(text: "Hot Grid", size: 54, color: TVTheme.ember.accent)
             Spacer()
             if !vm.state.currentPlayerName.isEmpty {
-                TVGlassCard(cornerRadius: 22, tint: TVTheme.gold, glow: TVTheme.gold, padding: 0) {
+                TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: TVTheme.gold, glow: TVTheme.gold, padding: 0) {
                     HStack(spacing: 12) {
                         Image(systemName: "hand.point.up.left.fill").foregroundColor(TVTheme.gold)
                         Text("\(vm.state.currentPlayerName)'s turn")
-                            .font(.title3.bold()).foregroundColor(.white)
+                            .font(.system(.title3, design: .rounded, weight: .bold)).foregroundColor(.white)
                             .lineLimit(1).truncationMode(.tail)
                     }
                     .padding(.horizontal, 24).padding(.vertical, 12)
@@ -2050,10 +2050,10 @@ struct TVHotGridBoardView: View {
         }
         .padding(26)
         .background(
-            RoundedRectangle(cornerRadius: 34, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "2a1206"), Color(hex: "120703")],
                                      startPoint: .top, endPoint: .bottom))
-                .overlay(RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                     .strokeBorder(LinearGradient(colors: [TVTheme.gold.opacity(0.6), Color(hex: "b45309").opacity(0.2)],
                                                  startPoint: .top, endPoint: .bottom),
                                   lineWidth: 2))
@@ -2090,10 +2090,10 @@ private struct HotGridTileView: View {
 
     private var back: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color(hex: "3f2a1e"), Color(hex: "1c120c")],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(LinearGradient(colors: [Color.white.opacity(0.28), Color.white.opacity(0.04)],
                                              startPoint: .top, endPoint: .bottom),
                               lineWidth: 1.5)
@@ -2107,10 +2107,10 @@ private struct HotGridTileView: View {
 
     private var face: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [faceColors.0, faceColors.1],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color.white.opacity(0.3), Color.white.opacity(0)],
                                      startPoint: .top, endPoint: .center))
             faceContent
@@ -2124,18 +2124,18 @@ private struct HotGridTileView: View {
         case .coin(let v):
             VStack(spacing: 2) {
                 Image(systemName: "dollarsign.circle.fill")
-                    .font(.system(size: size * 0.36))
+                    .font(.system(size: size * 0.36, weight: .regular, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [Color.white, Color(hex: "fde047")],
                                                     startPoint: .top, endPoint: .bottom))
                 Text("+\(v)").font(TVTheme.display(size * 0.18)).foregroundColor(.white)
             }
         case .trap:
             Image(systemName: "burst.fill")
-                .font(.system(size: size * 0.42))
+                .font(.system(size: size * 0.42, weight: .regular, design: .rounded))
                 .foregroundColor(.white)
         case .teleport:
             Image(systemName: "tornado")
-                .font(.system(size: size * 0.42))
+                .font(.system(size: size * 0.42, weight: .regular, design: .rounded))
                 .foregroundColor(.white)
         case .hidden, .none:
             EmptyView()
@@ -2146,7 +2146,7 @@ private struct HotGridTileView: View {
         switch tile {
         case .coin: return (Color(hex: "f59e0b"), Color(hex: "92400e"))
         case .trap: return (Color(hex: "ef4444"), Color(hex: "7f1d1d"))
-        case .teleport: return (Color(hex: "a855f7"), Color(hex: "4c1d95"))
+        case .teleport: return (TVTheme.purple, Color(hex: "4c1d95"))
         case .hidden, .none: return (Color(hex: "3f2a1e"), Color(hex: "1c120c"))
         }
     }
@@ -2192,10 +2192,10 @@ struct TVSpeedSculptorBoardView: View {
     var body: some View {
         VStack(spacing: 24) {
             HStack {
-                Text("Speed Sculptor").font(.system(size: 40, weight: .bold)).foregroundColor(.white)
+                Text("Speed Sculptor").font(.system(size: 40, weight: .bold, design: .rounded)).foregroundColor(.white)
                 Spacer()
                 if let prompt = vm.state.prompt {
-                    Text("Drawing: \(prompt)").font(.title2.bold()).foregroundColor(.yellow)
+                    Text("Drawing: \(prompt)").font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(TVTheme.yellow)
                 }
             }
             .padding(.horizontal, 60).padding(.top, 40)
@@ -2214,16 +2214,16 @@ struct TVSpeedSculptorBoardView: View {
                 VStack(spacing: 24) {
                     TimerRing(secondsLeft: vm.state.secondsLeft, total: 20)
                         .frame(width: 120, height: 120)
-                    Text("Players are drawing…").font(.title2).foregroundColor(.white.opacity(0.5))
+                    Text("Players are drawing…").font(.system(.title2, design: .rounded)).foregroundColor(.white.opacity(0.5))
                     let submitted = vm.state.submittedCount
                     Text("\(submitted) / \(room.players.count) submitted")
-                        .font(.subheadline).foregroundColor(.white.opacity(0.4))
+                        .font(.system(.subheadline, design: .rounded)).foregroundColor(.white.opacity(0.4))
                 }
             }
 
             Spacer()
         }
-        .background(Color(hex: "0a0a14").ignoresSafeArea())
+        .background(TVTheme.bg.ignoresSafeArea())
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
@@ -2257,11 +2257,11 @@ private struct DrawingCard: View {
             .cornerRadius(12)
 
             HStack {
-                Text(drawing.playerName).font(.headline).foregroundColor(.white)
+                Text(drawing.playerName).font(.system(.headline, design: .rounded)).foregroundColor(.white)
                 Spacer()
                 HStack(spacing: 4) {
-                    Image(systemName: "hand.thumbsup.fill").foregroundColor(.cyan)
-                    Text("\(drawing.voteCount)").font(.headline.bold()).foregroundColor(.cyan)
+                    Image(systemName: "hand.thumbsup.fill").foregroundColor(TVTheme.cyan)
+                    Text("\(drawing.voteCount)").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
                 }
             }
         }
@@ -2324,7 +2324,7 @@ struct TimerRing: View {
             Circle().stroke(Color.white.opacity(0.1), lineWidth: 6)
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(progress > 0.4 ? Color.cyan : Color.red,
+                .stroke(progress > 0.4 ? TVTheme.cyan : TVTheme.red,
                         style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 1), value: secondsLeft)

@@ -68,7 +68,7 @@ struct BrainBattleControllerView: View {
     private var scoreLine: some View {
         HStack(spacing: 10) {
             Image(systemName: "star.fill")
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundColor(PhonePlayDesign.yellow)
             Text("SCORE")
                 .font(.system(size: 12, weight: .heavy, design: .rounded)).tracking(2)
@@ -178,7 +178,7 @@ struct BrainBattleControllerView: View {
                     .fill(PhonePlayDesign.gradient([tint.opacity(0.6), tint.opacity(0.25)]))
                     .frame(width: 100, height: 100)
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 44, weight: .bold))
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .shadow(color: tint.opacity(0.4), radius: 16, y: 6)
@@ -293,7 +293,7 @@ private struct BrainRevealFeedback: View {
     var body: some View {
         VStack(spacing: 18) {
             Image(systemName: correct ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .font(.system(size: 96, weight: .bold))
+                .font(.system(size: 96, weight: .bold, design: .rounded))
                 .foregroundColor(tint)
                 .shadow(color: tint.opacity(0.6), radius: 18)
                 .scaleEffect(popped ? 1.0 : 0.3)
@@ -357,7 +357,7 @@ private struct BrainFinalCard: View {
                     .foregroundColor(rank == 1 ? PhonePlayDesign.yellow : .white)
             }
             Image(systemName: "brain")
-                .font(.system(size: 64, weight: .bold))
+                .font(.system(size: 64, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.pink, PhonePlayDesign.cyan]))
                 .phonePlayIdle(dy: 4, scale: 0.04, duration: 1.6)
             Text(title)

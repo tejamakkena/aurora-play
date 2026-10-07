@@ -79,7 +79,7 @@ struct MafiaRootView: View {
             game.setNarration(!game.narrationOn)
         } label: {
             Image(systemName: game.narrationOn ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(.white.opacity(0.75))
                 .frame(width: 38, height: 38)
                 .background(Circle().fill(Color.white.opacity(0.08)))
@@ -106,7 +106,7 @@ private struct MafiaSetupView: View {
             VStack(spacing: 22) {
                 VStack(spacing: 10) {
                     Image(systemName: "theatermasks.fill")
-                        .font(.system(size: 54, weight: .bold))
+                        .font(.system(size: 54, weight: .bold, design: .rounded))
                         .foregroundStyle(PhonePlayDesign.gradient(MafiaStyle.colors))
                         .phonePlayIdle(degrees: 8, duration: 1.2)
                     Text("Mafia")
@@ -131,7 +131,7 @@ private struct MafiaSetupView: View {
                     Spacer(minLength: 0)
                 }
                 .padding(14)
-                .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .fill(MafiaStyle.accent.opacity(0.12)))
 
                 PhonePlayBigButton(title: "Deal the roles", symbol: "rectangle.stack.fill",
@@ -186,7 +186,7 @@ private struct MafiaRoleCard: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: role.symbol)
-                .font(.system(size: 50, weight: .bold))
+                .font(.system(size: 50, weight: .bold, design: .rounded))
                 .foregroundColor(role.color)
             Text("You are")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -219,7 +219,7 @@ private struct MafiaHandoffView: View {
         VStack(spacing: 26) {
             Spacer()
             Image(systemName: "moon.stars.fill")
-                .font(.system(size: 80, weight: .bold))
+                .font(.system(size: 80, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.yellow, .white]))
                 .shadow(color: PhonePlayDesign.yellow.opacity(0.4), radius: 22)
                 .phonePlayIdle(scale: 0.05, duration: 1.6)
@@ -263,7 +263,7 @@ private struct MafiaNightView: View {
                         .foregroundColor(.white.opacity(0.5))
 
                     Image(systemName: game.currentStep.symbol)
-                        .font(.system(size: 56, weight: .bold))
+                        .font(.system(size: 56, weight: .bold, design: .rounded))
                         .foregroundColor(stepColor)
                         .symbolEffect(.bounce, value: game.stepIndex)
                         .frame(height: 70)
@@ -313,7 +313,7 @@ private struct MafiaNightView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(Color.white.opacity(0.07)))
     }
 
@@ -343,7 +343,7 @@ private struct MafiaNightView: View {
                     .foregroundColor(.white.opacity(0.6))
                     .multilineTextAlignment(.center)
                     .padding(16)
-                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(Color.white.opacity(0.05)))
             }
         }
@@ -362,7 +362,7 @@ private struct MafiaNightView: View {
         let guilty: Bool = player.role.isMafia
         return HStack(spacing: 12) {
             Image(systemName: guilty ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
             VStack(alignment: .leading, spacing: 2) {
                 Text(guilty ? "\(player.name) IS Mafia" : "\(player.name) is not Mafia")
                     .font(.system(size: 19, weight: .black, design: .rounded))
@@ -374,7 +374,7 @@ private struct MafiaNightView: View {
         }
         .foregroundColor(.white)
         .padding(16)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(guilty ? PhonePlayDesign.red.opacity(0.85) : PhonePlayDesign.green.opacity(0.7)))
         .transition(.scale.combined(with: .opacity))
     }
@@ -386,10 +386,10 @@ private struct MafiaNightView: View {
                 game.repeatLine()
             } label: {
                 Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(width: 60, height: 60)
-                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(Color.white.opacity(0.1)))
             }
             .buttonStyle(PhonePlayPressStyle())
@@ -423,7 +423,7 @@ private struct MafiaPickChip: View {
                 .padding(.vertical, 14)
                 .padding(.horizontal, 6)
                 .background(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(selected ? tint : Color.white.opacity(0.08))
                 )
                 .scaleEffect(selected ? 1.05 : 1)
@@ -443,7 +443,7 @@ private struct MafiaMorningView: View {
         VStack(spacing: 24) {
             Spacer()
             Image(systemName: "sunrise.fill")
-                .font(.system(size: 84, weight: .bold))
+                .font(.system(size: 84, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient(MafiaStyle.morning))
                 .offset(y: risen ? 0 : 60)
                 .opacity(risen ? 1 : 0)
@@ -558,7 +558,7 @@ private struct MafiaDayView: View {
             VStack(spacing: 8) {
                 if let out = game.dayEliminated {
                     Image(systemName: "person.fill.xmark")
-                        .font(.system(size: 50, weight: .bold))
+                        .font(.system(size: 50, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.orange)
                     Text("\(game.name(out)) is out")
                         .font(.system(size: 28, weight: .black, design: .rounded))
@@ -568,7 +568,7 @@ private struct MafiaDayView: View {
                         .foregroundColor(PhonePlayDesign.text2)
                 } else {
                     Image(systemName: "hand.raised.slash.fill")
-                        .font(.system(size: 50, weight: .bold))
+                        .font(.system(size: 50, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.text2)
                     Text("Nobody was voted out")
                         .font(.system(size: 26, weight: .black, design: .rounded))
@@ -605,7 +605,7 @@ private struct MafiaGameOverView: View {
             VStack(spacing: 20) {
                 VStack(spacing: 8) {
                     Image(systemName: townWon ? "house.fill" : "theatermasks.fill")
-                        .font(.system(size: 60, weight: .bold))
+                        .font(.system(size: 60, weight: .bold, design: .rounded))
                         .foregroundColor(townWon ? PhonePlayDesign.yellow : PhonePlayDesign.red)
                         .symbolEffect(.bounce, value: shown)
                     Text(townWon ? "The town wins!" : "The Mafia win!")
@@ -659,7 +659,7 @@ private struct MafiaRoleRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: player.role.symbol)
-                .font(.system(size: 18, weight: .bold))
+                .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.black)
                 .frame(width: 36, height: 36)
                 .background(Circle().fill(player.role.color))
@@ -674,7 +674,7 @@ private struct MafiaRoleRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(RoundedRectangle(cornerRadius: 14, style: .continuous)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(PhonePlayDesign.surface))
     }
 }

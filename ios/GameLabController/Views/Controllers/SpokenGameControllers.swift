@@ -85,7 +85,7 @@ struct SpokenPhoneGiantButton: View {
         }) {
             HStack(spacing: 14) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 32, weight: .heavy))
+                    .font(.system(size: 32, weight: .heavy, design: .rounded))
                 Text(title)
                     .font(.system(size: 34, weight: .black, design: .rounded))
                     .lineLimit(1)
@@ -96,17 +96,17 @@ struct SpokenPhoneGiantButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: height)
             .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.gradient([tint, tint.opacity(0.65)]))
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(isSelected ? 0.95 : 0), lineWidth: 4)
             )
             .overlay(alignment: .topTrailing) {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 26, weight: .bold))
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .padding(12)
                         .transition(.scale.combined(with: .opacity))
@@ -174,10 +174,10 @@ struct SpokenPhoneLetterGrid: View {
             .frame(maxWidth: .infinity)
             .frame(height: 56)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous).fill(fill)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(fill)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(border, lineWidth: isPicked || isHighlighted ? 2 : 1)
             )
             .scaleEffect(isPicked ? 1.08 : 1)
@@ -196,7 +196,7 @@ private struct SpokenPhoneLives: View {
         HStack(spacing: 6) {
             ForEach(0..<max(maxLives, 0), id: \.self) { index in
                 Image(systemName: index < lives ? "heart.fill" : "heart")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(index < lives ? PhonePlayDesign.red : Color.white.opacity(0.2))
             }
         }
@@ -213,7 +213,7 @@ private struct SpokenPhoneNote: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: systemImage)
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
             Text(text)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .multilineTextAlignment(.center)
@@ -415,7 +415,7 @@ struct AtlasControllerView: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: spelling ? "textformat.abc" : "textformat")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
                 Text(spelling ? "Spelling mode: on" : "Spelling mode for kids: off")
                     .font(.system(size: 14, weight: .bold, design: .rounded))
             }
@@ -500,7 +500,7 @@ struct AntakshariControllerView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
             Image(systemName: "music.mic")
-                .font(.system(size: 44, weight: .bold))
+                .font(.system(size: 44, weight: .bold, design: .rounded))
                 .foregroundColor(tint)
                 .phonePlayIdle(dy: 0, scale: 0.12, duration: 0.5)
                 .padding(.top, 6)

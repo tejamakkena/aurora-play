@@ -42,7 +42,7 @@ private struct PocketArcadeMenuView: View {
                 VStack(spacing: 18) {
                     VStack(spacing: 8) {
                         Image(systemName: "gamecontroller.fill")
-                            .font(.system(size: 54, weight: .bold))
+                            .font(.system(size: 54, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient([PhonePlayDesign.cyan, PhonePlayDesign.indigo]))
                             .phonePlayIdle(degrees: 5, scale: 0.04, duration: 1.1)
                         Text("Pocket Arcade")
@@ -94,7 +94,7 @@ private struct PocketArcadeGameCard: View {
         } label: {
             HStack(spacing: 16) {
                 Image(systemName: choice.symbol)
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .frame(width: 64, height: 64)
                     .background(Circle().fill(Color.black.opacity(0.18)))
@@ -116,7 +116,7 @@ private struct PocketArcadeGameCard: View {
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "play.fill")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
             }
             .padding(18)
@@ -210,7 +210,7 @@ private struct PocketArcadePlayView: View {
                 game.backToMenu()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(Color.white.opacity(0.08)))
@@ -316,15 +316,15 @@ private struct PocketArcadeLightCell: View {
     }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
             .fill(fill)
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(lit ? 0.6 : 0.08), lineWidth: lit ? 3 : 1)
             )
             .overlay(
                 Image(systemName: "lightbulb.max.fill")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.black.opacity(0.55))
                     .opacity(lit ? 1 : 0)
             )
@@ -359,7 +359,7 @@ private struct PocketArcadeNumberCell: View {
     let wrong: Bool
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
             .fill(wrong ? PhonePlayDesign.red
                         : (cleared ? PhonePlayDesign.surface.opacity(0.4) : PhonePlayDesign.surface2))
             .overlay(
@@ -368,7 +368,7 @@ private struct PocketArcadeNumberCell: View {
                     .foregroundColor(cleared ? PhonePlayDesign.text3.opacity(0.4) : .white)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                     .strokeBorder(PhonePlayDesign.cyan.opacity(cleared ? 0 : 0.25), lineWidth: 1)
             )
             .scaleEffect(cleared ? 0.86 : 1)

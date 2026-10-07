@@ -57,7 +57,7 @@ struct PhoneHomeTVHero: View {
                             .fill(Color.white.opacity(0.18))
                             .frame(width: 70, height: 70)
                         Image(systemName: "tv.fill")
-                            .font(.system(size: 34, weight: .bold))
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                             .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
                     }
@@ -82,12 +82,12 @@ struct PhoneHomeTVHero: View {
                 }
                 HStack(spacing: 8) {
                     Image(systemName: "number")
-                        .font(.system(size: 15, weight: .heavy))
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
                     Text("Enter code or scan QR")
                         .font(.system(size: 16, weight: .heavy, design: .rounded))
                     Spacer()
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .heavy))
+                        .font(.system(size: 16, weight: .heavy, design: .rounded))
                 }
                 .foregroundColor(PhonePlayDesign.indigo)
                 .padding(.horizontal, 16)
@@ -125,7 +125,7 @@ struct PhoneHomeResumeBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "arrow.uturn.backward.circle.fill")
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: 30, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
                 .phonePlayIdle(scale: 0.06, duration: 0.9)
             VStack(alignment: .leading, spacing: 2) {
@@ -154,7 +154,7 @@ struct PhoneHomeResumeBanner: View {
                 onDismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.7))
                     .frame(width: 28, height: 28)
                     .background(Circle().fill(Color.black.opacity(0.2)))

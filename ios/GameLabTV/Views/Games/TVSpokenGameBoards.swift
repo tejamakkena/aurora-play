@@ -59,17 +59,17 @@ struct SpokenSkip: Equatable {
 }
 
 enum SpokenTVStyle {
-    static let valid: Color = ShellTheme.mint
-    static let out: Color = Color(hex: "F43F5E")
-    static let warn: Color = ShellTheme.orange
+    static let valid: Color = TVTheme.green
+    static let out: Color = TVTheme.red
+    static let warn: Color = TVTheme.orange
 
     /// Team colour names come from games/teams.py ("red", "blue", ...).
     static func teamColor(_ name: String, index: Int) -> Color {
         switch name.lowercased() {
-        case "red": return Color(hex: "F43F5E")
-        case "blue": return Color(hex: "3B82F6")
-        case "green": return ShellTheme.mint
-        case "yellow", "gold": return ShellTheme.gold
+        case "red": return TVTheme.red
+        case "blue": return TVTheme.blue
+        case "green": return TVTheme.green
+        case "yellow", "gold": return TVTheme.yellow
         default: return index == 0 ? ShellTheme.cyan : ShellTheme.pink
         }
     }
@@ -139,7 +139,7 @@ struct SpokenVerdictFlash: View {
             if visible {
                 VStack(spacing: 12) {
                     Image(systemName: symbol)
-                        .font(.system(size: 110, weight: .heavy))
+                        .font(.system(size: 110, weight: .heavy, design: .rounded))
                     Text(text)
                         .font(ShellTheme.display(150))
                         .lineLimit(1)
@@ -158,11 +158,11 @@ struct SpokenVerdictFlash: View {
                 .padding(.horizontal, 100)
                 .padding(.vertical, 50)
                 .background {
-                    RoundedRectangle(cornerRadius: 60, style: .continuous)
+                    RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                         .fill(ShellTheme.ink.opacity(0.78))
                 }
                 .overlay {
-                    RoundedRectangle(cornerRadius: 60, style: .continuous)
+                    RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                         .strokeBorder(tint.opacity(0.85), lineWidth: 5)
                 }
                 .rotationEffect(.degrees(-4))
@@ -195,7 +195,7 @@ private struct SpokenBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: systemImage)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
             Text(text)
                 .font(.system(size: 28, weight: .bold, design: .rounded))
                 .lineLimit(1)
@@ -420,7 +420,7 @@ struct TVAtlasBoardView: View {
     }
 
     private var speakerCard: some View {
-        ShellGlassCard(cornerRadius: 34, tint: ShellTheme.cyan, padding: 26) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.cyan, padding: 26) {
             HStack(spacing: 24) {
                 ShellAvatarToken(id: state.currentPlayerID.isEmpty ? "none" : state.currentPlayerID,
                                  name: state.currentName, size: 104)
@@ -481,7 +481,7 @@ struct TVAtlasBoardView: View {
     private func voteRow(symbol: String, label: String, count: Int, tint: Color) -> some View {
         HStack(spacing: 14) {
             Image(systemName: symbol)
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundColor(tint)
             Text(label)
                 .font(.system(size: 30, weight: .heavy, design: .rounded))
@@ -503,7 +503,7 @@ struct TVAtlasBoardView: View {
                             .tvStaggeredAppear(index: 0)
                         if stop.id != state.chain.last?.id {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
                                 .foregroundColor(palette.accent.opacity(0.6))
                         }
                     }
@@ -600,14 +600,14 @@ private struct SpokenAtlasStopView: View {
 
     var body: some View {
         let tint: Color = isLatest ? ShellTheme.gold : ShellTheme.cyan
-        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
         return VStack(spacing: 4) {
             HStack(spacing: 8) {
                 Text(stop.letter)
                     .font(ShellTheme.display(34))
                     .foregroundColor(.white)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
                     .foregroundColor(ShellTheme.textTertiary)
                 Text(stop.endLetter.isEmpty ? "?" : stop.endLetter)
                     .font(ShellTheme.display(34))
@@ -663,7 +663,7 @@ private struct SpokenAtlasPod: View {
             HStack(spacing: 4) {
                 ForEach(0..<max(maxLives, 0), id: \.self) { index in
                     Image(systemName: index < player.lives ? "heart.fill" : "heart")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(index < player.lives ? SpokenTVStyle.out : Color.white.opacity(0.25))
                 }
             }
@@ -1041,7 +1041,7 @@ private struct SpokenTeamPanel: View {
 
     var body: some View {
         let color: Color = team.color
-        return ShellGlassCard(cornerRadius: 36, tint: color, padding: 28) {
+        return ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: color, padding: 28) {
             VStack(spacing: 14) {
                 Text(roleText)
                     .font(ShellTheme.eyebrow(18))
@@ -1107,7 +1107,7 @@ private struct SpokenSongTurnChip: View {
     }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 20, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: ShellTheme.chipRadius, style: .continuous)
         return HStack(spacing: 8) {
             Circle().fill(color).frame(width: 14, height: 14)
             Text(turn.letter)
@@ -1115,14 +1115,14 @@ private struct SpokenSongTurnChip: View {
                 .foregroundColor(.white)
             if turn.result == "sang" {
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundColor(ShellTheme.textTertiary)
                 Text(turn.endLetter.isEmpty ? "?" : turn.endLetter)
                     .font(ShellTheme.display(32))
                     .foregroundColor(ShellTheme.gold)
             }
             Image(systemName: resultSymbol)
-                .font(.system(size: 20, weight: .heavy))
+                .font(.system(size: 20, weight: .heavy, design: .rounded))
                 .foregroundColor(resultColor)
         }
         .padding(.horizontal, 18)

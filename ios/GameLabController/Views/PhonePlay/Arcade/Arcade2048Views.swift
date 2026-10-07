@@ -60,7 +60,7 @@ struct Arcade2048PlayView: View {
                 onClose()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(.system(size: 16, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
                     .frame(width: 40, height: 40)
                     .background(Circle().fill(Color.white.opacity(0.08)))
@@ -93,7 +93,7 @@ struct Arcade2048PlayView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                     Text(board.undoUsed ? "Undo used" : "Undo last move")
                         .font(.system(size: 17, weight: .bold, design: .rounded))
                 }
@@ -189,10 +189,10 @@ private struct Arcade2048BoardView: View {
             let side: CGFloat = max(80, min(geo.size.width, geo.size.height))
             let cell: CGFloat = max(10, (side - gap * CGFloat(n + 1)) / CGFloat(n))
             ZStack {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.surface)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                             .strokeBorder(Color.white.opacity(0.06), lineWidth: 1)
                     )
                 ForEach(0..<(n * n), id: \.self) { index in
@@ -302,7 +302,7 @@ private struct Arcade2048Banner<Buttons: View>: View {
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: symbol)
-                .font(.system(size: 40, weight: .bold))
+                .font(.system(size: 40, weight: .bold, design: .rounded))
                 .foregroundStyle(PhonePlayDesign.gradient(colors))
                 .phonePlayIdle(scale: 0.06, duration: 0.8)
             Text(title)
@@ -317,7 +317,7 @@ private struct Arcade2048Banner<Buttons: View>: View {
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                 .fill(PhonePlayDesign.bg.opacity(0.86))
         )
     }

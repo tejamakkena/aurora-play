@@ -17,18 +17,18 @@ private struct SoloHUD: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.system(size: 34, weight: .bold))
+                .font(.system(size: 34, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
             if let subtitle {
                 Text(subtitle)
-                    .font(.title3)
+                    .font(.system(.title3, design: .rounded))
                     .foregroundColor(.white.opacity(0.5))
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text("SCORE").font(.caption.bold()).tracking(3)
+                Text("SCORE").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                     .foregroundColor(.white.opacity(0.4))
-                TVPopNumber(value: score, size: 40, color: .cyan)
+                TVPopNumber(value: score, size: 40, color: TVTheme.cyan)
             }
         }
         .padding(.horizontal, 80)
@@ -40,7 +40,7 @@ private struct RemoteHint: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(.callout)
+            .font(.system(.callout, design: .rounded))
             .foregroundColor(.white.opacity(0.35))
             .padding(.bottom, 40)
     }
@@ -284,21 +284,21 @@ struct TVNeonSnakeBoardView: View {
                         let y = CGFloat(r) / CGFloat(rows) * size.height
                         grid.move(to: CGPoint(x: 0, y: y)); grid.addLine(to: CGPoint(x: size.width, y: y))
                     }
-                    ctx.stroke(grid, with: .color(.cyan.opacity(0.05)), lineWidth: 1)
+                    ctx.stroke(grid, with: .color(TVTheme.cyan.opacity(0.05)), lineWidth: 1)
                 }
             }
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.cyan.opacity(0.3), lineWidth: 3)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
+                .stroke(TVTheme.cyan.opacity(0.3), lineWidth: 3)
         )
-        .shadow(color: .cyan.opacity(0.18), radius: 30)
+        .shadow(color: TVTheme.cyan.opacity(0.18), radius: 30)
         .shadow(color: Color(hex: "a78bfa").opacity(0.16), radius: 60)
         .overlay {
             TVParticleBurst(trigger: eatCount,
                             origin: CGPoint(x: (eatCell.x + 0.5) * scale, y: (eatCell.y + 0.5) * scale),
-                            color: .yellow, count: 22, reach: max(80, scale * 3.2))
+                            color: TVTheme.yellow, count: 22, reach: max(80, scale * 3.2))
         }
         .overlay { if vm.state.finished { GameOverBanner(score: vm.state.score) } }
     }
@@ -311,11 +311,11 @@ struct TVNeonSnakeBoardView: View {
         let pulse = CGFloat(1.0 + 0.12 * sin(now.timeIntervalSinceReferenceDate * 4))
         ctx.fill(Path(ellipseIn: CGRect(x: foodCenter.x - foodR * 2.2, y: foodCenter.y - foodR * 2.2,
                                         width: foodR * 4.4, height: foodR * 4.4)),
-                 with: .radialGradient(Gradient(colors: [.yellow.opacity(0.35), .clear]),
+                 with: .radialGradient(Gradient(colors: [TVTheme.yellow.opacity(0.35), .clear]),
                                        center: foodCenter, startRadius: 0, endRadius: foodR * 2.2))
         ctx.fill(Path(ellipseIn: CGRect(x: foodCenter.x - foodR * pulse, y: foodCenter.y - foodR * pulse,
                                         width: foodR * 2 * pulse, height: foodR * 2 * pulse)),
-                 with: .color(.yellow))
+                 with: .color(TVTheme.yellow))
 
         // ---- Snakes -------------------------------------------------------
         for i in vm.state.bodies.indices {
@@ -575,7 +575,7 @@ struct TVTwenty48BoardView: View {
                 if vm.state.done { GameOverBanner(score: vm.state.score) }
             }
             .padding(16)
-            .background(RoundedRectangle(cornerRadius: 20).fill(.white.opacity(0.05)))
+            .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius).fill(.white.opacity(0.05)))
             Spacer()
             RemoteHint(text: "Swipe the remote's touch surface to slide the tiles")
         }
@@ -914,16 +914,16 @@ struct TVBrickBreakerBoardView: View {
             }
         }
         .background(playfield)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(
                     LinearGradient(colors: [Color(hex: "67e8f9").opacity(0.65),
                                             Color(hex: "a78bfa").opacity(0.35)],
                                    startPoint: .top, endPoint: .bottom),
                     lineWidth: 3)
         )
-        .shadow(color: Color(hex: "22d3ee").opacity(0.22), radius: 44)
+        .shadow(color: TVTheme.cyan.opacity(0.22), radius: 44)
         .overlay(alignment: .top) { hud }
         .overlay { readyBadge }
         .overlay { banner }
@@ -1033,13 +1033,13 @@ struct TVBrickBreakerBoardView: View {
                             height: paddleH)
         ctx.fill(Path(roundedRect: paddle.insetBy(dx: -paddleH * 1.5, dy: -paddleH * 1.5),
                       cornerRadius: paddleH * 2),
-                 with: .color(Color(hex: "22d3ee").opacity(0.13)))
+                 with: .color(TVTheme.cyan.opacity(0.13)))
         ctx.fill(Path(roundedRect: paddle.insetBy(dx: -paddleH * 0.55, dy: -paddleH * 0.55),
                       cornerRadius: paddleH * 1.3),
-                 with: .color(Color(hex: "22d3ee").opacity(0.26)))
+                 with: .color(TVTheme.cyan.opacity(0.26)))
         ctx.fill(Path(roundedRect: paddle, cornerRadius: paddleH / 2),
                  with: .linearGradient(
-                    Gradient(colors: [Color(hex: "f0fdff"), Color(hex: "22d3ee"), Color(hex: "0e7490")]),
+                    Gradient(colors: [Color(hex: "f0fdff"), TVTheme.cyan, Color(hex: "0e7490")]),
                     startPoint: CGPoint(x: paddle.midX, y: paddle.minY),
                     endPoint: CGPoint(x: paddle.midX, y: paddle.maxY)))
 
@@ -1072,7 +1072,7 @@ struct TVBrickBreakerBoardView: View {
             HStack(spacing: 10) {
                 ForEach(0..<max(3, vm.state.lives), id: \.self) { index in
                     Image(systemName: index < vm.state.lives ? "heart.fill" : "heart")
-                        .font(.system(size: 26))
+                        .font(.system(size: 26, weight: .regular, design: .rounded))
                         .foregroundColor(index < vm.state.lives
                                          ? Color(hex: "fb7185") : .white.opacity(0.16))
                 }
@@ -1081,7 +1081,7 @@ struct TVBrickBreakerBoardView: View {
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: -2) {
                 Text("SCORE")
-                    .font(.system(size: 15, weight: .bold)).tracking(5)
+                    .font(.system(size: 15, weight: .bold, design: .rounded)).tracking(5)
                     .foregroundColor(.white.opacity(0.45))
                 Text("\(vm.state.score)")
                     .font(.system(size: 46, weight: .heavy, design: .rounded))
@@ -1099,7 +1099,7 @@ struct TVBrickBreakerBoardView: View {
                 .font(.system(size: 40, weight: .heavy, design: .rounded))
                 .tracking(8)
                 .foregroundColor(.white.opacity(0.82))
-                .shadow(color: Color(hex: "22d3ee").opacity(0.6), radius: 18)
+                .shadow(color: TVTheme.cyan.opacity(0.6), radius: 18)
                 .transition(.opacity)
         }
     }
@@ -1116,14 +1116,14 @@ struct TVBrickBreakerBoardView: View {
                             : [Color(hex: "fca5a5"), Color(hex: "dc2626")],
                         startPoint: .top, endPoint: .bottom))
                 Text("Final score \(vm.state.score)")
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.system(size: 30, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.75))
             }
             .padding(.horizontal, 72)
             .padding(.vertical, 46)
-            .background(RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(.black.opacity(0.78)))
-            .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(.white.opacity(0.12), lineWidth: 2))
         }
     }
@@ -1133,7 +1133,7 @@ struct TVBrickBreakerBoardView: View {
             Text(root.isSolo
                  ? "Slide your thumb across the remote's touch surface to move the paddle"
                  : "Slide on your phone to move the paddle")
-                .font(.system(size: 21, weight: .semibold))
+                .font(.system(size: 21, weight: .semibold, design: .rounded))
                 .foregroundColor(.white.opacity(0.68))
                 .padding(.horizontal, 26)
                 .padding(.vertical, 12)
@@ -1214,7 +1214,7 @@ struct TVSimonSaysBoardView: View {
 
     private let pads = ["up", "right", "down", "left"]
     private let colors: [String: Color] = [
-        "up": .green, "right": .red, "down": .yellow, "left": .blue,
+        "up": TVTheme.green, "right": TVTheme.red, "down": TVTheme.yellow, "left": TVTheme.blue,
     ]
 
     var body: some View {
@@ -1247,11 +1247,11 @@ struct TVSimonSaysBoardView: View {
 
     private func pad(_ name: String) -> some View {
         let lit = vm.litPad == name
-        return RoundedRectangle(cornerRadius: 24)
-            .fill((colors[name] ?? .gray).opacity(lit ? 1.0 : 0.28))
+        return RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
+            .fill((colors[name] ?? TVTheme.text3).opacity(lit ? 1.0 : 0.28))
             .frame(width: 220, height: 220)
             .overlay(
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius)
                     .stroke(.white.opacity(lit ? 0.9 : 0.15), lineWidth: lit ? 5 : 2)
             )
             .scaleEffect(lit ? 1.06 : 1.0)

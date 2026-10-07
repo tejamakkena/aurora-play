@@ -169,11 +169,11 @@ enum BrainPalette {
 
     static func skillColor(_ skill: String) -> Color {
         switch skill {
-        case "Patterns":     return Color(hex: "A855F7")
+        case "Patterns":     return TVTheme.purple
         case "Number Speed": return Color(hex: "F59E0B")
-        case "Memory":       return Color(hex: "EC4899")
-        case "Logic":        return Color(hex: "22D3EE")
-        case "Word Smarts":  return Color(hex: "34D399")
+        case "Memory":       return TVTheme.pink
+        case "Logic":        return TVTheme.cyan
+        case "Word Smarts":  return TVTheme.green
         case "Spatial":      return Color(hex: "60A5FA")
         default:             return Color(hex: "818CF8")
         }
@@ -447,7 +447,7 @@ private struct BrainHeader: View {
         HStack(spacing: 26) {
             HStack(spacing: 14) {
                 Image(systemName: "brain")
-                    .font(.system(size: 40, weight: .bold))
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [Color(hex: "F0ABFC"), Color(hex: "67E8F9")],
                                                     startPoint: .topLeading, endPoint: .bottomTrailing))
                 Text("BRAIN BATTLE")
@@ -496,7 +496,7 @@ private struct BrainHeader: View {
     private var roundBadge: some View {
         HStack(spacing: 10) {
             Text("ROUND")
-                .font(.system(size: 20, weight: .bold)).tracking(3)
+                .font(.system(size: 20, weight: .bold, design: .rounded)).tracking(3)
                 .foregroundColor(.white.opacity(0.5))
             Text("\(round) / \(totalRounds)")
                 .font(.system(size: 32, weight: .heavy, design: .rounded))
@@ -588,7 +588,7 @@ private struct BrainGlassCard: View {
     let accent: Color
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: 36, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
         return ZStack {
             shape.fill(.ultraThinMaterial)
             shape.fill(LinearGradient(colors: [Color.white.opacity(0.14), Color.white.opacity(0.03)],
@@ -677,11 +677,11 @@ private struct BrainDigitBubble: View {
             .foregroundColor(.white)
             .frame(width: 104, height: 132)
             .background(
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                     .fill(LinearGradient(colors: [accent.opacity(0.85), accent.opacity(0.35)],
                                          startPoint: .top, endPoint: .bottom))
             )
-            .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous)
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.4), lineWidth: 2))
             .shadow(color: accent.opacity(0.7), radius: 18, y: 6)
             .scaleEffect(visible ? 1.0 : 0.2)
@@ -709,7 +709,7 @@ private struct BrainAnswerTile: View {
     @State private var pulse: Bool = false
 
     private var tall: Bool { !shape.isEmpty }
-    private var corner: RoundedRectangle { RoundedRectangle(cornerRadius: 28, style: .continuous) }
+    private var corner: RoundedRectangle { RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous) }
 
     var body: some View {
         HStack(spacing: 22) {
@@ -729,7 +729,7 @@ private struct BrainAnswerTile: View {
         .overlay(alignment: .topTrailing) {
             if mode == .correct {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 44, weight: .bold))
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.4), radius: 6)
                     .offset(x: 14, y: -14)
@@ -811,7 +811,7 @@ private struct BrainRevealBanner: View {
         VStack(spacing: 12) {
             HStack(spacing: 16) {
                 Text("ANSWER")
-                    .font(.system(size: 22, weight: .heavy)).tracking(4)
+                    .font(.system(size: 22, weight: .heavy, design: .rounded)).tracking(4)
                     .foregroundColor(.white.opacity(0.6))
                 Text(answer)
                     .font(.system(size: 40, weight: .black, design: .rounded))
@@ -873,7 +873,7 @@ private struct BrainTimerRing: View {
     }
 
     private var urgent: Bool { label == "SECONDS" && secondsLeft > 0 && secondsLeft <= 5 }
-    private var ringColor: Color { urgent ? Color(hex: "F43F5E") : tint }
+    private var ringColor: Color { urgent ? TVTheme.red : tint }
 
     var body: some View {
         ZStack {
@@ -894,7 +894,7 @@ private struct BrainTimerRing: View {
                     .contentTransition(.numericText())
                     .animation(.default, value: secondsLeft)
                 Text(label)
-                    .font(.system(size: 18, weight: .bold)).tracking(3)
+                    .font(.system(size: 18, weight: .bold, design: .rounded)).tracking(3)
                     .foregroundColor(.white.opacity(0.5))
             }
         }
@@ -934,7 +934,7 @@ private struct BrainLockedPanel: View {
         }
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.white.opacity(0.06)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous).fill(Color.white.opacity(0.06)))
     }
 }
 
@@ -960,7 +960,7 @@ private struct BrainLeaderboard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 6 : 10) {
             Text("LEADERBOARD")
-                .font(.system(size: 20, weight: .heavy)).tracking(4)
+                .font(.system(size: 20, weight: .heavy, design: .rounded)).tracking(4)
                 .foregroundColor(.white.opacity(0.5))
             ForEach(Array(sorted.enumerated()), id: \.element.id) { pair in
                 BrainLeaderRow(rank: pair.offset + 1,
@@ -972,7 +972,7 @@ private struct BrainLeaderboard: View {
             }
         }
         .padding(20)
-        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.white.opacity(0.05)))
+        .background(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous).fill(Color.white.opacity(0.05)))
         .animation(.spring(response: 0.7, dampingFraction: 0.8), value: orderKey)
     }
 }
@@ -998,7 +998,7 @@ private struct BrainLeaderRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(player.name)
-                        .font(.system(size: compact ? 20 : 24, weight: .bold))
+                        .font(.system(size: compact ? 20 : 24, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -1016,7 +1016,7 @@ private struct BrainLeaderRow: View {
                         .foregroundColor(.white)
                         .contentTransition(.numericText())
                 }
-                .font(.system(size: compact ? 18 : 22))
+                .font(.system(size: compact ? 18 : 22, weight: .regular, design: .rounded))
                 bar
             }
         }
@@ -1119,7 +1119,7 @@ private struct BrainSummaryView: View {
         VStack(spacing: 34) {
             VStack(spacing: 10) {
                 Text("BRAIN BATTLE RESULTS")
-                    .font(.system(size: 26, weight: .heavy)).tracking(10)
+                    .font(.system(size: 26, weight: .heavy, design: .rounded)).tracking(10)
                     .foregroundColor(.white.opacity(0.6))
                 Text(headline)
                     .font(.system(size: 64, weight: .black, design: .rounded))
@@ -1172,7 +1172,7 @@ private struct BrainTitleCard: View {
                     .frame(width: 46, height: 46)
                     .background(Circle().fill(medal))
                 Text(row.name)
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                     .lineLimit(1)
                 Spacer(minLength: 0)
@@ -1191,14 +1191,14 @@ private struct BrainTitleCard: View {
             .shadow(color: accent.opacity(0.6), radius: 10)
             HStack(spacing: 10) {
                 Text("BRAIN SCORE")
-                    .font(.system(size: 18, weight: .bold)).tracking(2)
+                    .font(.system(size: 18, weight: .bold, design: .rounded)).tracking(2)
                     .foregroundColor(.white.opacity(0.5))
                 Text("\(row.brainScore)")
                     .font(.system(size: 26, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                 if row.personalBest {
                     Text("NEW BEST")
-                        .font(.system(size: 16, weight: .heavy)).tracking(2)
+                        .font(.system(size: 16, weight: .heavy, design: .rounded)).tracking(2)
                         .foregroundColor(.black)
                         .padding(.horizontal, 10).padding(.vertical, 4)
                         .background(Capsule().fill(Color(hex: "22C77A")))
@@ -1207,11 +1207,11 @@ private struct BrainTitleCard: View {
         }
         .padding(compact ? 16 : 22)
         .background(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [accent.opacity(0.28), Color.white.opacity(0.05)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
         )
-        .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous)
+        .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
             .stroke(row.rank == 1 ? medal : accent.opacity(0.5), lineWidth: row.rank == 1 ? 3 : 1.5))
         .shadow(color: (row.rank == 1 ? medal : accent).opacity(0.35), radius: 18)
     }

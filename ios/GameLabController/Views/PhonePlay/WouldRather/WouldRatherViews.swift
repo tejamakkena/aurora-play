@@ -48,7 +48,7 @@ private struct WouldRatherSetupView: View {
                 VStack(spacing: 22) {
                     VStack(spacing: 10) {
                         Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 50, weight: .bold))
+                            .font(.system(size: 50, weight: .bold, design: .rounded))
                             .foregroundStyle(PhonePlayDesign.gradient(WouldRatherStyle.colors))
                             .phonePlayIdle(dx: 6, duration: 0.8)
                         Text("Would You Rather")
@@ -276,7 +276,7 @@ private struct WouldRatherHalf: View {
             .transition(.scale(scale: 0.6).combined(with: .opacity))
         } else if game.mode == .count {
             Image(systemName: "hand.tap.fill")
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundColor(.white.opacity(0.7))
                 .symbolEffect(.bounce, value: bump)
         }

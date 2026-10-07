@@ -224,13 +224,32 @@ struct TShowState {
 // MARK: - Palette
 
 enum TShowPalette {
+    /// Answer tiles A-D and the three doors: this game's own identity, not
+    /// the shared palette. `QuizPadStyle` on the phone carries the same four
+    /// hexes so a tile is the same colour in your hand and on the wall.
     static let tileColors: [Color] = [
         Color(hex: "FF3D7F"), Color(hex: "3D8BFF"), Color(hex: "FFB020"), Color(hex: "22C77A"),
     ]
     static let tileShapes: [String] = ["triangle.fill", "diamond.fill", "circle.fill", "square.fill"]
     static let letters: [String] = ["A", "B", "C", "D"]
     static let doorColors: [Color] = [Color(hex: "FF4D8D"), Color(hex: "3DA5FF"), Color(hex: "FFB020")]
-    static let gold = Color(hex: "FACC15")
+    static let gold = TVTheme.gold
+
+    // The studio set: a violet stage under warm spotlights. Also identity,
+    // and also named here rather than repeated as hexes down the file.
+    static let stageInk = Color(hex: "1A0640")
+    static let stageDeep = Color(hex: "3B1585")
+    static let stageShadow = Color(hex: "120328")
+    static let stageBack = Color(hex: "3B0A63")
+    static let stageFloor = Color(hex: "1E0A4F")
+    static let stageNight = Color(hex: "0C0322")
+    static let spotlight = Color(hex: "FFF3B0")
+    static let spotlightCore = Color(hex: "FFF6C8")
+    static let goldWarm = Color(hex: "FF9F1C")
+    static let goldDeep = Color(hex: "B45309")
+    /// The host's hot pink, and the slightly softer magenta of the doors.
+    static let hotPink = Color(hex: "FF3D7F")
+    static let magenta = Color(hex: "FF4D8D")
 
     static func tile(_ index: Int) -> Color {
         tileColors[((index % tileColors.count) + tileColors.count) % tileColors.count]
@@ -254,13 +273,14 @@ enum TShowPalette {
         }
     }
 
+    /// The shared tokens, matching `QuizPadStyle.powerColor` on the phone.
     static func powerColor(_ power: String) -> Color {
         switch power {
-        case "freeze": return Color(hex: "38BDF8")
-        case "scramble": return Color(hex: "F472B6")
-        case "fog": return Color(hex: "8B8FD8")
-        case "shield": return Color(hex: "FACC15")
-        default: return Color(hex: "22D3EE")
+        case "freeze": return TVTheme.cyan
+        case "scramble": return TVTheme.pink
+        case "fog": return TVTheme.purple
+        case "shield": return TVTheme.yellow
+        default: return TVTheme.cyan
         }
     }
 
@@ -381,11 +401,11 @@ struct TVTriviaBoardView: View {
 
     private var stageAccent: Color {
         switch phase {
-        case "category_vote", "category_reveal": return Color(hex: "FF4D8D")
-        case "power_pick", "power_reveal": return Color(hex: "22D3EE")
+        case "category_vote", "category_reveal": return TShowPalette.magenta
+        case "power_pick", "power_reveal": return TVTheme.cyan
         case "finale_intro", "finale_question", "finale_reveal": return TShowPalette.gold
         case "summary": return TShowPalette.gold
-        default: return Color(hex: "A855F7")
+        default: return TVTheme.purple
         }
     }
 
@@ -509,12 +529,12 @@ struct TShowStageBackground: View {
 
 enum TShowStagePainter {
     static let coneColors: [Color] = [
-        Color(hex: "FF4D8D"), Color(hex: "22D3EE"), Color(hex: "FACC15"), Color(hex: "A855F7"),
+        TShowPalette.magenta, TVTheme.cyan, TShowPalette.gold, TVTheme.purple,
     ]
 
     static func paint(_ context: inout GraphicsContext, size: CGSize, time: Double, accent: Color) {
         let full = Path(CGRect(origin: .zero, size: size))
-        let backdrop = Gradient(colors: [Color(hex: "1A0640"), Color(hex: "3B0A63"), Color(hex: "120328")])
+        let backdrop = Gradient(colors: [TShowPalette.stageInk, TShowPalette.stageBack, TShowPalette.stageShadow])
         context.fill(full, with: .linearGradient(backdrop,
                                                  startPoint: CGPoint(x: size.width / 2, y: 0),
                                                  endPoint: CGPoint(x: size.width / 2, y: size.height)))
@@ -558,7 +578,7 @@ enum TShowStagePainter {
         let floorRect = CGRect(x: -size.width * 0.1, y: size.height * 0.78,
                                width: size.width * 1.2, height: size.height * 0.5)
         let pulse: Double = 0.4 + 0.1 * sin(time * 1.3)
-        let floorGlow = Gradient(colors: [accent.opacity(pulse), Color(hex: "120328").opacity(0)])
+        let floorGlow = Gradient(colors: [accent.opacity(pulse), TShowPalette.stageShadow.opacity(0)])
         context.fill(Path(ellipseIn: floorRect),
                      with: .radialGradient(floorGlow,
                                            center: CGPoint(x: size.width / 2, y: size.height * 0.92),
@@ -578,7 +598,7 @@ enum TShowStagePainter {
             let rect = CGRect(x: x - radius, y: y - radius, width: radius * 2, height: radius * 2)
             context.fill(Path(ellipseIn: rect.insetBy(dx: -radius, dy: -radius)),
                          with: .color(TShowPalette.gold.opacity(0.18 * lit)))
-            context.fill(Path(ellipseIn: rect), with: .color(Color(hex: "FFF3B0").opacity(lit)))
+            context.fill(Path(ellipseIn: rect), with: .color(TShowPalette.spotlight.opacity(lit)))
         }
     }
 }
@@ -607,7 +627,7 @@ private struct TShowTopBar: View {
         HStack(spacing: 24) {
             HStack(spacing: 10) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 34, weight: .heavy))
+                    .font(.system(size: 34, weight: .heavy, design: .rounded))
                     .foregroundColor(TShowPalette.gold)
                 Text("TRIVIA")
                     .font(.system(size: 44, weight: .black, design: .rounded))
@@ -615,7 +635,7 @@ private struct TShowTopBar: View {
                 Text("SHOWDOWN")
                     .font(.system(size: 22, weight: .heavy, design: .rounded))
                     .tracking(4)
-                    .foregroundColor(Color(hex: "1A0640"))
+                    .foregroundColor(TShowPalette.stageInk)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 5)
                     .background(Capsule().fill(TShowPalette.gold))
@@ -642,7 +662,7 @@ private struct TShowTopBar: View {
 private struct TShowTimer: View {
     let seconds: Int
     let total: Int
-    var tint: Color = Color(hex: "22D3EE")
+    var tint: Color = TVTheme.cyan
     var size: CGFloat = 130
 
     private var fraction: CGFloat {
@@ -660,7 +680,7 @@ private struct TShowTimer: View {
                 .stroke(Color.white.opacity(0.12), lineWidth: size * 0.09)
             Circle()
                 .trim(from: 0, to: fraction)
-                .stroke(urgent ? Color(hex: "FF3D7F") : tint,
+                .stroke(urgent ? TShowPalette.hotPink : tint,
                         style: StrokeStyle(lineWidth: size * 0.09, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.linear(duration: 1.0), value: fraction)
@@ -704,7 +724,7 @@ private struct TShowTitleCard: View {
             Text("SHOWDOWN")
                 .font(.system(size: 54, weight: .black, design: .rounded))
                 .tracking(14)
-                .foregroundColor(Color(hex: "1A0640"))
+                .foregroundColor(TShowPalette.stageInk)
                 .padding(.horizontal, 44)
                 .padding(.vertical, 14)
                 .background(Capsule().fill(TShowPalette.gold))
@@ -751,7 +771,7 @@ private struct TShowDoorsStage: View {
                 }
                 if !revealing {
                     TShowTimer(seconds: state.secondsLeft, total: max(state.phaseSeconds, 1),
-                               tint: Color(hex: "FF4D8D"), size: 110)
+                               tint: TShowPalette.magenta, size: 110)
                 }
             }
             HStack(spacing: 60) {
@@ -793,16 +813,16 @@ private struct TShowDoor: View {
 
     private var interior: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(RadialGradient(colors: [Color(hex: "FFF6C8"), TShowPalette.gold, color.opacity(0.9)],
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
+                .fill(RadialGradient(colors: [TShowPalette.spotlightCore, TShowPalette.gold, color.opacity(0.9)],
                                      center: .center, startRadius: 10, endRadius: 360))
             VStack(spacing: 18) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 70, weight: .heavy))
+                    .font(.system(size: 70, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                 Text(door.name)
                     .font(.system(size: 50, weight: .black, design: .rounded))
-                    .foregroundColor(Color(hex: "1A0640"))
+                    .foregroundColor(TShowPalette.stageInk)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
                     .lineLimit(3)
@@ -813,15 +833,15 @@ private struct TShowDoor: View {
 
     private var panel: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(color)
-                .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).fill(Color.black.opacity(0.4)))
+                .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous).fill(Color.black.opacity(0.4)))
                 .offset(x: 10, y: 12)
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [color, color.opacity(0.75)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
             VStack(spacing: 22) {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.35), lineWidth: 5)
                     .frame(height: 150)
                     .overlay(
@@ -837,8 +857,8 @@ private struct TShowDoor: View {
                     .lineLimit(2)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.black.opacity(0.25)))
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.black.opacity(0.25)))
+                RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.35), lineWidth: 5)
                     .frame(height: 110)
             }
@@ -859,7 +879,7 @@ private struct TShowDoor: View {
                 .animation(.spring(), value: door.votes)
         }
         .font(.system(size: 30, weight: .black, design: .rounded))
-        .foregroundColor(Color(hex: "1A0640"))
+        .foregroundColor(TShowPalette.stageInk)
         .padding(.horizontal, 22)
         .padding(.vertical, 10)
         .background(Capsule().fill(Color.white))
@@ -901,7 +921,7 @@ private struct TShowPowerPickStage: View {
                         .foregroundColor(.white.opacity(0.8))
                 }
                 TShowTimer(seconds: state.secondsLeft, total: max(state.phaseSeconds, 1),
-                           tint: Color(hex: "22D3EE"), size: 110)
+                           tint: TVTheme.cyan, size: 110)
             }
             HStack(spacing: 44) {
                 ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
@@ -928,7 +948,7 @@ private struct TShowPowerPickStage: View {
                     .padding(.vertical, 28)
                     .padding(.horizontal, 16)
                     .background(
-                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                             .fill(Color.black.opacity(0.28))
                     )
                 }
@@ -1030,7 +1050,7 @@ private struct TShowQuestionStage: View {
                 VStack(spacing: 14) {
                     TShowTimer(seconds: state.isReveal ? 0 : state.secondsLeft,
                                total: max(state.phaseSeconds, 1),
-                               tint: Color(hex: "22D3EE"),
+                               tint: TVTheme.cyan,
                                size: 140)
                     Text("\(state.answeredIDs.count)/\(state.players.count) locked")
                         .font(.system(size: 24, weight: .bold, design: .rounded))
@@ -1063,13 +1083,13 @@ private struct TShowHostPlate: View {
         VStack(spacing: 18) {
             HStack(spacing: 12) {
                 Image(systemName: "mic.fill")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                 Text(category.uppercased())
                     .font(.system(size: 24, weight: .heavy, design: .rounded))
                     .tracking(4)
                     .lineLimit(1)
             }
-            .foregroundColor(Color(hex: "1A0640"))
+            .foregroundColor(TShowPalette.stageInk)
             .padding(.horizontal, 22)
             .padding(.vertical, 8)
             .background(Capsule().fill(TShowPalette.gold))
@@ -1081,14 +1101,14 @@ private struct TShowHostPlate: View {
         .padding(.vertical, 30)
         .background(
             ZStack {
-                RoundedRectangle(cornerRadius: 36, style: .continuous)
-                    .fill(Color(hex: "0C0322"))
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
+                    .fill(TShowPalette.stageNight)
                     .offset(y: 12)
-                RoundedRectangle(cornerRadius: 36, style: .continuous)
-                    .fill(LinearGradient(colors: [Color(hex: "3B1585"), Color(hex: "1E0A4F")],
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
+                    .fill(LinearGradient(colors: [TShowPalette.stageDeep, TShowPalette.stageFloor],
                                          startPoint: .top, endPoint: .bottom))
-                RoundedRectangle(cornerRadius: 36, style: .continuous)
-                    .strokeBorder(LinearGradient(colors: [TShowPalette.gold, Color(hex: "FF9F1C")],
+                RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
+                    .strokeBorder(LinearGradient(colors: [TShowPalette.gold, TShowPalette.goldWarm],
                                                  startPoint: .top, endPoint: .bottom),
                                   lineWidth: 6)
             }
@@ -1179,14 +1199,14 @@ private struct TShowAnswerTile: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(color)
-                .overlay(RoundedRectangle(cornerRadius: 26, style: .continuous).fill(Color.black.opacity(0.42)))
+                .overlay(RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous).fill(Color.black.opacity(0.42)))
                 .offset(y: 12)
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [color, color.opacity(0.78)],
                                      startPoint: .top, endPoint: .bottom))
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color.white.opacity(0.35), Color.white.opacity(0)],
                                      startPoint: .top, endPoint: .center))
                 .padding(4)
@@ -1194,7 +1214,7 @@ private struct TShowAnswerTile: View {
                 ZStack {
                     Circle().fill(Color.white)
                     Image(systemName: TShowPalette.shape(index))
-                        .font(.system(size: height * 0.22, weight: .black))
+                        .font(.system(size: height * 0.22, weight: .black, design: .rounded))
                         .foregroundColor(color)
                 }
                 .frame(width: height * 0.6, height: height * 0.6)
@@ -1208,7 +1228,7 @@ private struct TShowAnswerTile: View {
                 pickerStack
                 if isCorrect {
                     Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: height * 0.42, weight: .black))
+                        .font(.system(size: height * 0.42, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .transition(.scale.combined(with: .opacity))
                 }
@@ -1287,15 +1307,15 @@ private struct TShowPod: View {
                             .transition(.scale.combined(with: .opacity))
                     } else {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundColor(Color(hex: "FF3D7F"))
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundColor(TShowPalette.hotPink)
                             .transition(.scale)
                     }
                 } else if !hits.isEmpty {
                     HStack(spacing: 4) {
                         ForEach(Array(hits.enumerated()), id: \.offset) { _, power in
                             Image(systemName: TShowPalette.powerSymbol(power))
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                                 .padding(7)
                                 .background(Circle().fill(TShowPalette.powerColor(power)))
@@ -1321,7 +1341,7 @@ private struct TShowPod: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(isLocked ? Color.white.opacity(0.16) : Color.black.opacity(0.25))
         )
         .animation(.spring(response: 0.4, dampingFraction: 0.6), value: result)
@@ -1343,11 +1363,11 @@ private struct TShowCountUp: View {
     var body: some View {
         Text("+\(shown)")
             .font(.system(size: 30, weight: .black, design: .rounded))
-            .foregroundColor(Color(hex: "1A0640"))
+            .foregroundColor(TShowPalette.stageInk)
             .padding(.horizontal, 14)
             .padding(.vertical, 5)
-            .background(Capsule().fill(Color(hex: "34D399")))
-            .shadow(color: Color(hex: "34D399").opacity(0.7), radius: 10)
+            .background(Capsule().fill(TVTheme.green))
+            .shadow(color: TVTheme.green.opacity(0.7), radius: 10)
             .task(id: target) {
                 shown = 0
                 let steps: Int = 18
@@ -1416,7 +1436,7 @@ private struct TShowStandingRow: View {
         HStack(spacing: 22) {
             Text("\(player.rank)")
                 .font(.system(size: height * 0.45, weight: .black, design: .rounded))
-                .foregroundColor(player.rank == 1 ? Color(hex: "1A0640") : .white)
+                .foregroundColor(player.rank == 1 ? TShowPalette.stageInk : .white)
                 .frame(width: height * 0.8, height: height * 0.8)
                 .background(Circle().fill(player.rank == 1 ? TShowPalette.gold : Color.white.opacity(0.15)))
             ShellAvatarToken(id: player.id, name: player.name, size: height * 0.78,
@@ -1427,8 +1447,8 @@ private struct TShowStandingRow: View {
                 .lineLimit(1)
             if settled && movement != 0 {
                 Image(systemName: movement > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
-                    .font(.system(size: height * 0.4, weight: .bold))
-                    .foregroundColor(movement > 0 ? Color(hex: "34D399") : Color(hex: "FF3D7F"))
+                    .font(.system(size: height * 0.4, weight: .bold, design: .rounded))
+                    .foregroundColor(movement > 0 ? TVTheme.green : TShowPalette.hotPink)
                     .transition(.scale.combined(with: .opacity))
             }
             Spacer(minLength: 0)
@@ -1439,11 +1459,11 @@ private struct TShowStandingRow: View {
         .padding(.horizontal, 26)
         .frame(height: height)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(player.rank == 1 ? Color(hex: "3B1585") : Color.black.opacity(0.32))
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
+                .fill(player.rank == 1 ? TShowPalette.stageDeep : Color.black.opacity(0.32))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(player.rank == 1 ? TShowPalette.gold : Color.white.opacity(0.1), lineWidth: 3)
         )
     }
@@ -1460,10 +1480,10 @@ private struct TShowFinaleStage: View {
                 Text("THE FINAL CLIMB")
                     .font(.system(size: 76, weight: .black, design: .rounded))
                     .foregroundColor(TShowPalette.gold)
-                    .shadow(color: Color(hex: "FF9F1C").opacity(0.8), radius: 0, x: 0, y: 6)
+                    .shadow(color: TShowPalette.goldWarm.opacity(0.8), radius: 0, x: 0, y: 6)
                 HStack(spacing: 18) {
-                    ShellChip(systemImage: "arrow.up", text: "Right answer: climb a rung", tint: Color(hex: "34D399"))
-                    ShellChip(systemImage: "arrow.down", text: "Wrong answer: slip a rung", tint: Color(hex: "FF3D7F"))
+                    ShellChip(systemImage: "arrow.up", text: "Right answer: climb a rung", tint: TVTheme.green)
+                    ShellChip(systemImage: "arrow.down", text: "Wrong answer: slip a rung", tint: TShowPalette.hotPink)
                     ShellChip(systemImage: "flag.checkered", text: "First to the top wins", tint: TShowPalette.gold)
                 }
                 TShowTower(state: state)
@@ -1567,7 +1587,7 @@ enum TShowTowerPainter {
         let platform = CGRect(x: 0, y: top - 18, width: size.width, height: 16)
         context.fill(Path(roundedRect: platform, cornerRadius: 8), with: .color(TShowPalette.gold))
         context.fill(Path(roundedRect: platform.insetBy(dx: 0, dy: 5).offsetBy(dx: 0, dy: 8), cornerRadius: 6),
-                     with: .color(Color(hex: "B45309").opacity(0.7)))
+                     with: .color(TShowPalette.goldDeep.opacity(0.7)))
         for column in 0..<max(columns, 1) {
             let center: CGFloat = columnWidth * (CGFloat(column) + 0.5)
             let half: CGFloat = min(46, columnWidth * 0.32)
@@ -1603,15 +1623,15 @@ private struct TShowClimber: View {
                     .overlay(alignment: .top) {
                         if atTop {
                             Image(systemName: "crown.fill")
-                                .font(.system(size: size * 0.4, weight: .bold))
+                                .font(.system(size: size * 0.4, weight: .bold, design: .rounded))
                                 .foregroundColor(TShowPalette.gold)
                                 .offset(y: -size * 0.42)
                         }
                     }
                 if move != 0 {
                     Image(systemName: move > 0 ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
-                        .font(.system(size: size * 0.38, weight: .bold))
-                        .foregroundColor(move > 0 ? Color(hex: "34D399") : Color(hex: "FF3D7F"))
+                        .font(.system(size: size * 0.38, weight: .bold, design: .rounded))
+                        .foregroundColor(move > 0 ? TVTheme.green : TShowPalette.hotPink)
                         .background(Circle().fill(Color.white).padding(3))
                         .offset(x: size * 0.18, y: -size * 0.12)
                         .transition(.scale)
@@ -1657,9 +1677,9 @@ private struct TShowWinnerStage: View {
                                      isBot: winner.isBot)
                         .overlay(alignment: .top) {
                             Image(systemName: "crown.fill")
-                                .font(.system(size: 110, weight: .bold))
+                                .font(.system(size: 110, weight: .bold, design: .rounded))
                                 .foregroundColor(TShowPalette.gold)
-                                .shadow(color: Color(hex: "FF9F1C"), radius: 14)
+                                .shadow(color: TShowPalette.goldWarm, radius: 14)
                                 .offset(y: -110)
                         }
                         .shellHop(trigger: hop, height: 60)
@@ -1670,7 +1690,7 @@ private struct TShowWinnerStage: View {
                 Text("\(winner.name) wins the show!")
                     .font(.system(size: 80, weight: .black, design: .rounded))
                     .foregroundColor(.white)
-                    .shadow(color: Color(hex: "FF4D8D"), radius: 0, x: 0, y: 6)
+                    .shadow(color: TShowPalette.magenta, radius: 0, x: 0, y: 6)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .padding(.horizontal, 80)

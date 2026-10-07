@@ -261,7 +261,7 @@ struct TVHotTakesBoardView: View {
         case "final":
             VStack(spacing: 14) {
                 Image(systemName: "trophy.fill")
-                    .font(.system(size: 80, weight: .bold))
+                    .font(.system(size: 80, weight: .bold, design: .rounded))
                     .foregroundColor(TalkPalette.gold)
                     .shadow(color: TalkPalette.gold.opacity(0.7), radius: 20)
                 Text("That is a wrap!")
@@ -328,7 +328,7 @@ private struct HotTakesPromptCard: View {
     }
 
     var body: some View {
-        ShellGlassCard(cornerRadius: 36, tint: ShellTheme.pink, padding: 24) {
+        ShellGlassCard(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.pink, padding: 24) {
             VStack(spacing: 10) {
                 Text("THE HOT TAKE")
                     .font(ShellTheme.eyebrow(20))
@@ -424,10 +424,10 @@ private struct HotTakesDebaterPanel: View {
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
         .background {
-            ShellGlassSurface(cornerRadius: 36, tint: color)
+            ShellGlassSurface(cornerRadius: ShellTheme.cardRadius, tint: color)
         }
         .overlay {
-            RoundedRectangle(cornerRadius: 36, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .strokeBorder(LinearGradient(colors: [color, color2],
                                              startPoint: .topLeading, endPoint: .bottomTrailing),
                               lineWidth: isActive || isWinner ? 5 : 0)
@@ -567,7 +567,7 @@ private struct HotTakesSwitchOverlay: View {
             Color.black.opacity(0.45).ignoresSafeArea()
             VStack(spacing: 20) {
                 Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 120, weight: .black))
+                    .font(.system(size: 120, weight: .black, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [TalkPalette.forColor, TalkPalette.againstColor],
                                                     startPoint: .leading, endPoint: .trailing))
                     .rotationEffect(.degrees(spin))
@@ -669,7 +669,7 @@ private struct HotTakesRevealBars: View {
                 .font(ShellTheme.display(46, weight: .black))
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .fill(LinearGradient(colors: [Color.white.opacity(0.9), color],
                                      startPoint: .top, endPoint: .bottom))
                 .frame(width: 140, height: height)

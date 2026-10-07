@@ -21,8 +21,8 @@ struct TVRoundHeader: View {
             VStack(alignment: .leading, spacing: 4) {
                 if let phaseLabel {
                     Text(phaseLabel.uppercased())
-                        .font(.caption.bold()).tracking(3)
-                        .foregroundColor(.cyan.opacity(0.8))
+                        .font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
+                        .foregroundColor(TVTheme.cyan.opacity(0.8))
                         // A long player name in "X's turn" must truncate,
                         // never wrap mid-word.
                         .lineLimit(1)
@@ -32,22 +32,22 @@ struct TVRoundHeader: View {
                         Image(systemName: symbol).foregroundColor(.white.opacity(0.85))
                         Text(title)
                     }
-                    .font(.system(size: 38, weight: .bold))
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             Spacer()
             if totalRounds > 0 {
                 VStack(spacing: 2) {
-                    Text("ROUND").font(.caption.bold()).tracking(3)
+                    Text("ROUND").font(.system(.caption, design: .rounded, weight: .bold)).tracking(3)
                         .foregroundColor(.white.opacity(0.4))
                     Text("\(round)/\(totalRounds)")
-                        .font(.system(size: 30, weight: .bold)).foregroundColor(.white)
+                        .font(.system(size: 30, weight: .bold, design: .rounded)).foregroundColor(.white)
                 }
             }
             if secondsLeft > 0 {
                 Text("\(secondsLeft)")
                     .font(.system(size: 48, weight: .heavy, design: .rounded))
-                    .foregroundColor(secondsLeft <= 5 ? .red : .cyan)
+                    .foregroundColor(secondsLeft <= 5 ? TVTheme.red : TVTheme.cyan)
                     .frame(minWidth: 90)
                     .contentTransition(.numericText())
                     .animation(.default, value: secondsLeft)
@@ -68,10 +68,10 @@ struct TVScoreStrip: View {
                 ForEach(players.sorted { $0.score > $1.score }) { p in
                     HStack(spacing: 10) {
                         Circle()
-                            .fill(highlight.contains(p.id) ? Color.green : Color.white.opacity(0.15))
+                            .fill(highlight.contains(p.id) ? TVTheme.green : Color.white.opacity(0.15))
                             .frame(width: 12, height: 12)
-                        Text(p.name).font(.headline).foregroundColor(.white)
-                        Text("\(p.score)").font(.headline.bold()).foregroundColor(.cyan)
+                        Text(p.name).font(.system(.headline, design: .rounded)).foregroundColor(.white)
+                        Text("\(p.score)").font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.cyan)
                     }
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.06)))
@@ -276,7 +276,7 @@ struct TVLastTapBoardView: View {
 
     private var background: Color {
         switch vm.state.phase {
-        case "go":     return .green
+        case "go":     return TVTheme.green
         case "arming": return Color(hex: "1a0d2e")
         default:       return .black.opacity(0.4)
         }
@@ -295,29 +295,29 @@ struct TVLastTapBoardView: View {
                 switch vm.state.phase {
                 case "arming":
                     Text("WAIT…")
-                        .font(.system(size: 120, weight: .heavy)).tracking(10)
+                        .font(.system(size: 120, weight: .heavy, design: .rounded)).tracking(10)
                         .foregroundColor(.white.opacity(0.25))
                 case "go":
                     Text("TAP!")
-                        .font(.system(size: 190, weight: .heavy)).tracking(12)
+                        .font(.system(size: 190, weight: .heavy, design: .rounded)).tracking(12)
                         .foregroundColor(.black)
                 case "final":
                     VStack(spacing: 16) {
-                        Image(systemName: "trophy.fill").font(.system(size: 100)).foregroundColor(.yellow)
+                        Image(systemName: "trophy.fill").font(.system(size: 100, weight: .regular, design: .rounded)).foregroundColor(TVTheme.yellow)
                         Text(vm.state.players.first { $0.id == vm.state.winner }?.name ?? "Winner")
-                            .font(.system(size: 62, weight: .heavy)).foregroundColor(.yellow)
+                            .font(.system(size: 62, weight: .heavy, design: .rounded)).foregroundColor(TVTheme.yellow)
                     }
                 default:
                     VStack(spacing: 14) {
                         ForEach(Array(vm.state.results.prefix(8).enumerated()), id: \.offset) { i, r in
                             HStack(spacing: 20) {
-                                Text("\(i + 1)").font(.title2.bold())
+                                Text("\(i + 1)").font(.system(.title2, design: .rounded, weight: .bold))
                                     .foregroundColor(.white.opacity(0.4)).frame(width: 44)
-                                Text(r.name).font(.title2).foregroundColor(.white)
+                                Text(r.name).font(.system(.title2, design: .rounded)).foregroundColor(.white)
                                 Spacer()
                                 Text(r.falseStart ? "too early" : "\(r.ms) ms")
-                                    .font(.title3.bold())
-                                    .foregroundColor(r.falseStart ? .red : .cyan)
+                                    .font(.system(.title3, design: .rounded, weight: .bold))
+                                    .foregroundColor(r.falseStart ? TVTheme.red : TVTheme.cyan)
                             }
                             .padding(.horizontal, 30).padding(.vertical, 12)
                             .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.05)))
@@ -436,11 +436,11 @@ struct TVEmojiMovieBoardView: View {
             Spacer()
             if vm.state.base.phase == "compose" {
                 VStack(spacing: 18) {
-                    Image(systemName: "pencil").font(.system(size: 90)).foregroundColor(.white.opacity(0.7))
+                    Image(systemName: "pencil").font(.system(size: 90, weight: .regular, design: .rounded)).foregroundColor(.white.opacity(0.7))
                     Text("Everyone is describing their secret title")
-                        .font(.title2).foregroundColor(.white.opacity(0.6))
+                        .font(.system(.title2, design: .rounded)).foregroundColor(.white.opacity(0.6))
                     Text("\(vm.state.composedCount) submitted")
-                        .font(.title3).foregroundColor(.cyan)
+                        .font(.system(.title3, design: .rounded)).foregroundColor(TVTheme.cyan)
                 }
             } else if vm.state.base.phase == "reveal" {
                 stagedReveal
@@ -448,14 +448,14 @@ struct TVEmojiMovieBoardView: View {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 22) {
                     ForEach(Array(vm.state.entries.enumerated()), id: \.offset) { _, e in
                         VStack(spacing: 10) {
-                            Text(e.emoji).font(.system(size: 62))
+                            Text(e.emoji).font(.system(size: 62, weight: .regular, design: .rounded))
                             if let title = e.title {
-                                Text(title).font(.headline.bold()).foregroundColor(.green)
+                                Text(title).font(.system(.headline, design: .rounded, weight: .bold)).foregroundColor(TVTheme.green)
                             }
-                            Text(e.owner).font(.caption).foregroundColor(.white.opacity(0.4))
+                            Text(e.owner).font(.system(.caption, design: .rounded)).foregroundColor(.white.opacity(0.4))
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 22)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(.white.opacity(0.06)))
+                        .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(.white.opacity(0.06)))
                     }
                 }
                 .padding(.horizontal, 90)
@@ -523,7 +523,7 @@ struct TVNPATBoardView: View {
             Spacer()
             if vm.state.base.phase == "fill" {
                 VStack(spacing: 26) {
-                    Text("LETTER").font(.caption.bold()).tracking(5)
+                    Text("LETTER").font(.system(.caption, design: .rounded, weight: .bold)).tracking(5)
                         .foregroundColor(TVTheme.textSecondary)
                     TVHeroLetter(letter: vm.state.letter, palette: TVTheme.aurora, tileSize: 230)
                     categoryChips
@@ -550,11 +550,11 @@ struct TVNPATBoardView: View {
     private var categoryChips: some View {
         HStack(spacing: 22) {
             ForEach(Array(TVNPATBoardView.categories.enumerated()), id: \.offset) { index, category in
-                TVGlassCard(cornerRadius: 22, tint: TVTheme.aurora.blobs[index % 3], padding: 0) {
+                TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: TVTheme.aurora.blobs[index % 3], padding: 0) {
                     HStack(spacing: 12) {
                         Image(systemName: category.symbol)
                             .foregroundColor(TVTheme.aurora.accent)
-                        Text(category.title).font(.title3.bold()).foregroundColor(.white)
+                        Text(category.title).font(.system(.title3, design: .rounded, weight: .bold)).foregroundColor(.white)
                     }
                     .padding(.horizontal, 26).padding(.vertical, 14)
                 }
@@ -603,7 +603,7 @@ private struct PartyPromptCard: View {
     let accent: Color
 
     var body: some View {
-        TVGlassCard(cornerRadius: 32, tint: accent, padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: accent, padding: 0) {
             Text(text)
                 .font(.system(size: size, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
@@ -637,7 +637,7 @@ private struct PartySubmissionTracker: View {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 TVPopNumber(value: doneCount, size: 44, color: accent)
                 Text("of \(players.count) \(verb)")
-                    .font(.title3.weight(.semibold))
+                    .font(.system(.title3, design: .rounded, weight: .semibold))
                     .foregroundColor(TVTheme.textSecondary)
             }
             // Wraps onto a second row for a big room instead of running off
@@ -663,7 +663,7 @@ private struct PartyPlayerChip: View {
             Image(systemName: done ? "checkmark.circle.fill" : "ellipsis.circle")
                 .foregroundColor(done ? accent : TVTheme.textTertiary)
             Text(name)
-                .font(.headline)
+                .font(.system(.headline, design: .rounded))
                 .foregroundColor(done ? Color.white : TVTheme.textSecondary)
                 .lineLimit(1)
         }
@@ -689,7 +689,7 @@ private struct BluffOptionCard: View {
     }
 
     var body: some View {
-        TVGlassCard(cornerRadius: 24, tint: TVTheme.festival.blobs[index % 3], padding: 0) {
+        TVGlassCard(cornerRadius: ShellTheme.cardRadius, tint: TVTheme.festival.blobs[index % 3], padding: 0) {
             HStack(spacing: 18) {
                 Text(letter)
                     .font(TVTheme.display(30))
@@ -698,7 +698,7 @@ private struct BluffOptionCard: View {
                     .background(Circle().fill(TVTheme.festival.accent2))
                     .shadow(color: TVTheme.festival.accent2.opacity(0.6), radius: 10)
                 Text(text)
-                    .font(.title3.bold())
+                    .font(.system(.title3, design: .rounded, weight: .bold))
                     .foregroundColor(.white)
                     .lineLimit(2)
                 Spacer(minLength: 0)
@@ -731,7 +731,7 @@ private struct HerdFlock: View {
         let bob: CGFloat = CGFloat(sin(time * 2.2 + Double(index) * 0.7)) * 5
         let tint: Color = lit ? TVTheme.aurora.accent : Color.white.opacity(0.22)
         return Image(systemName: "figure.stand")
-            .font(.system(size: 44, weight: .bold))
+            .font(.system(size: 44, weight: .bold, design: .rounded))
             .foregroundColor(tint)
             .shadow(color: lit ? tint.opacity(0.8) : Color.clear, radius: 10)
             .offset(y: lit ? bob : 0)
@@ -786,9 +786,9 @@ struct TVMostLikelyToBoardView: View {
             VStack(spacing: 40) {
                 // Prompts already read "Most likely to ...".
                 Text("Who is…")
-                    .font(.title2.bold()).foregroundColor(.white.opacity(0.5))
+                    .font(.system(.title2, design: .rounded, weight: .bold)).foregroundColor(.white.opacity(0.5))
                 Text(vm.state.prompt)
-                    .font(.system(size: 54, weight: .heavy))
+                    .font(.system(size: 54, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 120)
@@ -812,12 +812,12 @@ struct TVMostLikelyToBoardView: View {
                 ForEach(vm.state.base.players) { p in
                     let voted = vm.state.base.submitted.contains(p.id)
                     Image(systemName: voted ? "checkmark.seal.fill" : "hourglass")
-                        .font(.system(size: 30))
-                        .foregroundColor(voted ? .green : .white.opacity(0.25))
+                        .font(.system(size: 30, weight: .regular, design: .rounded))
+                        .foregroundColor(voted ? TVTheme.green : .white.opacity(0.25))
                 }
             }
             Text("\(vm.state.votesSoFar) of \(total) votes in. Vote on your phone.")
-                .font(.title3).foregroundColor(.white.opacity(0.5))
+                .font(.system(.title3, design: .rounded)).foregroundColor(.white.opacity(0.5))
         }
     }
 

@@ -32,6 +32,29 @@ extension Dictionary where Key == String, Value == Any {
     }
 }
 
+// MARK: - Physical game pieces
+
+/// The colours of objects that BOTH screens draw: a playing card's face and
+/// ink, a chess piece and a chess square. These are not Phone Play accents
+/// and they deliberately sit outside the palette -- a card is off-white
+/// because cards are off-white. Every hex here is the value the matching TV
+/// board uses (`TVPokerBoardView.PKTCardFace`, `TVChessBoardView`), so the
+/// same piece is the same colour in your hand and on the wall; change one
+/// side and change the other.
+enum GamePieceColors {
+    static let faceWhite = Color.white
+    static let faceWhiteEdge = Color(hex: "eef0f4")
+    static let cardRedInk = Color(hex: "d61f2c")
+    static let cardBlackInk = Color(hex: "121826")
+    static let cardBackTop = Color(hex: "1e3a8a")
+    static let cardBackBottom = Color(hex: "0b1640")
+
+    static let chessWhite = Color(hex: "fdf8ec")
+    static let chessBlack = Color(hex: "1b1b1f")
+    static let chessLightSquare = Color(hex: "f0d9b5")
+    static let chessDarkSquare = Color(hex: "b58863")
+}
+
 // MARK: - Chrome
 //
 // Every TV-game controller is built from these pieces, so they carry the
@@ -119,7 +142,7 @@ struct WaitingState: View {
                                                     PhonePlayDesign.cyan.opacity(0.35)]))
                     .frame(width: 110, height: 110)
                 Image(systemName: systemIcon)
-                    .font(.system(size: 48, weight: .bold))
+                    .font(.system(size: 48, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .phonePlayIdle(dy: 4, scale: 0.03, duration: 1.6)
@@ -156,7 +179,7 @@ struct BigButton: View {
         }) {
             HStack(spacing: 10) {
                 if let systemImage {
-                    Image(systemName: systemImage).font(.system(size: 19, weight: .bold))
+                    Image(systemName: systemImage).font(.system(size: 19, weight: .bold, design: .rounded))
                 }
                 Text(title).font(.system(size: 19, weight: .heavy, design: .rounded))
             }
@@ -233,7 +256,7 @@ struct ChoiceRow: View {
                 Spacer()
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.green)
                         .transition(.scale.combined(with: .opacity))
                 }
