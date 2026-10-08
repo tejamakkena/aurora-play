@@ -42,6 +42,8 @@ struct PhonePlayRootView: View {
             WordDayRootView(game: game, onExit: play.closeGame)
         } else if play.active == .arcade, let game = play.arcade {
             PocketArcadeRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .mindGym, let game = play.mindGym {
+            NeuroPulseRootView(game: game, onExit: play.closeGame)
         } else {
             PhonePlayHomeView(play: play,
                               resumableRoomCode: vm.resumableRoomCode,
@@ -68,9 +70,12 @@ struct PhonePlayHomeView: View {
     @State private var dailyDone: Bool = false
     @State private var dailyStreak: Int = 0
     @State private var wordSeen: Bool = false
+    @State private var mindGym: NeuroHomeState = NeuroHomeState(mode: .start, streak: 0)
 
-    private let partyGames: [PhonePlayGame] = PhonePlayGame.allCases.filter { !$0.isSolo }
-    private let soloGames: [PhonePlayGame] = PhonePlayGame.allCases.filter { $0.isSolo }
+    private let partyGames: [PhonePlayGame] = PhonePlayGame.allCases
+        .filter { !$0.isSolo && $0.isGridCard }
+    private let soloGames: [PhonePlayGame] = PhonePlayGame.allCases
+        .filter { $0.isSolo && $0.isGridCard }
 
     private let columns: [GridItem] = [
         GridItem(.flexible(), spacing: 14),
@@ -88,6 +93,14 @@ struct PhonePlayHomeView: View {
                     }
 
                     PhoneHomeTVHero(appeared: appeared, action: onPlayOnTV)
+
+                    PhonePlaySectionLabel(text: "Mind Gym")
+                        .padding(.top, 4)
+
+                    NeuroHomeCard(state: mindGym,
+                                  appeared: appeared,
+                                  onPlay: { play.open(.mindGym) },
+                                  onProgress: play.openMindScore)
 
                     PhonePlaySectionLabel(text: "Party games")
                         .padding(.top, 4)
@@ -143,6 +156,7 @@ struct PhonePlayHomeView: View {
         }
         .onAppear {
             refreshDaily()
+            mindGym = NeuroHomeState.load()
             withAnimation(PhonePlayDesign.pop) {
                 appeared = true
             }
@@ -157,7 +171,8 @@ struct PhonePlayHomeView: View {
             return "New today"
         case .wordOfDay:
             return wordSeen ? nil : "New word"
-        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .storyChain, .arcade:
+        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
+             .storyChain, .arcade, .mindGym:
             return nil
         }
     }
