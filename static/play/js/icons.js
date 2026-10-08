@@ -175,6 +175,7 @@
     'minus': strokePath('M5 12h14'),
     'textformat.abc': strokePath('M3 17l4.500-11L12 17M4.500 13h5M14 11.500a3 3 0 015.500 1.500v4M19.500 15c-3 0-5.500.5-5.500 2.500 0 1.200 1 2 2.500 2 1.500 0 3-.8 3-2.500') ,
     'textformat': strokePath('M4 18L10 4l6 14M6 13.500h8M18 10h3M19.500 10v8'),
+    'arrow.triangle.2.circlepath': strokePath('M4 11a8 8 0 0114-4.500M20 4v4h-4M20 13a8 8 0 01-14 4.500M4 20v-4h4'),
     'dot': '<circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>',
     'sun.max.fill': '<circle cx="12" cy="12" r="4.5" fill="currentColor" stroke="none"/>' + strokePath('M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8'),
     'questionmark': strokePath('M8.5 8.5a3.5 3.5 0 117 0c0 2.5-3.5 3-3.5 5.5M12 18.5v.1'),

@@ -152,4 +152,105 @@
   AP.promptCard = promptCard;
   AP.centered = centered;
   AP.waiting = waiting;
+
+  /** BrainShapeView: a polyomino drawn as rounded cubes with a faint extrusion. */
+  kit.shapeSvg = function (cells, color, depth, extraStyle) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.setAttribute('class', 'brain-shape');
+    if (extraStyle) { svg.setAttribute('style', extraStyle); }
+    if (!cells.length) { return svg; }
+    depth = depth === undefined ? 3 : depth;
+    var xs = cells.map(function (c) { return c[0]; }), ys = cells.map(function (c) { return c[1]; });
+    var minX = Math.min.apply(null, xs), minY = Math.min.apply(null, ys);
+    var cols = Math.max.apply(null, xs) - minX + 1, rows = Math.max.apply(null, ys) - minY + 1;
+    var extra = 0.07 * depth + 0.1;
+    var W = cols + extra, H = rows + extra;
+    var gap = 0.08, ox = 0.05, oy = 0.05, r = 0.22, step = 0.07;
+    svg.setAttribute('viewBox', '0 0 ' + W.toFixed(3) + ' ' + H.toFixed(3));
+    var gid = 'bg' + color.replace(/[^a-z0-9]/gi, '');
+    var out = '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + color +
+      '"/><stop offset="1" stop-color="' + color + '" stop-opacity="0.72"/></linearGradient></defs>';
+    function rect(cx, cy, off) {
+      var x = ox + (cx - minX) + gap / 2 + off, y = oy + (cy - minY) + gap / 2 + off, w = 1 - gap;
+      return { x: x, y: y, w: w };
+    }
+    for (var layer = depth; layer >= 1; layer--) {
+      cells.forEach(function (c) {
+        var q = rect(c[0], c[1], step * layer);
+        out += '<rect x="' + q.x.toFixed(3) + '" y="' + q.y.toFixed(3) + '" width="' + q.w.toFixed(3) + '" height="' + q.w.toFixed(3) +
+          '" rx="' + r + '" fill="rgba(0,0,0,0.55)"/><rect x="' + q.x.toFixed(3) + '" y="' + q.y.toFixed(3) + '" width="' + q.w.toFixed(3) +
+          '" height="' + q.w.toFixed(3) + '" rx="' + r + '" fill="' + color + '" fill-opacity="0.35"/>';
+      });
+    }
+    cells.forEach(function (c) {
+      var q = rect(c[0], c[1], 0);
+      out += '<rect x="' + q.x.toFixed(3) + '" y="' + q.y.toFixed(3) + '" width="' + q.w.toFixed(3) + '" height="' + q.w.toFixed(3) +
+        '" rx="' + r + '" fill="url(#' + gid + ')" stroke="rgba(255,255,255,0.45)" stroke-width="0.04"/>' +
+        '<rect x="' + (q.x + q.w * 0.1).toFixed(3) + '" y="' + (q.y + q.w * 0.1).toFixed(3) + '" width="' + (q.w * 0.64).toFixed(3) + '" height="' + (q.w * 0.64).toFixed(3) +
+        '" rx="' + (r * 0.6).toFixed(3) + '" fill="rgba(255,255,255,0.16)"/>';
+    });
+    svg.innerHTML = out;
+    return svg;
+  };
+
+  // ---- ClassicShell family (Connect 4, Roulette, Mafia, Raja Mantri...) -----
+
+  /** Header card with a trailing slot and an optional top glow. */
+  kit.classicShell = function (o) {
+    var kids = Array.prototype.slice.call(arguments, 1);
+    var glow = o.glow || 'transparent';
+    var head = h('div', { class: 'shell-head' },
+      h('div', { class: 'col gap4 grow', style: { minWidth: 0 } },
+        h('div', { style: { fontSize: '20px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, o.title),
+        o.subtitle ? h('div', { class: 'c-text2', style: { fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, o.subtitle) : null),
+      o.trailing || null);
+    return h('div', { class: 'shell', style: { background: 'linear-gradient(to bottom, ' + AP.alpha(glow, 0.16) + ', transparent 50%), var(--bg)' } },
+      head, h('div', { class: 'shell-body' }, kids));
+  };
+
+  /** ClassicPill: rounded status capsule. */
+  kit.classicPill = function (text, icon, tint) {
+    tint = tint || C.text2;
+    return h('div', { class: 'row gap8', style: { padding: '10px 16px', borderRadius: '999px', background: AP.alpha(tint, 0.14), color: tint,
+        fontSize: '15px', fontWeight: 700, textAlign: 'center', justifyContent: 'center' } },
+      icon ? AP.icon(icon, 14) : null, text);
+  };
+
+  /** Number-over-label badge for a header's trailing slot. */
+  kit.statBadge = function (value, label, tint) {
+    tint = tint || C.cyan;
+    return h('div', { class: 'col center', style: { padding: '6px 12px', borderRadius: 'var(--r-chip)', background: AP.alpha(tint, 0.12) } },
+      h('div', { class: 'num', style: { fontSize: '20px', fontWeight: 800, color: tint } }, String(value)),
+      h('div', { style: { fontSize: '10px', fontWeight: 800, letterSpacing: '1px', color: C.text3 } }, label));
+  };
+
+  /** The big gently-bobbing icon disc used for "sleeping", "eliminated", "won". */
+  kit.hero = function (icon, tint, size) {
+    size = size || 110;
+    return h('div', { class: 'idle', style: { '--dy': '4px', '--sc': '0.03', '--dur': '1.6s', display: 'inline-flex' } },
+      h('div', { style: { width: size + 'px', height: size + 'px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: AP.grad([AP.alpha(tint, 0.6), AP.alpha(tint, 0.25)]), boxShadow: '0 8px 18px ' + AP.alpha(tint, 0.35) } },
+        AP.icon(icon, Math.round(size * 0.44))));
+  };
+
+  /** A full-width pick-one row (vote, target, accuse) with a tint per role. */
+  kit.pickRow = function (o) {
+    return h('button', { class: 'press', key: o.key,
+      style: { appearance: 'none', width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 18px', textAlign: 'left',
+        borderRadius: 'var(--r-button)', color: '#fff', background: o.selected ? AP.alpha(o.tint, 0.2) : C.surface,
+        border: (o.selected ? 2 : 1) + 'px solid ' + (o.selected ? o.tint : 'rgba(255,255,255,0.06)') },
+      onclick: function () { AP.haptic.tap(); o.onClick(); } },
+      h('span', { class: 'grow', style: { fontSize: '17px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, o.text),
+      o.selected
+        ? h('span', { class: 'row gap6', style: { fontSize: '14px', fontWeight: 800, color: o.tint } }, AP.icon('checkmark.circle.fill', 18), o.badge || null)
+        : (o.icon ? h('span', { style: { color: AP.alpha(o.tint, 0.85), display: 'inline-flex' } }, AP.icon(o.icon, 16)) : null));
+  };
+
+  /** Scrolls when taller than the screen, centres vertically when it is not. */
+  kit.centeredScroll = function () {
+    var kids = Array.prototype.slice.call(arguments);
+    return h('div', { class: 'scroll' }, h('div', { class: 'col', style: { minHeight: '100%', justifyContent: 'center' } }, kids));
+  };
 })();

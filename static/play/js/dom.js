@@ -76,7 +76,8 @@
     // remove attributes that are gone
     for (i = oldEl.attributes.length - 1; i >= 0; i--) {
       name = oldEl.attributes[i].name;
-      if (!newEl.hasAttribute(name) && name !== 'value' && name !== 'style') {
+      if (!newEl.hasAttribute(name) && name !== 'value' && name !== 'style' &&
+          !(oldEl.nodeName === 'CANVAS' && (name === 'width' || name === 'height'))) {
         oldEl.removeAttribute(name);
       }
     }
@@ -84,6 +85,7 @@
       name = newEl.attributes[i].name;
       var v = newEl.attributes[i].value;
       if (name === 'value' && /^(INPUT|TEXTAREA|SELECT)$/.test(oldEl.nodeName)) { continue; }
+      if (oldEl.nodeName === 'CANVAS' && (name === 'width' || name === 'height')) { continue; }
       if (oldEl.getAttribute(name) !== v) { oldEl.setAttribute(name, v); }
     }
     // style: replace wholesale, but keep it cheap when unchanged
