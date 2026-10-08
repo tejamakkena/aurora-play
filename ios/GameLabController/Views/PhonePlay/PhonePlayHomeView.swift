@@ -92,7 +92,7 @@ struct PhonePlayHomeView: View {
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
 
-                    PhoneHomeTVHero(appeared: appeared, action: onPlayOnTV)
+                    PhoneHomeTVEntry(appeared: appeared, action: onPlayOnTV)
 
                     PhonePlaySectionLabel(text: "Mind Gym")
                         .padding(.top, 4)

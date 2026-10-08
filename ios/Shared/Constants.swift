@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 
 enum AppConstants {
     // Stable, permanent deployment -- no more rebuilding every time a LAN
@@ -57,7 +59,13 @@ enum AppConstants {
     static var deviceID: String {
         let key = "gamelab_device_id"
         let vendorKey = "gamelab_device_vendor_id"
+        #if canImport(UIKit)
         let vendor = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        #else
+        // Not an iOS/tvOS build (a host `swift build` of the shared package):
+        // no handset to tie the id to, so an existing id is always kept.
+        let vendor = ""
+        #endif
         let defaults = UserDefaults.standard
         if let existing = defaults.string(forKey: key), !existing.isEmpty {
             let recorded = defaults.string(forKey: vendorKey)
