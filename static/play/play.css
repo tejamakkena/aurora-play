@@ -601,3 +601,6 @@ input, textarea { font: inherit; color: inherit; }
 .play-top { position: relative; flex: 0 0 auto; height: calc(46px + var(--safe-top)); }
 .play-area { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
 .play-area > * { min-height: 0; }
+
+@keyframes fog-clear { from { filter: blur(16px); } to { filter: blur(0); } }
+.fog { animation: fog-clear 3s linear forwards; }

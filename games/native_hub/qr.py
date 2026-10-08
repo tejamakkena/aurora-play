@@ -57,7 +57,7 @@ def join_page(code: str):
 def _play_scripts() -> list[str]:
     """Controller scripts in load order: core, screens, then one per game."""
     root = os.path.join(current_app.static_folder, "play", "js")
-    core = ["dom", "icons", "ui", "games", "net", "session", "screens", "lobby"]
+    core = ["dom", "icons", "ui", "kit", "games", "net", "session", "screens", "lobby"]
     scripts = ["play/vendor/socket.io.min.js"] + [f"play/js/{n}.js" for n in core]
     for extra in ("onestop", "voice"):
         if os.path.exists(os.path.join(root, f"{extra}.js")):
