@@ -344,12 +344,15 @@ enum GameID: String, Codable, CaseIterable {
     ///    Pong, Air Hockey, Carrom, Blast Runners;
     ///  - solo or cluttered games with no conversation: Neon Snake, 2048,
     ///    Brick Breaker, Simon Says, Memory, Digit Guess, Hot Grid, Chess;
-    ///  - everyone staring at their own phone: Stock Panic, Roulette;
+    ///  - everyone staring at their own phone: Stock Panic;
     ///  - KBC overlaps Trivia Showdown; Story Chain moved to Phone Play.
+    /// Roulette was retired in the same pass and put back: everyone has a
+    /// stack, bets on their own phone and watches one wheel on the TV,
+    /// which is what a TV and phones are good at. Poker never left.
     static let retired: Set<GameID> = [
         .chess, .pong, .airHockey, .carrom, .blastRunners,
         .neonSnake, .twenty48, .brickBreaker, .simonSays,
-        .memory, .digitGuess, .hotGrid, .stockPanic, .roulette,
+        .memory, .digitGuess, .hotGrid, .stockPanic,
         .kbc, .storyChain,
     ]
 
