@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0b0b12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Aurora Play">
+  <title>Aurora Play controller</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='play/play.css') }}?v={{ asset_version }}">
+</head>
+<body data-code="{{ code }}">
+  <div id="app"><div id="screen-root"></div></div>
+  <noscript>Aurora Play needs JavaScript to run the controller.</noscript>
+{% for src in scripts %}
+  <script src="{{ url_for('static', filename=src) }}?v={{ asset_version }}"></script>
+{% endfor %}
+  <script>AP.start();</script>
+</body>
+</html>

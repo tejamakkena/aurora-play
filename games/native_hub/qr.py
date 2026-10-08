@@ -20,7 +20,7 @@ import io
 import os
 import re
 
-from flask import Blueprint, Response, abort, render_template, request
+from flask import Blueprint, Response, abort, current_app, render_template, request
 
 qr_bp = Blueprint("native_qr", __name__)
 
@@ -52,6 +52,46 @@ def join_page(code: str):
     return render_template("join.html", code=code,
                            app_url=f"auroraplay://join/{code}",
                            testflight_url=testflight_url())
+
+
+def _play_scripts() -> list[str]:
+    """Controller scripts in load order: core, screens, then one per game."""
+    root = os.path.join(current_app.static_folder, "play", "js")
+    core = ["dom", "icons", "ui", "games", "net", "session", "screens", "lobby"]
+    scripts = ["play/vendor/socket.io.min.js"] + [f"play/js/{n}.js" for n in core]
+    for extra in ("onestop", "voice"):
+        if os.path.exists(os.path.join(root, f"{extra}.js")):
+            scripts.append(f"play/js/{extra}.js")
+    games_dir = os.path.join(root, "games")
+    if os.path.isdir(games_dir):
+        scripts += [f"play/js/games/{n}" for n in sorted(os.listdir(games_dir))
+                    if n.endswith(".js")]
+    scripts.append("play/js/main.js")
+    return scripts
+
+
+def _asset_version() -> str:
+    """Newest mtime under static/play, so a deploy busts the browser cache."""
+    newest = 0
+    for base, _dirs, files in os.walk(os.path.join(current_app.static_folder, "play")):
+        for name in files:
+            newest = max(newest, int(os.path.getmtime(os.path.join(base, name))))
+    return str(newest)
+
+
+@qr_bp.route("/play")
+@qr_bp.route("/play/<code>")
+def play_page(code: str = ""):
+    """The browser version of the phone controller (static/play).
+
+    Same /native protocol and the same screens as the iOS controller; the
+    optional code pre-fills the join form, like the auroraplay:// deep link.
+    """
+    code = (code or "").upper()
+    if code and not _CODE_RE.match(code):
+        abort(404)
+    return render_template("play.html", code=code, scripts=_play_scripts(),
+                           asset_version=_asset_version())
 
 
 @qr_bp.route("/native/qr/<code>")
