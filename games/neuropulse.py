@@ -6,6 +6,7 @@ session ends calm rather than on a hard puzzle.
 
     GET  /api/neuro/daily?device=ID[&date=YYYY-MM-DD][&name=NAME]
     POST /api/neuro/result
+    POST /api/neuro/arcade
     GET  /api/neuro/profile/<device>
     GET  /api/neuro/leaderboard?date=YYYY-MM-DD[&device=ID]
 
@@ -30,6 +31,12 @@ The day's ten steps are generated from a seed of the date plus the device
 (``daily_seed``), so a session is stable if the app is reopened, while two
 people on the same day get tasks pitched at their own ratings.
 
+Beside the daily ten sits the arcade (``ARCADE_GAMES``): short replayable
+games, each training one discipline, that report one 0-1 score for the
+whole run instead of right-or-wrong per step. ``rate`` takes that score as
+the actual result. Only the first run of each game per day moves a rating
+and a practice run never does, so replaying cannot farm a discipline.
+
 The phone grades its own answers (the task carries ``answer``) exactly
 like the older Daily Brain Challenge, so a session plays offline; the
 server rates the session when the results arrive. Storage is a
@@ -42,6 +49,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import math
 import os
 import random
 import re
@@ -88,6 +96,16 @@ SPEED_BONUS = 0.15
 SLOW_DAMPENER = 0.75
 
 #: The ten steps: nine graded, then the Zen reset.
+# The arcade: short replayable games that sit beside the daily ten. Each
+# trains one discipline and reports a single 0-1 score for the run. The
+# discipline is fixed here, not taken from the phone.
+ARCADE_GAMES = {
+    "probe": "logic",       # find the hidden rule with as few test inputs as you can
+    "drift": "pattern",     # notice when the sorting rule changes
+    "ballpark": "math",     # calibrated ranges for real-world numbers
+    "split": "memory",      # a rhythm and a sum at the same time
+}
+
 SESSION_STEPS = 10
 GRADED_STEPS = 9
 
@@ -153,12 +171,26 @@ def _speed_scale(correct: bool, response_ms: float, target_ms: float) -> float:
 
 
 def rate(rating: float, games_played: int, elo_target: float, correct: bool,
-         response_ms: float = 0.0, target_ms: float = 0.0) -> int:
-    """One answer's effect on one discipline's rating."""
+         response_ms: float = 0.0, target_ms: float = 0.0,
+         score: float | None = None) -> int:
+    """One result's effect on one discipline's rating.
+
+    A step is right or wrong, so ``correct`` gives an actual score of 1 or
+    0 and the speed modifier applies. A session-sized game (the arcade)
+    has no single right answer, so it reports ``score``, 0 to 1, which is
+    used as the actual score directly. A score already folds in how well
+    and how fast the run went, so the speed modifier is not applied on top
+    of it. Left out, ``score`` changes nothing: every call that predates
+    it behaves exactly as before.
+    """
     exp = expected_score(rating, elo_target)
-    actual = 1.0 if correct else 0.0
-    move = k_factor(games_played) * (actual - exp)
-    move *= _speed_scale(correct, response_ms, target_ms)
+    if score is None:
+        actual = 1.0 if correct else 0.0
+        scale = _speed_scale(correct, response_ms, target_ms)
+    else:
+        actual = max(0.0, min(1.0, float(score)))
+        scale = 1.0
+    move = k_factor(games_played) * (actual - exp) * scale
     return int(round(max(MIN_RATING, min(MAX_RATING, float(rating) + move))))
 
 
@@ -637,6 +669,8 @@ def _blank() -> dict:
         "restUsedOn": "",
         "zenMinutes": 0,
         "days": {},
+        "arcade": {},          # per game: plays, best, last, lastDate
+        "arcadeDays": {},      # per date: the games already rated that day
     }
 
 
@@ -666,6 +700,10 @@ def _prune(entry: dict) -> None:
     if len(days) > _KEEP_DAYS:
         for key in sorted(days)[:-_KEEP_DAYS]:
             days.pop(key, None)
+    played = entry.get("arcadeDays", {})
+    if len(played) > _KEEP_DAYS:
+        for key in sorted(played)[:-_KEEP_DAYS]:
+            played.pop(key, None)
 
 
 def _advance_streak(entry: dict, date: str) -> int:
@@ -698,6 +736,23 @@ def _advance_streak(entry: dict, date: str) -> int:
     return 1
 
 
+def _arcade_summary(entry: dict) -> dict:
+    """Plays, best and last score for every arcade game, zeros included so
+    the phone can draw a tile for a game that has not been played yet."""
+    stored = entry.get("arcade") or {}
+    out = {}
+    for game, discipline in ARCADE_GAMES.items():
+        row = stored.get(game) if isinstance(stored.get(game), dict) else {}
+        out[game] = {
+            "discipline": discipline,
+            "plays": int(row.get("plays") or 0),
+            "best": float(row.get("best") or 0.0),
+            "last": float(row.get("last") or 0.0),
+            "lastDate": str(row.get("lastDate") or ""),
+        }
+    return out
+
+
 def profile(device: str) -> dict:
     """Ratings, levels, streak and the last 30 days, for the phone."""
     with _lock:
@@ -717,6 +772,7 @@ def profile(device: str) -> dict:
             "zenMinutes": int(entry.get("zenMinutes") or 0),
             "names": DISCIPLINE_NAMES,
             "history": history,
+            "arcade": _arcade_summary(entry),
         }
 
 
@@ -808,6 +864,74 @@ def record_session(device: str, answers: list, date: str | None = None,
             "best": dict(entry["best"]),
             "improvedMost": improved,
             "alreadyPlayed": already,
+            "names": DISCIPLINE_NAMES,
+        }
+
+
+def record_arcade(device: str, game: str, level: int, score: float,
+                  date: str | None = None, name: str = "", seconds: int = 0,
+                  practice: bool = False) -> dict:
+    """Rate one arcade run.
+
+    ``score`` is 0 to 1 and the phone has already folded accuracy and speed
+    into it. Only the first run of each game on a date moves the rating,
+    and a run marked ``practice`` never does, so replaying cannot farm a
+    discipline: at most one rating move per game per day.
+    """
+    if game not in ARCADE_GAMES:
+        raise ValueError("unknown arcade game")
+    score = float(score)
+    if not math.isfinite(score) or not 0.0 <= score <= 1.0:
+        raise ValueError("score must be between 0 and 1")
+    date = date or today()
+    level = max(1, min(10, int(level)))
+    discipline = ARCADE_GAMES[game]
+    with _lock:
+        data = _load()
+        entry = _entry(data, device)
+        if name:
+            entry["name"] = str(name)[:24]
+        rated_today = game in (entry["arcadeDays"].get(date) or {})
+        counts = not practice and not rated_today
+
+        before = int(entry["ratings"][discipline])
+        if counts:
+            fresh = rate(before, entry["games"][discipline],
+                         elo_target_for_level(level), False, score=score)
+            entry["ratings"][discipline] = fresh
+            entry["games"][discipline] = int(entry["games"][discipline]) + 1
+            entry["best"][discipline] = max(int(entry["best"][discipline]), fresh)
+            entry["arcadeDays"].setdefault(date, {})[game] = round(score, 3)
+
+        row = entry["arcade"].get(game)
+        if not isinstance(row, dict):
+            row = {"plays": 0, "best": 0.0, "last": 0.0, "lastDate": ""}
+        row["plays"] = int(row.get("plays") or 0) + 1
+        row["best"] = max(float(row.get("best") or 0.0), score)
+        row["last"] = score
+        row["lastDate"] = date
+        entry["arcade"][game] = row
+        _prune(entry)
+        _save(data)
+
+        after = int(entry["ratings"][discipline])
+        return {
+            "game": game,
+            "discipline": discipline,
+            "date": date,
+            "level": level,
+            "score": score,
+            "seconds": max(0, int(seconds)),
+            "rated": counts,
+            "alreadyRated": rated_today,
+            "practice": bool(practice),
+            "before": before,
+            "after": after,
+            "delta": after - before,
+            "ratings": dict(entry["ratings"]),
+            "levels": {d: level_for_rating(entry["ratings"][d]) for d in DISCIPLINES},
+            "best": dict(entry["best"]),
+            "arcade": _arcade_summary(entry),
             "names": DISCIPLINE_NAMES,
         }
 
@@ -908,6 +1032,29 @@ def neuro_result():
         mood=int(body.get("mood") or 0),
         zen_seconds=int(body.get("zenSeconds") or 0),
     )
+    out["success"] = True
+    return jsonify(out)
+
+
+@neuro_bp.route("/neuro/arcade", methods=["POST"])
+def neuro_arcade():
+    body = request.get_json(silent=True) or {}
+    device = str(body.get("device") or "").strip()
+    if not _device_ok(device):
+        return jsonify({"success": False, "error": "bad device"}), 400
+    try:
+        out = record_arcade(
+            device,
+            str(body.get("game") or ""),
+            int(body.get("level") or 1),
+            body.get("score"),
+            date=_date_arg(body.get("date")),
+            name=str(body.get("name") or "")[:24],
+            seconds=int(body.get("seconds") or 0),
+            practice=bool(body.get("practice")),
+        )
+    except (TypeError, ValueError) as err:
+        return jsonify({"success": False, "error": str(err) or "bad request"}), 400
     out["success"] = True
     return jsonify(out)
 

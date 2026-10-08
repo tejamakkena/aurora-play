@@ -464,3 +464,219 @@ class TestHTTP:
         assert {row["device"] for row in body["friends"]} == {DEV, OTHER}
         empty = client.get("/api/neuro/leaderboard?date=2026-05-04").get_json()
         assert empty["everyone"] == [] and empty["friends"] == []
+
+
+# --------------------------------------------------------------------------
+# arcade: session-sized games that report one 0-1 score
+# --------------------------------------------------------------------------
+
+class TestFractionalRating:
+    def test_rate_without_a_score_is_unchanged(self):
+        """Every call that predates `score` must give the same answer. The
+        pinned numbers were taken from the implementation before `score`
+        existed (K=16 at 50 games: +8 x 1.15 for a fast right answer, -8 for
+        a wrong one)."""
+        assert np.rate(1200, 50, 1200, True, 3000, 10000) == 1209
+        assert np.rate(1200, 50, 1200, False, 3000, 10000) == 1192
+        assert np.rate(1200, 5, 1300, True) == np.rate(1200, 5, 1300, True, 0.0, 0.0, None)
+
+    def test_a_full_score_matches_a_correct_answer_without_the_speed_bonus(self):
+        full = np.rate(1200, 50, 1200, False, score=1.0)
+        plain = np.rate(1200, 50, 1200, True, 8000, 10000)      # inside target: x1.0
+        assert full == plain > 1200
+
+    def test_a_zero_score_matches_a_wrong_answer(self):
+        assert np.rate(1200, 50, 1200, True, score=0.0) == np.rate(1200, 50, 1200, False)
+
+    def test_scoring_exactly_what_was_expected_does_not_move_the_rating(self):
+        target = 1400
+        exp = np.expected_score(1200, target)
+        assert np.rate(1200, 50, target, False, score=exp) == 1200
+
+    def test_a_partial_score_lands_between_the_extremes(self):
+        low = np.rate(1200, 50, 1200, False, score=0.0)
+        mid = np.rate(1200, 50, 1200, False, score=0.5)
+        high = np.rate(1200, 50, 1200, False, score=1.0)
+        assert low < mid < high
+
+    def test_speed_is_not_applied_on_top_of_a_score(self):
+        fast = np.rate(1200, 50, 1200, True, 100, 10000, score=0.8)
+        slow = np.rate(1200, 50, 1200, True, 99999, 10000, score=0.8)
+        assert fast == slow
+
+    def test_out_of_range_scores_are_clamped_by_rate(self):
+        assert np.rate(1200, 50, 1200, False, score=7.0) == np.rate(1200, 50, 1200, False, score=1.0)
+        assert np.rate(1200, 50, 1200, False, score=-3.0) == np.rate(1200, 50, 1200, False, score=0.0)
+
+    def test_ratings_still_stay_inside_their_bounds(self):
+        assert np.rate(np.MIN_RATING, 0, 2400, False, score=0.0) >= np.MIN_RATING
+        assert np.rate(np.MAX_RATING, 0, 800, False, score=1.0) <= np.MAX_RATING
+
+
+class TestArcadeRecording:
+    DAY = "2026-03-02"
+
+    def test_every_arcade_game_maps_to_a_real_discipline(self):
+        assert set(np.ARCADE_GAMES.values()) <= set(np.DISCIPLINES)
+        assert "zen" not in np.ARCADE_GAMES.values()
+
+    def test_a_good_run_raises_the_games_discipline_only(self):
+        out = np.record_arcade(DEV, "probe", 5, 0.95, date=self.DAY)
+        assert out["rated"] and out["discipline"] == "logic"
+        assert out["delta"] > 0 and out["after"] == out["before"] + out["delta"]
+        for d in np.DISCIPLINES:
+            if d != "logic":
+                assert out["ratings"][d] == np.START_RATING
+
+    def test_a_poor_run_lowers_it(self):
+        out = np.record_arcade(DEV, "drift", 5, 0.05, date=self.DAY)
+        assert out["discipline"] == "pattern" and out["delta"] < 0
+
+    def test_the_discipline_comes_from_the_game_not_the_phone(self):
+        out = np.record_arcade(DEV, "ballpark", 3, 0.9, date=self.DAY)
+        assert out["discipline"] == "math"
+
+    def test_only_the_first_run_of_a_game_per_day_is_rated(self):
+        first = np.record_arcade(DEV, "probe", 5, 0.9, date=self.DAY)
+        again = np.record_arcade(DEV, "probe", 5, 1.0, date=self.DAY)
+        assert first["rated"] and not again["rated"]
+        assert again["alreadyRated"] and again["delta"] == 0
+        assert again["after"] == first["after"]
+
+    def test_a_different_game_the_same_day_is_rated(self):
+        np.record_arcade(DEV, "probe", 5, 0.9, date=self.DAY)
+        other = np.record_arcade(DEV, "drift", 5, 0.9, date=self.DAY)
+        assert other["rated"] and other["delta"] > 0
+
+    def test_the_next_day_is_rated_again(self):
+        np.record_arcade(DEV, "probe", 5, 0.9, date=self.DAY)
+        nxt = np.record_arcade(DEV, "probe", 5, 0.9, date="2026-03-03")
+        assert nxt["rated"]
+
+    def test_a_practice_run_never_moves_the_rating_or_uses_up_the_day(self):
+        practice = np.record_arcade(DEV, "probe", 5, 1.0, date=self.DAY, practice=True)
+        assert not practice["rated"] and practice["delta"] == 0
+        assert not practice["alreadyRated"]
+        real = np.record_arcade(DEV, "probe", 5, 1.0, date=self.DAY)
+        assert real["rated"] and real["delta"] > 0
+
+    def test_a_rated_run_counts_towards_the_k_factor(self):
+        np.record_arcade(DEV, "probe", 5, 0.9, date=self.DAY)
+        assert np.profile(DEV)["games"]["logic"] == 1
+        np.record_arcade(DEV, "probe", 5, 0.9, date=self.DAY, practice=True)
+        assert np.profile(DEV)["games"]["logic"] == 1
+
+    def test_a_harder_level_pays_more_for_the_same_score(self):
+        easy = np.record_arcade("dev-easy-1", "probe", 1, 0.9, date=self.DAY)
+        hard = np.record_arcade("dev-hard-1", "probe", 10, 0.9, date=self.DAY)
+        assert hard["delta"] > easy["delta"]
+
+    def test_the_level_is_clamped(self):
+        assert np.record_arcade("dev-lvl-high", "probe", 99, 0.5, date=self.DAY)["level"] == 10
+        assert np.record_arcade("dev-lvl-low", "probe", -4, 0.5, date=self.DAY)["level"] == 1
+
+    @pytest.mark.parametrize("score", [-0.1, 1.01, float("nan"), float("inf"), "x", None])
+    def test_a_bad_score_is_refused(self, score):
+        with pytest.raises((ValueError, TypeError)):
+            np.record_arcade(DEV, "probe", 5, score, date=self.DAY)
+
+    def test_an_unknown_game_is_refused(self):
+        with pytest.raises(ValueError):
+            np.record_arcade(DEV, "pong", 5, 0.5, date=self.DAY)
+
+    def test_a_refused_run_leaves_the_ratings_alone(self):
+        with pytest.raises(ValueError):
+            np.record_arcade(DEV, "probe", 5, 2.0, date=self.DAY)
+        assert np.profile(DEV)["ratings"]["logic"] == np.START_RATING
+
+    def test_the_arcade_does_not_touch_the_daily_streak_or_pulse(self):
+        np.record_arcade(DEV, "probe", 5, 1.0, date=self.DAY)
+        prof = np.profile(DEV)
+        assert prof["streak"] == 0 and prof["history"] == []
+
+    def test_a_daily_session_and_an_arcade_run_both_count(self):
+        sess = np.build_session(DEV, self.DAY)
+        np.record_session(DEV, answers(sess, True), date=self.DAY)
+        before = np.profile(DEV)["ratings"]["logic"]
+        out = np.record_arcade(DEV, "probe", 5, 1.0, date=self.DAY)
+        assert out["rated"] and out["before"] == before
+
+    def test_the_profile_lists_every_game_even_unplayed(self):
+        arcade = np.profile(DEV)["arcade"]
+        assert set(arcade) == set(np.ARCADE_GAMES)
+        assert all(row["plays"] == 0 and row["best"] == 0.0 for row in arcade.values())
+
+    def test_the_profile_tracks_plays_best_and_last(self):
+        np.record_arcade(DEV, "drift", 4, 0.6, date=self.DAY)
+        np.record_arcade(DEV, "drift", 4, 0.9, date="2026-03-03")
+        np.record_arcade(DEV, "drift", 4, 0.3, date="2026-03-04")
+        row = np.profile(DEV)["arcade"]["drift"]
+        assert row["plays"] == 3 and row["best"] == 0.9
+        assert row["last"] == 0.3 and row["lastDate"] == "2026-03-04"
+
+    def test_practice_runs_still_show_in_plays_and_best(self):
+        np.record_arcade(DEV, "probe", 4, 0.7, date=self.DAY, practice=True)
+        row = np.profile(DEV)["arcade"]["probe"]
+        assert row["plays"] == 1 and row["best"] == 0.7
+
+    def test_old_arcade_days_are_pruned(self):
+        base = dt.date(2025, 1, 1)
+        for i in range(np._KEEP_DAYS + 10):
+            np.record_arcade(DEV, "probe", 3, 0.5, date=(base + dt.timedelta(days=i)).isoformat())
+        data = np._load()
+        assert len(data["devices"][DEV]["arcadeDays"]) <= np._KEEP_DAYS
+
+    def test_an_entry_saved_before_the_arcade_existed_still_loads(self):
+        data = {"devices": {DEV: {"ratings": {d: 1100 for d in np.DISCIPLINES},
+                                   "games": {d: 3 for d in np.DISCIPLINES}}}}
+        np._save(data)
+        assert np.profile(DEV)["arcade"]["probe"]["plays"] == 0
+        assert np.record_arcade(DEV, "probe", 5, 0.9, date=self.DAY)["rated"]
+
+
+class TestArcadeHTTP:
+    def test_a_run_is_rated_over_http(self, client):
+        res = client.post("/api/neuro/arcade", json={
+            "device": DEV, "game": "probe", "level": 5, "score": 0.9,
+            "date": "2026-03-02", "seconds": 80, "name": "Teja"})
+        body = res.get_json()
+        assert res.status_code == 200 and body["success"] and body["rated"]
+        assert body["discipline"] == "logic" and body["delta"] > 0
+        assert body["arcade"]["probe"]["plays"] == 1
+
+    def test_the_second_run_of_the_day_is_not_rated(self, client):
+        payload = {"device": DEV, "game": "probe", "level": 5, "score": 0.9,
+                   "date": "2026-03-02"}
+        client.post("/api/neuro/arcade", json=payload)
+        again = client.post("/api/neuro/arcade", json=payload).get_json()
+        assert again["alreadyRated"] and not again["rated"]
+
+    def test_practice_is_honoured(self, client):
+        res = client.post("/api/neuro/arcade", json={
+            "device": DEV, "game": "drift", "level": 5, "score": 1.0, "practice": True})
+        assert res.get_json()["rated"] is False
+
+    @pytest.mark.parametrize("payload", [
+        {"game": "probe", "score": 0.5},                                  # no device
+        {"device": "x", "game": "probe", "score": 0.5},                   # bad device
+        {"device": DEV, "game": "pong", "score": 0.5},                    # unknown game
+        {"device": DEV, "game": "", "score": 0.5},
+        {"device": DEV, "game": "probe"},                                 # no score
+        {"device": DEV, "game": "probe", "score": 1.5},
+        {"device": DEV, "game": "probe", "score": -1},
+        {"device": DEV, "game": "probe", "score": "high"},
+        {"device": DEV, "game": "probe", "score": 0.5, "level": "abc"},
+    ])
+    def test_bad_requests_are_400(self, client, payload):
+        res = client.post("/api/neuro/arcade", json=payload)
+        assert res.status_code == 400 and res.get_json()["success"] is False
+
+    def test_a_non_json_body_is_400(self, client):
+        assert client.post("/api/neuro/arcade", data="nope").status_code == 400
+
+    def test_the_profile_endpoint_carries_the_arcade(self, client):
+        client.post("/api/neuro/arcade", json={
+            "device": DEV, "game": "split", "level": 3, "score": 0.7})
+        body = client.get(f"/api/neuro/profile/{DEV}").get_json()
+        assert body["arcade"]["split"]["plays"] == 1
+        assert body["arcade"]["split"]["discipline"] == "memory"
