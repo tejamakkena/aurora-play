@@ -43,7 +43,7 @@ struct NeuroMindScoreView: View {
             Spacer(minLength: 0)
             HStack(spacing: 6) {
                 Image(systemName: "wind")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.cyan)
                 Text("\(profile.zenMinutes) min calm")
                     .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -177,7 +177,7 @@ private struct NeuroDisciplineRow: View {
         VStack(spacing: 7) {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(tint)
                 Text(name)
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
@@ -312,7 +312,7 @@ private struct NeuroLeaderRowView: View {
             if row.streak > 1 {
                 HStack(spacing: 3) {
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
                     Text("\(row.streak)")
                         .font(.system(size: 12, weight: .heavy, design: .rounded))
                 }

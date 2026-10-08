@@ -125,7 +125,7 @@ struct NeuroPulseRootView: View {
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: "chart.bar.fill")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
                     Text("Progress")
                         .font(.system(size: 14, weight: .bold, design: .rounded))
                 }
@@ -213,7 +213,7 @@ private struct NeuroRunnerView: View {
     private func hintCard(_ text: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "lightbulb.fill")
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundColor(PhonePlayDesign.yellow)
             Text(text)
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
@@ -272,7 +272,7 @@ private struct NeuroStepHeader: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: NeuroDiscipline.symbol(step.discipline))
-                .font(.system(size: 17, weight: .bold))
+                .font(.system(size: 17, weight: .bold, design: .rounded))
                 .foregroundColor(NeuroStyle.tint(step.discipline))
                 .frame(width: 38, height: 38)
                 .background(Circle().fill(PhonePlayDesign.surface))
@@ -619,7 +619,7 @@ private struct NeuroNumberArea: View {
                         .font(.system(size: 28, weight: .heavy, design: .rounded).monospacedDigit())
                 } else if let symbol {
                     Image(systemName: symbol)
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
                 }
             }
             .foregroundColor(accent ? (enabled ? .black : .white.opacity(0.3)) : .white)
@@ -783,7 +783,7 @@ private struct NeuroReflectArea: View {
                 Circle()
                     .strokeBorder(PhonePlayDesign.green.opacity(0.18), lineWidth: 2)
                 Image(systemName: "leaf.fill")
-                    .font(.system(size: 44, weight: .bold))
+                    .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(PhonePlayDesign.gradient(NeuroStyle.calm))
                     .phonePlayIdle(dy: 4, degrees: 4, duration: 2.2)
             }
@@ -834,7 +834,7 @@ private struct NeuroFeedbackCard: View {
         VStack(spacing: 12) {
             HStack(spacing: 10) {
                 Image(systemName: symbol)
-                    .font(.system(size: 26, weight: .bold))
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
                     .foregroundColor(tint)
                 Text(title)
                     .font(.system(size: 22, weight: .black, design: .rounded))
@@ -990,7 +990,7 @@ private struct NeuroResultsView: View {
             ForEach(summary.movedDisciplines, id: \.self) { key in
                 HStack(spacing: 10) {
                     Image(systemName: NeuroDiscipline.symbol(key))
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(NeuroStyle.tint(key))
                         .frame(width: 30, height: 30)
                         .background(Circle().fill(PhonePlayDesign.surface2))
@@ -1017,7 +1017,7 @@ private struct NeuroResultsView: View {
     private var improvedBlock: some View {
         HStack(spacing: 10) {
             Image(systemName: "arrow.up.right.circle.fill")
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 24, weight: .bold, design: .rounded))
                 .foregroundColor(PhonePlayDesign.green)
             Text("You improved most in \(summary.displayName(summary.improvedMost))")
                 .font(.system(size: 16, weight: .heavy, design: .rounded))

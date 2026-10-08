@@ -85,7 +85,7 @@ struct NeuroHomeCard: View {
                     .fill(Color.white.opacity(0.18))
                     .frame(width: 58, height: 58)
                 Image(systemName: "brain.head.profile")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             .phonePlayIdle(dy: 3, degrees: 3, duration: 1.6)
@@ -111,7 +111,7 @@ struct NeuroHomeCard: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: actionSymbol)
-                        .font(.system(size: 15, weight: .heavy))
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
                     Text(actionTitle)
                         .font(.system(size: 16, weight: .heavy, design: .rounded))
                         .lineLimit(1)
@@ -131,7 +131,7 @@ struct NeuroHomeCard: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "chart.bar.fill")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                     Text("Progress")
                         .font(.system(size: 15, weight: .heavy, design: .rounded))
                 }
