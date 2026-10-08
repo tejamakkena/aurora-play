@@ -2,8 +2,9 @@ import Foundation
 
 // MARK: - NeuroPulse endpoints
 //
-//   GET  api/neuro/daily?device=&date=&name=
+//   GET  api/neuro/daily?device=&date=&name=&caps=
 //   POST api/neuro/result
+//   POST api/neuro/arcade
 //   GET  api/neuro/profile/<device>
 //   GET  api/neuro/leaderboard?date=&device=
 //
@@ -17,6 +18,13 @@ enum NeuroAPI {
     /// A fetch must not hold the workout up: the UI shows the cached or
     /// locally built session straight away and reconciles when this lands.
     private static let timeout: TimeInterval = 15
+
+    /// The optional step kinds this build can draw (`OPTIONAL_KINDS` in
+    /// games/neuropulse.py). The server deals them only to a phone that
+    /// lists them, so an older build never receives one it would draw
+    /// wrongly. Add a kind here in the same change that teaches the views
+    /// to show it.
+    static let capabilities: [String] = ["liars_row", "dead_reckoning"]
 
     private static func url(_ path: String, _ query: [URLQueryItem] = []) -> URL? {
         var components = URLComponents(url: AppConstants.serverURL.appendingPathComponent(path),
@@ -42,6 +50,7 @@ enum NeuroAPI {
         var query = [URLQueryItem(name: "device", value: device),
                      URLQueryItem(name: "date", value: date)]
         if !name.isEmpty { query.append(URLQueryItem(name: "name", value: name)) }
+        query.append(URLQueryItem(name: "caps", value: capabilities.joined(separator: ",")))
         guard let target = url("api/neuro/daily", query) else { return nil }
         var request = URLRequest(url: target)
         request.timeoutInterval = timeout
@@ -77,6 +86,38 @@ enum NeuroAPI {
         var left: [[String: Any]] = []
         for body in queued {
             if await post(result: body) == nil { left.append(body) }
+        }
+        return left
+    }
+
+    // MARK: Rate an arcade run
+
+    /// `body` is the full POST payload (`device`, `game`, `level`, `score`,
+    /// `seconds`, `date`, `name`, `practice`).
+    static func post(arcade body: [String: Any]) async -> NeuroArcadeOutcome? {
+        guard let payload = NeuroJSON.data(body) else { return nil }
+        return await post(arcadeData: payload)
+    }
+
+    /// The payload already serialised, which is what the arcade screens
+    /// send: `Data` crosses between the main actor and this call cleanly.
+    static func post(arcadeData payload: Data) async -> NeuroArcadeOutcome? {
+        guard let target = url("api/neuro/arcade") else { return nil }
+        var request = URLRequest(url: target)
+        request.httpMethod = "POST"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = payload
+        guard let reply = await send(request) else { return nil }
+        return NeuroArcadeOutcome(json: reply)
+    }
+
+    /// Posts the arcade runs queued while offline; returns what is still
+    /// waiting.
+    static func flush(arcade queued: [[String: Any]]) async -> [[String: Any]] {
+        var left: [[String: Any]] = []
+        for body in queued {
+            if await post(arcade: body) == nil { left.append(body) }
         }
         return left
     }
