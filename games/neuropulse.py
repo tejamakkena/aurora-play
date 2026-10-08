@@ -1059,6 +1059,25 @@ def record_session(device: str, answers: list, date: str | None = None,
         }
 
 
+class ArcadeInputError(ValueError):
+    """A bad arcade request. Carries only which field was wrong, never the
+    text of an underlying exception, so nothing the caller sent (or any
+    internal detail) is echoed back."""
+
+    def __init__(self, field: str):
+        super().__init__(field)
+        self.field = field
+
+
+#: What the caller is told for each bad field. Fixed strings, on purpose.
+_ARCADE_ERRORS = {
+    "game": "unknown game",
+    "score": "score must be a number from 0 to 1",
+    "level": "level must be a whole number",
+    "seconds": "seconds must be a whole number",
+}
+
+
 def record_arcade(device: str, game: str, level: int, score: float,
                   date: str | None = None, name: str = "", seconds: int = 0,
                   practice: bool = False) -> dict:
@@ -1070,10 +1089,13 @@ def record_arcade(device: str, game: str, level: int, score: float,
     discipline: at most one rating move per game per day.
     """
     if game not in ARCADE_GAMES:
-        raise ValueError("unknown arcade game")
-    score = float(score)
+        raise ArcadeInputError("game")
+    try:
+        score = float(score)
+    except (TypeError, ValueError):
+        raise ArcadeInputError("score") from None
     if not math.isfinite(score) or not 0.0 <= score <= 1.0:
-        raise ValueError("score must be between 0 and 1")
+        raise ArcadeInputError("score")
     date = date or today()
     level = max(1, min(10, int(level)))
     discipline = ARCADE_GAMES[game]
@@ -1230,23 +1252,33 @@ def neuro_result():
 
 @neuro_bp.route("/neuro/arcade", methods=["POST"])
 def neuro_arcade():
-    body = request.get_json(silent=True) or {}
+    body = request.get_json(silent=True)
+    body = body if isinstance(body, dict) else {}
     device = str(body.get("device") or "").strip()
     if not _device_ok(device):
         return jsonify({"success": False, "error": "bad device"}), 400
     try:
+        try:
+            level = int(body.get("level") or 1)
+        except (TypeError, ValueError):
+            raise ArcadeInputError("level") from None
+        try:
+            seconds = int(body.get("seconds") or 0)
+        except (TypeError, ValueError):
+            raise ArcadeInputError("seconds") from None
         out = record_arcade(
             device,
             str(body.get("game") or ""),
-            int(body.get("level") or 1),
+            level,
             body.get("score"),
             date=_date_arg(body.get("date")),
             name=str(body.get("name") or "")[:24],
-            seconds=int(body.get("seconds") or 0),
+            seconds=seconds,
             practice=bool(body.get("practice")),
         )
-    except (TypeError, ValueError) as err:
-        return jsonify({"success": False, "error": str(err) or "bad request"}), 400
+    except ArcadeInputError as err:
+        message = _ARCADE_ERRORS.get(err.field, "bad request")
+        return jsonify({"success": False, "error": message}), 400
     out["success"] = True
     return jsonify(out)
 

@@ -575,17 +575,19 @@ class TestArcadeRecording:
         assert np.record_arcade("dev-lvl-high", "probe", 99, 0.5, date=self.DAY)["level"] == 10
         assert np.record_arcade("dev-lvl-low", "probe", -4, 0.5, date=self.DAY)["level"] == 1
 
-    @pytest.mark.parametrize("score", [-0.1, 1.01, float("nan"), float("inf"), "x", None])
+    @pytest.mark.parametrize("score", [-0.1, 1.01, float("nan"), float("inf"), "x", None, [], {}])
     def test_a_bad_score_is_refused(self, score):
-        with pytest.raises((ValueError, TypeError)):
+        with pytest.raises(np.ArcadeInputError) as err:
             np.record_arcade(DEV, "probe", 5, score, date=self.DAY)
+        assert err.value.field == "score"
 
     def test_an_unknown_game_is_refused(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(np.ArcadeInputError) as err:
             np.record_arcade(DEV, "pong", 5, 0.5, date=self.DAY)
+        assert err.value.field == "game"
 
     def test_a_refused_run_leaves_the_ratings_alone(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(np.ArcadeInputError):
             np.record_arcade(DEV, "probe", 5, 2.0, date=self.DAY)
         assert np.profile(DEV)["ratings"]["logic"] == np.START_RATING
 
@@ -673,6 +675,28 @@ class TestArcadeHTTP:
 
     def test_a_non_json_body_is_400(self, client):
         assert client.post("/api/neuro/arcade", data="nope").status_code == 400
+
+    def test_a_json_body_that_is_not_an_object_is_400(self, client):
+        assert client.post("/api/neuro/arcade", json=[1, 2]).status_code == 400
+
+    @pytest.mark.parametrize("payload,message", [
+        ({"game": "pong", "score": 0.5}, "unknown game"),
+        ({"game": "probe", "score": "high"}, "score must be a number from 0 to 1"),
+        ({"game": "probe", "score": 9}, "score must be a number from 0 to 1"),
+        ({"game": "probe", "score": 0.5, "level": "abc"}, "level must be a whole number"),
+        ({"game": "probe", "score": 0.5, "seconds": "soon"}, "seconds must be a whole number"),
+    ])
+    def test_errors_are_fixed_messages_that_echo_nothing(self, client, payload, message):
+        res = client.post("/api/neuro/arcade", json={"device": DEV, **payload})
+        assert res.status_code == 400
+        assert res.get_json()["error"] == message
+
+    def test_a_hostile_value_is_never_echoed_back(self, client):
+        res = client.post("/api/neuro/arcade", json={
+            "device": DEV, "game": "probe", "score": "<script>alert(1)</script>"})
+        text = res.get_data(as_text=True)
+        assert res.status_code == 400
+        assert "script" not in text and "could not convert" not in text
 
     def test_the_profile_endpoint_carries_the_arcade(self, client):
         client.post("/api/neuro/arcade", json={
