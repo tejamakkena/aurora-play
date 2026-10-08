@@ -337,8 +337,10 @@ enum GameID: String, Codable, CaseIterable {
     var soloPlayable: Bool           { meta.soloPlayable }
 
     /// Games playable alone on the TV with nothing but the remote.
-    /// Games no longer offered. Each stays decodable (older rooms, the
-    /// server registry) but failed the "does this really need a TV and
+    /// Games no longer offered. Their TV boards and phone controllers are
+    /// gone; the cases stay so a room made by an older build still decodes
+    /// (both routers show a "retired" screen for them) and so the server
+    /// registry still maps. Each failed the "does this really need a TV and
     /// phones, and does it get people talking?" test:
     ///  - phone-as-joystick real-time games are laggy and frustrating:
     ///    Pong, Air Hockey, Carrom, Blast Runners;

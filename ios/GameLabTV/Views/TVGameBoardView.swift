@@ -6,16 +6,13 @@ struct TVGameBoardView: View {
 
     var body: some View {
         switch room.gameID {
-        // Invented games — full implementations
+        // Invented games
         case .heist:         TVHeistBoardView(room: room)
-        case .stockPanic:    TVStockPanicBoardView(room: room)
         case .mindMeld:      TVMindMeldBoardView(room: room)
-        case .hotGrid:       TVHotGridBoardView(room: room)
         case .speedSculptor: TVSpeedSculptorBoardView(room: room)
 
         // Knowledge
         case .trivia:        TVTriviaBoardView(room: room)
-        case .digitGuess:    TVDigitGuessBoardView(room: room)
 
         // Casino
         case .poker:         TVPokerBoardView(room: room)
@@ -27,13 +24,8 @@ struct TVGameBoardView: View {
         case .rajaMantri:    TVRajaMantriBoard(room: room)
 
         // Strategy / Board
-        case .chess:         TVChessBoardView(room: room)
         case .connectFour:   TVConnect4BoardView(room: room)
-        case .memory:        TVMemoryBoardView(room: room)
         case .snakeLadder:   TVSnakeLadderBoardView(room: room)
-
-        // Action
-        case .pong:          TVPongBoardView(room: room)
 
         // Party
         case .bluffIt:       TVBluffItBoardView(room: room)
@@ -51,33 +43,27 @@ struct TVGameBoardView: View {
         case .oddOneOut:     TVOddOneOutBoardView(room: room)
         case .sealedAuction: TVSealedAuctionBoardView(room: room)
         case .wavelength:    TVWavelengthBoardView(room: room)
-        case .kbc:           TVKBCBoardView(room: room)
         case .bollywoodCharades: TVBollywoodCharadesBoardView(room: room)
 
         // Duel and co-op
         case .defuse:        TVDefuseBoardView(room: room)
         case .battleship:    TVBattleshipBoardView(room: room)
-        case .airHockey:     TVAirHockeyBoardView(room: room)
         case .heistEscape:   TVHeistEscapeBoardView(room: room)
         case .ludo:          TVLudoBoardView(room: room)
-        case .carrom:        TVCarromBoardView(room: room)
         case .teenPatti:     TVTeenPattiBoardView(room: room)
-
-        // Solo — these also read the Siri Remote directly.
-        case .neonSnake:     TVNeonSnakeBoardView(room: room)
-        case .twenty48:      TVTwenty48BoardView(room: room)
-        case .brickBreaker:  TVBrickBreakerBoardView(room: room)
-        case .simonSays:     TVSimonSaysBoardView(room: room)
-
-        // Co-op arcade
-        case .blastRunners:  TVBlastRunnersBoardView(room: room)
 
         // Talk games — argue and ask out loud.
         case .hotTakes:       TVHotTakesBoardView(room: room)
         case .twentyQuestions: TVTwentyQuestionsBoardView(room: room)
 
-        // Travel Mode leftover with no TV board (retired).
-        case .storyChain:     PlaceholderBoardView(game: .storyChain)
+        // Retired games stay decodable (a room made by an older build can
+        // still carry one) but have no board: say so and send people back
+        // to the game list.
+        case .chess, .pong, .airHockey, .carrom, .blastRunners,
+             .neonSnake, .twenty48, .brickBreaker, .simonSays,
+             .memory, .digitGuess, .hotGrid, .stockPanic,
+             .kbc, .storyChain:
+            PlaceholderBoardView(game: room.gameID)
         }
     }
 }
