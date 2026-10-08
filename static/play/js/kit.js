@@ -76,6 +76,46 @@
     return 0;
   };
 
+  /** midPadCard: surface card edged in an accent. */
+  kit.card = function (accent, o) {
+    o = o || {};
+    var kids = Array.prototype.slice.call(arguments, 2);
+    return h('div', {
+      class: o.cls || '', key: o.key,
+      style: Object.assign({ background: C.surface, borderRadius: o.radius || 'var(--r-card)',
+        border: '1px solid ' + (accent ? AP.alpha(accent, 0.4) : 'rgba(255,255,255,0.06)') }, o.style || {})
+    }, kids);
+  };
+
+  kit.label = function (text, color) {
+    return h('div', { style: { fontSize: '12px', fontWeight: 800, letterSpacing: '2px', color: color || C.text3 } }, String(text).toUpperCase());
+  };
+
+  /** MidPadPill: a short status line in a tinted capsule. */
+  kit.pill = function (text, icon, tint) {
+    tint = tint || C.cyan;
+    return h('div', { class: 'row gap6', style: { padding: '8px 14px', borderRadius: '999px', background: AP.alpha(tint, 0.14),
+        color: tint, fontSize: '14px', fontWeight: 700, textAlign: 'center', justifyContent: 'center' } },
+      icon ? AP.icon(icon, 13) : null, text);
+  };
+
+  /** A range slider in Phone Play colours. */
+  kit.slider = function (o) {
+    return h('input', { type: 'range', class: 'slider', key: o.key, min: o.min, max: o.max, step: o.step || 1,
+      value: String(o.value), style: { '--fill': ((o.value - o.min) / Math.max(o.max - o.min, 1) * 100) + '%',
+        '--tint': o.tint || C.cyan },
+      oninput: function (ev) { o.onInput(parseFloat(ev.target.value)); } });
+  };
+
+  /** The round +/- buttons used by the steppers. */
+  kit.stepButton = function (icon, enabled, tint, onClick) {
+    return h('button', { class: 'press', disabled: !enabled,
+      style: { appearance: 'none', border: 0, width: '44px', height: '44px', borderRadius: '50%', display: 'inline-flex',
+        alignItems: 'center', justifyContent: 'center', color: enabled ? '#fff' : 'rgba(255,255,255,0.25)',
+        background: enabled ? AP.alpha(tint, 0.35) : 'rgba(255,255,255,0.06)' },
+      onclick: enabled ? function () { AP.haptic.tap(); onClick(); } : null }, AP.icon(icon, 17));
+  };
+
   kit.fnv = function (str) {
     var hash = 2166136261;
     for (var i = 0; i < str.length; i++) {
@@ -84,4 +124,32 @@
     }
     return hash >>> 0;
   };
+
+  // ---- layout idioms shared by the game files --------------------------
+  var ui = AP.ui, pd = AP.pd;
+  function promptCard(text, label, accent, textColor) {
+    return h('div', { class: 'px20', style: { paddingTop: '14px' } },
+      h('div', { class: 'col center gap8 txt-center', style: { padding: '20px', borderRadius: 'var(--r-card)',
+          background: C.surface, border: '1px solid ' + AP.alpha(accent || C.cyan, 0.35) } },
+        label ? h('div', { style: { fontSize: '12px', fontWeight: 800, letterSpacing: '2px', color: accent || C.cyan } }, label.toUpperCase()) : null,
+        h('div', { style: { fontSize: '22px', fontWeight: 800, color: textColor || '#fff', lineHeight: 1.2 } }, text)));
+  }
+
+  /** Vertically centred form area (the Spacer / content / Spacer idiom). */
+  function centered(key) {
+    var kids = Array.prototype.slice.call(arguments, 1);
+    return h('div', { class: 'col gap14 pop-in', key: key, style: { flex: '1 1 auto', justifyContent: 'center', minHeight: 0 } }, kids);
+  }
+
+  function waiting(key, icon, text, detail) {
+    var el = ui.waitingState(icon, text, detail);
+    el._key = key;
+    el.className += ' pop-in';
+    return el;
+  }
+
+
+  AP.promptCard = promptCard;
+  AP.centered = centered;
+  AP.waiting = waiting;
 })();

@@ -8,29 +8,7 @@
 
   var TINT = { bluff: C.pink, lastTap: C.green, herd: C.cyan, emoji: C.yellow, npat: C.cyan, mostLikely: C.purple };
 
-  function promptCard(text, label, accent, textColor) {
-    return h('div', { class: 'px20', style: { paddingTop: '14px' } },
-      h('div', { class: 'col center gap8 txt-center', style: { padding: '20px', borderRadius: 'var(--r-card)',
-          background: C.surface, border: '1px solid ' + AP.alpha(accent || C.cyan, 0.35) } },
-        label ? h('div', { style: { fontSize: '12px', fontWeight: 800, letterSpacing: '2px', color: accent || C.cyan } }, label.toUpperCase()) : null,
-        h('div', { style: { fontSize: '22px', fontWeight: 800, color: textColor || '#fff', lineHeight: 1.2 } }, text)));
-  }
-  AP.promptCard = promptCard;
-
-  /** Vertically centred form area (the Spacer / content / Spacer idiom). */
-  function centered(key) {
-    var kids = Array.prototype.slice.call(arguments, 1);
-    return h('div', { class: 'col gap14 pop-in', key: key, style: { flex: '1 1 auto', justifyContent: 'center', minHeight: 0 } }, kids);
-  }
-  AP.centered = centered;
-
-  function waiting(key, icon, text, detail) {
-    var el = ui.waitingState(icon, text, detail);
-    el._key = key;
-    el.className += ' pop-in';
-    return el;
-  }
-  AP.waiting = waiting;
+  var promptCard = AP.promptCard, centered = AP.centered, waiting = AP.waiting;
 
   function body(kids) { return h('div', { class: 'col gap16', style: { flex: '1 1 auto', minHeight: 0 } }, kids); }
 

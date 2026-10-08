@@ -604,3 +604,13 @@ input, textarea { font: inherit; color: inherit; }
 
 @keyframes fog-clear { from { filter: blur(16px); } to { filter: blur(0); } }
 .fog { animation: fog-clear 3s linear forwards; }
+
+/* ---- range slider ------------------------------------------------------- */
+.slider { -webkit-appearance: none; appearance: none; width: 100%; height: 28px; background: transparent; margin: 0; }
+.slider::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
+  background: linear-gradient(to right, var(--tint) var(--fill), rgba(255,255,255,0.15) var(--fill)); }
+.slider::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.15); }
+.slider::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--tint); }
+.slider::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; margin-top: -11px;
+  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+.slider::-moz-range-thumb { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
