@@ -680,3 +680,232 @@ class TestArcadeHTTP:
         body = client.get(f"/api/neuro/profile/{DEV}").get_json()
         assert body["arcade"]["split"]["plays"] == 1
         assert body["arcade"]["split"]["discipline"] == "memory"
+
+
+# --------------------------------------------------------------------------
+# steps that need a newer phone: Liar's Row and Dead Reckoning
+# --------------------------------------------------------------------------
+
+def _truth(statements, thief, index, seen=()):
+    """Independent re-statement of the rules, written without np helpers."""
+    st = statements[index]
+    if st["type"] == "was":
+        return thief == st["target"]
+    if st["type"] == "wasnt":
+        return thief != st["target"]
+    other = [i for i, x in enumerate(statements) if x["by"] == st["target"]][0]
+    assert other not in seen and other != index, "statements refer in a circle"
+    inner = _truth(statements, thief, other, seen + (index,))
+    return (not inner) if st["type"] == "lies" else inner
+
+
+def _culprits(statements, suspects, liars):
+    return [t for t in suspects
+            if sum(1 for i in range(len(statements))
+                   if not _truth(statements, t, i)) == liars]
+
+
+class TestLiarsRow:
+    @pytest.mark.parametrize("level", range(1, 11))
+    def test_every_puzzle_has_exactly_one_answer_and_it_is_the_dealt_one(self, level):
+        for seed in range(120):
+            task = np.make_task("logic", "liars_row", level, random.Random(seed * 31 + level))
+            vis = task["visual"]
+            found = _culprits(vis["statements"], vis["suspects"], vis["liars"])
+            assert found == [task["answer"]], (level, seed, task["prompt"])
+
+    @pytest.mark.parametrize("level", range(1, 11))
+    def test_shape_and_options(self, level):
+        task = np.make_task("logic", "liars_row", level, random.Random(level))
+        assert task["discipline"] == "logic" and task["kind"] == "liars_row"
+        assert task["inputStyle"] == "choice"
+        assert len(task["options"]) == 4 and len(set(task["options"])) == 4
+        assert task["answer"] in task["options"]
+        assert set(task["options"]) <= set(task["visual"]["suspects"])
+
+    def test_difficulty_scales_with_the_level(self):
+        low = np.make_task("logic", "liars_row", 1, random.Random(1))["visual"]
+        mid = np.make_task("logic", "liars_row", 5, random.Random(1))["visual"]
+        high = np.make_task("logic", "liars_row", 10, random.Random(1))["visual"]
+        assert (len(low["suspects"]), len(mid["suspects"]), len(high["suspects"])) == (4, 5, 6)
+        assert (low["liars"], mid["liars"], high["liars"]) == (1, 1, 2)
+
+    def test_only_harder_levels_use_statements_about_honesty(self):
+        for seed in range(80):
+            easy = np.make_task("logic", "liars_row", 2, random.Random(seed))["visual"]
+            assert {s["type"] for s in easy["statements"]} <= {"was", "wasnt"}
+        seen = set()
+        for seed in range(80):
+            hard = np.make_task("logic", "liars_row", 9, random.Random(seed))["visual"]
+            seen |= {s["type"] for s in hard["statements"]}
+        assert {"lies", "truth"} & seen
+
+    def test_the_prompt_shows_every_statement_and_says_how_many_lie(self):
+        task = np.make_task("logic", "liars_row", 9, random.Random(4))
+        for st in task["visual"]["statements"]:
+            assert f"{st['by']}:" in task["prompt"]
+        assert "Exactly two" in task["prompt"] and task["prompt"].rstrip().endswith("Who did it?")
+        one = np.make_task("logic", "liars_row", 2, random.Random(4))
+        assert "Exactly one" in one["prompt"]
+
+    def test_nobody_is_asked_to_vouch_for_themselves(self):
+        for seed in range(100):
+            vis = np.make_task("logic", "liars_row", 9, random.Random(seed))["visual"]
+            for st in vis["statements"]:
+                if st["type"] in ("lies", "truth"):
+                    assert st["target"] != st["by"]
+
+    def test_the_explanation_names_the_false_speakers(self):
+        task = np.make_task("logic", "liars_row", 3, random.Random(2))
+        vis = task["visual"]
+        liars = [st["by"] for i, st in enumerate(vis["statements"])
+                 if not _truth(vis["statements"], task["answer"], i)]
+        for name in liars:
+            assert name in task["explain"]
+
+    def test_same_seed_same_puzzle(self):
+        a = np.make_task("logic", "liars_row", 6, random.Random(77))
+        b = np.make_task("logic", "liars_row", 6, random.Random(77))
+        assert a == b
+
+    def test_spoken_text_has_no_line_breaks(self):
+        assert "\n" not in np.make_task("logic", "liars_row", 5, random.Random(1))["spoken"]
+
+
+class TestDeadReckoning:
+    OFFSETS = {"north": (-1, 0), "south": (1, 0), "east": (0, 1), "west": (0, -1),
+               "north-east": (-1, 1), "north-west": (-1, -1),
+               "south-east": (1, 1), "south-west": (1, -1)}
+
+    def _walk(self, vis):
+        side = vis["rows"]
+        row, col = divmod(vis["start"], side)
+        path = [(row, col)]
+        for move in vis["moves"]:
+            name, count = move.rsplit(" ", 1)
+            dr, dc = self.OFFSETS[name]
+            row, col = row + dr * int(count), col + dc * int(count)
+            path.append((row, col))
+        return side, path
+
+    @pytest.mark.parametrize("level", range(1, 11))
+    def test_the_answer_is_where_the_moves_end(self, level):
+        for seed in range(100):
+            task = np.make_task("memory", "dead_reckoning", level, random.Random(seed * 17 + level))
+            side, path = self._walk(task["visual"])
+            end = path[-1]
+            assert task["answer"] == str(end[0] * side + end[1])
+            assert path[0] != end
+
+    @pytest.mark.parametrize("level", range(1, 11))
+    def test_the_dot_never_leaves_the_grid(self, level):
+        for seed in range(100):
+            task = np.make_task("memory", "dead_reckoning", level, random.Random(seed * 5 + level))
+            side, path = self._walk(task["visual"])
+            assert all(0 <= r < side and 0 <= c < side for r, c in path)
+
+    def test_nothing_is_lit_and_the_start_is_marked(self):
+        task = np.make_task("memory", "dead_reckoning", 5, random.Random(1))
+        vis = task["visual"]
+        assert task["inputStyle"] == "grid" and vis["cells"] == [] and vis["flashMs"] == 0
+        assert 0 <= vis["start"] < vis["rows"] * vis["cols"]
+
+    def test_no_repeated_or_reversing_moves(self):
+        opposite = {"north": "south", "south": "north", "east": "west", "west": "east",
+                    "north-east": "south-west", "south-west": "north-east",
+                    "north-west": "south-east", "south-east": "north-west"}
+        for level in (3, 8, 10):
+            for seed in range(120):
+                moves = [m.rsplit(" ", 1)[0] for m in
+                         np.make_task("memory", "dead_reckoning", level,
+                                      random.Random(seed))["visual"]["moves"]]
+                for a, b in zip(moves, moves[1:]):
+                    assert a != b and opposite[a] != b
+
+    def test_difficulty_scales_with_the_level(self):
+        sides = [np.make_task("memory", "dead_reckoning", lv, random.Random(1))["visual"]["rows"]
+                 for lv in (1, 3, 7, 10)]
+        counts = [len(np.make_task("memory", "dead_reckoning", lv, random.Random(1))["visual"]["moves"])
+                  for lv in (1, 4, 10)]
+        assert sides == [3, 4, 5, 5]
+        assert counts == [3, 4, 7]
+
+    def test_diagonals_only_from_level_six(self):
+        for seed in range(100):
+            easy = np.make_task("memory", "dead_reckoning", 5, random.Random(seed))["visual"]["moves"]
+            assert not any("-" in m for m in easy)
+        seen = False
+        for seed in range(100):
+            hard = np.make_task("memory", "dead_reckoning", 9, random.Random(seed))["visual"]["moves"]
+            seen = seen or any("-" in m for m in hard)
+        assert seen
+
+    def test_the_answer_is_a_single_cell(self):
+        task = np.make_task("memory", "dead_reckoning", 6, random.Random(9))
+        assert "," not in task["answer"] and task["answer"].isdigit()
+
+
+class TestCapabilities:
+    def test_optional_kinds_are_known(self):
+        assert np.KNOWN_CAPS == {"liars_row", "dead_reckoning"}
+        for discipline, kinds in np.OPTIONAL_KINDS.items():
+            assert discipline in np.KINDS and not set(kinds) & set(np.KINDS[discipline])
+
+    def test_a_phone_without_caps_never_gets_the_new_kinds(self):
+        seen = set()
+        for day in range(150):
+            date = (dt.date(2026, 1, 1) + dt.timedelta(days=day)).isoformat()
+            seen |= {s["kind"] for s in np.build_session(DEV, date)["steps"]}
+        assert not seen & np.KNOWN_CAPS
+
+    def test_a_phone_with_caps_does_get_them(self):
+        seen = set()
+        for day in range(150):
+            date = (dt.date(2026, 1, 1) + dt.timedelta(days=day)).isoformat()
+            seen |= {s["kind"] for s in np.build_session(DEV, date, caps=np.KNOWN_CAPS)["steps"]}
+        assert np.KNOWN_CAPS <= seen
+
+    def test_asking_for_only_one_kind_gets_only_that_one(self):
+        seen = set()
+        for day in range(150):
+            date = (dt.date(2026, 1, 1) + dt.timedelta(days=day)).isoformat()
+            seen |= {s["kind"] for s in
+                     np.build_session(DEV, date, caps={"liars_row"})["steps"]}
+        assert "liars_row" in seen and "dead_reckoning" not in seen
+
+    def test_empty_caps_give_the_same_session_as_before_caps_existed(self):
+        for day in range(40):
+            date = (dt.date(2026, 5, 1) + dt.timedelta(days=day)).isoformat()
+            assert np.build_session(DEV, date) == np.build_session(DEV, date, caps=())
+            assert np.build_session(DEV, date) == np.build_session(DEV, date, caps={"nonsense"})
+
+    def test_a_session_with_caps_keeps_the_shape_rules(self):
+        for day in range(80):
+            date = (dt.date(2026, 1, 1) + dt.timedelta(days=day)).isoformat()
+            steps = np.build_session(DEV, date, caps=np.KNOWN_CAPS)["steps"]
+            assert len(steps) == np.SESSION_STEPS
+            assert steps[-1]["discipline"] == "zen"
+            kinds = [s["kind"] for s in steps[:-1]]
+            by_discipline = {}
+            for s in steps[:-1]:
+                by_discipline.setdefault(s["discipline"], []).append(s["kind"])
+            for dkinds in by_discipline.values():
+                assert len(dkinds) == len(set(dkinds)), "a kind repeated in a discipline"
+            for a, b in zip(steps, steps[1:]):
+                assert a["discipline"] != b["discipline"]
+            assert len(kinds) == 9
+
+    def test_the_daily_endpoint_honours_caps(self, client):
+        plain = client.get(f"/api/neuro/daily?device={DEV}&date=2026-02-03").get_json()
+        assert not {s["kind"] for s in plain["steps"]} & np.KNOWN_CAPS
+        seen = set()
+        for day in range(1, 29):
+            res = client.get(f"/api/neuro/daily?device={DEV}&date=2026-02-{day:02d}"
+                             "&caps=liars_row,dead_reckoning,bogus").get_json()
+            seen |= {s["kind"] for s in res["steps"]}
+        assert np.KNOWN_CAPS <= seen
+
+    def test_new_kinds_are_graded_like_any_other(self):
+        sess = np.build_session(DEV, "2026-02-10", caps=np.KNOWN_CAPS)
+        out = np.record_session(DEV, answers(sess, True), date="2026-02-10")
+        assert out["graded"] >= 8 and out["pulse"] > 0

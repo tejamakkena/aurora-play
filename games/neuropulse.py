@@ -4,7 +4,7 @@ One session a day, ten steps, about five minutes. Nine graded tasks across
 four thinking disciplines, then step ten is always the Zen reset -- the
 session ends calm rather than on a hard puzzle.
 
-    GET  /api/neuro/daily?device=ID[&date=YYYY-MM-DD][&name=NAME]
+    GET  /api/neuro/daily?device=ID[&date=YYYY-MM-DD][&name=NAME][&caps=KIND,KIND]
     POST /api/neuro/result
     POST /api/neuro/arcade
     GET  /api/neuro/profile/<device>
@@ -466,6 +466,180 @@ def _grid(level: int, rng: random.Random) -> dict:
                  explain="The lit squares are shown again.")
 
 
+# ---- steps that need a newer phone ---------------------------------------
+#
+# These kinds are only dealt to a phone that says it can show them (the
+# `caps` query on /neuro/daily). A phone that predates them gets exactly the
+# sessions it always got.
+
+_CULPRIT_SCENES = (
+    "took the last slice of cake",
+    "left the garden gate open",
+    "hid the TV remote",
+    "ate the leftover biryani",
+    "broke the lamp",
+)
+
+
+def _stated(statements: list, thief: str, index: int, stack: tuple = ()):
+    """Is statement ``index`` true if ``thief`` is the culprit? A statement
+    about another speaker's honesty follows that speaker's own statement.
+    Returns None when the statements refer to each other in a circle."""
+    if index in stack:
+        return None
+    kind = statements[index]["type"]
+    target = statements[index]["target"]
+    if kind == "was":
+        return thief == target
+    if kind == "wasnt":
+        return thief != target
+    other = next(i for i, st in enumerate(statements) if st["by"] == target)
+    inner = _stated(statements, thief, other, stack + (index,))
+    if inner is None:
+        return None
+    return (not inner) if kind == "lies" else inner
+
+
+def solve_culprits(statements: list, suspects: list, liars: int) -> list:
+    """Every suspect who, as the culprit, leaves exactly ``liars`` statements
+    false. A solvable puzzle has exactly one."""
+    found = []
+    for thief in suspects:
+        truths = [_stated(statements, thief, i) for i in range(len(statements))]
+        if any(t is None for t in truths):
+            return []
+        if sum(1 for t in truths if not t) == liars:
+            found.append(thief)
+    return found
+
+
+def _statement_text(st: dict) -> str:
+    who, kind, target = st["by"], st["type"], st["target"]
+    if kind == "was":
+        return "It was me." if target == who else f"It was {target}."
+    if kind == "wasnt":
+        return "It wasn't me." if target == who else f"It wasn't {target}."
+    if kind == "lies":
+        return f"{target} is lying."
+    return f"{target} is telling the truth."
+
+
+def _liars_row(level: int, rng: random.Random) -> dict:
+    """Knights-and-knaves in a line-up: each suspect makes one statement and
+    exactly one (later, two) of the statements is false. Who did it? Every
+    puzzle is checked to have exactly one answer before it is dealt."""
+    count = 4 if level <= 3 else (5 if level <= 7 else 6)
+    liars = 1 if level <= 7 else 2
+    suspects = rng.sample(_NAMES, count)
+    statements = None
+    for _ in range(400):
+        trial = []
+        for who in suspects:
+            roll = rng.random()
+            others = [n for n in suspects if n != who]
+            if level >= 6 and roll < 0.18:
+                kind, target = "truth", rng.choice(others)
+            elif level >= 4 and roll < 0.40:
+                kind, target = "lies", rng.choice(others)
+            elif roll < 0.72:
+                kind, target = "was", rng.choice(suspects)
+            else:
+                kind, target = "wasnt", rng.choice(suspects)
+            trial.append({"by": who, "type": kind, "target": target})
+        if len(solve_culprits(trial, suspects, liars)) == 1:
+            statements = trial
+            break
+    if statements is None:                       # a known-good line-up
+        thief = suspects[0]
+        statements = [{"by": who, "type": "was", "target": thief} for who in suspects]
+        for i in range(1, 1 + liars):
+            statements[i] = {"by": suspects[i], "type": "wasnt", "target": thief}
+    answer = solve_culprits(statements, suspects, liars)[0]
+    scene = rng.choice(_CULPRIT_SCENES)
+    lines = [f"{st['by']}: \"{_statement_text(st)}\"" for st in statements]
+    verb = "is lying" if liars == 1 else "are lying"
+    head = (f"{count} friends are in the room and one of them {scene}. "
+            f"Exactly {'one' if liars == 1 else 'two'} of them {verb}.")
+    prompt = head + "\n" + "\n".join(lines) + "\nWho did it?"
+    options = [answer] + rng.sample([n for n in suspects if n != answer], 3)
+    rng.shuffle(options)
+    false_by = [st["by"] for i, st in enumerate(statements)
+                if not _stated(statements, answer, i)]
+    return _step("logic", "liars_row", level, prompt, answer,
+                 options=options,
+                 spoken=prompt.replace("\n", " "),
+                 visual={"suspects": suspects, "statements": statements,
+                         "liars": liars},
+                 hint="Try each name as the culprit and count the false statements.",
+                 explain=(f"If {answer} did it, the false statement"
+                          f"{'' if liars == 1 else 's'} would be from "
+                          + " and ".join(false_by)
+                          + f" -- exactly {liars}. No one else fits."))
+
+
+_COMPASS = {
+    "north": (-1, 0), "south": (1, 0), "east": (0, 1), "west": (0, -1),
+    "north-east": (-1, 1), "north-west": (-1, -1),
+    "south-east": (1, 1), "south-west": (1, -1),
+}
+
+
+_OPPOSITE = {
+    "north": "south", "south": "north", "east": "west", "west": "east",
+    "north-east": "south-west", "south-west": "north-east",
+    "north-west": "south-east", "south-east": "north-west",
+}
+
+
+def _dead_reckoning(level: int, rng: random.Random) -> dict:
+    """Walk a dot across a blank grid from words alone and tap where you end
+    up. Nothing is lit: the whole task is held in your head."""
+    side = 3 if level <= 2 else (4 if level <= 6 else 5)
+    count = 2 + (level + 1) // 2
+    diagonals = level >= 6
+    names = [n for n in _COMPASS if diagonals or "-" not in n]
+    for _ in range(200):
+        start = (rng.randrange(side), rng.randrange(side))
+        row, col = start
+        moves = []
+        previous = None
+        ok = True
+        for _step_no in range(count):
+            options = []
+            for name in names:
+                # No repeats and no stepping straight back: "north 1, north
+                # 1" is just "north 2", and "north 1, south 1" is a wasted
+                # move that makes the path trivial to hold.
+                if previous and name in (previous, _OPPOSITE[previous]):
+                    continue
+                dr, dc = _COMPASS[name]
+                reach = 1 if "-" in name else 2
+                for steps in range(1, reach + 1):
+                    nr, nc = row + dr * steps, col + dc * steps
+                    if 0 <= nr < side and 0 <= nc < side:
+                        options.append((name, steps, nr, nc))
+            if not options:
+                ok = False
+                break
+            name, steps, row, col = rng.choice(options)
+            moves.append(f"{name} {steps}")
+            previous = name
+        if ok and (row, col) != start:
+            break
+    else:                                        # cannot really happen
+        start, moves, row, col = (0, 0), ["east 1"], 0, 1
+    answer = str(row * side + col)
+    return _step("memory", "dead_reckoning", level,
+                 "Start at the dot. Move: " + ", ".join(moves)
+                 + ". Tap where you end up.", answer,
+                 input_style="grid",
+                 visual={"rows": side, "cols": side, "cells": [],
+                         "start": start[0] * side + start[1],
+                         "moves": moves, "flashMs": 0},
+                 hint="Walk the dot one move at a time; don't jump to the end.",
+                 explain=f"You finish on row {row + 1}, column {col + 1}.")
+
+
 # ---- zen ------------------------------------------------------------------
 
 def _stroop(level: int, rng: random.Random) -> dict:
@@ -540,6 +714,19 @@ KINDS = {
 #: The Zen kinds that are completion-only (never rated, never scored wrong).
 UNGRADED_KINDS = ("breathing", "sensory")
 
+#: Kinds a phone must ask for (``caps``) before the server deals them.
+OPTIONAL_KINDS = {
+    "logic": ("liars_row",),
+    "memory": ("dead_reckoning",),
+}
+KNOWN_CAPS = frozenset(k for kinds in OPTIONAL_KINDS.values() for k in kinds)
+
+
+def kinds_for(discipline: str, caps=()) -> tuple:
+    """The kinds one discipline deals from, for a phone with ``caps``."""
+    extra = tuple(k for k in OPTIONAL_KINDS.get(discipline, ()) if k in caps)
+    return tuple(KINDS[discipline]) + extra
+
 _LOCAL_MAKERS = {
     "syllogism": _syllogism,
     "relative": _relative,
@@ -549,6 +736,8 @@ _LOCAL_MAKERS = {
     "flash": _flash,
     "nback": _nback,
     "grid": _grid,
+    "liars_row": _liars_row,
+    "dead_reckoning": _dead_reckoning,
     "stroop": _stroop,
     "breathing": _breathing,
     "sensory": _sensory,
@@ -587,8 +776,10 @@ _GRADED_ORDER = ("logic", "math", "memory", "pattern",
 
 
 def build_session(device: str, date: str | None = None,
-                  ratings: dict | None = None) -> dict:
-    """The day's ten steps, pitched at this device's ratings."""
+                  ratings: dict | None = None, caps=()) -> dict:
+    """The day's ten steps, pitched at this device's ratings. ``caps`` names
+    the optional kinds the phone can show; without them the session is
+    exactly the one older phones have always been dealt."""
     date = date or today()
     ratings = ratings or dict(_ratings_of(device))
     rng = random.Random(daily_seed(device, date))
@@ -599,7 +790,7 @@ def build_session(device: str, date: str | None = None,
         that visits a discipline three times asks three different kinds."""
         bag = bags.get(discipline)
         if not bag:
-            bag = list(KINDS[discipline])
+            bag = list(kinds_for(discipline, caps))
             rng.shuffle(bag)
             bags[discipline] = bag
         return bag.pop()
@@ -1003,7 +1194,8 @@ def neuro_daily():
         ratings = dict(entry["ratings"])
         done = date in (entry.get("days") or {})
         streak = int(entry.get("streak") or 0)
-    session = build_session(device, date, ratings)
+    caps = {c.strip() for c in (request.args.get("caps") or "").split(",")}
+    session = build_session(device, date, ratings, caps & KNOWN_CAPS)
     session.update({
         "success": True,
         "ratings": ratings,
