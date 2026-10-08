@@ -1,5 +1,11 @@
 # Design audit: one look across both apps
 
+> Update: the boards and controllers for the retired games (Chess, Pong, Air
+> Hockey, Carrom, Blast Runners, Neon Snake, 2048, Brick Breaker, Simon Says,
+> Memory, Digit Guess, Hot Grid, Stock Panic, KBC) were deleted after this
+> audit, so rows below that mention them describe code that no longer exists.
+
+
 Phone Play is the reference. Everything else in `ios/GameLabController` and
 `ios/GameLabTV` was audited against it, screen by screen, and the drift was
 fixed. This document is the record: what each file group used before, the

@@ -337,19 +337,24 @@ enum GameID: String, Codable, CaseIterable {
     var soloPlayable: Bool           { meta.soloPlayable }
 
     /// Games playable alone on the TV with nothing but the remote.
-    /// Games no longer offered. Each stays decodable (older rooms, the
-    /// server registry) but failed the "does this really need a TV and
+    /// Games no longer offered. Their TV boards and phone controllers are
+    /// gone; the cases stay so a room made by an older build still decodes
+    /// (both routers show a "retired" screen for them) and so the server
+    /// registry still maps. Each failed the "does this really need a TV and
     /// phones, and does it get people talking?" test:
     ///  - phone-as-joystick real-time games are laggy and frustrating:
     ///    Pong, Air Hockey, Carrom, Blast Runners;
     ///  - solo or cluttered games with no conversation: Neon Snake, 2048,
     ///    Brick Breaker, Simon Says, Memory, Digit Guess, Hot Grid, Chess;
-    ///  - everyone staring at their own phone: Stock Panic, Roulette;
+    ///  - everyone staring at their own phone: Stock Panic;
     ///  - KBC overlaps Trivia Showdown; Story Chain moved to Phone Play.
+    /// Roulette was retired in the same pass and put back: everyone has a
+    /// stack, bets on their own phone and watches one wheel on the TV,
+    /// which is what a TV and phones are good at. Poker never left.
     static let retired: Set<GameID> = [
         .chess, .pong, .airHockey, .carrom, .blastRunners,
         .neonSnake, .twenty48, .brickBreaker, .simonSays,
-        .memory, .digitGuess, .hotGrid, .stockPanic, .roulette,
+        .memory, .digitGuess, .hotGrid, .stockPanic,
         .kbc, .storyChain,
     ]
 

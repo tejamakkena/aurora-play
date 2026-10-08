@@ -17,6 +17,7 @@ struct NeuroMindScoreView: View {
             VStack(spacing: 18) {
                 topLine
                 disciplineCard
+                NeuroArcadeShelf(onOpen: { game.arcadeRequest = $0 })
                 sparklineCard
                 leaderboardCard
                 if profile.isEmpty {

@@ -74,6 +74,9 @@ final class NeuroPulseViewModel: ObservableObject {
     @Published private(set) var friends: [NeuroLeaderRow] = []
     @Published private(set) var everyone: [NeuroLeaderRow] = []
     @Published private(set) var loadingProgress: Bool = false
+    /// The arcade game being opened from the Mind Score screen; the root
+    /// view presents it full screen while this is set.
+    @Published var arcadeRequest: NeuroArcadeGame? = nil
 
     // MARK: Private state
 
@@ -564,9 +567,15 @@ final class NeuroPulseViewModel: ObservableObject {
 
     nonisolated private static func flushQueued() async {
         let queued = NeuroStore.pending()
-        guard !queued.isEmpty else { return }
-        let left = await NeuroAPI.flush(queued)
-        NeuroStore.savePending(left)
+        if !queued.isEmpty {
+            let left = await NeuroAPI.flush(queued)
+            NeuroStore.savePending(left)
+        }
+        let arcade = NeuroArcadeStore.pending()
+        if !arcade.isEmpty {
+            let left = await NeuroAPI.flush(arcade: arcade)
+            NeuroArcadeStore.savePending(left)
+        }
     }
 
     // MARK: Teardown

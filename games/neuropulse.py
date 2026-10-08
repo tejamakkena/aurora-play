@@ -4,8 +4,9 @@ One session a day, ten steps, about five minutes. Nine graded tasks across
 four thinking disciplines, then step ten is always the Zen reset -- the
 session ends calm rather than on a hard puzzle.
 
-    GET  /api/neuro/daily?device=ID[&date=YYYY-MM-DD][&name=NAME]
+    GET  /api/neuro/daily?device=ID[&date=YYYY-MM-DD][&name=NAME][&caps=KIND,KIND]
     POST /api/neuro/result
+    POST /api/neuro/arcade
     GET  /api/neuro/profile/<device>
     GET  /api/neuro/leaderboard?date=YYYY-MM-DD[&device=ID]
 
@@ -30,6 +31,12 @@ The day's ten steps are generated from a seed of the date plus the device
 (``daily_seed``), so a session is stable if the app is reopened, while two
 people on the same day get tasks pitched at their own ratings.
 
+Beside the daily ten sits the arcade (``ARCADE_GAMES``): short replayable
+games, each training one discipline, that report one 0-1 score for the
+whole run instead of right-or-wrong per step. ``rate`` takes that score as
+the actual result. Only the first run of each game per day moves a rating
+and a practice run never does, so replaying cannot farm a discipline.
+
 The phone grades its own answers (the task carries ``answer``) exactly
 like the older Daily Brain Challenge, so a session plays offline; the
 server rates the session when the results arrive. Storage is a
@@ -42,6 +49,7 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import math
 import os
 import random
 import re
@@ -88,6 +96,16 @@ SPEED_BONUS = 0.15
 SLOW_DAMPENER = 0.75
 
 #: The ten steps: nine graded, then the Zen reset.
+# The arcade: short replayable games that sit beside the daily ten. Each
+# trains one discipline and reports a single 0-1 score for the run. The
+# discipline is fixed here, not taken from the phone.
+ARCADE_GAMES = {
+    "probe": "logic",       # find the hidden rule with as few test inputs as you can
+    "drift": "pattern",     # notice when the sorting rule changes
+    "ballpark": "math",     # calibrated ranges for real-world numbers
+    "split": "memory",      # a rhythm and a sum at the same time
+}
+
 SESSION_STEPS = 10
 GRADED_STEPS = 9
 
@@ -153,12 +171,26 @@ def _speed_scale(correct: bool, response_ms: float, target_ms: float) -> float:
 
 
 def rate(rating: float, games_played: int, elo_target: float, correct: bool,
-         response_ms: float = 0.0, target_ms: float = 0.0) -> int:
-    """One answer's effect on one discipline's rating."""
+         response_ms: float = 0.0, target_ms: float = 0.0,
+         score: float | None = None) -> int:
+    """One result's effect on one discipline's rating.
+
+    A step is right or wrong, so ``correct`` gives an actual score of 1 or
+    0 and the speed modifier applies. A session-sized game (the arcade)
+    has no single right answer, so it reports ``score``, 0 to 1, which is
+    used as the actual score directly. A score already folds in how well
+    and how fast the run went, so the speed modifier is not applied on top
+    of it. Left out, ``score`` changes nothing: every call that predates
+    it behaves exactly as before.
+    """
     exp = expected_score(rating, elo_target)
-    actual = 1.0 if correct else 0.0
-    move = k_factor(games_played) * (actual - exp)
-    move *= _speed_scale(correct, response_ms, target_ms)
+    if score is None:
+        actual = 1.0 if correct else 0.0
+        scale = _speed_scale(correct, response_ms, target_ms)
+    else:
+        actual = max(0.0, min(1.0, float(score)))
+        scale = 1.0
+    move = k_factor(games_played) * (actual - exp) * scale
     return int(round(max(MIN_RATING, min(MAX_RATING, float(rating) + move))))
 
 
@@ -434,6 +466,180 @@ def _grid(level: int, rng: random.Random) -> dict:
                  explain="The lit squares are shown again.")
 
 
+# ---- steps that need a newer phone ---------------------------------------
+#
+# These kinds are only dealt to a phone that says it can show them (the
+# `caps` query on /neuro/daily). A phone that predates them gets exactly the
+# sessions it always got.
+
+_CULPRIT_SCENES = (
+    "took the last slice of cake",
+    "left the garden gate open",
+    "hid the TV remote",
+    "ate the leftover biryani",
+    "broke the lamp",
+)
+
+
+def _stated(statements: list, thief: str, index: int, stack: tuple = ()):
+    """Is statement ``index`` true if ``thief`` is the culprit? A statement
+    about another speaker's honesty follows that speaker's own statement.
+    Returns None when the statements refer to each other in a circle."""
+    if index in stack:
+        return None
+    kind = statements[index]["type"]
+    target = statements[index]["target"]
+    if kind == "was":
+        return thief == target
+    if kind == "wasnt":
+        return thief != target
+    other = next(i for i, st in enumerate(statements) if st["by"] == target)
+    inner = _stated(statements, thief, other, stack + (index,))
+    if inner is None:
+        return None
+    return (not inner) if kind == "lies" else inner
+
+
+def solve_culprits(statements: list, suspects: list, liars: int) -> list:
+    """Every suspect who, as the culprit, leaves exactly ``liars`` statements
+    false. A solvable puzzle has exactly one."""
+    found = []
+    for thief in suspects:
+        truths = [_stated(statements, thief, i) for i in range(len(statements))]
+        if any(t is None for t in truths):
+            return []
+        if sum(1 for t in truths if not t) == liars:
+            found.append(thief)
+    return found
+
+
+def _statement_text(st: dict) -> str:
+    who, kind, target = st["by"], st["type"], st["target"]
+    if kind == "was":
+        return "It was me." if target == who else f"It was {target}."
+    if kind == "wasnt":
+        return "It wasn't me." if target == who else f"It wasn't {target}."
+    if kind == "lies":
+        return f"{target} is lying."
+    return f"{target} is telling the truth."
+
+
+def _liars_row(level: int, rng: random.Random) -> dict:
+    """Knights-and-knaves in a line-up: each suspect makes one statement and
+    exactly one (later, two) of the statements is false. Who did it? Every
+    puzzle is checked to have exactly one answer before it is dealt."""
+    count = 4 if level <= 3 else (5 if level <= 7 else 6)
+    liars = 1 if level <= 7 else 2
+    suspects = rng.sample(_NAMES, count)
+    statements = None
+    for _ in range(400):
+        trial = []
+        for who in suspects:
+            roll = rng.random()
+            others = [n for n in suspects if n != who]
+            if level >= 6 and roll < 0.18:
+                kind, target = "truth", rng.choice(others)
+            elif level >= 4 and roll < 0.40:
+                kind, target = "lies", rng.choice(others)
+            elif roll < 0.72:
+                kind, target = "was", rng.choice(suspects)
+            else:
+                kind, target = "wasnt", rng.choice(suspects)
+            trial.append({"by": who, "type": kind, "target": target})
+        if len(solve_culprits(trial, suspects, liars)) == 1:
+            statements = trial
+            break
+    if statements is None:                       # a known-good line-up
+        thief = suspects[0]
+        statements = [{"by": who, "type": "was", "target": thief} for who in suspects]
+        for i in range(1, 1 + liars):
+            statements[i] = {"by": suspects[i], "type": "wasnt", "target": thief}
+    answer = solve_culprits(statements, suspects, liars)[0]
+    scene = rng.choice(_CULPRIT_SCENES)
+    lines = [f"{st['by']}: \"{_statement_text(st)}\"" for st in statements]
+    verb = "is lying" if liars == 1 else "are lying"
+    head = (f"{count} friends are in the room and one of them {scene}. "
+            f"Exactly {'one' if liars == 1 else 'two'} of them {verb}.")
+    prompt = head + "\n" + "\n".join(lines) + "\nWho did it?"
+    options = [answer] + rng.sample([n for n in suspects if n != answer], 3)
+    rng.shuffle(options)
+    false_by = [st["by"] for i, st in enumerate(statements)
+                if not _stated(statements, answer, i)]
+    return _step("logic", "liars_row", level, prompt, answer,
+                 options=options,
+                 spoken=prompt.replace("\n", " "),
+                 visual={"suspects": suspects, "statements": statements,
+                         "liars": liars},
+                 hint="Try each name as the culprit and count the false statements.",
+                 explain=(f"If {answer} did it, the false statement"
+                          f"{'' if liars == 1 else 's'} would be from "
+                          + " and ".join(false_by)
+                          + f" -- exactly {liars}. No one else fits."))
+
+
+_COMPASS = {
+    "north": (-1, 0), "south": (1, 0), "east": (0, 1), "west": (0, -1),
+    "north-east": (-1, 1), "north-west": (-1, -1),
+    "south-east": (1, 1), "south-west": (1, -1),
+}
+
+
+_OPPOSITE = {
+    "north": "south", "south": "north", "east": "west", "west": "east",
+    "north-east": "south-west", "south-west": "north-east",
+    "north-west": "south-east", "south-east": "north-west",
+}
+
+
+def _dead_reckoning(level: int, rng: random.Random) -> dict:
+    """Walk a dot across a blank grid from words alone and tap where you end
+    up. Nothing is lit: the whole task is held in your head."""
+    side = 3 if level <= 2 else (4 if level <= 6 else 5)
+    count = 2 + (level + 1) // 2
+    diagonals = level >= 6
+    names = [n for n in _COMPASS if diagonals or "-" not in n]
+    for _ in range(200):
+        start = (rng.randrange(side), rng.randrange(side))
+        row, col = start
+        moves = []
+        previous = None
+        ok = True
+        for _step_no in range(count):
+            options = []
+            for name in names:
+                # No repeats and no stepping straight back: "north 1, north
+                # 1" is just "north 2", and "north 1, south 1" is a wasted
+                # move that makes the path trivial to hold.
+                if previous and name in (previous, _OPPOSITE[previous]):
+                    continue
+                dr, dc = _COMPASS[name]
+                reach = 1 if "-" in name else 2
+                for steps in range(1, reach + 1):
+                    nr, nc = row + dr * steps, col + dc * steps
+                    if 0 <= nr < side and 0 <= nc < side:
+                        options.append((name, steps, nr, nc))
+            if not options:
+                ok = False
+                break
+            name, steps, row, col = rng.choice(options)
+            moves.append(f"{name} {steps}")
+            previous = name
+        if ok and (row, col) != start:
+            break
+    else:                                        # cannot really happen
+        start, moves, row, col = (0, 0), ["east 1"], 0, 1
+    answer = str(row * side + col)
+    return _step("memory", "dead_reckoning", level,
+                 "Start at the dot. Move: " + ", ".join(moves)
+                 + ". Tap where you end up.", answer,
+                 input_style="grid",
+                 visual={"rows": side, "cols": side, "cells": [],
+                         "start": start[0] * side + start[1],
+                         "moves": moves, "flashMs": 0},
+                 hint="Walk the dot one move at a time; don't jump to the end.",
+                 explain=f"You finish on row {row + 1}, column {col + 1}.")
+
+
 # ---- zen ------------------------------------------------------------------
 
 def _stroop(level: int, rng: random.Random) -> dict:
@@ -508,6 +714,19 @@ KINDS = {
 #: The Zen kinds that are completion-only (never rated, never scored wrong).
 UNGRADED_KINDS = ("breathing", "sensory")
 
+#: Kinds a phone must ask for (``caps``) before the server deals them.
+OPTIONAL_KINDS = {
+    "logic": ("liars_row",),
+    "memory": ("dead_reckoning",),
+}
+KNOWN_CAPS = frozenset(k for kinds in OPTIONAL_KINDS.values() for k in kinds)
+
+
+def kinds_for(discipline: str, caps=()) -> tuple:
+    """The kinds one discipline deals from, for a phone with ``caps``."""
+    extra = tuple(k for k in OPTIONAL_KINDS.get(discipline, ()) if k in caps)
+    return tuple(KINDS[discipline]) + extra
+
 _LOCAL_MAKERS = {
     "syllogism": _syllogism,
     "relative": _relative,
@@ -517,6 +736,8 @@ _LOCAL_MAKERS = {
     "flash": _flash,
     "nback": _nback,
     "grid": _grid,
+    "liars_row": _liars_row,
+    "dead_reckoning": _dead_reckoning,
     "stroop": _stroop,
     "breathing": _breathing,
     "sensory": _sensory,
@@ -555,8 +776,10 @@ _GRADED_ORDER = ("logic", "math", "memory", "pattern",
 
 
 def build_session(device: str, date: str | None = None,
-                  ratings: dict | None = None) -> dict:
-    """The day's ten steps, pitched at this device's ratings."""
+                  ratings: dict | None = None, caps=()) -> dict:
+    """The day's ten steps, pitched at this device's ratings. ``caps`` names
+    the optional kinds the phone can show; without them the session is
+    exactly the one older phones have always been dealt."""
     date = date or today()
     ratings = ratings or dict(_ratings_of(device))
     rng = random.Random(daily_seed(device, date))
@@ -567,7 +790,7 @@ def build_session(device: str, date: str | None = None,
         that visits a discipline three times asks three different kinds."""
         bag = bags.get(discipline)
         if not bag:
-            bag = list(KINDS[discipline])
+            bag = list(kinds_for(discipline, caps))
             rng.shuffle(bag)
             bags[discipline] = bag
         return bag.pop()
@@ -637,6 +860,8 @@ def _blank() -> dict:
         "restUsedOn": "",
         "zenMinutes": 0,
         "days": {},
+        "arcade": {},          # per game: plays, best, last, lastDate
+        "arcadeDays": {},      # per date: the games already rated that day
     }
 
 
@@ -666,6 +891,10 @@ def _prune(entry: dict) -> None:
     if len(days) > _KEEP_DAYS:
         for key in sorted(days)[:-_KEEP_DAYS]:
             days.pop(key, None)
+    played = entry.get("arcadeDays", {})
+    if len(played) > _KEEP_DAYS:
+        for key in sorted(played)[:-_KEEP_DAYS]:
+            played.pop(key, None)
 
 
 def _advance_streak(entry: dict, date: str) -> int:
@@ -698,6 +927,23 @@ def _advance_streak(entry: dict, date: str) -> int:
     return 1
 
 
+def _arcade_summary(entry: dict) -> dict:
+    """Plays, best and last score for every arcade game, zeros included so
+    the phone can draw a tile for a game that has not been played yet."""
+    stored = entry.get("arcade") or {}
+    out = {}
+    for game, discipline in ARCADE_GAMES.items():
+        row = stored.get(game) if isinstance(stored.get(game), dict) else {}
+        out[game] = {
+            "discipline": discipline,
+            "plays": int(row.get("plays") or 0),
+            "best": float(row.get("best") or 0.0),
+            "last": float(row.get("last") or 0.0),
+            "lastDate": str(row.get("lastDate") or ""),
+        }
+    return out
+
+
 def profile(device: str) -> dict:
     """Ratings, levels, streak and the last 30 days, for the phone."""
     with _lock:
@@ -717,6 +963,7 @@ def profile(device: str) -> dict:
             "zenMinutes": int(entry.get("zenMinutes") or 0),
             "names": DISCIPLINE_NAMES,
             "history": history,
+            "arcade": _arcade_summary(entry),
         }
 
 
@@ -812,6 +1059,96 @@ def record_session(device: str, answers: list, date: str | None = None,
         }
 
 
+class ArcadeInputError(ValueError):
+    """A bad arcade request. Carries only which field was wrong, never the
+    text of an underlying exception, so nothing the caller sent (or any
+    internal detail) is echoed back."""
+
+    def __init__(self, field: str):
+        super().__init__(field)
+        self.field = field
+
+
+#: What the caller is told for each bad field. Fixed strings, on purpose.
+_ARCADE_ERRORS = {
+    "game": "unknown game",
+    "score": "score must be a number from 0 to 1",
+    "level": "level must be a whole number",
+    "seconds": "seconds must be a whole number",
+}
+
+
+def record_arcade(device: str, game: str, level: int, score: float,
+                  date: str | None = None, name: str = "", seconds: int = 0,
+                  practice: bool = False) -> dict:
+    """Rate one arcade run.
+
+    ``score`` is 0 to 1 and the phone has already folded accuracy and speed
+    into it. Only the first run of each game on a date moves the rating,
+    and a run marked ``practice`` never does, so replaying cannot farm a
+    discipline: at most one rating move per game per day.
+    """
+    if game not in ARCADE_GAMES:
+        raise ArcadeInputError("game")
+    try:
+        score = float(score)
+    except (TypeError, ValueError):
+        raise ArcadeInputError("score") from None
+    if not math.isfinite(score) or not 0.0 <= score <= 1.0:
+        raise ArcadeInputError("score")
+    date = date or today()
+    level = max(1, min(10, int(level)))
+    discipline = ARCADE_GAMES[game]
+    with _lock:
+        data = _load()
+        entry = _entry(data, device)
+        if name:
+            entry["name"] = str(name)[:24]
+        rated_today = game in (entry["arcadeDays"].get(date) or {})
+        counts = not practice and not rated_today
+
+        before = int(entry["ratings"][discipline])
+        if counts:
+            fresh = rate(before, entry["games"][discipline],
+                         elo_target_for_level(level), False, score=score)
+            entry["ratings"][discipline] = fresh
+            entry["games"][discipline] = int(entry["games"][discipline]) + 1
+            entry["best"][discipline] = max(int(entry["best"][discipline]), fresh)
+            entry["arcadeDays"].setdefault(date, {})[game] = round(score, 3)
+
+        row = entry["arcade"].get(game)
+        if not isinstance(row, dict):
+            row = {"plays": 0, "best": 0.0, "last": 0.0, "lastDate": ""}
+        row["plays"] = int(row.get("plays") or 0) + 1
+        row["best"] = max(float(row.get("best") or 0.0), score)
+        row["last"] = score
+        row["lastDate"] = date
+        entry["arcade"][game] = row
+        _prune(entry)
+        _save(data)
+
+        after = int(entry["ratings"][discipline])
+        return {
+            "game": game,
+            "discipline": discipline,
+            "date": date,
+            "level": level,
+            "score": score,
+            "seconds": max(0, int(seconds)),
+            "rated": counts,
+            "alreadyRated": rated_today,
+            "practice": bool(practice),
+            "before": before,
+            "after": after,
+            "delta": after - before,
+            "ratings": dict(entry["ratings"]),
+            "levels": {d: level_for_rating(entry["ratings"][d]) for d in DISCIPLINES},
+            "best": dict(entry["best"]),
+            "arcade": _arcade_summary(entry),
+            "names": DISCIPLINE_NAMES,
+        }
+
+
 def leaderboard(date: str | None = None, device: str = "") -> dict:
     """Today's pulse scores: everyone, and the device's friends."""
     date = date or today()
@@ -879,7 +1216,8 @@ def neuro_daily():
         ratings = dict(entry["ratings"])
         done = date in (entry.get("days") or {})
         streak = int(entry.get("streak") or 0)
-    session = build_session(device, date, ratings)
+    caps = {c.strip() for c in (request.args.get("caps") or "").split(",")}
+    session = build_session(device, date, ratings, caps & KNOWN_CAPS)
     session.update({
         "success": True,
         "ratings": ratings,
@@ -908,6 +1246,39 @@ def neuro_result():
         mood=int(body.get("mood") or 0),
         zen_seconds=int(body.get("zenSeconds") or 0),
     )
+    out["success"] = True
+    return jsonify(out)
+
+
+@neuro_bp.route("/neuro/arcade", methods=["POST"])
+def neuro_arcade():
+    body = request.get_json(silent=True)
+    body = body if isinstance(body, dict) else {}
+    device = str(body.get("device") or "").strip()
+    if not _device_ok(device):
+        return jsonify({"success": False, "error": "bad device"}), 400
+    try:
+        try:
+            level = int(body.get("level") or 1)
+        except (TypeError, ValueError):
+            raise ArcadeInputError("level") from None
+        try:
+            seconds = int(body.get("seconds") or 0)
+        except (TypeError, ValueError):
+            raise ArcadeInputError("seconds") from None
+        out = record_arcade(
+            device,
+            str(body.get("game") or ""),
+            level,
+            body.get("score"),
+            date=_date_arg(body.get("date")),
+            name=str(body.get("name") or "")[:24],
+            seconds=seconds,
+            practice=bool(body.get("practice")),
+        )
+    except ArcadeInputError as err:
+        message = _ARCADE_ERRORS.get(err.field, "bad request")
+        return jsonify({"success": False, "error": message}), 400
     out["success"] = True
     return jsonify(out)
 

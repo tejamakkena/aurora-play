@@ -167,6 +167,11 @@ struct NeuroVisual: Equatable {
     var rows: Int = 0
     var cols: Int = 0
     var cells: [Int] = []
+    // dead reckoning: the dot's start cell and the moves in words. Nothing is
+    // lit (`cells` is empty); `start` is optional because cell 0 is a real
+    // place to start.
+    var start: Int? = nil
+    var moves: [String] = []
     // stroop
     var word: String = ""
     var ink: String = ""
@@ -194,6 +199,8 @@ struct NeuroVisual: Equatable {
         rows = NeuroJSON.int(json["rows"])
         cols = NeuroJSON.int(json["cols"])
         cells = NeuroJSON.ints(json["cells"])
+        if json["start"] != nil { start = NeuroJSON.int(json["start"]) }
+        moves = NeuroJSON.strings(json["moves"])
         word = NeuroJSON.string(json["word"])
         ink = NeuroJSON.string(json["ink"]).lowercased()
         askInk = NeuroJSON.bool(json["askInk"], true)
@@ -215,6 +222,8 @@ struct NeuroVisual: Equatable {
         if rows > 0 { out["rows"] = rows }
         if cols > 0 { out["cols"] = cols }
         if !cells.isEmpty { out["cells"] = cells }
+        if let start { out["start"] = start }
+        if !moves.isEmpty { out["moves"] = moves }
         if !word.isEmpty { out["word"] = word }
         if !ink.isEmpty { out["ink"] = ink }
         if !word.isEmpty || !ink.isEmpty { out["askInk"] = askInk }

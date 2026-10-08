@@ -4,7 +4,7 @@ import SwiftUI
 //
 // The app's home is the Phone Play grid (PhonePlayHomeView); these are the
 // bits on top of it: the wordmark bar with the profile chip, the "Play on
-// TV" hero that opens the join sheet, and the "Back to your TV game"
+// TV" row that opens the join sheet, and the "Back to your TV game"
 // banner.
 
 /// Wordmark and server dot on the left, profile chip on the right.
@@ -38,77 +38,46 @@ struct PhoneHomeTopBar: View {
     }
 }
 
-/// The big "Play on TV" card at the top of the home screen.
-struct PhoneHomeTVHero: View {
+/// The "Play on TV" entry at the top of the home screen: one quiet row on
+/// the same surface every other non-game card uses. It is the way into a
+/// TV room, not the point of the app, so nothing here is louder than the
+/// games below it -- no gradient, badge, glow or idle animation.
+struct PhoneHomeTVEntry: View {
     let appeared: Bool
     let action: () -> Void
 
-    private static let colors: [Color] = [PhonePlayDesign.cyan, PhonePlayDesign.blue, PhonePlayDesign.indigo]
-
     var body: some View {
         Button {
-            PhonePlayHaptics.thump()
+            PhonePlayHaptics.tap()
             action()
         } label: {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.white.opacity(0.18))
-                            .frame(width: 70, height: 70)
-                        Image(systemName: "tv.fill")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
-                    }
-                    .phonePlayIdle(dy: 4, degrees: 3, duration: 1.5)
-                    Spacer()
-                    Text("TV cast")
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .tracking(1)
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Capsule().fill(Color.white.opacity(0.9)))
-                }
-                VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 14) {
+                Image(systemName: "tv.fill")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
+                            .fill(PhonePlayDesign.surface2)
+                    )
+                VStack(alignment: .leading, spacing: 2) {
                     Text("Play on TV")
-                        .font(.system(size: 34, weight: .black, design: .rounded))
+                        .font(.system(size: 17, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
-                    Text("Join the room on your TV. Your phone becomes the controller.")
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.88))
-                        .fixedSize(horizontal: false, vertical: true)
+                    Text("Join a room with a code or QR")
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text3)
                 }
-                HStack(spacing: 8) {
-                    Image(systemName: "number")
-                        .font(.system(size: 15, weight: .heavy, design: .rounded))
-                    Text("Enter code or scan QR")
-                        .font(.system(size: 16, weight: .heavy, design: .rounded))
-                    Spacer()
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .heavy, design: .rounded))
-                }
-                .foregroundColor(PhonePlayDesign.indigo)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 13)
-                .background(Capsule().fill(Color.white))
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text3)
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius + 4, style: .continuous)
-                    .fill(PhonePlayDesign.gradient(Self.colors))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius + 4, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.22), lineWidth: 1)
-            )
-            .shadow(color: PhonePlayDesign.cyan.opacity(0.4), radius: 18, y: 10)
+            .phonePlaySurfaceCard(padding: 14)
         }
         .buttonStyle(PhonePlayPressStyle())
         .accessibilityLabel("Play on TV. Join a TV room.")
-        .scaleEffect(appeared ? 1 : 0.85)
+        .scaleEffect(appeared ? 1 : 0.96)
         .opacity(appeared ? 1 : 0)
         .animation(PhonePlayDesign.pop, value: appeared)
     }

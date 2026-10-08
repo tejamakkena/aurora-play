@@ -88,6 +88,9 @@ struct NeuroPulseRootView: View {
             }
         }
         .animation(PhonePlayDesign.smooth, value: game.stage)
+        .fullScreenCover(item: $game.arcadeRequest) { request in
+            NeuroArcadeRootView(game: request, onClose: { game.arcadeRequest = nil })
+        }
     }
 
     private var title: String {
@@ -348,10 +351,11 @@ private struct NeuroPromptCard: View {
             Text(step.prompt)
                 .font(.system(size: promptSize, weight: .heavy, design: .rounded))
                 .foregroundColor(.white)
-                .multilineTextAlignment(.center)
+                .multilineTextAlignment(step.kind == "liars_row" ? .leading : .center)
                 .minimumScaleFactor(0.6)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity,
+                       alignment: step.kind == "liars_row" ? .leading : .center)
         }
         .padding(18)
         .background(
@@ -398,6 +402,13 @@ private struct NeuroVisualPanel: View {
         case "rotation":
             if !step.visual.targetBrainCells.isEmpty {
                 target
+            }
+        case "dead_reckoning":
+            VStack(spacing: 14) {
+                NeuroMoveChips(moves: step.visual.moves)
+                if case .feedback = game.phase {
+                    NeuroGridArea(step: step, mode: .reveal, tapped: game.tapped, onTap: { _ in })
+                }
             }
         default:
             EmptyView()
@@ -566,7 +577,7 @@ private struct NeuroOptionCard: View {
 
 // MARK: - Keypad
 
-private struct NeuroNumberArea: View {
+struct NeuroNumberArea: View {
     let typed: String
     let enabled: Bool
     let onDigit: (Int) -> Void
@@ -641,6 +652,39 @@ private struct NeuroNumberArea: View {
     }
 }
 
+// MARK: - Dead Reckoning moves
+
+/// The moves in words, numbered, in the order the dot takes them.
+private struct NeuroMoveChips: View {
+    let moves: [String]
+
+    private let columns: [GridItem] = [GridItem(.adaptive(minimum: 104), spacing: 8)]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .center, spacing: 8) {
+            ForEach(Array(moves.enumerated()), id: \.offset) { pair in
+                HStack(spacing: 6) {
+                    Text("\(pair.offset + 1)")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded).monospacedDigit())
+                        .foregroundColor(PhonePlayDesign.text3)
+                    Text(pair.element)
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .background(
+                    Capsule().fill(PhonePlayDesign.surface2)
+                )
+            }
+        }
+        .padding(.horizontal, 2)
+    }
+}
+
 // MARK: - Spatial grid
 
 private struct NeuroGridArea: View {
@@ -657,7 +701,11 @@ private struct NeuroGridArea: View {
 
     private var rows: Int { step.gridRows }
     private var cols: Int { step.gridCols }
-    private var lit: Set<Int> { Set(step.visual.cells) }
+    /// The cells that were lit; for Dead Reckoning, where nothing is lit, the
+    /// one cell the dot ends on.
+    private var lit: Set<Int> {
+        step.visual.start != nil ? Set(NeuroStep.gridIndices(step.answer)) : Set(step.visual.cells)
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -694,9 +742,21 @@ private struct NeuroGridArea: View {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(border(index), lineWidth: 2)
                 )
+                .overlay(startDot(index))
         }
         .buttonStyle(PhonePlayPressStyle())
         .disabled(mode != .answer)
+    }
+
+    /// Dead Reckoning's starting point: a white dot on a blank grid.
+    @ViewBuilder
+    private func startDot(_ index: Int) -> some View {
+        if step.visual.start == index {
+            Circle()
+                .fill(Color.white)
+                .frame(width: 14, height: 14)
+                .shadow(color: .black.opacity(0.3), radius: 2, y: 1)
+        }
     }
 
     private func fill(_ index: Int) -> Color {
