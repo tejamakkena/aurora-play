@@ -630,3 +630,20 @@ input, textarea { font: inherit; color: inherit; }
 .pk-inner.up { transform: rotateY(180deg); }
 .pk-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
 .pk-face.front { transform: rotateY(180deg); }
+
+/* ---- switch ------------------------------------------------------------- */
+.switch { position: relative; width: 51px; height: 31px; border-radius: 999px; background: rgba(255,255,255,0.16); flex: 0 0 auto;
+  transition: background .2s; cursor: pointer; border: 0; padding: 0; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff;
+  transition: transform .25s var(--pop); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+.switch.on { background: var(--tint, var(--green)); }
+.switch.on::after { transform: translateX(20px); }
+
+/* ---- full-screen sheet (quiz maker) ---------------------------------------- */
+.maker { position: absolute; inset: 0; z-index: 45; background: var(--bg); display: flex; flex-direction: column; animation: rise-in .3s var(--smooth) both; }
+.maker-bar { display: flex; align-items: center; justify-content: space-between; padding: calc(10px + var(--safe-top)) 16px 8px; }
+.maker-bar .t { font-size: 17px; font-weight: 800; }
+.textarea { width: 100%; resize: none; background: rgba(255,255,255,0.07); border: 0; border-radius: 10px; padding: 10px; color: #fff; font-size: 15px; outline: none; }
+.input-sm { width: 100%; background: rgba(255,255,255,0.05); border: 0; border-radius: 10px; padding: 8px 10px; color: #fff; font-size: 15px; outline: none; }
+.hscroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.hscroll::-webkit-scrollbar { display: none; }

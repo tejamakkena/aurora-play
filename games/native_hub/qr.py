@@ -51,6 +51,7 @@ def join_page(code: str):
         abort(404)
     return render_template("join.html", code=code,
                            app_url=f"auroraplay://join/{code}",
+                           web_url=f"/play/{code}",
                            testflight_url=testflight_url())
 
 
