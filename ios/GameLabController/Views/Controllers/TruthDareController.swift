@@ -34,13 +34,23 @@ struct TruthDareControllerView: View {
         }
     }
 
-    private var levelTitle: String {
-        switch level {
+    private func levelName(_ key: String) -> String {
+        switch key {
         case "teens":  return "Teens"
         case "adults": return "Adults"
         default:       return "Family"
         }
     }
+
+    private func levelNote(_ key: String) -> String {
+        switch key {
+        case "teens":  return "Cheeky"
+        case "adults": return "Party"
+        default:       return "All ages"
+        }
+    }
+
+    private var levelTitle: String { levelName(level) }
 
     private var kindColor: Color {
         switch kind {
@@ -146,16 +156,14 @@ struct TruthDareControllerView: View {
                         .padding(.horizontal, 20)
 
                     HStack(spacing: 8) {
-                        ForEach([("family", "Family", "All ages"),
-                                 ("teens", "Teens", "Cheeky"),
-                                 ("adults", "Adults", "Party")], id: \.0) { item in
+                        ForEach(["family", "teens", "adults"], id: \.self) { key in
                             Button {
                                 PhonePlayHaptics.tap()
-                                onAction("set_level", ["level": item.0])
+                                onAction("set_level", ["level": key])
                             } label: {
                                 VStack(spacing: 2) {
-                                    Text(item.1).font(.system(size: 16, weight: .heavy, design: .rounded))
-                                    Text(item.2).font(.system(size: 12, weight: .medium, design: .rounded))
+                                    Text(levelName(key)).font(.system(size: 16, weight: .heavy, design: .rounded))
+                                    Text(levelNote(key)).font(.system(size: 12, weight: .medium, design: .rounded))
                                         .foregroundColor(PhonePlayDesign.text2)
                                 }
                                 .foregroundColor(.white)
@@ -163,10 +171,10 @@ struct TruthDareControllerView: View {
                                 .padding(.vertical, 12)
                                 .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius,
                                                              style: .continuous)
-                                    .fill(level == item.0 ? tint.opacity(0.3) : PhonePlayDesign.surface))
+                                    .fill(level == key ? tint.opacity(0.3) : PhonePlayDesign.surface))
                                 .overlay(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius,
                                                           style: .continuous)
-                                    .strokeBorder(level == item.0 ? tint : Color.clear, lineWidth: 1.5))
+                                    .strokeBorder(level == key ? tint : Color.clear, lineWidth: 1.5))
                             }
                             .buttonStyle(PhonePlayPressStyle())
                         }
