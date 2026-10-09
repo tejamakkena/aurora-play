@@ -47,6 +47,7 @@ class TestJSONShape:
         assert p.to_json() == {
             "id": "dev-1", "name": "Teja",
             "isReady": True, "score": 7, "isHost": True, "isBot": False,
+            "isAway": False,
         }
 
     def test_room_matches_swift_struct(self, registry):
@@ -101,11 +102,33 @@ class TestTVIsNotAPlayer:
 
 
 class TestDisconnect:
-    def test_lobby_disconnect_drops_the_seat(self, registry):
+    def test_lobby_disconnect_keeps_the_seat_for_a_while(self, registry):
+        # A phone switching apps or tabs drops its socket; coming back
+        # must not cost the player their place or the host flag.
         room = registry.create("trivia")
         room.add_player("a", "A", "s1")
         assert room.detach_sid("s1") == "a"
+        held = room.player("a")
+        assert held is not None and not held.connected
+
+    def test_lobby_seat_is_evicted_after_the_grace(self, registry):
+        room = registry.create("trivia")
+        room.add_player("a", "A", "s1")
+        room.detach_sid("s1")
+        later = time.time() + RECONNECT_GRACE_SECONDS + 1
+        assert room.evict_stale_players(later) == ["a"]
         assert room.player("a") is None
+
+    def test_returning_host_gets_the_flag_back(self, registry):
+        room = registry.create("trivia")
+        room.add_player("host", "Host", "s1")
+        room.add_player("guest", "Guest", "s2")
+        room.detach_sid("s1")
+        assert room.player("guest").is_host
+        returning = room.player("host")
+        returning.connected, returning.sid, returning.disconnected_at = True, "s3", None
+        room.reassign_host()
+        assert room.player("host").is_host and not room.player("guest").is_host
 
     def test_mid_game_disconnect_keeps_the_seat(self, registry):
         room = registry.create("trivia")
@@ -136,14 +159,30 @@ class TestDisconnect:
         assert room.player("host") is None
         assert room.is_empty()
 
-    def test_stale_player_evicted_after_grace(self, registry):
+    def test_mid_game_seat_is_never_evicted(self, registry):
+        # Evicting turned the player's name into "Player", folded their hand
+        # and shut them out ("Game already in progress") when they came back.
         room = registry.create("trivia")
         room.add_player("a", "A", "s1")
         room.state = RoomState.PLAYING
         room.detach_sid("s1")
-        assert room.evict_stale_players(time.time()) == []
-        later = time.time() + RECONNECT_GRACE_SECONDS + 1
-        assert room.evict_stale_players(later) == ["a"]
+        later = time.time() + RECONNECT_GRACE_SECONDS * 100
+        assert room.evict_stale_players(later) == []
+        assert room.player("a") is not None
+
+    def test_leaving_mid_game_keeps_the_name_and_score(self, registry):
+        room = registry.create("trivia")
+        room.add_player("a", "A", "s1")
+        room.add_player("b", "B", "s2")
+        room.state = RoomState.PLAYING
+        room.leave_player("b")
+        assert room.player("b") is not None and not room.player("b").connected
+
+    def test_leaving_in_the_lobby_removes_the_seat(self, registry):
+        room = registry.create("trivia")
+        room.add_player("a", "A", "s1")
+        room.leave_player("a")
+        assert room.player("a") is None
 
 
 class TestRegistry:

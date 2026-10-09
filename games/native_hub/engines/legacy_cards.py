@@ -179,6 +179,14 @@ class PokerEngine(TurnBasedEngine):
         self.big_blind_id: str | None = None
         self.last_action: dict | None = None
         self.action_seq = 0
+        # Raise discipline (no-limit, but not a free-for-all): a raise must
+        # add at least the previous raise (the big blind to start), and a
+        # street is capped at MAX_RAISES raises, after which players can only
+        # call, fold or go all in for what they have.
+        self.last_raise = self.BIG_BLIND
+        self.raises = 0
+
+    MAX_RAISES = 4
 
     def setup(self):
         self.chips = {pid: self.STARTING_CHIPS for pid in self.order}
@@ -219,6 +227,8 @@ class PokerEngine(TurnBasedEngine):
         self._post(sb, self.SMALL_BLIND)
         self._post(bb, self.BIG_BLIND)
         self.current_bet = max(self.contrib.values())
+        self.last_raise = self.BIG_BLIND
+        self.raises = 0
 
         self.turn_index = self.order.index(bb)
         if len(self._actionable()) <= 1 and self._bets_settled():
@@ -338,9 +348,15 @@ class PokerEngine(TurnBasedEngine):
             self.acted.add(player_id)
         elif action == "bet":
             amount = data.get("amount")
-            if not isinstance(amount, int):
+            if not isinstance(amount, int) or isinstance(amount, bool):
                 return
             amount = max(amount, self.current_bet)       # never less than a call
+            if self.raises >= self.MAX_RAISES:
+                amount = self.current_bet                 # capped: a call
+            elif amount > self.current_bet:
+                # A real raise adds at least the last raise (an all-in for
+                # less is still allowed below, it just does not reopen).
+                amount = max(amount, self.current_bet + self.last_raise)
             if amount <= self.contrib[player_id]:
                 return
             cost = min(amount - self.contrib[player_id], self.chips[player_id])
@@ -348,6 +364,10 @@ class PokerEngine(TurnBasedEngine):
             self.contrib[player_id] += cost
             self.pot += cost
             if self.contrib[player_id] > self.current_bet:
+                size = self.contrib[player_id] - self.current_bet
+                if size >= self.last_raise:
+                    self.last_raise = size
+                self.raises += 1
                 self.current_bet = self.contrib[player_id]
                 self.acted = {player_id}
             else:
@@ -391,6 +411,8 @@ class PokerEngine(TurnBasedEngine):
         self.acted = set()
         self.contrib = {pid: 0 for pid in self.order}
         self.current_bet = 0
+        self.last_raise = self.BIG_BLIND
+        self.raises = 0
 
         if self.phase == "river":
             self._showdown()
@@ -488,13 +510,15 @@ class PokerEngine(TurnBasedEngine):
 
     def private_state(self, player_id):
         state = self.base_private(player_id)
-        min_bet = self.current_bet + self.BIG_BLIND if self.current_bet else self.BIG_BLIND
+        min_bet = (self.current_bet + self.last_raise) if self.current_bet else self.BIG_BLIND
         to_call = max(0, min(self.current_bet - self.contrib.get(player_id, 0),
                              self.chips.get(player_id, 0)))
         state.update({
             "hand": self.hands.get(player_id, []),
             "chips": self.chips.get(player_id, 0),
             "minBet": min(min_bet, self.chips.get(player_id, 0) + self.contrib.get(player_id, 0)),
+            "canRaise": self.raises < self.MAX_RAISES,
+            "raisesLeft": max(0, self.MAX_RAISES - self.raises),
             "toCall": to_call,
             "folded": player_id in self.folded,
             "allIn": player_id in self.all_in,

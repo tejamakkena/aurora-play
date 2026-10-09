@@ -160,7 +160,12 @@ def _parse_mc(raw):
         return None
     q = {"question": raw.get("question"), "options": raw.get("options"),
          "correct_answer": raw.get("correct_answer")}
-    return q if validate_question(q)[0] else None
+    if not validate_question(q)[0]:
+        return None
+    category = _clean(raw.get("category"), 24)
+    if category:
+        q["category"] = category
+    return q
 
 
 def _parse_analogy(raw):
@@ -577,7 +582,8 @@ def mc_extra(kind: str) -> list:
     out = []
     for q in all_items("mc"):
         if kind == "trivia":
-            out.append(("General", q["question"], list(q["options"]), q["correct_answer"]))
+            out.append((q.get("category") or "General", q["question"],
+                        list(q["options"]), q["correct_answer"]))
         else:
             out.append((q["question"], list(q["options"]), q["correct_answer"]))
     return out

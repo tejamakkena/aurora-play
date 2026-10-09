@@ -798,7 +798,7 @@ def register_native_events(socketio):
 
         with room.lock:
             if pid:
-                room.remove_player(pid)
+                room.leave_player(pid)
             else:
                 room.detach_sid(sid)
             # remove_player/detach_sid already reassign the host (oldest

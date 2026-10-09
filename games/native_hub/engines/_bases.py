@@ -212,8 +212,33 @@ class TurnBasedEngine(NativeGameEngine):
     def is_my_turn(self, player_id: str) -> bool:
         return self.current_player_id() == player_id
 
+    #: How long the player whose turn it is may be offline before the table
+    #: moves on without them. Short, because the turn clock (when a game has
+    #: one) is much longer than a table is willing to wait on an empty seat.
+    AWAY_SKIP_SECONDS = 6.0
+
+    def current_is_away(self) -> bool:
+        """True when the player on turn has been offline long enough to skip."""
+        pid = self.current_player_id()
+        if pid is None:
+            return False
+        player = self.room.player(pid)
+        if player is None:
+            return True
+        if player.connected or player.is_bot:
+            return False
+        gone = player.disconnected_at
+        return gone is not None and time.time() - gone >= self.AWAY_SKIP_SECONDS
+
     def tick(self, dt: float) -> None:
-        if not self._finished and self.deadline and time.time() >= self.deadline:
+        if self._finished:
+            return
+        if self.current_is_away():
+            # Without this a turn-based game with no clock waits forever on a
+            # phone that was closed, and one with a clock waits it out.
+            self.on_turn_timeout()
+            return
+        if self.deadline and time.time() >= self.deadline:
             self.on_turn_timeout()
 
     def on_turn_timeout(self) -> None:

@@ -138,6 +138,12 @@ def finish_game(socketio, room) -> None:
     push_room(socketio, room)
 
 
+#: A running game with no action from anyone for this long is abandoned.
+IDLE_END_SECONDS = 20 * 60
+#: Fewer than two phones left for this long: the game cannot go on.
+UNDERSTAFFED_END_SECONDS = 120
+
+
 def start_pump(socketio, room) -> None:
     """Spawn the state pump for a room that has just started playing."""
     engine_cls = engine_for(room.game_id)
@@ -156,6 +162,8 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
     interval = 1.0 / max(BASE_PUMP_HZ, tick_hz)
     socketio.sleep(PUMP_LEAD_IN_SECONDS)
     last = time.time()
+    short_since = None
+    engine_cls = None
 
     while True:
         room = rooms.get(code)
@@ -166,6 +174,8 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
 
         now = time.time()
         dt, last = now - last, now
+        if engine_cls is None:
+            engine_cls = engine_for(room.game_id)
 
         try:
             with room.lock:
@@ -191,6 +201,26 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
                     over = room.engine.is_over()
                 else:
                     over = False
+
+            if not over:
+                # A table that can no longer play (everyone but one has left
+                # or gone dark) must not hold the survivor hostage.
+                needs = 1 if (room.solo or engine_cls.min_players <= 1) else 2
+                if len(room.connected_players()) < needs:
+                    if short_since is None:
+                        short_since = time.time()
+                    elif time.time() - short_since > UNDERSTAFFED_END_SECONDS:
+                        logger.info("room %s understaffed, ending game", code)
+                        over = True
+                else:
+                    short_since = None
+
+            if not over and time.time() - room.last_activity > IDLE_END_SECONDS:
+                # Nobody has touched a controller for a long while: the table
+                # has walked away. End the game so the room can show results
+                # and be reused instead of idling (and ticking) until the TTL.
+                logger.info("room %s idle, ending game", code)
+                over = True
 
             if over:
                 finish_game(socketio, room)

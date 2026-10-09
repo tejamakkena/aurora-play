@@ -219,4 +219,7 @@ def test_fresh_questions_returns_full_pool_with_no_history():
     # A room that has never run a quiz session has no history to avoid.
     registry = RoomRegistry()
     room = registry.create("trivia")
-    assert fresh_questions(room, "en", "trivia") == list(TRIVIA_QUESTIONS)
+    pool = fresh_questions(room, "en", "trivia")
+    # the bundled bank first, then the content library's extras
+    assert pool[:len(TRIVIA_QUESTIONS)] == list(TRIVIA_QUESTIONS)
+    assert len(pool) > len(TRIVIA_QUESTIONS)
