@@ -75,6 +75,10 @@ class Player:
     # bot last scheduled for, and the timestamp after which it may act.
     bot_phase_key: str = ""
     bot_act_at: float = 0.0
+    #: One random id per app launch / browser tab (sent by the client in
+    #: join_room). Lets a returning phone reclaim its own seat while its old
+    #: socket is still half-open. Never sent to other clients.
+    client_id: str | None = None
 
     def to_json(self) -> dict:
         """The Swift ``Player`` struct. ``isBot`` is additive -- Swift's

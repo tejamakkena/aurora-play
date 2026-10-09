@@ -66,7 +66,7 @@ def _rate_limited(sid: str) -> bool:
 MAX_SEATS_PER_DEVICE = 8
 
 
-def _seat_for(room, player_id: str, sid: str) -> str | None:
+def _seat_for(room, player_id: str, sid: str, client_id: str | None = None) -> str | None:
     """The seat id this socket owns. None when the id is exhausted.
 
     The first phone keeps the plain device id, so a normal reconnect (and
@@ -75,11 +75,20 @@ def _seat_for(room, player_id: str, sid: str) -> str | None:
     The suffixed seat is just as reclaimable as the plain one: the same
     phone reconnecting lands back on the first seat that is free, which is
     its own, because the other phone still holds the one in front of it.
+
+    A phone that was backgrounded (or a tab that was frozen) comes back on a
+    new socket while the server still believes the old one is alive -- it only
+    notices after the ping timeout. That is the SAME phone, not a second one,
+    and giving it ``<id>-2`` would leave a ghost on the old seat and a
+    stranger on the new one (or "game already in progress" mid-game). The
+    client's launch id tells the two apart: same launch id, same phone.
     """
     for index in range(1, MAX_SEATS_PER_DEVICE + 1):
         seat = player_id if index == 1 else f"{player_id}-{index}"
         held = room.player(seat)
         if held is None or held.sid == sid or not held.connected:
+            return seat
+        if client_id and held.client_id == client_id:
             return seat
     return None
 
@@ -224,7 +233,8 @@ def register_native_events(socketio):
             # (see _seat_for). The seat id replaces `pid` from here on: it
             # is what the room, the engine and this phone all key on, and
             # it is echoed back in room_joined so the phone adopts it.
-            seat = _seat_for(room, pid, sid)
+            client_id = str(data.get("clientID") or "")[:64] or None
+            seat = _seat_for(room, pid, sid, client_id)
             if seat is None:
                 push_error(socketio, sid, "Too many phones on this device id",
                            "DEVICE_SEATS_EXHAUSTED")
@@ -236,6 +246,8 @@ def register_native_events(socketio):
                 existing.sid = sid
                 existing.connected = True
                 existing.disconnected_at = None
+                if client_id:
+                    existing.client_id = client_id
                 room.reassign_host()
                 room.touch()
                 resumed = True
@@ -255,7 +267,8 @@ def register_native_events(socketio):
                 if len(room.players) >= engine_cls.max_players:
                     push_error(socketio, sid, "Room is full", "ROOM_FULL")
                     return
-                room.add_player(pid, sanitize_name(data.get("playerName")), sid)
+                added = room.add_player(pid, sanitize_name(data.get("playerName")), sid)
+                added.client_id = client_id
 
         socket_join_room(code, namespace=NAMESPACE)
         rooms.bind_sid(sid, code)

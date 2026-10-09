@@ -167,6 +167,14 @@ def main() -> None:
     write_wav("snake_bite.wav", snake_bite())
     write_wav("snake_doom_sting.wav", snake_doom_sting())
     write_wav("ladder_climb.wav", ladder_climb())
+    # Poker table (each uses a private RNG, so the clips above stay
+    # byte-identical when this script is re-run).
+    write_wav("poker_chips.wav", poker_chips())
+    write_wav("poker_card.wav", poker_card())
+    write_wav("poker_check.wav", poker_check())
+    write_wav("poker_fold.wav", poker_fold())
+    write_wav("poker_allin.wav", poker_allin())
+    write_wav("poker_lounge.wav", poker_lounge())
 
 
 def snake_bite() -> list[float]:
@@ -269,6 +277,167 @@ def snake_doom_sting() -> list[float]:
         swell = min(1.0, t * 2.5) * math.exp(-max(0.0, t - 1.8) * 2.5)
         out[i] += math.sin(2 * math.pi * 55 * t) * swell * 0.18
     return [v * 0.55 for v in out]
+
+
+def _noise_burst(rng: random.Random, n: int, decay: float, tone_hz: float = 0.0,
+                 tone_level: float = 0.0, hp: float = 0.0) -> list[float]:
+    """Decaying noise with an optional tone; ``hp`` (0..1) is a one-pole
+    high-pass amount that makes it sound crisper / more papery."""
+    out = []
+    prev_in = 0.0
+    prev_out = 0.0
+    for i in range(n):
+        t = i / SAMPLE_RATE
+        x = rng.random() * 2 - 1
+        if hp:
+            y = hp * (prev_out + x - prev_in)
+            prev_in, prev_out = x, y
+            x = y
+        env = math.exp(-t * decay)
+        v = x * env
+        if tone_hz:
+            v += math.sin(2 * math.pi * tone_hz * t) * tone_level * env
+        out.append(v)
+    return out
+
+
+def _mix(out: list[float], clip: list[float], start: float, level: float) -> None:
+    offset = int(SAMPLE_RATE * start)
+    for i, v in enumerate(clip):
+        if offset + i >= len(out):
+            break
+        out[offset + i] += v * level
+
+
+def poker_chips() -> list[float]:
+    """A little stack of clay chips being dropped: three quick clacks."""
+    rng = random.Random(31)
+    out = [0.0] * int(SAMPLE_RATE * 0.32)
+    for start, hz, level in ((0.0, 2_400, 0.7), (0.045, 3_100, 0.55), (0.095, 2_700, 0.45),
+                             (0.15, 3_400, 0.3)):
+        _mix(out, _noise_burst(rng, int(SAMPLE_RATE * 0.05), 120, hz, 0.8, hp=0.6),
+             start, level)
+    return out
+
+
+def poker_card() -> list[float]:
+    """A card flicked across felt: a short papery swish."""
+    rng = random.Random(32)
+    n = int(SAMPLE_RATE * 0.16)
+    clip = _noise_burst(rng, n, 26, hp=0.85)
+    for i in range(n):
+        t = i / n
+        clip[i] *= math.sin(math.pi * min(1.0, t * 1.4)) * 0.8
+    return clip
+
+
+def poker_check() -> list[float]:
+    """Knuckles tapping the table twice."""
+    rng = random.Random(33)
+    out = [0.0] * int(SAMPLE_RATE * 0.34)
+    for start in (0.0, 0.13):
+        n = int(SAMPLE_RATE * 0.12)
+        thump = [math.sin(2 * math.pi * 170 * (i / SAMPLE_RATE)) * math.exp(-(i / SAMPLE_RATE) * 38)
+                 for i in range(n)]
+        click = _noise_burst(rng, n, 160, hp=0.5)
+        _mix(out, [a * 0.9 + b * 0.35 for a, b in zip(thump, click)], start, 0.9)
+    return out
+
+
+def poker_fold() -> list[float]:
+    """Cards tossed in: a falling swish."""
+    rng = random.Random(34)
+    n = int(SAMPLE_RATE * 0.38)
+    out = []
+    low = 0.0
+    for i in range(n):
+        t = i / SAMPLE_RATE
+        x = rng.random() * 2 - 1
+        # A low-pass whose cutoff falls, so the swish sinks away.
+        a = max(0.04, 0.5 - t * 1.1)
+        low += a * (x - low)
+        out.append(low * math.exp(-t * 6) * (1 - math.exp(-t * 90)) * 1.6)
+    return out
+
+
+def poker_allin() -> list[float]:
+    """The big shove: a low swell, a rush of chips and a bright bell."""
+    rng = random.Random(35)
+    n = int(SAMPLE_RATE * 1.5)
+    out = [0.0] * n
+    for i in range(n):
+        t = i / SAMPLE_RATE
+        swell = min(1.0, t * 1.6) * math.exp(-max(0.0, t - 0.7) * 3.2)
+        out[i] += (math.sin(2 * math.pi * 82.4 * t) * 0.5 + math.sin(2 * math.pi * 123.5 * t) * 0.25) * swell * 0.55
+    for k in range(9):
+        _mix(out, _noise_burst(rng, int(SAMPLE_RATE * 0.05), 120, 2_300 + 150 * (k % 4), 0.8, hp=0.6),
+             0.25 + k * 0.06, 0.5)
+    for freq, level in ((659.25, 0.34), (987.77, 0.26), (1318.5, 0.16)):
+        offset = int(SAMPLE_RATE * 0.8)
+        for i in range(offset, min(n, offset + int(SAMPLE_RATE * 0.7))):
+            t = (i - offset) / SAMPLE_RATE
+            out[i] += math.sin(2 * math.pi * freq * t) * math.exp(-t * 5.5) * level
+    return out
+
+
+def poker_lounge() -> list[float]:
+    """A soft, looping lounge-jazz bed for the poker table: electric-piano
+    chords (Dm7, G7, Cmaj7, A7) over a walking bass and brushed hats, 84 bpm,
+    ~11.4 s, meant to sit quietly under the game."""
+    rng = random.Random(36)
+    bpm = 84
+    beat = 60.0 / bpm
+    bars = 4
+    total = bars * 4 * beat
+    n = int(SAMPLE_RATE * total)
+    out = [0.0] * n
+
+    def midi(m: float) -> float:
+        return 440.0 * 2 ** ((m - 69) / 12)
+
+    def epiano(start: float, length: float, freq: float, level: float) -> None:
+        offset = int(SAMPLE_RATE * start)
+        count = int(SAMPLE_RATE * length)
+        for i in range(offset, min(n, offset + count)):
+            t = (i - offset) / SAMPLE_RATE
+            env = math.exp(-t * 2.4) * (1 - math.exp(-t * 90))
+            v = math.sin(2 * math.pi * freq * t)
+            v += 0.35 * math.sin(2 * math.pi * freq * 2 * t) * math.exp(-t * 4)
+            v += 0.12 * math.sin(2 * math.pi * freq * 4.02 * t) * math.exp(-t * 9)
+            out[i] += v * env * level
+
+    def bass(start: float, length: float, freq: float, level: float) -> None:
+        offset = int(SAMPLE_RATE * start)
+        count = int(SAMPLE_RATE * length)
+        for i in range(offset, min(n, offset + count)):
+            t = (i - offset) / SAMPLE_RATE
+            env = math.exp(-t * 3.2) * (1 - math.exp(-t * 120))
+            out[i] += (math.sin(2 * math.pi * freq * t)
+                       + 0.3 * math.sin(2 * math.pi * freq * 2 * t)) * env * level
+
+    # (chord tones as midi, bass walk as midi) per bar
+    bars_def = [
+        ([62, 65, 69, 72], [38, 41, 45, 43]),   # Dm7
+        ([55, 59, 62, 65], [43, 47, 50, 47]),   # G7
+        ([60, 64, 67, 71], [36, 40, 43, 40]),   # Cmaj7
+        ([61, 64, 67, 71], [45, 49, 52, 49]),   # A7
+    ]
+    for bar, (chord, walk) in enumerate(bars_def):
+        t0 = bar * 4 * beat
+        # Comp on beat 1 and the "and" of 2, the classic lounge feel.
+        for tone in chord:
+            epiano(t0, beat * 1.8, midi(tone), 0.10)
+            epiano(t0 + beat * 2.5, beat * 1.2, midi(tone), 0.07)
+        for step, note in enumerate(walk):
+            bass(t0 + step * beat, beat * 0.95, midi(note), 0.30)
+        # Brushed hat on 2 and 4 (and a ghost on the offbeats).
+        for step in range(4):
+            level = 0.07 if step in (1, 3) else 0.03
+            _mix(out, _noise_burst(rng, int(SAMPLE_RATE * 0.07), 55, hp=0.9),
+                 t0 + step * beat, level)
+            _mix(out, _noise_burst(rng, int(SAMPLE_RATE * 0.05), 70, hp=0.9),
+                 t0 + step * beat + beat * 0.66, 0.025)
+    return crossfade_loop([v * 0.7 for v in out], 0.25)
 
 
 if __name__ == "__main__":

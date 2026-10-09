@@ -80,19 +80,31 @@ struct RulesInterstitialView: View {
             // scrolls by moving focus, so each rule row is focusable (see
             // TVRuleRow) -- swiping down walks the rules, then lands on Begin.
             VStack(alignment: .leading, spacing: 0) {
-                ScrollView {
-                    HStack(alignment: .top, spacing: 48) {
-                        tvBadge
-                        tvContent
+                HStack(alignment: .top, spacing: 56) {
+                    tvSummary
+                        .frame(width: 440, alignment: .leading)
+                    // Only the rules scroll. tvOS scrolls by moving focus, so
+                    // each row is focusable (see TVRuleRow). The scroll view
+                    // is clipped so a long list can never draw over the
+                    // Begin button below it.
+                    ScrollView {
+                        tvRules
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
                     }
-                    .padding(.horizontal, 56)
-                    .padding(.top, 48)
-                    .padding(.bottom, 24)
+                    .clipped()
                 }
+                .padding(.horizontal, 56)
+                .padding(.top, 48)
+                .padding(.bottom, 20)
+                .frame(maxHeight: .infinity)
+
                 tvFooter
                     .padding(.horizontal, 56)
-                    .padding(.top, 12)
-                    .padding(.bottom, 40)
+                    .padding(.top, 18)
+                    .padding(.bottom, 36)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .zIndex(1)
             }
             .background { tvPanel }
             .frame(maxWidth: 1500)
@@ -127,9 +139,9 @@ struct RulesInterstitialView: View {
                         Image(systemName: "play.fill")
                         Text(primaryTitle)
                     }
-                    .font(.system(.title, design: .rounded, weight: .bold))
-                    .frame(width: 420)
-                    .padding(.vertical, 22)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .frame(width: 380)
+                    .padding(.vertical, 18)
                     .background {
                         RoundedRectangle(cornerRadius: RulesDesign.buttonRadius, style: .continuous)
                             .fill(LinearGradient(colors: startFocused
@@ -142,14 +154,14 @@ struct RulesInterstitialView: View {
                     .compositingGroup()
                     .shadow(color: RulesDesign.tvAccent.opacity(startFocused ? 0.75 : 0.25),
                             radius: startFocused ? 34 : 12)
-                    .scaleEffect(startFocused ? 1.08 : 1.0)
+                    .scaleEffect(startFocused ? 1.05 : 1.0)
                     .animation(.spring(response: 0.3, dampingFraction: 0.65), value: startFocused)
                 }
                 .buttonStyle(.plain)
                 .focused($startFocused)
 
                 Text("or press Play/Pause")
-                    .font(.system(.title3, design: .rounded))
+                    .font(.system(size: 28, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.55))
                 Spacer(minLength: 0)
             }
@@ -159,7 +171,7 @@ struct RulesInterstitialView: View {
                     .tint(RulesDesign.tvAccent)
                     .scaleEffect(1.4)
                 Text("Waiting for host to begin...")
-                    .font(.system(.title2, design: .rounded))
+                    .font(.system(size: 30, weight: .medium, design: .rounded))
                     .foregroundColor(.white.opacity(0.7))
             }
             .phaseAnimator([false, true]) { content, phase in
@@ -223,12 +235,11 @@ struct RulesInterstitialView: View {
             Circle()
                 .strokeBorder(Color.white.opacity(0.5), lineWidth: 3)
             Image(systemName: "gamecontroller.fill")
-                .font(.system(size: 78, weight: .bold, design: .rounded))
+                .font(.system(size: 52, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
-                .shadow(color: Color.black.opacity(0.3), radius: 3, x: 0, y: 4)
         }
-        .frame(width: 180, height: 180)
-        .shadow(color: RulesDesign.tvAccent.opacity(0.45), radius: 30)
+        .frame(width: 120, height: 120)
+        .shadow(color: RulesDesign.tvAccent.opacity(0.45), radius: 20)
         .phaseAnimator([false, true]) { content, phase in
             content
                 .rotation3DEffect(.degrees(phase ? 14 : -14),
@@ -240,48 +251,55 @@ struct RulesInterstitialView: View {
         }
     }
 
-    private var tvContent: some View {
-        VStack(alignment: .leading, spacing: 28) {
+    /// Left column: what the game is. Fixed, readable sizes (a TV is read
+    /// from the sofa) and no glow or gradient on the text, which softens it.
+    private var tvSummary: some View {
+        VStack(alignment: .leading, spacing: 22) {
+            tvBadge
             Text("HOW TO PLAY")
-                .font(.system(.title3, design: .rounded)).bold()
+                .font(.system(size: 24, weight: .semibold, design: .rounded))
                 .foregroundColor(.white.opacity(0.6))
-                .tracking(6)
-
+                .tracking(5)
             Text(rules.title)
-                .font(.system(size: 64, weight: .heavy, design: .rounded))
-                .foregroundStyle(LinearGradient(colors: [Color.white, RulesDesign.tvAccent],
-                                                startPoint: .top,
-                                                endPoint: .bottom))
-                .shadow(color: RulesDesign.tvAccent.opacity(0.35), radius: 18)
-
+                .font(.system(size: 56, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(3)
+                .minimumScaleFactor(0.6)
             Text(rules.objective)
-                .font(.system(.title2, design: .rounded))
+                .font(.system(size: 30, weight: .semibold, design: .rounded))
                 .foregroundColor(RulesDesign.tvAccent)
-
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(rules.rules.enumerated()), id: \.offset) { index, rule in
-                    TVRuleRow(number: index + 1, text: rule, accent: RulesDesign.tvAccent) {
-                        tvRuleNumber(index + 1)
-                    }
-                    .opacity(rulesShown ? 1 : 0)
-                    .offset(x: rulesShown ? 0 : 60)
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8)
-                                .delay(0.15 + Double(index) * 0.09),
-                               value: rulesShown)
-                }
-            }
-
-            HStack(spacing: 14) {
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "gamecontroller.fill")
+                    .font(.system(size: 26))
                     .foregroundColor(RulesDesign.tvAccent.opacity(0.8))
                 Text(rules.controls)
-                    .font(.system(.title3, design: .rounded))
-                    .foregroundColor(.white.opacity(0.78))
+                    .font(.system(size: 26, weight: .regular, design: .rounded))
+                    .foregroundColor(.white.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 22)
+            .padding(.horizontal, 18)
             .padding(.vertical, 14)
             .background {
-                Capsule().fill(Color.white.opacity(0.07))
+                RoundedRectangle(cornerRadius: RulesDesign.chipRadius, style: .continuous)
+                    .fill(Color.white.opacity(0.07))
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// Right column: the numbered rules.
+    private var tvRules: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(rules.rules.enumerated()), id: \.offset) { index, rule in
+                TVRuleRow(number: index + 1, text: rule, accent: RulesDesign.tvAccent) {
+                    tvRuleNumber(index + 1)
+                }
+                .opacity(rulesShown ? 1 : 0)
+                .offset(x: rulesShown ? 0 : 60)
+                .animation(.spring(response: 0.5, dampingFraction: 0.8)
+                            .delay(0.15 + Double(index) * 0.09),
+                           value: rulesShown)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -289,9 +307,9 @@ struct RulesInterstitialView: View {
 
     private func tvRuleNumber(_ number: Int) -> some View {
         Text("\(number)")
-            .font(.system(size: 30, weight: .heavy, design: .rounded))
+            .font(.system(size: 26, weight: .bold, design: .rounded))
             .foregroundColor(.white)
-            .frame(width: 54, height: 54)
+            .frame(width: 48, height: 48)
             .background {
                 ZStack {
                     Circle()
@@ -487,9 +505,9 @@ private struct TVRuleRow<Badge: View>: View {
         HStack(alignment: .top, spacing: 20) {
             badge()
             Text(text)
-                .font(.system(.title2, design: .rounded))
-                .foregroundColor(.white.opacity(focused ? 1.0 : 0.88))
-                .padding(.top, 6)
+                .font(.system(size: 32, weight: .medium, design: .rounded))
+                .foregroundColor(.white.opacity(focused ? 1.0 : 0.92))
+                .padding(.top, 4)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }

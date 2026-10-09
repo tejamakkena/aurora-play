@@ -63,7 +63,10 @@ struct PokerControllerView: View {
     private var maxTotal: Int { chips + myBet }
     /// Smallest legal raise-to total.
     private var minRaise: Int { max(min(minBet, maxTotal), tableBet + 1) }
-    private var canRaise: Bool { maxTotal > tableBet && minRaise <= maxTotal }
+    /// The table caps raises per street (see PokerEngine.MAX_RAISES); once the
+    /// cap is hit the server sends `canRaise: false` and only call/fold remain.
+    private var raiseAllowed: Bool { privateData["canRaise"] as? Bool ?? true }
+    private var canRaise: Bool { raiseAllowed && maxTotal > tableBet && minRaise <= maxTotal }
 
     private var raiseAmount: Int {
         let lo: Int = minRaise
@@ -140,7 +143,8 @@ struct PokerControllerView: View {
 
     private var peekHint: String {
         if hand.isEmpty { return "Waiting for the deal" }
-        if folded { return "You folded this hand" }
+        // A folded player may still look at what they threw away.
+        if folded { return peeking ? "Let go to hide" : "You folded. Hold to peek at your cards" }
         return peeking ? "Let go to hide" : "Hold to peek at your cards"
     }
 
@@ -151,7 +155,7 @@ struct PokerControllerView: View {
                 PKCCardBack().frame(width: 140, height: 196).opacity(0.25)
             } else {
                 ForEach(Array(hand.prefix(2).enumerated()), id: \.offset) { i, card in
-                    PKCPeekCard(card: card, isFaceUp: peeking && !folded)
+                    PKCPeekCard(card: card, isFaceUp: peeking)
                         .frame(width: 140, height: 196)
                         .rotationEffect(.degrees(i == 0 ? -4 : 4))
                         .offset(y: peeking ? -8 : 0)
@@ -162,13 +166,13 @@ struct PokerControllerView: View {
         }
         .padding(.vertical, 20)
         .padding(.horizontal, 24)
-        .opacity(folded ? 0.35 : 1)
-        .saturation(folded ? 0 : 1)
+        .opacity(folded ? (peeking ? 0.85 : 0.5) : 1)
+        .saturation(folded && !peeking ? 0.2 : 1)
         .contentShape(Rectangle())
         .gesture(
             DragGesture(minimumDistance: 0)
                 .onChanged { _ in
-                    guard !peeking, !hand.isEmpty, !folded else { return }
+                    guard !peeking, !hand.isEmpty else { return }
                     peeking = true
                     PhonePlayHaptics.rigid()
                 }
@@ -225,6 +229,11 @@ struct PokerControllerView: View {
 
             if canRaise {
                 raiseControls
+            } else if !raiseAllowed && tableBet > 0 {
+                Text("Raise limit reached this street")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             HStack(spacing: 10) {

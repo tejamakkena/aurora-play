@@ -35,6 +35,7 @@ struct TVPokerBoardView: View {
         .background(Color(hex: "040507"))
         .ignoresSafeArea()
         .onAppear { vm.bind(roomCode: room.code) }
+        .onDisappear { vm.shutdown() }
     }
 }
 
@@ -266,16 +267,25 @@ enum PokerReveal {
     @Published private(set) var sweepCount = 0
 
     private let socket = GameSocketManager.shared
+    /// The table talks: every bet, raise, fold and whose turn it is, by name.
+    private let voice = TVVoiceHost()
     private var hasState = false
     private var flightCounter = 0
     private var sequenceToken = 0
     private var calloutToken = 0
 
     func bind(roomCode: String) {
+        SoundPlayer.shared.startLoop(.pokerLounge, volume: 0.16)
         socket.on(.gameState) { [weak self] (r: GameStateResponse) in
             guard let self, r.roomCode == roomCode else { return }
             self.ingest(r.boardState)
         }
+    }
+
+    /// Called when the board leaves the screen.
+    func shutdown() {
+        voice.stopSpeaking()
+        SoundPlayer.shared.fadeOutLoop(.pokerLounge, over: 0.4)
     }
 
     /// The pot figure to show: held at its pre-award value through the
@@ -326,6 +336,8 @@ enum PokerReveal {
         seatActions = [:]
         revealFrom = 0
         handStartChips = Self.stacksIncludingBets(next.playerSeats)
+        SoundPlayer.shared.play(.pokerCard, volume: 0.7)
+        speakNewHand(next)
         // The blinds slide out once the hole cards have been dealt.
         for seat in next.playerSeats where seat.currentBet > 0 {
             addFlight(from: .seat(seat.id), to: .bet(seat.id), chips: 2, delay: 0.9,
@@ -358,6 +370,7 @@ enum PokerReveal {
                           tier: Self.tier(for: action.amount, bigBlind: next.bigBlind))
             }
             seatActions = [:]
+            SoundPlayer.shared.play(.pokerCard, volume: 0.8)
         } else if next.phase == old.phase {
             for seat in next.playerSeats {
                 let before: Int = old.playerSeats.first(where: { $0.id == seat.id })?.currentBet ?? 0
@@ -370,6 +383,11 @@ enum PokerReveal {
 
         if let action, isNewAction {
             announce(action, recordOnSeat: !streetChanged)
+            speakAction(action, next: next, streetChanged: streetChanged)
+        } else if !streetChanged, !next.isShowdown, Self.turnPlayerID(next) != Self.turnPlayerID(old),
+                  Self.turnPlayerID(next) != nil {
+            // The turn passed without a new action (a seat was skipped).
+            speak(Self.turnLine(next))
         }
 
         if next.isShowdown && !old.isShowdown {
@@ -412,6 +430,13 @@ enum PokerReveal {
         default: text = name
         }
         let isAllIn: Bool = action.action == "allIn"
+        switch action.action {
+        case "fold":              SoundPlayer.shared.play(.pokerFold, volume: 0.7)
+        case "check":             SoundPlayer.shared.play(.pokerCheck, volume: 0.8)
+        case "allIn":             SoundPlayer.shared.play(.pokerAllIn, volume: 0.85)
+        case "call", "bet", "raise": SoundPlayer.shared.play(.pokerChips, volume: 0.8)
+        default: break
+        }
         let item = PokerCallout(id: action.seq, playerID: action.playerID, text: text,
                                 isAllIn: isAllIn, amount: action.amount, name: name)
         callout = item
@@ -470,6 +495,9 @@ enum PokerReveal {
         stage = target
         guard target == .sweep else { return }
         sweepCount += 1
+        SoundPlayer.shared.play(.pokerChips, volume: 0.9)
+        SoundPlayer.shared.play(.winFanfare, volume: 0.45)
+        speakWinner()
         let winners: [String] = state.lastHand?.winnerIDs ?? []
         let pot: Int = heldPot ?? 0
         for (i, id) in winners.enumerated() {
@@ -481,6 +509,69 @@ enum PokerReveal {
             guard let self, self.sequenceToken == token else { return }
             self.heldChips = [:]
         }
+    }
+
+    // MARK: Voice
+
+    private func speak(_ text: String) {
+        voice.speak(text)
+    }
+
+    private static func turnPlayerID(_ s: PokerBoardState) -> String? {
+        s.playerSeats.first(where: { $0.isCurrentTurn })?.id
+    }
+
+    /// "Meera, it is 60 to you." / "Meera, your action."
+    private static func turnLine(_ s: PokerBoardState) -> String {
+        guard let seat = s.playerSeats.first(where: { $0.isCurrentTurn }) else { return "" }
+        let toCall: Int = max(0, s.currentBet - seat.currentBet)
+        if toCall > 0 { return "\(seat.name), it is \(toCall) to you." }
+        return "\(seat.name), your action."
+    }
+
+    private func speakNewHand(_ next: PokerBoardState) {
+        var line = next.maxHands > 0 ? "Hand \(next.handNumber) of \(next.maxHands)." : "New hand."
+        if let dealer = next.playerSeats.first(where: { $0.id == next.dealerID }) {
+            line += " \(dealer.name) deals."
+        }
+        let turn: String = Self.turnLine(next)
+        if !turn.isEmpty { line += " " + turn }
+        speak(line)
+    }
+
+    private func speakAction(_ action: PokerLastAction, next: PokerBoardState, streetChanged: Bool) {
+        let name: String = action.name.isEmpty ? "Player" : action.name
+        var line: String
+        switch action.action {
+        case "fold":  line = "\(name) folds."
+        case "check": line = "\(name) checks."
+        case "call":  line = "\(name) calls \(action.amount)."
+        case "bet":   line = "\(name) bets \(action.amount)."
+        case "raise": line = "\(name) raises to \(action.amount)."
+        case "allIn": line = "\(name) is all in!"
+        default:      line = ""
+        }
+        if streetChanged {
+            switch next.phase {
+            case "flop":  line += " Here comes the flop."
+            case "turn":  line += " The turn."
+            case "river": line += " The river."
+            default: break
+            }
+        }
+        if !next.isShowdown {
+            let turn: String = Self.turnLine(next)
+            if !turn.isEmpty { line += " " + turn }
+        }
+        speak(line)
+    }
+
+    private func speakWinner() {
+        guard let result = state.lastHand, !result.winnerNames.isEmpty else { return }
+        let who: String = result.winnerNames.joined(separator: " and ")
+        var line = "\(who) wins \(result.amount)"
+        if !result.handName.isEmpty { line += " with \(result.handName.lowercased())" }
+        speak(line + ".")
     }
 
     // MARK: Helpers

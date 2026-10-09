@@ -55,6 +55,13 @@
       });
     },
 
+    /** The tab woke up. A socket that is mid-connect or already backing off
+     *  to retry (``active``) is left alone; one that gave up is restarted. */
+    wake: function () {
+      if (!socket || socket.connected || socket.active) { return; }
+      socket.connect();
+    },
+
     on: function (event, fn) { socket.on(event, fn); },
     off: function (event, fn) { socket.off(event, fn); },
     emit: function (event, payload) { socket.emit(event, payload); },

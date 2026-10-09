@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct RootTVView: View {
     @StateObject private var vm = TVRootViewModel()
@@ -10,12 +11,27 @@ struct RootTVView: View {
     // MenuPressInterceptor (used below) documents both and why a
     // window-level UIKit press recognizer is what finally works.
     @State private var showQuitConfirm = false
+    @Environment(\.scenePhase) private var scenePhase
 
     /// Menu means "back to the game list" during a game, and keeps its
     /// normal platform meaning (exit the app) on the list itself.
     private var interceptsMenu: Bool {
         if case .gameSelection = vm.screen { return false }
         return true
+    }
+
+    /// The Apple TV starts its screensaver (and eventually sleeps) after a few
+    /// minutes without a remote press, and a living-room game is mostly played
+    /// on phones, so the TV sees no input for long stretches. Keep it awake
+    /// for as long as a room is open (lobby, game, results) and hand control
+    /// back to the system on the game list.
+    private var keepsScreenAwake: Bool {
+        if case .gameSelection = vm.screen { return false }
+        return true
+    }
+
+    private func applyIdleTimer() {
+        UIApplication.shared.isIdleTimerDisabled = keepsScreenAwake && scenePhase == .active
     }
 
     private var isAmbientAnimated: Bool {
@@ -91,6 +107,9 @@ struct RootTVView: View {
             }
         }
         .environmentObject(vm)
+        .onChange(of: keepsScreenAwake, initial: true) { _, _ in applyIdleTimer() }
+        .onChange(of: scenePhase) { _, _ in applyIdleTimer() }
+        .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
         // Menu is intercepted through a window-level UIKit press
         // recognizer rather than SwiftUI's .onExitCommand -- see
         // MenuPressInterceptor for why two focus-based attempts failed on

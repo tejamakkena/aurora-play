@@ -100,11 +100,12 @@
     S.playerID = AP.deviceID();
     S.pendingJoinCode = upper;
     setScreen('loading');
-    AP.net.emit('join_room', { roomCode: upper, playerName: name, playerID: S.playerID, isTV: false });
+    AP.net.emit('join_room', { roomCode: upper, playerName: name, playerID: S.playerID, isTV: false, clientID: CLIENT_ID });
     cancelJoinTimer();
     joinTimer = setTimeout(function () {
       if (S.screen === 'loading') {
         forgetResumable(upper);
+        if (S.autoResuming) { S.autoResuming = false; setScreen('join'); changed(); return; }
         S.errorMessage = "Couldn't join. Check the room code and try again.";
         setScreen('error');
         AP.haptic.error();
@@ -190,6 +191,20 @@
     AP.net.emit('move_to_team', { roomCode: r.code, playerID: S.playerID, teamID: teamID });
   };
 
+  // One id per page load: a tab that was frozen in the background rejoins
+  // with the same one, so the server hands it back its own seat instead of
+  // treating it as a second phone on this device (see _seat_for).
+  var CLIENT_ID = (window.crypto && window.crypto.randomUUID)
+    ? window.crypto.randomUUID()
+    : 'c' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+  function reseat(r) {
+    AP.net.emit('join_room', {
+      roomCode: r.code, playerName: playerName() || 'Player',
+      playerID: S.playerID, isTV: false, clientID: CLIENT_ID
+    });
+  }
+
   // ---- wiring --------------------------------------------------------
   AP.session = {
     start: function (prefillCode) {
@@ -198,19 +213,37 @@
       if (prefillCode) { S.pendingJoinCode = String(prefillCode).toUpperCase().slice(0, 6); }
       AP.net.connect();
       AP.net.onStatus(function (up) { S.serverUp = up; changed(); });
+
+      // Coming back to this tab (or the phone waking up) is where a seat is
+      // usually lost: the OS freezes the page, the socket times out, and the
+      // game moves on. Reconnect at once and re-seat, instead of waiting for
+      // the socket's own backoff to notice.
+      var wake = function () {
+        if (document.visibilityState === 'hidden') { return; }
+        AP.net.wake();
+        var r = currentRoom();
+        if (r && AP.net.connected) { reseat(r); }
+      };
+      document.addEventListener('visibilitychange', wake);
+      window.addEventListener('pageshow', wake);
+      window.addEventListener('online', wake);
+
+      // A reload or a closed-and-reopened tab: go straight back to the table
+      // we were at (the seat is held server-side), without another tap.
+      var resumeCode = S.resumableRoomCode;
+      if (resumeCode && (!prefillCode || String(prefillCode).toUpperCase() === resumeCode) && playerName().trim()) {
+        S.autoResuming = true;
+        A.joinRoom(resumeCode, playerName().trim());
+      }
       AP.net.onConnected(function () {
         // A reconnect gets a fresh socket id that is in no room: re-seat.
         var r = currentRoom();
-        if (r) {
-          AP.net.emit('join_room', {
-            roomCode: r.code, playerName: playerName() || 'Player',
-            playerID: S.playerID, isTV: false
-          });
-        }
+        if (r) { reseat(r); }
       });
 
       AP.net.on('room_joined', function (resp) {
         cancelJoinTimer();
+        S.autoResuming = false;
         S.pendingJoinCode = '';
         var room = resp.room;
         if (resp.playerID) { S.playerID = resp.playerID; }
@@ -266,6 +299,7 @@
         cancelJoinTimer();
         if (S.screen === 'loading') {
           if (S.pendingJoinCode) { forgetResumable(S.pendingJoinCode); }
+          if (S.autoResuming) { S.autoResuming = false; setScreen('join'); changed(); return; }
           S.errorMessage = (r && r.message) || 'Something went wrong.';
           setScreen('error');
           AP.haptic.error();

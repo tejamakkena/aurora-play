@@ -55,17 +55,15 @@
             ctx.send('add_names', { names: v });
             ctx.refresh();
           };
+          var pad = { padding: '0 20px' };
           content = h('div', { class: 'scroll pop-in', key: 'setup' },
-            h('div', { class: 'col gap14', style: { padding: '0 20px 20px' } },
-              h('div', { class: 'c-text2', style: { fontSize: '15px', fontWeight: 600 } },
+            h('div', { class: 'col gap14', style: { paddingBottom: '20px' } },
+              h('div', { class: 'c-text2', style: { fontSize: '15px', fontWeight: 600, padding: '0 20px' } },
                 'Type a name and add it. Several names separated by commas work too.'),
-              h('div', { class: 'row gap10' },
-                h('div', { style: { flex: '1 1 auto', minWidth: 0 } },
-                  ui.answerField({ key: 'td-name', placeholder: 'Player name', value: draft, maxLength: 20,
-                    onInput: function (v) { draft = v; ctx.refresh(); }, onSubmit: add })),
-                h('button', { class: 'btn-ctl press' + (draft.trim() ? '' : ' off'), disabled: !draft.trim(),
-                  style: { '--tint': TINT, flex: '0 0 auto', padding: '0 18px' }, onclick: add }, 'Add')),
-              h('div', { class: 'col gap8' }, people.map(function (p) {
+              ui.answerField({ key: 'td-name', placeholder: 'Player name', value: draft, maxLength: 20,
+                onInput: function (v) { draft = v; ctx.refresh(); }, onSubmit: add }),
+              ui.ctlButton({ title: 'Add name', tint: TINT, enabled: draft.trim().length > 0, onClick: add }),
+              h('div', { class: 'col gap8', style: pad }, people.map(function (p) {
                 return h('div', { class: 'row', key: 'p-' + p.id,
                   style: { justifyContent: 'space-between', padding: '10px 14px', borderRadius: '12px', background: C.surface } },
                   h('span', { style: { fontWeight: 700 } }, p.name),
@@ -73,8 +71,8 @@
                     style: { appearance: 'none', background: 'none', border: 0, color: C.text2, fontWeight: 800, fontSize: '16px' },
                     onclick: function () { ctx.send('remove_name', { id: p.id }); } }, 'Remove'));
               })),
-              h('div', { class: 'c-text2', style: { fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em' } }, 'LEVEL'),
-              h('div', { class: 'row gap8' }, ['family', 'teens', 'adults'].map(function (l) {
+              h('div', { class: 'c-text2', style: { fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em', padding: '0 20px' } }, 'LEVEL'),
+              h('div', { class: 'row gap8', style: pad }, ['family', 'teens', 'adults'].map(function (l) {
                 var sel = level === l;
                 return h('button', { class: 'press', key: 'lv-' + l,
                   style: { appearance: 'none', flex: '1 1 0', padding: '10px 6px', borderRadius: '12px', color: '#fff',
@@ -85,7 +83,7 @@
               })),
               ui.ctlButton({ title: people.length >= min ? 'Start game' : 'Add at least ' + min + ' players', icon: 'play.fill',
                 tint: TINT, enabled: people.length >= min, onClick: function () { ctx.send('start_play', {}); } }),
-              endButton(ctx)));
+              h('div', { style: pad }, endButton(ctx))));
         }
       } else if (phase === 'choose') {
         var canPick = isHost || isMyTurn;

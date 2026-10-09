@@ -207,3 +207,57 @@ class TestConnect4Colours:
         # A phone that has left is not handed player one's colour.
         assert engine.private_state("gone")["color"] == ""
         assert "gone" not in engine.colors
+
+
+class TestReturningPhoneKeepsItsSeat:
+    """A backgrounded phone comes back on a new socket while the server still
+    thinks the old one is alive. Same launch id = same phone = same seat."""
+
+    def _room(self):
+        return RoomRegistry().create("connect4")
+
+    def test_same_launch_id_reclaims_the_plain_seat(self):
+        room = self._room()
+        p = room.add_player("dev-a", "Asha", "sock-1")
+        p.client_id = "launch-1"
+        assert _seat_for(room, "dev-a", "sock-2", "launch-1") == "dev-a"
+
+    def test_a_different_launch_id_is_a_second_phone(self):
+        room = self._room()
+        p = room.add_player("dev-a", "Asha", "sock-1")
+        p.client_id = "launch-1"
+        assert _seat_for(room, "dev-a", "sock-2", "launch-2") == "dev-a-2"
+        assert _seat_for(room, "dev-a", "sock-2", None) == "dev-a-2"
+
+    def test_second_phone_can_also_come_back_to_its_own_seat(self):
+        room = self._room()
+        a = room.add_player("dev-a", "Asha", "sock-1")
+        a.client_id = "launch-1"
+        b = room.add_player("dev-a-2", "Asha", "sock-3")
+        b.client_id = "launch-2"
+        assert _seat_for(room, "dev-a", "sock-9", "launch-2") == "dev-a-2"
+
+
+def test_backgrounded_phone_rejoin_mid_game_is_not_a_new_player(server, tv):
+    app, socketio = server
+    tv.emit("create_room", {"gameID": "trivia", "hostName": "TV", "hostID": "tv-1"}, namespace=NS)
+    code = latest(tv, "room_updated")["code"]
+
+    def joined(client, name, pid, cid):
+        client.emit("join_room", {"roomCode": code, "playerName": name, "playerID": pid,
+                                  "isTV": False, "clientID": cid}, namespace=NS)
+
+    p1 = socketio.test_client(app, namespace=NS)
+    joined(p1, "Asha", "dev-a", "launch-1")
+    p2 = socketio.test_client(app, namespace=NS)
+    joined(p2, "Ravi", "dev-b", "launch-9")
+    room = rooms.get(code)
+    room.state = RoomState.PLAYING
+    room.phase = "play"
+    # Asha's tab was frozen: a brand new socket arrives while the old one is
+    # still "connected" server-side.
+    p1b = socketio.test_client(app, namespace=NS)
+    joined(p1b, "Asha", "dev-a", "launch-1")
+    assert latest(p1b, "room_joined")["playerID"] == "dev-a"
+    assert sorted(p.id for p in room.players) == ["dev-a", "dev-b"]
+    assert room.player("dev-a").sid is not None

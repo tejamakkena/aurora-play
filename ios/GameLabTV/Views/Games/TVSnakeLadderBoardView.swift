@@ -228,8 +228,8 @@ struct TVSnakeLadderBoardView: View {
                 LinearGradient(colors: [.black.opacity(0.6), .clear], startPoint: .top, endPoint: .bottom)
                     .frame(height: 170)
                 Spacer()
-                LinearGradient(colors: [.clear, .black.opacity(0.65)], startPoint: .top, endPoint: .bottom)
-                    .frame(height: 220)
+                LinearGradient(colors: [.clear, .black.opacity(0.35)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 90)
             }
             .ignoresSafeArea()
             .allowsHitTesting(false)
@@ -259,47 +259,54 @@ struct TVSnakeLadderBoardView: View {
 
                     Spacer()
 
-                    if let id = rollerID, let roll = vm.state.lastRoll[id] {
-                        SnakeLadderLastRollCard(
-                            rollerName: vm.state.name(of: id) ?? "",
-                            value: roll,
-                            color: Color(uiColor: SnakeLadderPalette.tokenColor(vm.state.colorIndex(of: id)))
-                        )
-                        .padding(.trailing, 60).padding(.top, 24)
+                    // Right-hand column: last roll, then whose turn it is (or
+                    // the winner). This used to be a pill along the bottom
+                    // edge, which sat on top of the board's bottom row of
+                    // squares; the sides of the screen are empty, so the
+                    // status lives there and the board keeps the whole middle.
+                    VStack(alignment: .trailing, spacing: 20) {
+                        if let id = rollerID, let roll = vm.state.lastRoll[id] {
+                            SnakeLadderLastRollCard(
+                                rollerName: vm.state.name(of: id) ?? "",
+                                value: roll,
+                                color: Color(uiColor: SnakeLadderPalette.tokenColor(vm.state.colorIndex(of: id)))
+                            )
+                        }
+                        if let winnerName {
+                            // SF symbol, never an emoji (no-emoji gate).
+                            VStack(spacing: 8) {
+                                Image(systemName: "trophy.fill")
+                                    .font(.system(size: 44, weight: .bold))
+                                Text("\(winnerName) wins!")
+                                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                                    .lineLimit(2)
+                                    .minimumScaleFactor(0.6)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .foregroundColor(TVTheme.yellow)
+                            .padding(.horizontal, 24).padding(.vertical, 16)
+                            .frame(maxWidth: 340)
+                            .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius)
+                                .fill(Color.black.opacity(0.55)))
+                        } else if vm.state.currentPlayerID != nil {
+                            SnakeLadderTurnBanner(
+                                name: currentName,
+                                color: Color(uiColor: SnakeLadderPalette.tokenColor(vm.state.colorIndex(of: vm.state.currentPlayerID))),
+                                rollAgain: vm.state.lastRollBonus
+                            )
+                        }
                     }
+                    .padding(.trailing, 60).padding(.top, 24)
                 }
 
                 Spacer()
-
-                if let winnerName {
-                    // SF symbol, never an emoji (no-emoji gate). The name
-                    // truncates with an ellipsis rather than wrapping
-                    // mid-word on a long name.
-                    Label {
-                        Text("\(winnerName) wins!")
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    } icon: {
-                        Image(systemName: "trophy.fill")
-                    }
-                    .font(.system(size: 42, weight: .bold, design: .rounded))
-                    .foregroundColor(TVTheme.yellow)
-                    .padding(.bottom, 24)
-                } else if vm.state.currentPlayerID != nil {
-                    SnakeLadderTurnBanner(
-                        name: currentName,
-                        color: Color(uiColor: SnakeLadderPalette.tokenColor(vm.state.colorIndex(of: vm.state.currentPlayerID))),
-                        rollAgain: vm.state.lastRollBonus
-                    )
-                    .padding(.bottom, 36)
-                }
             }
         }
         .onAppear { vm.bind(roomCode: room.code) }
     }
 }
 
-/// The big "whose turn" pill along the bottom, in the current player's
+/// The "whose turn" card in the right-hand column, in the current player's
 /// token color, plus the "Rolled a 6, roll again!" call-out while the
 /// engine says the current player is owed a bonus roll.
 private struct SnakeLadderTurnBanner: View {
@@ -315,27 +322,32 @@ private struct SnakeLadderTurnBanner: View {
                 } icon: {
                     Image(systemName: "arrow.counterclockwise.circle.fill")
                 }
-                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .font(.system(size: 24, weight: .heavy, design: .rounded))
                 .foregroundColor(.black)
-                .padding(.horizontal, 28).padding(.vertical, 10)
+                .padding(.horizontal, 20).padding(.vertical, 8)
                 .background(Capsule().fill(TVTheme.yellow))
                 .transition(.scale.combined(with: .opacity))
             }
-            HStack(spacing: 16) {
-                Circle()
-                    .fill(color)
-                    .frame(width: 28, height: 28)
-                    .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 3))
-                Text("\(name)'s turn")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+            VStack(spacing: 6) {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 24, height: 24)
+                        .overlay(Circle().stroke(Color.white.opacity(0.85), lineWidth: 3))
+                    Text(name)
+                        .font(.system(size: 34, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.6)
+                }
+                Text("your turn")
+                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.7))
             }
-            .padding(.horizontal, 36).padding(.vertical, 14)
-            .frame(maxWidth: 760)
-            .background(Capsule().fill(Color.black.opacity(0.62)))
-            .overlay(Capsule().stroke(color, lineWidth: 4))
+            .padding(.horizontal, 24).padding(.vertical, 14)
+            .frame(maxWidth: 340)
+            .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.black.opacity(0.62)))
+            .overlay(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).stroke(color, lineWidth: 4))
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.6), value: rollAgain)
     }

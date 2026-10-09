@@ -62,7 +62,8 @@
 
       var maxTotal = stack + myBet;
       var minRaise = Math.max(Math.min(minBet, maxTotal), tableBet + 1);
-      var canRaise = maxTotal > tableBet && minRaise <= maxTotal;
+      var raiseAllowed = d.canRaise !== false;   // the table caps raises per street
+      var canRaise = raiseAllowed && maxTotal > tableBet && minRaise <= maxTotal;
       if ((canAct && !lastCanAct) || minRaise !== lastMin) { raiseTo = minRaise; }
       lastCanAct = canAct; lastMin = minRaise;
       if (handNumber !== lastHand) { peeking = false; lastHand = handNumber; }
@@ -84,9 +85,9 @@
         (maxHands > 0 && handNumber > 0) ? h('span', { style: { padding: '7px 12px', borderRadius: '999px', background: C.surface, color: C.text2,
             fontSize: '13px', fontWeight: 800, letterSpacing: '1.5px', whiteSpace: 'nowrap' } }, 'HAND ' + handNumber + '/' + maxHands) : null);
 
-      var peekHint = !hand.length ? 'Waiting for the deal' : (folded ? 'You folded this hand' : (peeking ? 'Let go to hide' : 'Hold to peek at your cards'));
+      var peekHint = !hand.length ? 'Waiting for the deal' : (peeking ? 'Let go to hide' : (folded ? 'You folded. Hold to peek at your cards' : 'Hold to peek at your cards'));
       function peekOn(ev) {
-        if (peeking || !hand.length || folded) { return; }
+        if (peeking || !hand.length) { return; }
         try { ev.currentTarget.setPointerCapture(ev.pointerId); } catch (e) { /* ignore */ }
         peeking = true; AP.haptic.rigid(); ctx.refresh();
       }
@@ -95,11 +96,11 @@
         ? hand.slice(0, 2).map(function (card, i) {
             return h('div', { class: 'pk-card', key: 'hc' + handNumber + '-' + i, style: { transform: 'rotate(' + (i === 0 ? -4 : 4) + 'deg) translateY(' + (peeking ? -8 : 0) + 'px)',
                 transition: 'transform .35s var(--pop) ' + (i * 0.05) + 's' } },
-              h('div', { class: 'pk-inner' + ((peeking && !folded) ? ' up' : '') }, back(), face(card)));
+              h('div', { class: 'pk-inner' + (peeking ? ' up' : '') }, back(), face(card)));
           })
         : [0, 1].map(function (i) { return h('div', { class: 'pk-card', key: 'ph' + i, style: { opacity: 0.25 } }, h('div', { class: 'pk-inner' }, back())); });
       var holeCards = h('div', { class: 'row', key: 'hole',
-        style: { justifyContent: 'center', gap: '18px', padding: '20px 24px', opacity: folded ? 0.35 : 1, filter: folded ? 'saturate(0)' : 'none', touchAction: 'none', userSelect: 'none' },
+        style: { justifyContent: 'center', gap: '18px', padding: '20px 24px', opacity: folded ? (peeking ? 0.85 : 0.5) : 1, filter: (folded && !peeking) ? 'saturate(0.2)' : 'none', touchAction: 'none', userSelect: 'none' },
         onpointerdown: peekOn, onpointerup: peekOff, onpointercancel: peekOff, onlostpointercapture: peekOff, oncontextmenu: function (e) { e.preventDefault(); } }, cards);
 
       var bottom;
@@ -126,6 +127,7 @@
             h('div', { class: 'row' }, h('span', { class: 'grow', style: { fontSize: '15px', fontWeight: 900, letterSpacing: '3px', color: GOLD } }, 'YOUR TURN'),
               h('span', { class: 'c-text2', style: { fontSize: '15px', fontWeight: 700 } }, toCall > 0 ? 'To call: ' + chips(toCall) : 'Nothing to call')),
             raiseControls,
+            (!raiseAllowed && tableBet > 0) ? h('div', { class: 'c-text2', key: 'cap', style: { fontSize: '14px', fontWeight: 600 } }, 'Raise limit reached this street') : null,
             h('div', { class: 'row gap10' },
               actionButton('Fold', null, C.red, '#fff', function () { ctx.send('fold', {}); }),
               actionButton(callTitle, toCall > 0 ? chips(toCall) : null, C.surface2, '#fff', function () { ctx.send(toCall > 0 ? 'call' : 'check', {}); }),
