@@ -258,4 +258,37 @@
         body([prompt ? promptCard(prompt, 'Who is most likely to', TINT.mostLikely) : null, content]));
     };
   };
+
+  // ---- Would You Rather -------------------------------------------------------------
+  AP.controllers.would_rather = function (ctx) {
+    return function (d) {
+      var phase = pd.str(d, 'phase', 'vote');
+      var a = pd.str(d, 'a'), b = pd.str(d, 'b');
+      var my = pd.str(d, 'myVote');
+      var content;
+      if (phase === 'vote') {
+        var side = function (key, text, colors) {
+          var picked = my === key;
+          return h('button', { class: 'press', key: 'wyr-' + key, disabled: !!my,
+            style: { appearance: 'none', width: '100%', minHeight: '120px', padding: '18px', borderRadius: 'var(--r-card)', color: '#fff',
+              fontSize: '22px', fontWeight: 900, lineHeight: 1.2, textAlign: 'center',
+              background: picked ? AP.grad(colors) : C.surface, border: '2px solid ' + (picked ? '#fff' : AP.alpha(colors[0], 0.5)),
+              opacity: my && !picked ? 0.45 : 1 },
+            onclick: function () { AP.haptic.tap(); ctx.send('vote', { side: key }); } },
+            h('div', { style: { fontSize: '12px', letterSpacing: '3px', opacity: 0.8, marginBottom: '6px' } }, key.toUpperCase()), text);
+        };
+        content = h('div', { class: 'col gap14 pop-in', key: 'wyr-vote', style: { padding: '0 20px 20px' } },
+          h('div', { class: 'txt-center c-text2', style: { fontWeight: 700, fontSize: '16px' } }, 'Would you rather...'),
+          side('a', a, [C.blue, C.indigo]),
+          h('div', { class: 'txt-center c-text2', style: { fontWeight: 800 } }, 'or'),
+          side('b', b, [C.orange, C.red]),
+          my ? h('div', { class: 'txt-center c-text2', style: { fontWeight: 600 } }, 'Locked in. Waiting for everyone...') : null);
+      } else {
+        var r = d.reveal || {};
+        content = AP.waiting('rev', 'chart.bar.fill', 'A ' + (r.aPercent || 0) + '%  |  B ' + (r.bPercent || 0) + '%', 'Look at the TV and defend your side');
+      }
+      return ui.shell({ title: 'Would You Rather', subtitle: phase === 'vote' ? 'Pick a side' : 'The room has split',
+        secondsLeft: pd.int(d, 'secondsLeft') }, body([content]));
+    };
+  };
 })();

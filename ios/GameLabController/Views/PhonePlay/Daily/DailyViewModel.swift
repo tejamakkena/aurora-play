@@ -111,7 +111,7 @@ final class DailyViewModel: ObservableObject {
         today = DailyBrain.dateKey(for: now)
         let before = Calendar.current.date(byAdding: .day, value: -1, to: now) ?? now.addingTimeInterval(-86_400)
         yesterday = DailyBrain.dateKey(for: before)
-        puzzles = DailyBrain.puzzles(for: today)
+        puzzles = DailyBrain.dailySet(for: today)
         streak = DailyStore.currentStreak(today: today, yesterday: yesterday)
         bestStreak = DailyStore.bestStreak
         if let done = DailyStore.result(for: today) {

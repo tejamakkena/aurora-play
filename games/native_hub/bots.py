@@ -188,6 +188,12 @@ def _policy_most_likely_to(engine, bot_id):
     return ("vote", {"targetID": random.choice(others)})
 
 
+def _policy_would_rather(engine, bot_id):
+    if getattr(engine, "phase", "") != "vote":
+        return None
+    return ("vote", {"side": random.choice(["a", "b"])})
+
+
 def _policy_brain_battle(engine, bot_id):
     if getattr(engine, "phase", "") != "answer":
         return None
@@ -240,6 +246,7 @@ POLICIES = {
     "antakshari": _policy_antakshari,
     "atlas": _policy_atlas,
     "most_likely_to": _policy_most_likely_to,
+    "would_rather": _policy_would_rather,
     "brain_battle": _policy_brain_battle,
     "hot_takes": _policy_hot_takes,
     "twenty_questions": _policy_twenty_questions,

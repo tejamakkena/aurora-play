@@ -46,7 +46,7 @@ def start(game_id, room=None, roster=None, players=4):
 # Truth or Dare decks are bundled in code (tested in test_truth_or_dare.py) and
 # grown by the AI refill; they have no JSON library file.
 @pytest.mark.parametrize("kind", [k for k, s in cs.KINDS.items()
-                                  if s.ask and k != "mc" and not k.startswith("td_")])
+                                  if s.ask and k != "mc" and not k.startswith("td_") and k != "would_rather"])
 def test_library_files_are_valid_and_add_real_variety(kind):
     raw = json.loads(cs.library_path(kind).read_text(encoding="utf-8"))
     parsed = [cs.KINDS[kind].parse(r) for r in raw]

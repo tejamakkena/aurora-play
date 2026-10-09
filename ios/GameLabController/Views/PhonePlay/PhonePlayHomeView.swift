@@ -100,7 +100,9 @@ struct PhonePlayHomeView: View {
                     NeuroHomeCard(state: mindGym,
                                   appeared: appeared,
                                   onPlay: { play.open(.mindGym) },
-                                  onProgress: play.openMindScore)
+                                  onProgress: play.openMindScore,
+                                  quickDone: dailyDone,
+                                  onQuick: { play.open(.daily) })
 
                     PhonePlaySectionLabel(text: "Party games")
                         .padding(.top, 4)

@@ -136,6 +136,17 @@ def _parse_pair(raw):
     return (left, right)
 
 
+def _parse_wyr(raw):
+    if isinstance(raw, dict):
+        raw = (raw.get("left"), raw.get("right"))
+    if not isinstance(raw, (list, tuple)) or len(raw) != 2:
+        return None
+    a, b = _clean(raw[0], 70), _clean(raw[1], 70)
+    if not a or not b or norm_key(a) == norm_key(b):
+        return None
+    return (a, b)
+
+
 def _parse_lot(raw):
     if isinstance(raw, dict):
         raw = (raw.get("lot"), raw.get("value"))
@@ -218,6 +229,11 @@ KINDS: dict[str, Kind] = {k.name: k for k in [
          "opposite ends of a spectrum for the game Wavelength, where a clue-giver names "
          "something that sits somewhere between them (fun, debatable spectra)",
          '{"left": "Overrated", "right": "Underrated"}'),
+    Kind("would_rather", _bundled("games.native_hub.engines._wyr", "DILEMMAS"), _parse_wyr,
+         lambda i: {"left": i[0], "right": i[1]}, lambda i: norm_key(i[0] + "|" + i[1]),
+         '"Would you rather" dilemmas for a family party: two funny, harmless choices, '
+         'each a short phrase that completes "Would you rather ..." (never mean, scary or rude)',
+         '{"left": "be able to fly", "right": "be able to turn invisible"}'),
     Kind("auction", _bundled(_C, "AUCTION_LOTS"), _parse_lot,
          lambda i: {"lot": i[0], "value": i[1]}, lambda i: norm_key(i[0]),
          "funny or dreamy things to bid on in a party auction game, each with a value "

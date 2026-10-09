@@ -60,8 +60,12 @@ final class NeuroPulseViewModel: ObservableObject {
     @Published private(set) var breathCycle: Int = 1
     @Published private(set) var breathSecondsLeft: Int = 0
 
-    /// The sensory reset's countdown.
+    /// The sensory reset's countdown, and how many of the things it asks
+    /// for the player has tapped off so far.
     @Published private(set) var reflectSecondsLeft: Int = 0
+    @Published private(set) var reflectCount: Int = 0
+    @Published private(set) var reflectTarget: Int = 3
+    @Published private(set) var guideVoiceOn: Bool = NeuroGuideVoice.shared.isEnabled
 
     /// When the answer could first be given, for the cosmetic ring.
     @Published private(set) var stepStartedAt: Date = Date()
@@ -201,6 +205,8 @@ final class NeuroPulseViewModel: ObservableObject {
         breathCycle = 1
         breathSecondsLeft = 0
         reflectSecondsLeft = 0
+        reflectCount = 0
+        NeuroGuideVoice.shared.stop()
         guard let step else { return }
 
         switch step.inputStyle {
@@ -212,6 +218,8 @@ final class NeuroPulseViewModel: ObservableObject {
             phase = .answer
             stepStartedAt = Date()
             reflectSecondsLeft = max(10, step.visual.seconds > 0 ? step.visual.seconds : 30)
+            reflectTarget = Self.itemCount(in: step.prompt)
+            NeuroGuideVoice.shared.speak(step.prompt)
             runReflect(token: token)
         case .choice, .number, .grid:
             if needsFlash(step) {
@@ -278,6 +286,12 @@ final class NeuroPulseViewModel: ObservableObject {
                     me.breathPhase = phaseIndex
                     me.breathSecondsLeft = seconds
                     PhonePlayHaptics.rigid()
+                    // Call the breath out loud: every phase on the first
+                    // round, then just in and out so it does not nag.
+                    let labels = step.visual.breathLabels
+                    if labels.indices.contains(phaseIndex), cycle == 1 || phaseIndex % 2 == 0 {
+                        NeuroGuideVoice.shared.speak(labels[phaseIndex])
+                    }
                     for _ in 0..<seconds {
                         try? await Task.sleep(nanoseconds: 1_000_000_000)
                         guard let inner = self, inner.isActive,
@@ -305,6 +319,40 @@ final class NeuroPulseViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    /// The player named one more thing. Reaching the target finishes the step.
+    func tapReflectItem() {
+        guard phase == .answer, let step, step.inputStyle == .reflect,
+              reflectCount < reflectTarget else { return }
+        reflectCount += 1
+        PhonePlayHaptics.tap()
+        guard reflectCount >= reflectTarget else { return }
+        PhonePlayHaptics.success()
+        NeuroGuideVoice.shared.speak("Nicely done.")
+        let token = phaseToken
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_400_000_000)
+            guard let me = self, me.isActive, token == me.phaseToken else { return }
+            me.completeRest()
+        }
+    }
+
+    func toggleGuideVoice() {
+        NeuroGuideVoice.shared.isEnabled.toggle()
+        guideVoiceOn = NeuroGuideVoice.shared.isEnabled
+        if guideVoiceOn, let step, step.inputStyle == .reflect { NeuroGuideVoice.shared.speak(step.prompt) }
+    }
+
+    /// How many things a sensory prompt asks for: the number words in it
+    /// ("Name three things...", "one sound far away and one close by").
+    static func itemCount(in prompt: String) -> Int {
+        let numbers = ["one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6]
+        let words = prompt.lowercased()
+            .components(separatedBy: CharacterSet.letters.inverted)
+            .filter { !$0.isEmpty }
+        let total = words.compactMap { numbers[$0] }.reduce(0, +)
+        return total > 0 ? min(total, 6) : 3
     }
 
     // MARK: Answering
@@ -583,6 +631,7 @@ final class NeuroPulseViewModel: ObservableObject {
     func shutdown() {
         isActive = false
         phaseToken += 1
+        NeuroGuideVoice.shared.stop()
         network?.cancel()
         network = nil
         if stage == .running, !answers.isEmpty {

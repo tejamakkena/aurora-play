@@ -291,6 +291,17 @@ RULES: dict[str, dict] = {
         ],
         "controls": "Tap a player on your phone to vote.",
     },
+    "would_rather": {
+        "title": "Would You Rather",
+        "objective": "Pick a side, then defend it.",
+        "rules": [
+            "The TV shows a dilemma: would you rather A or B?",
+            "Everyone secretly picks a side on their phone.",
+            "The reveal shows how the room split, and who chose what.",
+            "Going with the crowd scores 100. Standing alone on your side scores 150.",
+        ],
+        "controls": "Tap A or B on your phone.",
+    },
     "truth_or_dare": {
         "title": "Truth or Dare",
         "objective": "Tell the truth or take the dare. Lie and the punishment is worse.",
