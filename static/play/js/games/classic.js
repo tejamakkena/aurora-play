@@ -1,4 +1,4 @@
-/* Classic games: Connect 4, Roulette, Mafia, Raja Mantri.
+/* Classic games: Four in a Row, Roulette, Mafia, Raja Mantri.
  * Port of ClassicGameControllers.swift.
  */
 (function () {
@@ -8,7 +8,7 @@
 
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
 
-  // ---- Connect 4 -----------------------------------------------------------------
+  // ---- Four in a Row -----------------------------------------------------------------
   var C4 = {
     red: ['#e8283b', '#ff8a8f', '#7a0b16'], yellow: ['#ffc61a', '#fff1a8', '#9a6a00'],
     green: ['#1fc96b', '#9cf5c2', '#0a6634'], blue: ['#35b4ff', '#c4ecff', '#0b5c9e']
@@ -99,7 +99,7 @@
             disc(colors[pid] || '', cur ? 26 : 18));
         })) : null;
 
-      return kit.classicShell({ title: 'Connect 4', subtitle: 'You are ' + cap(myColor),
+      return kit.classicShell({ title: 'Four in a Row', subtitle: 'You are ' + cap(myColor),
           trailing: h('span', { class: 'idle', style: { '--dy': '2px', '--dur': '1.4s', display: 'inline-flex' } }, disc(myColor, 32)) },
         h('div', { class: 'col', style: { flex: '1 1 auto', minHeight: 0, justifyContent: 'center', overflowY: 'auto' } },
           h('div', { class: 'col center', style: { paddingBottom: '18px' } }, status),

@@ -447,7 +447,7 @@ struct SealedAuctionControllerView: View {
     }
 }
 
-// MARK: - Wavelength
+// MARK: - Spectrum
 
 struct WavelengthControllerView: View {
     let privateData: [String: Any]
@@ -467,7 +467,7 @@ struct WavelengthControllerView: View {
     @State private var dial: Double = 50
 
     var body: some View {
-        ControllerShell(title: "Wavelength",
+        ControllerShell(title: "Spectrum",
                         subtitle: isPsychic ? "You're the psychic" : "Read the clue",
                         secondsLeft: seconds) {
             VStack(spacing: 20) {

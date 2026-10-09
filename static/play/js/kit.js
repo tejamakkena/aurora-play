@@ -195,7 +195,7 @@
     return svg;
   };
 
-  // ---- ClassicShell family (Connect 4, Roulette, Mafia, Raja Mantri...) -----
+  // ---- ClassicShell family (Four in a Row, Roulette, Mafia, Raja Mantri...) -----
 
   /** Header card with a trailing slot and an optional top glow. */
   kit.classicShell = function (o) {

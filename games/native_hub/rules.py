@@ -134,7 +134,7 @@ RULES: dict[str, dict] = {
         "controls": "Tilt your phone to move the paddle.",
     },
     "connect4": {
-        "title": "Connect 4",
+        "title": "Four in a Row",
         "objective": "Line up four of your discs before anyone else does.",
         "rules": [
             "2 to 4 players, each with their own disc colour.",
@@ -247,7 +247,7 @@ RULES: dict[str, dict] = {
         "controls": "Type your answer on your phone.",
     },
     "emoji_movie": {
-        "title": "Emoji Movie",
+        "title": "Emoji Charades",
         "objective": "Describe and guess movie titles.",
         "rules": [
             "One player describes a movie title using only emoji.",
@@ -399,7 +399,7 @@ RULES: dict[str, dict] = {
         "controls": "Enter your bid on your phone.",
     },
     "wavelength": {
-        "title": "Wavelength",
+        "title": "Spectrum",
         "objective": "Read the psychic's mind.",
         "rules": [
             "One player (the psychic) sees a hidden target on a dial.",
@@ -444,7 +444,7 @@ RULES: dict[str, dict] = {
         "controls": "Tap wires and modules on your phone.",
     },
     "battleship": {
-        "title": "Battleship",
+        "title": "Sea Battle",
         "objective": "Sink the entire enemy fleet first.",
         "rules": [
             "Place your fleet on your phone's private grid.",

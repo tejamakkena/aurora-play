@@ -5,7 +5,7 @@ import UIKit
 //
 // Games that run on ONE phone with no TV and no signal: the phone is
 // passed around the group (Spy, Mafia, Truth or Dare, Would You Rather,
-// Hot Potato, Story Chain), held to a forehead (Heads Up) or played solo
+// Hot Potato, Story Chain), held to a forehead (Forehead Charades) or played solo
 // (Daily Brain Challenge, Word of the Day, Pocket Arcade). Nothing here
 // touches the socket or the room; ControllerRootViewModel only creates
 // and tears down a PhonePlayViewModel, exactly like Travel Mode.
@@ -119,7 +119,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .headsUp:        return "Heads Up"
+        case .headsUp:        return "Forehead Charades"
         case .spy:            return "Spy"
         case .mafia:          return "Mafia"
         case .truthOrDare:    return "Truth or Dare"

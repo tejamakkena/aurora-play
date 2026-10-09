@@ -31,10 +31,10 @@ All sources are merged and de-duplicated per kind:
 | `most_likely` | Most Likely To | 43 | 134 |
 | `bluff` | Bluff It | 23 | 64 |
 | `spy_location` | Odd One Out | 20 | 87 |
-| `wavelength` | Wavelength | 15 | 86 |
+| `wavelength` | Spectrum | 15 | 86 |
 | `auction` | Sealed Auction | 12 | 62 |
 | `charades` | Bollywood Charades | 50 | 110 |
-| `emoji_movie` | Emoji Movie | 40 | 132 |
+| `emoji_movie` | Emoji Charades | 40 | 132 |
 | `meld_category` | Mind Meld | 7 | 101 |
 | `draw_prompt` | Speed Sculptor | 10 | 150 |
 | `hot_take` | Hot Takes | 20 | 96 |
@@ -53,7 +53,7 @@ when nothing fresh is left:
    Players' ids are stable device ids. The history is kept in memory and in
    `data/content_heard.json`. If a friend saw a prompt at another party, it's
    skipped for everyone.
-3. **The current game's own picks.** Wavelength, Mind Meld and Speed
+3. **The current game's own picks.** Spectrum, Mind Meld and Speed
    Sculptor used to repeat within a single game. They don't anymore.
 
 Trivia and KBC use the same device history on top of their existing

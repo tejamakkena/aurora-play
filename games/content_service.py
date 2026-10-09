@@ -2,7 +2,7 @@
 questions and words, and remembers who has already seen them.
 
 Before this, each game drew from a small fixed list (7 Mind Meld
-categories, 10 drawing prompts, 15 Wavelength spectra, 23 Bluff facts...)
+categories, 10 drawing prompts, 15 Spectrum spectra, 23 Bluff facts...)
 and only avoided repeats inside one game -- Play Again, or the next game
 night, started from scratch.
 
@@ -226,7 +226,7 @@ KINDS: dict[str, Kind] = {k.name: k for k in [
                '"Railway station"'),
     Kind("wavelength", _bundled(_C, "WAVELENGTH_SPECTRA"), _parse_pair,
          lambda i: {"left": i[0], "right": i[1]}, lambda i: norm_key(i[0] + "|" + i[1]),
-         "opposite ends of a spectrum for the game Wavelength, where a clue-giver names "
+         "opposite ends of a spectrum for the game Spectrum, where a clue-giver names "
          "something that sits somewhere between them (fun, debatable spectra)",
          '{"left": "Overrated", "right": "Underrated"}'),
     Kind("would_rather", _bundled("games.native_hub.engines._wyr", "DILEMMAS"), _parse_wyr,

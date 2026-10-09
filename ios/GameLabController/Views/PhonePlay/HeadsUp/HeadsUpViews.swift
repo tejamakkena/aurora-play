@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-// MARK: - Heads Up screens
+// MARK: - Forehead Charades screens
 //
 // The play screen is laid out from its own size, so the word reads well
 // whether the phone is held sideways (the usual forehead pose) or upright.
@@ -47,7 +47,7 @@ private struct HeadsUpPickView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PhonePlayTopBar(title: "Heads Up", backTitle: "Games", onBack: onExit)
+            PhonePlayTopBar(title: "Forehead Charades", backTitle: "Games", onBack: onExit)
             ScrollView {
                 VStack(spacing: 18) {
                     VStack(spacing: 6) {

@@ -1,4 +1,4 @@
-/* Party games: Bluff It, Last Tap Standing, Herd, Emoji Movie, Name Place
+/* Party games: Bluff It, Last Tap Standing, Herd, Emoji Charades, Name Place
  * Animal Thing, Most Likely To. Port of PartyControllers.swift.
  */
 (function () {
@@ -116,7 +116,7 @@
     };
   };
 
-  // ---- Emoji Movie ----------------------------------------------------------------
+  // ---- Emoji Charades ----------------------------------------------------------------
   // Code points, not literals: the repo's no-emoji check reads source text.
   var PALETTE = [[0x1F600], [0x1F60D], [0x1F631], [0x1F62D], [0x1F916], [0x1F451], [0x1F409], [0x1F981], [0x1F680],
     [0x1F30A], [0x1F525], [0x2764, 0xFE0F], [0x2694, 0xFE0F], [0x1F3F0], [0x1F3AC], [0x1F3B5], [0x1F480], [0x1F47B],
@@ -185,7 +185,7 @@
       } else {
         content = waiting('rev', 'party.popper.fill', 'Reveal is on the TV');
       }
-      return ui.shell({ title: 'Emoji Movie', subtitle: phase === 'compose' ? 'Describe it in emoji' : 'Guess the others',
+      return ui.shell({ title: 'Emoji Charades', subtitle: phase === 'compose' ? 'Describe it in emoji' : 'Guess the others',
         secondsLeft: pd.int(d, 'secondsLeft') }, content);
     };
   };

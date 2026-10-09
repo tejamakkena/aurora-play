@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Heads Up decks
+// MARK: - Forehead Charades decks
 //
 // Bundled, offline and family-friendly. Each deck has 40+ cards; a round
 // of 60 seconds rarely gets through more than 20, and cards are not
