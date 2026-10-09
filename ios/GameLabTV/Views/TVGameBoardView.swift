@@ -37,6 +37,7 @@ struct TVGameBoardView: View {
         case .atlas:         TVAtlasBoardView(room: room)
         case .mostLikelyTo:  TVMostLikelyToBoardView(room: room)
         case .brainBattle:   TVBrainBattleBoardView(room: room)
+        case .truthOrDare:   TVTruthDareBoardView(room: room)
 
         // Mid group
         case .cipherGrid:    TVCipherGridBoardView(room: room)

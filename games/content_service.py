@@ -28,6 +28,7 @@ supply for a kind runs low.
 
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import random
@@ -267,6 +268,26 @@ KINDS: dict[str, Kind] = {k.name: k for k in [
          '{"words": ["Apple", "Banana", "Carrot", "Mango"], "answer": "Carrot", '
          '"why": "It is a vegetable, the others are fruits."}'),
 ]}
+
+
+# Truth or Dare decks: one kind per (card type, tone level) so the TV game
+# can deal cumulative levels and still never repeat for a table.
+_TD = "games.native_hub.engines._truthdare"
+_TD_ASK = {
+    "family": "all ages, for kids and grandparents together",
+    "teens": "cheeky, for teenagers (school, phones, friends), never mean",
+    "adults": "lively grown-up house party, embarrassing and funny but never explicit, "
+              "sexual, dangerous or cruel",
+}
+for _type, _attr, _what, _eg in (
+        ("truth", "TRUTHS", "personal Truth questions to answer out loud", '"What is the silliest thing you were scared of as a kid?"'),
+        ("dare", "DARES", "harmless, quick Dare challenges to perform in a living room", '"Sing the chorus of a song in a robot voice."'),
+        ("punish", "PUNISHMENTS", "bigger forfeit dares for a player caught lying on a Truth, funny not painful", '"Wear your socks on your hands for two rounds."')):
+    for _level, _tone in _TD_ASK.items():
+        _name = f"td_{_type}_{_level}"
+        KINDS[_name] = _text_kind(
+            _name, (lambda a=_attr, l=_level: list(getattr(importlib.import_module(_TD), a)[l])), 140,
+            f"{_what}; tone: {_tone}", _eg)
 
 
 # ---------------------------------------------------------------------------

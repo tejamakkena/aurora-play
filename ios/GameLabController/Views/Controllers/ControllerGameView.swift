@@ -51,6 +51,7 @@ struct ControllerGameView: View {
         case .atlas:         AtlasControllerView(privateData: privateData, onAction: onAction)
         case .mostLikelyTo:  MostLikelyToControllerView(privateData: privateData, onAction: onAction)
         case .brainBattle:   BrainBattleControllerView(privateData: privateData, onAction: onAction)
+        case .truthOrDare:   TruthDareControllerView(privateData: privateData, onAction: onAction)
 
         // Mid group
         case .cipherGrid:    CipherGridControllerView(privateData: privateData, onAction: onAction)

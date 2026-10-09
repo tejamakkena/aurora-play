@@ -30,6 +30,7 @@
     atlas:             ['Atlas', 'globe', 2, 12, false],
     most_likely_to:    ['Most Likely To', 'hand.thumbsup.fill', 3, 20, false],
     brain_battle:      ['Brain Battle', 'brain', 2, 12, false],
+    truth_or_dare:     ['Truth or Dare', 'bubble.left.and.bubble.right.fill', 1, 20, false],
     cipher_grid:       ['Cipher Grid', 'key.fill', 4, 12, true],
     odd_one_out:       ['Odd One Out', 'eyeglasses', 4, 10, true],
     sealed_auction:    ['Sealed Auction', 'hammer.fill', 2, 8, true],
