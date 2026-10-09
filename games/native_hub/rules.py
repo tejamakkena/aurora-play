@@ -291,6 +291,19 @@ RULES: dict[str, dict] = {
         ],
         "controls": "Tap a player on your phone to vote.",
     },
+    "truth_or_dare": {
+        "title": "Truth or Dare",
+        "objective": "Tell the truth or take the dare. Lie and the punishment is worse.",
+        "rules": [
+            "The host adds everyone's name on their phone, picks a level and starts. Nobody else needs the app.",
+            "The TV picks a player at random and asks: truth or dare?",
+            "The TV reads the card out loud. Answer honestly, or perform the dare.",
+            "You may switch once per turn, from truth to dare or back.",
+            "If the room thinks you lied, the host taps Caught lying and you get a bigger punishment.",
+            "Truth +1, dare +2, lying -1, skipping a card -1, skipping a punishment -2.",
+        ],
+        "controls": "Host phone: pick the player's choice, then tap Done, Skip or Caught lying.",
+    },
     "brain_battle": {
         "title": "Brain Battle",
         "objective": "Out-think the room across twelve brain puzzles.",

@@ -30,8 +30,11 @@ CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 6
 
 EMPTY_GRACE_SECONDS = 120       # room with nobody in it survives this long
-ROOM_TTL_SECONDS = 3600         # hard ceiling regardless of activity
-RECONNECT_GRACE_SECONDS = 60    # a disconnected player keeps their seat this long
+ROOM_TTL_SECONDS = 6 * 3600     # hard ceiling regardless of activity (a long Game Night)
+#: A lobby seat survives a dropped connection this long (a phone switching
+#: apps or tabs). Mid-game seats are never evicted: the seat holds the
+#: player's name, score and cards, and the player may come back at any time.
+RECONNECT_GRACE_SECONDS = 60
 
 
 class RoomState(str, Enum):
@@ -72,6 +75,10 @@ class Player:
     # bot last scheduled for, and the timestamp after which it may act.
     bot_phase_key: str = ""
     bot_act_at: float = 0.0
+    #: One random id per app launch / browser tab (sent by the client in
+    #: join_room). Lets a returning phone reclaim its own seat while its old
+    #: socket is still half-open. Never sent to other clients.
+    client_id: str | None = None
 
     def to_json(self) -> dict:
         """The Swift ``Player`` struct. ``isBot`` is additive -- Swift's
@@ -83,6 +90,8 @@ class Player:
             "score": self.score,
             "isHost": self.is_host,
             "isBot": self.is_bot,
+            # Additive: a phone that dropped and may still come back.
+            "isAway": (not self.connected) and not self.is_bot,
         }
 
 
@@ -137,6 +146,9 @@ class Room:
     # all. See games/native_hub/socket_events.py's handle_start_game.
     pending_host_id: str | None = None
     pending_host_name: str = "Player 1"
+    #: The first phone in the room. If it drops (a tab switch) another phone
+    #: is promoted meanwhile, and it takes the host flag back when it returns.
+    preferred_host_id: str | None = None
     engine: Any = None
     # Rolling per-(pack, question-kind) history of recently asked question
     # texts, maintained by content_packs.record_questions(). Quiz engines
@@ -216,6 +228,8 @@ class Room:
             sid=sid,
             is_host=not any(p.is_host for p in self.players),
         )
+        if player.is_host and self.preferred_host_id is None:
+            self.preferred_host_id = player_id
         self.players.append(player)
         self.touch()
         return player
@@ -258,6 +272,22 @@ class Room:
             teams.sync_members(self)
         return player
 
+    def leave_player(self, player_id: str) -> Player | None:
+        """A phone chose to leave. In the lobby the seat goes; once a game is
+        on it stays (marked away) so the engine's references, the scores and
+        the results still carry the player's name."""
+        player = self.player(player_id)
+        if player is None:
+            return None
+        if self.state is RoomState.LOBBY:
+            return self.remove_player(player_id)
+        player.connected = False
+        player.sid = None
+        player.disconnected_at = time.time()
+        self.reassign_host()
+        self.mark_empty_if_needed()
+        return player
+
     def attach_tv(self, sid: str) -> None:
         self.tv_sids.add(sid)
         self.touch()
@@ -290,12 +320,14 @@ class Room:
                 return "__tv__"
             return None
 
-        if self.state is RoomState.LOBBY:
-            # Nothing to preserve yet -- drop the seat outright.
+        if self.state is RoomState.LOBBY and was_tv:
+            # A solo room's synthetic player has no phone to come back.
             self.players.remove(player)
             self.reassign_host()
         else:
-            # Mid-game: keep the seat so the same device can reclaim it.
+            # Keep the seat so the same device can reclaim it: a phone that
+            # switches apps or tabs drops its socket, and coming back must
+            # not cost the player their place, name, ready tick or cards.
             player.connected = False
             player.sid = None
             player.disconnected_at = time.time()
@@ -314,6 +346,13 @@ class Room:
 
     def reassign_host(self) -> None:
         """Ensure exactly one connected human player holds the host flag."""
+        pref = self.player(self.preferred_host_id) if self.preferred_host_id else None
+        if pref is not None and pref.connected and not pref.is_bot:
+            if not pref.is_host:
+                for p in self.players:
+                    p.is_host = False
+                pref.is_host = True
+            return
         if any(p.is_host and p.connected and not p.is_bot for p in self.players):
             return
         for p in self.players:
@@ -331,7 +370,16 @@ class Room:
             self.empty_since = None
 
     def evict_stale_players(self, now: float | None = None) -> list[str]:
-        """Drop players whose reconnect grace has expired. Returns their ids."""
+        """Drop lobby players whose reconnect grace has expired.
+
+        Only the lobby evicts. Once a game has started every seat stays for
+        the life of the room: the engine still refers to the player by id, so
+        removing the seat turned their name into "Player", folded their hand
+        and shut them out of coming back ("Game already in progress").
+        Returns the evicted ids.
+        """
+        if self.state is not RoomState.LOBBY:
+            return []
         now = now or time.time()
         evicted = []
         for p in list(self.players):

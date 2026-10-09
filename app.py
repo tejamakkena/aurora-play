@@ -204,6 +204,9 @@ def create_app(config_name='default'):
     register_roadfighter_events(socketio)
     register_native_events(socketio)
     app.register_blueprint(qr_bp)
+    # Join, QR and the browser controller are hit once per phone, and a whole
+    # party shares one Wi-Fi IP: the 50-per-hour default would lock guests out.
+    limiter.exempt(qr_bp)
 
 
     # Login required decorator

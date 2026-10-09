@@ -54,11 +54,13 @@
     <div class="code" id="code">{{ code }}</div>
 
     <a class="btn primary" id="open" href="{{ app_url }}">Open in Aurora Play</a>
+    <a class="btn ghost" id="web" href="{{ web_url }}">Play in your browser</a>
     <button class="btn ghost" id="copy" type="button">Copy code</button>
     <div class="copied" id="copied" aria-live="polite"></div>
 
     <div class="tf">
       <p><strong>Don't have the app yet?</strong><br>
+        Tap <strong>Play in your browser</strong> above to use your phone as the controller right now, no install.<br><br>
       {% if testflight_url %}
         Install the Aurora Play controller through TestFlight, then come back here.
       {% else %}

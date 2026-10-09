@@ -30,6 +30,7 @@ CATALOG: dict[str, dict] = {
     "trivia":             {"minutes": 10, "kids": True,  "tags": ["quiz"]},
     "brain_battle":       {"minutes": 12, "kids": True,  "tags": ["quiz", "brain"]},
     "most_likely_to":     {"minutes": 8,  "kids": False, "tags": ["social"]},
+    "truth_or_dare":      {"minutes": 15, "kids": False, "tags": ["social"]},
     "herd":               {"minutes": 8,  "kids": False, "tags": ["social"]},
     "bluff_it":           {"minutes": 10, "kids": False, "tags": ["social", "words"]},
     "emoji_movie":        {"minutes": 10, "kids": False, "tags": ["creative"]},

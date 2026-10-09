@@ -53,6 +53,7 @@ enum GameID: String, Codable, CaseIterable {
     case atlas         = "atlas"
     case mostLikelyTo  = "most_likely_to"
     case brainBattle   = "brain_battle"
+    case truthOrDare   = "truth_or_dare"
 
     // MARK: Mid group — roles, deduction and negotiation
     case cipherGrid        = "cipher_grid"
@@ -207,6 +208,12 @@ enum GameID: String, Codable, CaseIterable {
         case .brainBattle:
             return .init(displayName: "Brain Battle", sfSymbol: "brain", category: .knowledge,
                          minPlayers: 2, maxPlayers: 12, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .truthOrDare:
+            // One phone runs the whole table (it types the names and judges),
+            // so a single player is enough to start it.
+            return .init(displayName: "Truth or Dare", sfSymbol: "bubble.left.and.bubble.right.fill",
+                         category: .party, minPlayers: 1, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 
         // ---- Mid group -------------------------------------------------

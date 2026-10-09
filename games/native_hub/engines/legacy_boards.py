@@ -46,6 +46,7 @@ class Connect4Engine(TurnBasedEngine):
     turnOrder, currentPlayerID, currentPlayerName, currentColor.
     """
 
+    turn_seconds = 60          # an idle (or gone) phone loses its turn, not the game
     game_id = "connect4"
     min_players = 2
     max_players = 4

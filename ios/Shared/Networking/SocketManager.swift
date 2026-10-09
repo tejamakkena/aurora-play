@@ -50,6 +50,15 @@ final class GameSocketManager: ObservableObject {
 
     // MARK: - Connection
 
+    /// The app came back to the foreground. A socket that died while the app
+    /// was suspended is reconnected now instead of at the next backoff tick;
+    /// a socket that looks alive is left alone (its owner re-sends join_room
+    /// to resync, see ControllerRootViewModel.appBecameActive).
+    func nudge() {
+        guard let socket, socket.status != .connected, socket.status != .connecting else { return }
+        socket.connect()
+    }
+
     func connect(to serverURL: URL) {
         manager = SocketManager(
             socketURL: serverURL,

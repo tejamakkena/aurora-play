@@ -125,8 +125,10 @@ class TestJoinRoom:
         payload = latest(phone, "room_joined")
         assert set(payload) == {"room", "playerID"}
         assert payload["playerID"] == "dev-1"
+        # isBot and isAway are additive: Swift's decoder ignores keys it
+        # does not model, so older apps keep working.
         assert set(payload["room"]["players"][0]) == {
-            "id", "name", "isReady", "score", "isHost", "isBot"}
+            "id", "name", "isReady", "score", "isHost", "isBot", "isAway"}
 
     def test_first_phone_becomes_host(self, server, tv):
         app, socketio = server

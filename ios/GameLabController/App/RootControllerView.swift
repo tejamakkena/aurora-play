@@ -9,6 +9,7 @@ struct RootControllerView: View {
     // bare exposed leave button like WaitingView's -- nothing is lost yet
     // there.
     @State private var showLeaveConfirm = false
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
@@ -110,6 +111,11 @@ struct RootControllerView: View {
         }
         // auroraplay://join/<CODE> from the TV lobby's QR landing page.
         .onOpenURL { vm.handleOpenURL($0) }
+        // Switching apps and coming back is where a seat used to be lost:
+        // reconnect at once and re-seat, so the game picks up where it was.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { vm.appBecameActive() }
+        }
         .animation(.easeInOut(duration: 0.3), value: vm.screen.id)
         .confirmationDialog(
             "Leave this game?",
@@ -622,6 +628,14 @@ final class ControllerRootViewModel: ObservableObject {
         travelVM = nil
         pendingRules = nil
         screen = .join
+    }
+
+    /// Foreground: make sure there is a live socket, and if this phone is
+    /// seated, say so again (idempotent; the server answers with a fresh
+    /// private_state so the controller resyncs).
+    func appBecameActive() {
+        socket.nudge()
+        if socket.isConnected { rejoinIfSeated() }
     }
 
     private func rejoinIfSeated() {

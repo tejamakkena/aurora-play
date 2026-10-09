@@ -1,0 +1,6789 @@
+[
+ {
+  "category": "Science",
+  "question": "What gas do plants absorb from the air for photosynthesis?",
+  "options": [
+   "Nitrogen",
+   "Oxygen",
+   "Carbon dioxide",
+   "Hydrogen"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the chemical symbol for gold?",
+  "options": [
+   "Gd",
+   "Au",
+   "Ag",
+   "Go"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "What is the chemical symbol for sodium?",
+  "options": [
+   "So",
+   "Na",
+   "S",
+   "Sd"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "How many bones does an adult human body have?",
+  "options": [
+   "256",
+   "226",
+   "206",
+   "186"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Which organ pumps blood around the human body?",
+  "options": [
+   "Lungs",
+   "Kidney",
+   "Heart",
+   "Liver"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the hardest natural substance on Earth?",
+  "options": [
+   "Quartz",
+   "Granite",
+   "Diamond",
+   "Steel"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is H2O more commonly known as?",
+  "options": [
+   "Water",
+   "Ice only",
+   "Salt",
+   "Hydrogen peroxide"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "Which vitamin do we mainly get from sunlight?",
+  "options": [
+   "Vitamin D",
+   "Vitamin B12",
+   "Vitamin C",
+   "Vitamin A"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What is the boiling point of water at sea level in Celsius?",
+  "options": [
+   "110",
+   "90",
+   "120",
+   "100"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "Which blood group is called the universal donor?",
+  "options": [
+   "O negative",
+   "A positive",
+   "AB positive",
+   "B negative"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What is the study of earthquakes called?",
+  "options": [
+   "Volcanology",
+   "Meteorology",
+   "Geology",
+   "Seismology"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "What particle has a negative electric charge?",
+  "options": [
+   "Electron",
+   "Photon",
+   "Proton",
+   "Neutron"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What is the most abundant gas in Earth's atmosphere?",
+  "options": [
+   "Oxygen",
+   "Argon",
+   "Carbon dioxide",
+   "Nitrogen"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "Which scientist proposed the theory of general relativity?",
+  "options": [
+   "Niels Bohr",
+   "Albert Einstein",
+   "Isaac Newton",
+   "Galileo Galilei"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "What force keeps us on the ground?",
+  "options": [
+   "Inertia",
+   "Magnetism",
+   "Friction",
+   "Gravity"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "What is the SI unit of force?",
+  "options": [
+   "Newton",
+   "Pascal",
+   "Watt",
+   "Joule"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What is the SI unit of electrical resistance?",
+  "options": [
+   "Farad",
+   "Volt",
+   "Ohm",
+   "Ampere"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the pH of pure water?",
+  "options": [
+   "7",
+   "1",
+   "14",
+   "0"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "Which gas is used to inflate party balloons that float?",
+  "options": [
+   "Helium",
+   "Carbon dioxide",
+   "Oxygen",
+   "Nitrogen"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What is the process by which water turns into vapour called?",
+  "options": [
+   "Evaporation",
+   "Sublimation",
+   "Precipitation",
+   "Condensation"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What do we call animals that eat only plants?",
+  "options": [
+   "Carnivores",
+   "Herbivores",
+   "Omnivores",
+   "Insectivores"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "What is the largest organ of the human body?",
+  "options": [
+   "Liver",
+   "Brain",
+   "Small intestine",
+   "Skin"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "What part of the cell contains DNA?",
+  "options": [
+   "Vacuole",
+   "Ribosome",
+   "Nucleus",
+   "Membrane"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Which planet has the shortest day in the solar system?",
+  "options": [
+   "Mercury",
+   "Mars",
+   "Jupiter",
+   "Earth"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Which metal is liquid at room temperature?",
+  "options": [
+   "Zinc",
+   "Tin",
+   "Lead",
+   "Mercury"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "What is the speed of light closest to?",
+  "options": [
+   "3 million km per second",
+   "3,000 km per second",
+   "300,000 km per second",
+   "30,000 km per second"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Which gas do humans breathe out?",
+  "options": [
+   "Oxygen",
+   "Hydrogen",
+   "Carbon dioxide",
+   "Helium"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the chemical formula for table salt?",
+  "options": [
+   "NaOH",
+   "KCl",
+   "NaCl",
+   "CaCO3"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Which part of the eye controls how much light enters?",
+  "options": [
+   "Cornea",
+   "Lens",
+   "Retina",
+   "Pupil"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "What is the closest star to Earth?",
+  "options": [
+   "Sirius",
+   "Polaris",
+   "The Sun",
+   "Proxima Centauri"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What type of energy does a stretched rubber band store?",
+  "options": [
+   "Elastic potential energy",
+   "Thermal energy",
+   "Kinetic energy",
+   "Chemical energy"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "Which scientist discovered penicillin?",
+  "options": [
+   "Louis Pasteur",
+   "Robert Koch",
+   "Alexander Fleming",
+   "Marie Curie"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the name of the process plants use to make food from sunlight?",
+  "options": [
+   "Digestion",
+   "Fermentation",
+   "Respiration",
+   "Photosynthesis"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "Which element has the atomic number 1?",
+  "options": [
+   "Helium",
+   "Oxygen",
+   "Carbon",
+   "Hydrogen"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "Which element has the atomic number 6?",
+  "options": [
+   "Oxygen",
+   "Carbon",
+   "Boron",
+   "Nitrogen"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "What is the main gas in the Sun?",
+  "options": [
+   "Carbon dioxide",
+   "Oxygen",
+   "Methane",
+   "Hydrogen"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "What does a thermometer measure?",
+  "options": [
+   "Pressure",
+   "Speed",
+   "Temperature",
+   "Humidity"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What does a barometer measure?",
+  "options": [
+   "Temperature",
+   "Air pressure",
+   "Wind speed",
+   "Rainfall"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "Which scientist is known for the laws of motion?",
+  "options": [
+   "Albert Einstein",
+   "Charles Darwin",
+   "Isaac Newton",
+   "Michael Faraday"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Who proposed the theory of evolution by natural selection?",
+  "options": [
+   "Alfred Wegener",
+   "Gregor Mendel",
+   "Charles Darwin",
+   "Louis Pasteur"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the term for a substance that speeds up a reaction without being used up?",
+  "options": [
+   "Enzyme blocker",
+   "Reagent",
+   "Catalyst",
+   "Solvent"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Which blood cells fight infection?",
+  "options": [
+   "White blood cells",
+   "Red blood cells",
+   "Platelets",
+   "Plasma cells only"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "How many chambers does the human heart have?",
+  "options": [
+   "Three",
+   "Two",
+   "Five",
+   "Four"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "What is the lightest element?",
+  "options": [
+   "Lithium",
+   "Hydrogen",
+   "Carbon",
+   "Helium"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "Which type of rock is formed from cooled lava?",
+  "options": [
+   "Sedimentary",
+   "Igneous",
+   "Fossil rock",
+   "Metamorphic"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "What is the unit of electric current?",
+  "options": [
+   "Volt",
+   "Ohm",
+   "Ampere",
+   "Watt"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Which scientist developed the first polio vaccine?",
+  "options": [
+   "Jonas Salk",
+   "Louis Pasteur",
+   "Edward Jenner",
+   "Alexander Fleming"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What colour does litmus paper turn in acid?",
+  "options": [
+   "Blue",
+   "Red",
+   "Yellow",
+   "Green"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "Which part of the plant absorbs water from the soil?",
+  "options": [
+   "Roots",
+   "Leaves",
+   "Stem",
+   "Flowers"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What is the term for the bending of light as it passes between materials?",
+  "options": [
+   "Absorption",
+   "Diffraction",
+   "Refraction",
+   "Reflection"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the chemical symbol for iron?",
+  "options": [
+   "I",
+   "Ir",
+   "Fe",
+   "In"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the chemical symbol for potassium?",
+  "options": [
+   "Po",
+   "Pt",
+   "P",
+   "K"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Science",
+  "question": "Which gas makes up about 21 percent of air?",
+  "options": [
+   "Oxygen",
+   "Argon",
+   "Carbon dioxide",
+   "Nitrogen"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What is absolute zero in Celsius?",
+  "options": [
+   "Minus 459.67",
+   "Minus 273.15",
+   "0",
+   "Minus 100"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Science",
+  "question": "What is the process of a solid turning directly into gas called?",
+  "options": [
+   "Sublimation",
+   "Melting",
+   "Evaporation",
+   "Deposition"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What kind of mirror is used as a car's side mirror to widen the view?",
+  "options": [
+   "Convex",
+   "Cylindrical",
+   "Concave",
+   "Plane"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Science",
+  "question": "What do bees collect from flowers to make honey?",
+  "options": [
+   "Dew",
+   "Pollen only",
+   "Nectar",
+   "Sap"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "Which scientist is famous for discovering radioactivity in polonium and radium?",
+  "options": [
+   "Rosalind Franklin",
+   "Ada Lovelace",
+   "Marie Curie",
+   "Lise Meitner"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What is the name of the force that opposes motion between surfaces?",
+  "options": [
+   "Tension",
+   "Buoyancy",
+   "Friction",
+   "Gravity"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Science",
+  "question": "What shape is a DNA molecule?",
+  "options": [
+   "Double helix",
+   "Sphere",
+   "Single strand",
+   "Triangle"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "What is the largest planet in our solar system?",
+  "options": [
+   "Saturn",
+   "Neptune",
+   "Jupiter",
+   "Earth"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Space",
+  "question": "What is the smallest planet in our solar system?",
+  "options": [
+   "Venus",
+   "Mercury",
+   "Pluto",
+   "Mars"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "Which planet is known for its prominent rings?",
+  "options": [
+   "Venus",
+   "Mercury",
+   "Saturn",
+   "Mars"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Space",
+  "question": "Which planet is the hottest in the solar system?",
+  "options": [
+   "Venus",
+   "Mars",
+   "Jupiter",
+   "Mercury"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "What is the name of Earth's natural satellite?",
+  "options": [
+   "The Moon",
+   "Phobos",
+   "Titan",
+   "Europa"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "Who was the first human in space?",
+  "options": [
+   "Yuri Gagarin",
+   "Alan Shepard",
+   "Buzz Aldrin",
+   "Neil Armstrong"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "Who was the first person to walk on the Moon?",
+  "options": [
+   "Buzz Aldrin",
+   "Yuri Gagarin",
+   "Michael Collins",
+   "Neil Armstrong"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Space",
+  "question": "Who was the first Indian in space?",
+  "options": [
+   "Rakesh Sharma",
+   "Vikram Sarabhai",
+   "Sunita Williams",
+   "Kalpana Chawla"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "Which Indian mission landed near the Moon's south pole in 2023?",
+  "options": [
+   "Gaganyaan",
+   "Chandrayaan-3",
+   "Aditya-L1",
+   "Mangalyaan"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "What was India's first mission to Mars called?",
+  "options": [
+   "Mangalyaan",
+   "Gaganyaan",
+   "Aryabhata",
+   "Chandrayaan"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "What is the name of India's space agency?",
+  "options": [
+   "DRDO",
+   "ISRO",
+   "BARC",
+   "NASA"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "Which planet is called the Morning Star or Evening Star?",
+  "options": [
+   "Jupiter",
+   "Venus",
+   "Mercury",
+   "Mars"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "What is the name of our galaxy?",
+  "options": [
+   "The Milky Way",
+   "Andromeda",
+   "Whirlpool",
+   "Triangulum"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "Which planet spins on its side?",
+  "options": [
+   "Mars",
+   "Saturn",
+   "Uranus",
+   "Neptune"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Space",
+  "question": "What is the Great Red Spot on Jupiter?",
+  "options": [
+   "A giant storm",
+   "A moon",
+   "A volcano",
+   "A crater"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "Which planet is farthest from the Sun?",
+  "options": [
+   "Pluto",
+   "Saturn",
+   "Neptune",
+   "Uranus"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Space",
+  "question": "What do we call a star that explodes at the end of its life?",
+  "options": [
+   "Supernova",
+   "Quasar",
+   "Nebula",
+   "Pulsar"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "What is the name of the first artificial satellite launched in 1957?",
+  "options": [
+   "Vostok 1",
+   "Sputnik 1",
+   "Explorer 1",
+   "Apollo 1"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "What is the force that keeps planets in orbit around the Sun?",
+  "options": [
+   "Magnetism",
+   "Nuclear force",
+   "Friction",
+   "Gravity"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Space",
+  "question": "Which space telescope launched in 2021 succeeded Hubble in infrared astronomy?",
+  "options": [
+   "Spitzer",
+   "James Webb",
+   "Kepler",
+   "Chandra"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "What is the name of the largest moon of Saturn?",
+  "options": [
+   "Io",
+   "Ganymede",
+   "Titan",
+   "Europa"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Space",
+  "question": "What is the largest moon in the solar system?",
+  "options": [
+   "Titan",
+   "Moon",
+   "Callisto",
+   "Ganymede"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Space",
+  "question": "Which planet has the tallest volcano, Olympus Mons?",
+  "options": [
+   "Earth",
+   "Mars",
+   "Venus",
+   "Mercury"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "What is a light year a measure of?",
+  "options": [
+   "Speed",
+   "Brightness",
+   "Distance",
+   "Time"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Space",
+  "question": "Which constellation contains the North Star?",
+  "options": [
+   "Ursa Minor",
+   "Orion",
+   "Cassiopeia",
+   "Scorpius"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "Which constellation looks like a hunter with a belt of three stars?",
+  "options": [
+   "Leo",
+   "Orion",
+   "Taurus",
+   "Gemini"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "What shape is the orbit of a planet around the Sun?",
+  "options": [
+   "Straight line",
+   "Perfect circle",
+   "Ellipse",
+   "Square"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Space",
+  "question": "What is the name of the boundary around a black hole beyond which nothing escapes?",
+  "options": [
+   "Event horizon",
+   "Photosphere",
+   "Corona",
+   "Singularity edge"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Space",
+  "question": "Which astronaut of Indian origin died in the 2003 Columbia disaster?",
+  "options": [
+   "Anita Sen",
+   "Kalpana Chawla",
+   "Sunita Williams",
+   "Rakesh Sharma"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Space",
+  "question": "What are shooting stars actually?",
+  "options": [
+   "Comets",
+   "Satellites falling",
+   "Meteors burning in the atmosphere",
+   "Dying stars"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Space",
+  "question": "What is the name of the telescope that has orbited Earth since 1990?",
+  "options": [
+   "Planck",
+   "Gaia",
+   "Kepler",
+   "Hubble"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Technology",
+  "question": "What does CPU stand for?",
+  "options": [
+   "Central Program Utility",
+   "Computer Personal Unit",
+   "Central Processing Unit",
+   "Core Processing Utility"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Technology",
+  "question": "What does Wi-Fi allow devices to do?",
+  "options": [
+   "Print in colour",
+   "Cool processors",
+   "Connect wirelessly to a network",
+   "Charge batteries"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Technology",
+  "question": "What does HTML stand for?",
+  "options": [
+   "HyperText Markup Language",
+   "Home Tool Markup Language",
+   "Hyper Transfer Markup Language",
+   "HighText Machine Language"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "Who is the co-founder of Microsoft along with Paul Allen?",
+  "options": [
+   "Steve Jobs",
+   "Mark Zuckerberg",
+   "Larry Page",
+   "Bill Gates"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Technology",
+  "question": "Which company makes the iPhone?",
+  "options": [
+   "Sony",
+   "Google",
+   "Apple",
+   "Samsung"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Technology",
+  "question": "What does GPS stand for?",
+  "options": [
+   "Global Peer Signal",
+   "Global Positioning System",
+   "General Power Source",
+   "Ground Position Sensor"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Technology",
+  "question": "What does USB stand for?",
+  "options": [
+   "Universal Serial Bus",
+   "Ultra Speed Bridge",
+   "Universal Signal Box",
+   "Unified System Board"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "What is the name of the first widely used web browser from 1993?",
+  "options": [
+   "Chrome",
+   "Safari",
+   "Firefox",
+   "Mosaic"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Technology",
+  "question": "What does AI stand for?",
+  "options": [
+   "Artificial Intelligence",
+   "Applied Internet",
+   "Advanced Interface",
+   "Automatic Input"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "What does RAM stand for?",
+  "options": [
+   "Rapid Action Module",
+   "Read Only Memory",
+   "Run Anywhere Memory",
+   "Random Access Memory"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Technology",
+  "question": "What is a bit short for?",
+  "options": [
+   "Binary digit",
+   "Basic digit",
+   "Byte digit",
+   "Big integer"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "How many bits are in a byte?",
+  "options": [
+   "8",
+   "4",
+   "10",
+   "16"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "Which language is mainly used to style web pages?",
+  "options": [
+   "CSS",
+   "Python",
+   "Java",
+   "SQL"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "Which search engine was founded by Larry Page and Sergey Brin?",
+  "options": [
+   "Yahoo",
+   "Google",
+   "AltaVista",
+   "Bing"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Technology",
+  "question": "What is the name of Amazon's voice assistant?",
+  "options": [
+   "Bixby",
+   "Cortana",
+   "Alexa",
+   "Siri"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Technology",
+  "question": "Which company developed the Windows operating system?",
+  "options": [
+   "Microsoft",
+   "IBM",
+   "Oracle",
+   "Apple"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "What does URL stand for?",
+  "options": [
+   "Uniform Resource Locator",
+   "User Reference Locator",
+   "Universal Remote Link",
+   "Unique Resource Line"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "What does PDF stand for?",
+  "options": [
+   "Portable Document Format",
+   "Personal Document Folder",
+   "Printable Data File",
+   "Page Design Format"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "Which Indian company is famous for IT services and is part of the Tata group?",
+  "options": [
+   "HCL",
+   "Wipro",
+   "TCS",
+   "Infosys"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Technology",
+  "question": "Who is known as the father of the computer for designing the Analytical Engine?",
+  "options": [
+   "Alan Turing",
+   "Tim Berners-Lee",
+   "Charles Babbage",
+   "John von Neumann"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Technology",
+  "question": "Who invented the World Wide Web?",
+  "options": [
+   "Bill Gates",
+   "Vint Cerf",
+   "Steve Wozniak",
+   "Tim Berners-Lee"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Technology",
+  "question": "What does LED stand for?",
+  "options": [
+   "Light Emitting Diode",
+   "Light Energy Device",
+   "Low Energy Display",
+   "Long Era Display"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Technology",
+  "question": "What is the main function of a router?",
+  "options": [
+   "Store files",
+   "Direct data between networks",
+   "Play video",
+   "Print documents"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Technology",
+  "question": "Which of these is a programming language?",
+  "options": [
+   "Browser",
+   "Python",
+   "Pixel",
+   "Router"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Technology",
+  "question": "Which technology is used for contactless payments by tapping a phone?",
+  "options": [
+   "Infrared only",
+   "NFC",
+   "HDMI",
+   "VGA"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Technology",
+  "question": "What is 5G?",
+  "options": [
+   "A video format",
+   "Fifth generation mobile network",
+   "A programming language",
+   "A type of battery"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Technology",
+  "question": "What does SSD stand for?",
+  "options": [
+   "System Storage Device",
+   "Solid State Drive",
+   "Static Signal Disk",
+   "Super Speed Disk"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Technology",
+  "question": "Which of these is a cloud storage service?",
+  "options": [
+   "Notepad",
+   "Google Drive",
+   "Paint",
+   "Calculator"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Technology",
+  "question": "Which company created the PlayStation?",
+  "options": [
+   "Microsoft",
+   "Nintendo",
+   "Sony",
+   "Sega"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Technology",
+  "question": "Which company created the Super Mario character?",
+  "options": [
+   "Atari",
+   "Sega",
+   "Capcom",
+   "Nintendo"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Technology",
+  "question": "What year was the first iPhone released?",
+  "options": [
+   "2004",
+   "2012",
+   "2007",
+   "2010"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Australia?",
+  "options": [
+   "Canberra",
+   "Melbourne",
+   "Sydney",
+   "Perth"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Canada?",
+  "options": [
+   "Vancouver",
+   "Ottawa",
+   "Toronto",
+   "Montreal"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Brazil?",
+  "options": [
+   "Sao Paulo",
+   "Rio de Janeiro",
+   "Brasilia",
+   "Salvador"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Japan?",
+  "options": [
+   "Kyoto",
+   "Tokyo",
+   "Nagoya",
+   "Osaka"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Egypt?",
+  "options": [
+   "Cairo",
+   "Luxor",
+   "Giza",
+   "Alexandria"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Turkey?",
+  "options": [
+   "Antalya",
+   "Izmir",
+   "Istanbul",
+   "Ankara"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of New Zealand?",
+  "options": [
+   "Wellington",
+   "Auckland",
+   "Dunedin",
+   "Christchurch"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Switzerland?",
+  "options": [
+   "Geneva",
+   "Bern",
+   "Zurich",
+   "Basel"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Nepal?",
+  "options": [
+   "Kathmandu",
+   "Pokhara",
+   "Lalitpur",
+   "Biratnagar"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Thailand?",
+  "options": [
+   "Pattaya",
+   "Bangkok",
+   "Chiang Mai",
+   "Phuket"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of South Korea?",
+  "options": [
+   "Daegu",
+   "Incheon",
+   "Seoul",
+   "Busan"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Argentina?",
+  "options": [
+   "Cordoba",
+   "Buenos Aires",
+   "Mendoza",
+   "Rosario"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Kenya?",
+  "options": [
+   "Nakuru",
+   "Kisumu",
+   "Nairobi",
+   "Mombasa"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Spain?",
+  "options": [
+   "Seville",
+   "Valencia",
+   "Barcelona",
+   "Madrid"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Portugal?",
+  "options": [
+   "Porto",
+   "Lisbon",
+   "Faro",
+   "Braga"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Italy?",
+  "options": [
+   "Milan",
+   "Rome",
+   "Venice",
+   "Naples"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Germany?",
+  "options": [
+   "Munich",
+   "Hamburg",
+   "Berlin",
+   "Frankfurt"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Russia?",
+  "options": [
+   "Moscow",
+   "Kazan",
+   "Sochi",
+   "Saint Petersburg"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of the United Arab Emirates?",
+  "options": [
+   "Ajman",
+   "Abu Dhabi",
+   "Dubai",
+   "Sharjah"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Bangladesh?",
+  "options": [
+   "Sylhet",
+   "Dhaka",
+   "Khulna",
+   "Chittagong"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Pakistan?",
+  "options": [
+   "Peshawar",
+   "Lahore",
+   "Islamabad",
+   "Karachi"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Vietnam?",
+  "options": [
+   "Hanoi",
+   "Ho Chi Minh City",
+   "Hue",
+   "Da Nang"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Indonesia?",
+  "options": [
+   "Surabaya",
+   "Bali",
+   "Jakarta",
+   "Bandung"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which is the longest river in the world by most measures?",
+  "options": [
+   "The Yangtze",
+   "The Amazon",
+   "The Nile",
+   "The Mississippi"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which river flows through Paris?",
+  "options": [
+   "The Danube",
+   "The Rhine",
+   "The Thames",
+   "The Seine"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "Which river flows through London?",
+  "options": [
+   "The Thames",
+   "The Seine",
+   "The Tiber",
+   "The Elbe"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "Which is the largest ocean on Earth?",
+  "options": [
+   "Atlantic",
+   "Arctic",
+   "Pacific",
+   "Indian"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which is the smallest continent by land area?",
+  "options": [
+   "Europe",
+   "Antarctica",
+   "Australia",
+   "South America"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which continent is the Sahara Desert in?",
+  "options": [
+   "South America",
+   "Australia",
+   "Africa",
+   "Asia"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which is the largest country in the world by area?",
+  "options": [
+   "China",
+   "United States",
+   "Russia",
+   "Canada"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which is the most populous country in the world as of recent years?",
+  "options": [
+   "Indonesia",
+   "China",
+   "United States",
+   "India"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "What is the highest mountain in the world?",
+  "options": [
+   "Mount Everest",
+   "K2",
+   "Kangchenjunga",
+   "Makalu"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the second highest mountain in the world?",
+  "options": [
+   "Lhotse",
+   "Makalu",
+   "Kangchenjunga",
+   "K2"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "Which country has the city of Marrakech?",
+  "options": [
+   "Egypt",
+   "Algeria",
+   "Morocco",
+   "Tunisia"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which country is home to the Great Barrier Reef?",
+  "options": [
+   "Indonesia",
+   "Fiji",
+   "Philippines",
+   "Australia"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "Which country is shaped like a boot?",
+  "options": [
+   "Greece",
+   "Spain",
+   "Portugal",
+   "Italy"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "In which country is Machu Picchu?",
+  "options": [
+   "Peru",
+   "Chile",
+   "Mexico",
+   "Bolivia"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "Which country has the most time zones including its territories?",
+  "options": [
+   "France",
+   "Russia",
+   "China",
+   "United States"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the largest desert in the world including polar deserts?",
+  "options": [
+   "Antarctic Desert",
+   "Sahara",
+   "Arabian",
+   "Gobi"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian state is the largest by area?",
+  "options": [
+   "Maharashtra",
+   "Rajasthan",
+   "Madhya Pradesh",
+   "Uttar Pradesh"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian state has the longest coastline?",
+  "options": [
+   "Kerala",
+   "Gujarat",
+   "Tamil Nadu",
+   "Maharashtra"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which is the smallest state in India by area?",
+  "options": [
+   "Manipur",
+   "Tripura",
+   "Sikkim",
+   "Goa"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Karnataka?",
+  "options": [
+   "Mysuru",
+   "Bengaluru",
+   "Mangaluru",
+   "Hubballi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Telangana?",
+  "options": [
+   "Warangal",
+   "Hyderabad",
+   "Karimnagar",
+   "Nizamabad"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Tamil Nadu?",
+  "options": [
+   "Coimbatore",
+   "Madurai",
+   "Tiruchirappalli",
+   "Chennai"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Kerala?",
+  "options": [
+   "Thrissur",
+   "Thiruvananthapuram",
+   "Kochi",
+   "Kozhikode"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Maharashtra?",
+  "options": [
+   "Pune",
+   "Mumbai",
+   "Nagpur",
+   "Nashik"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Gujarat?",
+  "options": [
+   "Gandhinagar",
+   "Surat",
+   "Vadodara",
+   "Ahmedabad"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Rajasthan?",
+  "options": [
+   "Kota",
+   "Udaipur",
+   "Jaipur",
+   "Jodhpur"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of West Bengal?",
+  "options": [
+   "Durgapur",
+   "Siliguri",
+   "Howrah",
+   "Kolkata"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Punjab (India)?",
+  "options": [
+   "Amritsar",
+   "Chandigarh",
+   "Ludhiana",
+   "Patiala"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Uttar Pradesh?",
+  "options": [
+   "Kanpur",
+   "Varanasi",
+   "Agra",
+   "Lucknow"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Odisha?",
+  "options": [
+   "Cuttack",
+   "Bhubaneswar",
+   "Rourkela",
+   "Puri"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "What is the capital of Assam?",
+  "options": [
+   "Guwahati",
+   "Dispur",
+   "Jorhat",
+   "Silchar"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian city is known as the Pink City?",
+  "options": [
+   "Jodhpur",
+   "Agra",
+   "Jaipur",
+   "Udaipur"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian city is known as the Silicon Valley of India?",
+  "options": [
+   "Hyderabad",
+   "Pune",
+   "Bengaluru",
+   "Chennai"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian city is known as the City of Joy?",
+  "options": [
+   "Chennai",
+   "Kolkata",
+   "Delhi",
+   "Mumbai"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian city is called the Blue City?",
+  "options": [
+   "Jodhpur",
+   "Jaipur",
+   "Bikaner",
+   "Jaisalmer"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian city is called the Golden City because of its fort glowing in sunlight?",
+  "options": [
+   "Jaisalmer",
+   "Jaipur",
+   "Udaipur",
+   "Jodhpur"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "Which river is also called the Dakshina Ganga?",
+  "options": [
+   "Godavari",
+   "Krishna",
+   "Narmada",
+   "Kaveri"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "On which river does Varanasi stand?",
+  "options": [
+   "Ganga",
+   "Yamuna",
+   "Godavari",
+   "Narmada"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "On which river does Hyderabad stand?",
+  "options": [
+   "Musi",
+   "Godavari",
+   "Kaveri",
+   "Krishna"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "Which is the highest mountain peak in India?",
+  "options": [
+   "K2",
+   "Kangchenjunga",
+   "Mount Everest",
+   "Nanda Devi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which strait separates India from Sri Lanka?",
+  "options": [
+   "Palk Strait",
+   "Bering Strait",
+   "Strait of Hormuz",
+   "Strait of Malacca"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Geography",
+  "question": "Which lake is the largest saltwater lake in India?",
+  "options": [
+   "Dal Lake",
+   "Wular Lake",
+   "Loktak Lake",
+   "Chilika Lake"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "What is the southernmost tip of mainland India?",
+  "options": [
+   "Puducherry",
+   "Kanyakumari",
+   "Rameswaram",
+   "Kochi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which desert lies mainly in Rajasthan?",
+  "options": [
+   "Sahara",
+   "Kalahari",
+   "Thar",
+   "Gobi"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian state is known as God's Own Country?",
+  "options": [
+   "Sikkim",
+   "Kerala",
+   "Himachal Pradesh",
+   "Goa"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which Indian state is called the Land of Five Rivers?",
+  "options": [
+   "Uttar Pradesh",
+   "Punjab",
+   "Haryana",
+   "Bihar"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which country is both in Europe and Asia and has Istanbul as its largest city?",
+  "options": [
+   "Greece",
+   "Bulgaria",
+   "Turkey",
+   "Russia"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which two countries share the longest international land border?",
+  "options": [
+   "India and China",
+   "Canada and United States",
+   "Brazil and Argentina",
+   "Russia and China"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which African country was formerly known as Abyssinia?",
+  "options": [
+   "Eritrea",
+   "Somalia",
+   "Ethiopia",
+   "Sudan"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which waterfall is on the border of Zambia and Zimbabwe?",
+  "options": [
+   "Niagara Falls",
+   "Victoria Falls",
+   "Angel Falls",
+   "Iguazu Falls"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which is the tallest waterfall in the world?",
+  "options": [
+   "Jog Falls",
+   "Angel Falls",
+   "Niagara Falls",
+   "Victoria Falls"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which city is known as the Big Apple?",
+  "options": [
+   "Los Angeles",
+   "New York",
+   "Boston",
+   "Chicago"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which city is the home of the Eiffel Tower?",
+  "options": [
+   "London",
+   "Paris",
+   "Rome",
+   "Berlin"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Geography",
+  "question": "Which city is the home of the Colosseum?",
+  "options": [
+   "Athens",
+   "Cairo",
+   "Rome",
+   "Istanbul"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Geography",
+  "question": "Which city is the home of the Statue of Liberty?",
+  "options": [
+   "Philadelphia",
+   "Washington DC",
+   "Boston",
+   "New York"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Geography",
+  "question": "In which city is the Taj Mahal?",
+  "options": [
+   "Jaipur",
+   "Agra",
+   "Lucknow",
+   "Delhi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "In which year did India gain independence?",
+  "options": [
+   "1942",
+   "1950",
+   "1935",
+   "1947"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Who was the first Prime Minister of India?",
+  "options": [
+   "Sardar Patel",
+   "Lal Bahadur Shastri",
+   "Jawaharlal Nehru",
+   "Mahatma Gandhi"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Who was the first President of India?",
+  "options": [
+   "V V Giri",
+   "Dr Rajendra Prasad",
+   "Dr S Radhakrishnan",
+   "Dr Zakir Husain"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Who is known as the Father of the Indian Constitution?",
+  "options": [
+   "Rajendra Prasad",
+   "Jawaharlal Nehru",
+   "Dr B R Ambedkar",
+   "Sardar Patel"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "In which year was the Indian Constitution adopted?",
+  "options": [
+   "1952",
+   "1950",
+   "1949",
+   "1947"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "On which date is Republic Day celebrated in India?",
+  "options": [
+   "15 August",
+   "14 November",
+   "26 January",
+   "2 October"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Who led the Dandi Salt March in 1930?",
+  "options": [
+   "Bhagat Singh",
+   "Mahatma Gandhi",
+   "Bal Gangadhar Tilak",
+   "Subhas Chandra Bose"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Who gave the slogan Jai Jawan Jai Kisan?",
+  "options": [
+   "Jawaharlal Nehru",
+   "Indira Gandhi",
+   "Lal Bahadur Shastri",
+   "Atal Bihari Vajpayee"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Who gave the slogan Give me blood and I will give you freedom?",
+  "options": [
+   "Bhagat Singh",
+   "Lala Lajpat Rai",
+   "Chandrashekhar Azad",
+   "Subhas Chandra Bose"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Who was the first woman Prime Minister of India?",
+  "options": [
+   "Pratibha Patil",
+   "Sarojini Naidu",
+   "Indira Gandhi",
+   "Sonia Gandhi"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Which Mughal emperor built the Taj Mahal?",
+  "options": [
+   "Akbar",
+   "Humayun",
+   "Aurangzeb",
+   "Shah Jahan"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Who founded the Mughal Empire in India?",
+  "options": [
+   "Humayun",
+   "Akbar",
+   "Shah Jahan",
+   "Babur"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Which emperor of the Maurya dynasty converted to Buddhism after the Kalinga war?",
+  "options": [
+   "Ashoka",
+   "Bindusara",
+   "Harsha",
+   "Chandragupta"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Who was the founder of the Maratha Empire?",
+  "options": [
+   "Baji Rao",
+   "Sambhaji",
+   "Chhatrapati Shivaji",
+   "Shahu"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Who was the Rani of Jhansi who fought in the 1857 revolt?",
+  "options": [
+   "Razia Sultana",
+   "Rani Lakshmibai",
+   "Chand Bibi",
+   "Rani Padmini"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "In which year did the first war of Indian independence take place?",
+  "options": [
+   "1757",
+   "1857",
+   "1919",
+   "1942"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Which battle in 1757 laid the foundation of British rule in India?",
+  "options": [
+   "Battle of Buxar",
+   "Battle of Panipat",
+   "Battle of Haldighati",
+   "Battle of Plassey"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Where did the Jallianwala Bagh massacre happen?",
+  "options": [
+   "Amritsar",
+   "Kolkata",
+   "Delhi",
+   "Lahore"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Which year did World War II end?",
+  "options": [
+   "1950",
+   "1945",
+   "1941",
+   "1939"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "In which year did World War I begin?",
+  "options": [
+   "1918",
+   "1914",
+   "1905",
+   "1939"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Who was the first President of the United States?",
+  "options": [
+   "John Adams",
+   "Thomas Jefferson",
+   "Abraham Lincoln",
+   "George Washington"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Who was the US President during the American Civil War?",
+  "options": [
+   "George Washington",
+   "Abraham Lincoln",
+   "Ulysses Grant",
+   "Andrew Jackson"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Which ancient civilisation built the pyramids of Giza?",
+  "options": [
+   "Romans",
+   "Mayans",
+   "Greeks",
+   "Egyptians"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Which empire was ruled by Julius Caesar?",
+  "options": [
+   "Roman",
+   "Ottoman",
+   "Persian",
+   "Mongol"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Who was the first emperor of unified China?",
+  "options": [
+   "Sun Yat-sen",
+   "Liu Bang",
+   "Kublai Khan",
+   "Qin Shi Huang"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Who painted the Mona Lisa?",
+  "options": [
+   "Leonardo da Vinci",
+   "Michelangelo",
+   "Raphael",
+   "Rembrandt"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Which wall fell in 1989, symbolising the end of the Cold War era division?",
+  "options": [
+   "Hadrian's Wall",
+   "Great Wall",
+   "Western Wall",
+   "Berlin Wall"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "History",
+  "question": "Who was the leader of South Africa freed in 1990 after 27 years in prison?",
+  "options": [
+   "Nelson Mandela",
+   "Desmond Tutu",
+   "Steve Biko",
+   "Thabo Mbeki"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Who sailed to India around Africa, reaching Calicut in 1498?",
+  "options": [
+   "Ferdinand Magellan",
+   "Vasco da Gama",
+   "Christopher Columbus",
+   "Marco Polo"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Who is credited with reaching the Americas in 1492 on a Spanish voyage?",
+  "options": [
+   "Vasco da Gama",
+   "Christopher Columbus",
+   "Amerigo Vespucci",
+   "James Cook"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Which queen ruled Britain for 63 years until 1901?",
+  "options": [
+   "Queen Mary",
+   "Queen Victoria",
+   "Queen Elizabeth I",
+   "Queen Anne"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "What was the name of the ship that carried the Pilgrims to America in 1620?",
+  "options": [
+   "Santa Maria",
+   "Mayflower",
+   "Titanic",
+   "Endeavour"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Which ship sank on its maiden voyage in 1912?",
+  "options": [
+   "Titanic",
+   "Lusitania",
+   "Bismarck",
+   "Mayflower"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Who was the Greek philosopher who taught Alexander the Great?",
+  "options": [
+   "Aristotle",
+   "Plato",
+   "Socrates",
+   "Pythagoras"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Which city was the capital of the Vijayanagara Empire?",
+  "options": [
+   "Hyderabad",
+   "Mysore",
+   "Hampi",
+   "Madurai"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Which Chola king built the Brihadeeswarar Temple at Thanjavur?",
+  "options": [
+   "Rajaraja Chola I",
+   "Vijayalaya Chola",
+   "Karikala Chola",
+   "Rajendra Chola"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Which Gupta ruler is known as the Napoleon of India?",
+  "options": [
+   "Chandragupta II",
+   "Samudragupta",
+   "Skandagupta",
+   "Kumaragupta"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Which Chinese pilgrim visited India during Harsha's reign?",
+  "options": [
+   "Fa Hien",
+   "Marco Polo",
+   "Hiuen Tsang",
+   "I Tsing"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Which dynasty built the Konark Sun Temple?",
+  "options": [
+   "Chalukya",
+   "Chola",
+   "Eastern Ganga",
+   "Pallava"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Which Sikh Guru founded the Khalsa in 1699?",
+  "options": [
+   "Guru Arjan",
+   "Guru Tegh Bahadur",
+   "Guru Gobind Singh",
+   "Guru Nanak"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Who founded Sikhism?",
+  "options": [
+   "Guru Nanak",
+   "Guru Ram Das",
+   "Guru Angad",
+   "Guru Hargobind"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Who composed the Indian national anthem Jana Gana Mana?",
+  "options": [
+   "Rabindranath Tagore",
+   "Muhammad Iqbal",
+   "Bankim Chandra Chatterjee",
+   "Sarojini Naidu"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Who wrote Vande Mataram?",
+  "options": [
+   "Sarojini Naidu",
+   "Subramania Bharati",
+   "Bankim Chandra Chatterjee",
+   "Rabindranath Tagore"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Who was the last Viceroy of India?",
+  "options": [
+   "Lord Curzon",
+   "Lord Dalhousie",
+   "Lord Mountbatten",
+   "Lord Wavell"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "What was the name of the movement launched by Gandhi in 1942?",
+  "options": [
+   "Quit India Movement",
+   "Civil Disobedience Movement",
+   "Swadeshi Movement",
+   "Non-Cooperation Movement"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "History",
+  "question": "Who was known as the Iron Man of India?",
+  "options": [
+   "Subhas Chandra Bose",
+   "Lal Bahadur Shastri",
+   "Sardar Vallabhbhai Patel",
+   "Jawaharlal Nehru"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "History",
+  "question": "Who was known as the Missile Man of India?",
+  "options": [
+   "C V Raman",
+   "A P J Abdul Kalam",
+   "Homi Bhabha",
+   "Vikram Sarabhai"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "History",
+  "question": "Who is known as the Father of the Indian Space Programme?",
+  "options": [
+   "A P J Abdul Kalam",
+   "Satish Dhawan",
+   "Homi Bhabha",
+   "Vikram Sarabhai"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "How many players are in a cricket team on the field for one side?",
+  "options": [
+   "10",
+   "11",
+   "9",
+   "12"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "How many runs is a six in cricket worth?",
+  "options": [
+   "8",
+   "6",
+   "4",
+   "5"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which country won the first Cricket World Cup in 1975?",
+  "options": [
+   "India",
+   "England",
+   "Australia",
+   "West Indies"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Which country won the 1983 Cricket World Cup?",
+  "options": [
+   "West Indies",
+   "India",
+   "Pakistan",
+   "Australia"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian captain lifted the 2011 Cricket World Cup?",
+  "options": [
+   "Kapil Dev",
+   "Virat Kohli",
+   "Sourav Ganguly",
+   "M S Dhoni"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Who captained India to the 1983 World Cup win?",
+  "options": [
+   "M S Dhoni",
+   "Ravi Shastri",
+   "Kapil Dev",
+   "Sunil Gavaskar"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Who is known as the God of Cricket in India?",
+  "options": [
+   "Virat Kohli",
+   "Sachin Tendulkar",
+   "Rahul Dravid",
+   "Kapil Dev"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian cricketer hit six sixes in an over in the 2007 T20 World Cup?",
+  "options": [
+   "Yuvraj Singh",
+   "Virender Sehwag",
+   "Rohit Sharma",
+   "Suresh Raina"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "How many stumps are there in a cricket wicket?",
+  "options": [
+   "5",
+   "2",
+   "4",
+   "3"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "What is a score of zero called when a batter is out for no runs?",
+  "options": [
+   "A wide",
+   "A duck",
+   "A maiden",
+   "A bye"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "How many balls are bowled in one over in cricket?",
+  "options": [
+   "6",
+   "5",
+   "10",
+   "8"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "In which city is the Eden Gardens cricket stadium?",
+  "options": [
+   "Kolkata",
+   "Chennai",
+   "Delhi",
+   "Mumbai"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "Which IPL team is based in Mumbai?",
+  "options": [
+   "Delhi Capitals",
+   "Mumbai Indians",
+   "Rajasthan Royals",
+   "Chennai Super Kings"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport is Neeraj Chopra famous for?",
+  "options": [
+   "Shot put",
+   "Long jump",
+   "Javelin throw",
+   "Discus throw"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport is P V Sindhu famous for?",
+  "options": [
+   "Squash",
+   "Tennis",
+   "Badminton",
+   "Table tennis"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport is Mary Kom famous for?",
+  "options": [
+   "Archery",
+   "Boxing",
+   "Judo",
+   "Wrestling"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport is Saina Nehwal famous for?",
+  "options": [
+   "Tennis",
+   "Athletics",
+   "Shooting",
+   "Badminton"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport is Viswanathan Anand famous for?",
+  "options": [
+   "Carrom",
+   "Chess",
+   "Bridge",
+   "Billiards"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport is Leander Paes famous for?",
+  "options": [
+   "Golf",
+   "Squash",
+   "Hockey",
+   "Tennis"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian won the first individual Olympic gold medal in 2008?",
+  "options": [
+   "Neeraj Chopra",
+   "Sushil Kumar",
+   "Abhinav Bindra",
+   "Vijender Singh"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport did Abhinav Bindra win Olympic gold in?",
+  "options": [
+   "Boxing",
+   "Wrestling",
+   "Shooting",
+   "Archery"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which is India's national sport as commonly believed?",
+  "options": [
+   "Cricket",
+   "Kabaddi",
+   "Football",
+   "Hockey"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "How many players are on a football (soccer) team on the pitch?",
+  "options": [
+   "12",
+   "9",
+   "11",
+   "10"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which country won the FIFA World Cup in 2022?",
+  "options": [
+   "France",
+   "Croatia",
+   "Brazil",
+   "Argentina"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Which country won the FIFA World Cup in 2018?",
+  "options": [
+   "Germany",
+   "Belgium",
+   "France",
+   "Croatia"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which country has won the most FIFA World Cups?",
+  "options": [
+   "Brazil",
+   "Argentina",
+   "Italy",
+   "Germany"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "Which footballer is nicknamed CR7?",
+  "options": [
+   "Neymar",
+   "Lionel Messi",
+   "Kylian Mbappe",
+   "Cristiano Ronaldo"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Which country hosted the 2016 Summer Olympics?",
+  "options": [
+   "United Kingdom",
+   "Brazil",
+   "China",
+   "Japan"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which city hosted the 2008 Summer Olympics?",
+  "options": [
+   "Athens",
+   "Sydney",
+   "Beijing",
+   "London"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "How often are the Summer Olympic Games held?",
+  "options": [
+   "Every two years",
+   "Every three years",
+   "Every four years",
+   "Every five years"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "How many rings are on the Olympic flag?",
+  "options": [
+   "5",
+   "4",
+   "7",
+   "6"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "In tennis, what is a score of zero called?",
+  "options": [
+   "Duck",
+   "Love",
+   "Nil",
+   "Zero point"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which Grand Slam tennis tournament is played on grass?",
+  "options": [
+   "Wimbledon",
+   "US Open",
+   "French Open",
+   "Australian Open"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "Which Grand Slam tennis tournament is played on clay?",
+  "options": [
+   "Wimbledon",
+   "US Open",
+   "Australian Open",
+   "French Open"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "How many points is a touchdown worth in American football?",
+  "options": [
+   "3",
+   "7",
+   "6",
+   "5"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "How many players are on a basketball team on the court?",
+  "options": [
+   "7",
+   "5",
+   "6",
+   "11"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "What is the maximum score in a single frame of ten-pin bowling?",
+  "options": [
+   "10",
+   "30",
+   "20",
+   "300"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "In which sport would you perform a slam dunk?",
+  "options": [
+   "Basketball",
+   "Netball",
+   "Volleyball",
+   "Handball"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "In which sport do you use a shuttlecock?",
+  "options": [
+   "Squash",
+   "Badminton",
+   "Table tennis",
+   "Tennis"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport uses the terms birdie, eagle and par?",
+  "options": [
+   "Rugby",
+   "Baseball",
+   "Golf",
+   "Cricket"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "How long is a marathon in kilometres approximately?",
+  "options": [
+   "21",
+   "50",
+   "36",
+   "42"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Who is the fastest man in the world in 100 metres by record, an eight-time Olympic gold medallist?",
+  "options": [
+   "Tyson Gay",
+   "Carl Lewis",
+   "Usain Bolt",
+   "Justin Gatlin"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which cricket trophy is contested between India and Australia in Test series?",
+  "options": [
+   "Wisden Trophy",
+   "Pataudi Trophy",
+   "Ashes",
+   "Border-Gavaskar Trophy"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Which trophy is contested between England and Australia in Test cricket?",
+  "options": [
+   "Border-Gavaskar Trophy",
+   "Frank Worrell Trophy",
+   "Basil D'Oliveira Trophy",
+   "The Ashes"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "What does the term LBW stand for in cricket?",
+  "options": [
+   "Left behind wicket",
+   "Low bounce wide",
+   "Leg before wicket",
+   "Long ball wide"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "What is a hat-trick in cricket?",
+  "options": [
+   "Three centuries",
+   "Three sixes in a row",
+   "Three wickets in three balls",
+   "Three maidens"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian bowler took all 10 wickets in a Test innings in 1999 against Pakistan?",
+  "options": [
+   "Harbhajan Singh",
+   "Anil Kumble",
+   "Kapil Dev",
+   "Javagal Srinath"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian batter scored a double century in a one-day international first?",
+  "options": [
+   "Sachin Tendulkar",
+   "Virender Sehwag",
+   "Rohit Sharma",
+   "M S Dhoni"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian cricketer is nicknamed Hitman?",
+  "options": [
+   "Hardik Pandya",
+   "Shikhar Dhawan",
+   "Rohit Sharma",
+   "K L Rahul"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian cricketer is nicknamed Captain Cool?",
+  "options": [
+   "M S Dhoni",
+   "Rahul Dravid",
+   "Virat Kohli",
+   "Sourav Ganguly"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian cricketer was nicknamed The Wall?",
+  "options": [
+   "Rahul Dravid",
+   "Sachin Tendulkar",
+   "Gautam Gambhir",
+   "V V S Laxman"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "Which Indian cricketer is nicknamed Dada?",
+  "options": [
+   "Anil Kumble",
+   "Sourav Ganguly",
+   "Rahul Dravid",
+   "Virender Sehwag"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "What colour card does a referee show to send a footballer off?",
+  "options": [
+   "Blue",
+   "Yellow",
+   "Green",
+   "Red"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "How long is a standard football match without extra time?",
+  "options": [
+   "80 minutes",
+   "90 minutes",
+   "120 minutes",
+   "60 minutes"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Sports",
+  "question": "In which sport is the Davis Cup awarded?",
+  "options": [
+   "Cricket",
+   "Rugby",
+   "Golf",
+   "Tennis"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Sports",
+  "question": "Which sport is played at Wimbledon?",
+  "options": [
+   "Tennis",
+   "Polo",
+   "Golf",
+   "Cricket"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Sports",
+  "question": "In which country did the Olympic Games originate?",
+  "options": [
+   "France",
+   "Italy",
+   "Greece",
+   "Egypt"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Movies",
+  "question": "Which 2022 Telugu film directed by S S Rajamouli won an Oscar for Best Original Song?",
+  "options": [
+   "Baahubali 2",
+   "RRR",
+   "Magadheera",
+   "Pushpa"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which song from RRR won an Oscar?",
+  "options": [
+   "Naatu Naatu",
+   "Dosti",
+   "Komuram Bheemudo",
+   "Etthara Jenda"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Who directed the Baahubali films?",
+  "options": [
+   "Shankar",
+   "Mani Ratnam",
+   "S S Rajamouli",
+   "Sanjay Leela Bhansali"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Movies",
+  "question": "Which actor played the lead role of Pushpa Raj in Pushpa?",
+  "options": [
+   "Ram Charan",
+   "Mahesh Babu",
+   "Prabhas",
+   "Allu Arjun"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which actor is known as Superstar in Tamil cinema and starred in Enthiran?",
+  "options": [
+   "Kamal Haasan",
+   "Vijay",
+   "Ajith",
+   "Rajinikanth"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Who is known as the Shahenshah of Bollywood?",
+  "options": [
+   "Amitabh Bachchan",
+   "Dilip Kumar",
+   "Shah Rukh Khan",
+   "Rajesh Khanna"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Who is known as the King of Bollywood?",
+  "options": [
+   "Shah Rukh Khan",
+   "Aamir Khan",
+   "Akshay Kumar",
+   "Salman Khan"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which Bollywood film features the dialogue Kitne aadmi the?",
+  "options": [
+   "Mr India",
+   "Sholay",
+   "Deewar",
+   "Don"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which Bollywood film is about a fictional village cricket match against British officers?",
+  "options": [
+   "Lagaan",
+   "Dangal",
+   "Sultan",
+   "Chak De India"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which film features the character Munna Bhai?",
+  "options": [
+   "Dhoom",
+   "Munna Bhai MBBS",
+   "3 Idiots",
+   "PK"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which Aamir Khan film features the phrase All Izz Well?",
+  "options": [
+   "Dangal",
+   "3 Idiots",
+   "Taare Zameen Par",
+   "PK"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which film is about wrestler Mahavir Singh Phogat and his daughters?",
+  "options": [
+   "Chak De India",
+   "Mary Kom",
+   "Sultan",
+   "Dangal"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which Bollywood film was the first Indian film to be nominated for Best Foreign Language Oscar in 1958?",
+  "options": [
+   "Pyaasa",
+   "Mother India",
+   "Mughal-e-Azam",
+   "Awaara"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which film has the song Chaiyya Chaiyya?",
+  "options": [
+   "Dil Se",
+   "Bombay",
+   "Taal",
+   "Roja"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which film is based on the Ramayana and was directed by Om Raut in 2023?",
+  "options": [
+   "Brahmastra",
+   "Saaho",
+   "Adipurush",
+   "Kalki 2898 AD"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Movies",
+  "question": "Which actor played Baahubali in the Baahubali films?",
+  "options": [
+   "Ram Charan",
+   "Allu Arjun",
+   "Prabhas",
+   "Rana Daggubati"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Movies",
+  "question": "Which actress starred as Devasena in Baahubali?",
+  "options": [
+   "Kajal Aggarwal",
+   "Samantha",
+   "Tamannaah",
+   "Anushka Shetty"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which Telugu film starred Mahesh Babu as Bharat in a political drama released in 2018?",
+  "options": [
+   "Srimanthudu",
+   "Sarileru Neekevvaru",
+   "Maharshi",
+   "Bharat Ane Nenu"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which actor is known as Mega Star in Telugu cinema?",
+  "options": [
+   "Nagarjuna",
+   "Balakrishna",
+   "Venkatesh",
+   "Chiranjeevi"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which 2024 Indian film starred Prabhas as Bhairava?",
+  "options": [
+   "Kalki 2898 AD",
+   "Salaar",
+   "Adipurush",
+   "Saaho"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Who directed the film Sholay?",
+  "options": [
+   "Raj Kapoor",
+   "Ramesh Sippy",
+   "Manmohan Desai",
+   "Yash Chopra"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which Hollywood film features a giant ship and the line I'm the king of the world?",
+  "options": [
+   "Gladiator",
+   "Titanic",
+   "Jaws",
+   "Avatar"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Who directed Titanic and Avatar?",
+  "options": [
+   "Christopher Nolan",
+   "Peter Jackson",
+   "Steven Spielberg",
+   "James Cameron"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which film series features the character Harry Potter?",
+  "options": [
+   "Twilight",
+   "Harry Potter",
+   "Narnia",
+   "Percy Jackson"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Who plays Iron Man in the Marvel Cinematic Universe?",
+  "options": [
+   "Mark Ruffalo",
+   "Chris Hemsworth",
+   "Chris Evans",
+   "Robert Downey Jr."
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which animated film features a lion cub named Simba?",
+  "options": [
+   "The Lion King",
+   "Tarzan",
+   "Madagascar",
+   "The Jungle Book"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which animated film features a fish named Nemo?",
+  "options": [
+   "Finding Nemo",
+   "Shark Tale",
+   "Moana",
+   "The Little Mermaid"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which film features the song Let It Go?",
+  "options": [
+   "Brave",
+   "Frozen",
+   "Moana",
+   "Tangled"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which film features a toy cowboy named Woody?",
+  "options": [
+   "Up",
+   "Monsters Inc.",
+   "Cars",
+   "Toy Story"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which director made Inception and Interstellar?",
+  "options": [
+   "Martin Scorsese",
+   "Ridley Scott",
+   "Christopher Nolan",
+   "Steven Spielberg"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Movies",
+  "question": "Which film is set on the planet Pandora?",
+  "options": [
+   "Dune",
+   "Interstellar",
+   "Star Wars",
+   "Avatar"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Which film has a character called Jack Sparrow?",
+  "options": [
+   "Treasure Island",
+   "Hook",
+   "Pirates of the Caribbean",
+   "Waterworld"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Movies",
+  "question": "Which film series has a hobbit named Frodo?",
+  "options": [
+   "The Lord of the Rings",
+   "Harry Potter",
+   "Narnia",
+   "Star Wars"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which actor played Jack Dawson in Titanic?",
+  "options": [
+   "Leonardo DiCaprio",
+   "Tom Cruise",
+   "Brad Pitt",
+   "Johnny Depp"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which animated Disney film features a princess named Moana?",
+  "options": [
+   "Mulan",
+   "Encanto",
+   "Brave",
+   "Moana"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Who is the hero's sidekick in the Ramayana, known for his devotion?",
+  "options": [
+   "Hanuman",
+   "Lakshman",
+   "Sugriva",
+   "Jambavan"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which Bollywood actor starred in Dilwale Dulhania Le Jayenge with Kajol?",
+  "options": [
+   "Aamir Khan",
+   "Shah Rukh Khan",
+   "Hrithik Roshan",
+   "Salman Khan"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which Bollywood film features the character Rancho?",
+  "options": [
+   "Dhoom 3",
+   "3 Idiots",
+   "PK",
+   "Taare Zameen Par"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which film features the dialogue Mogambo khush hua?",
+  "options": [
+   "Don",
+   "Karan Arjun",
+   "Sholay",
+   "Mr India"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Movies",
+  "question": "Who directed Mughal-e-Azam?",
+  "options": [
+   "Mehboob Khan",
+   "K Asif",
+   "Raj Kapoor",
+   "Bimal Roy"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Movies",
+  "question": "Which singer-composer won two Oscars for Slumdog Millionaire?",
+  "options": [
+   "A R Rahman",
+   "Ilaiyaraaja",
+   "Anu Malik",
+   "Shankar Mahadevan"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Movies",
+  "question": "Which actor voiced Genie in the 1992 Disney film Aladdin?",
+  "options": [
+   "Robin Williams",
+   "Jim Carrey",
+   "Mike Myers",
+   "Eddie Murphy"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "Who is known as the Nightingale of India?",
+  "options": [
+   "Lata Mangeshkar",
+   "Asha Bhosle",
+   "Shreya Ghoshal",
+   "Sunidhi Chauhan"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "Who is known as the Mozart of Madras?",
+  "options": [
+   "Ilaiyaraaja",
+   "A R Rahman",
+   "Harris Jayaraj",
+   "Anirudh"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Music",
+  "question": "Who is the Maestro known as Isaignani in Tamil music?",
+  "options": [
+   "A R Rahman",
+   "Ilaiyaraaja",
+   "Yuvan Shankar Raja",
+   "M S Viswanathan"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Music",
+  "question": "Which instrument is Ravi Shankar famous for?",
+  "options": [
+   "Tabla",
+   "Sitar",
+   "Flute",
+   "Sarod"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Music",
+  "question": "Which instrument is Zakir Hussain famous for?",
+  "options": [
+   "Tabla",
+   "Harmonium",
+   "Santoor",
+   "Sitar"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "Which instrument is Hariprasad Chaurasia famous for?",
+  "options": [
+   "Bansuri flute",
+   "Veena",
+   "Violin",
+   "Sarod"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "Which instrument is Shivkumar Sharma famous for?",
+  "options": [
+   "Santoor",
+   "Tabla",
+   "Sitar",
+   "Sarangi"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "Which British band sang Hey Jude?",
+  "options": [
+   "Pink Floyd",
+   "Queen",
+   "The Rolling Stones",
+   "The Beatles"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Music",
+  "question": "Which band had Freddie Mercury as lead singer?",
+  "options": [
+   "The Beatles",
+   "ABBA",
+   "Led Zeppelin",
+   "Queen"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Music",
+  "question": "Which singer is known as the King of Pop?",
+  "options": [
+   "Michael Jackson",
+   "Justin Timberlake",
+   "Elvis Presley",
+   "Prince"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "Which singer is known as the Queen of Pop?",
+  "options": [
+   "Rihanna",
+   "Lady Gaga",
+   "Beyonce",
+   "Madonna"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Music",
+  "question": "Which singer is known as the King of Rock and Roll?",
+  "options": [
+   "Bob Dylan",
+   "Chuck Berry",
+   "Elvis Presley",
+   "Little Richard"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Music",
+  "question": "Which album by Michael Jackson is the best-selling of all time?",
+  "options": [
+   "Bad",
+   "Thriller",
+   "Dangerous",
+   "Off the Wall"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Music",
+  "question": "Which singer released the album 1989 in 2014?",
+  "options": [
+   "Selena Gomez",
+   "Katy Perry",
+   "Taylor Swift",
+   "Adele"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Music",
+  "question": "Which Indian playback singer sang Tum Hi Ho from Aashiqui 2?",
+  "options": [
+   "Atif Aslam",
+   "Arijit Singh",
+   "Sonu Nigam",
+   "Mohit Chauhan"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Music",
+  "question": "Which legendary singer sang over 40,000 songs in many Indian languages and was known as SPB?",
+  "options": [
+   "S P Balasubrahmanyam",
+   "K J Yesudas",
+   "Mohammed Rafi",
+   "Kishore Kumar"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "How many strings does a standard guitar have?",
+  "options": [
+   "4",
+   "8",
+   "5",
+   "6"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Music",
+  "question": "How many keys are on a standard piano?",
+  "options": [
+   "100",
+   "76",
+   "88",
+   "66"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Music",
+  "question": "How many notes are in the Western major scale including the octave?",
+  "options": [
+   "8",
+   "7",
+   "12",
+   "6"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "What are the seven swaras of Indian classical music called collectively?",
+  "options": [
+   "Saptak",
+   "Alaap",
+   "Taal",
+   "Raga"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Music",
+  "question": "What is the rhythmic cycle in Indian classical music called?",
+  "options": [
+   "Swara",
+   "Raga",
+   "Taal",
+   "Gharana"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Music",
+  "question": "Which Indian music directing duo made Dilwale Dulhania Le Jayenge music?",
+  "options": [
+   "Shankar-Ehsaan-Loy",
+   "Vishal-Shekhar",
+   "Jatin-Lalit",
+   "Nadeem-Shravan"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Music",
+  "question": "Which film features the song Kolaveri Di?",
+  "options": [
+   "Maryan",
+   "Raja Rani",
+   "Nanban",
+   "3"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Music",
+  "question": "Which singer sang Kal Ho Naa Ho title song?",
+  "options": [
+   "Kumar Sanu",
+   "Sonu Nigam",
+   "Shaan",
+   "Udit Narayan"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Music",
+  "question": "Who sang the Oscar winning song Jai Ho?",
+  "options": [
+   "Arijit Singh",
+   "Sonu Nigam",
+   "A R Rahman and Sukhwinder Singh",
+   "Shreya Ghoshal"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Music",
+  "question": "Which voice type is the lowest male singing voice?",
+  "options": [
+   "Bass",
+   "Baritone",
+   "Tenor",
+   "Alto"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What is the largest animal on Earth?",
+  "options": [
+   "African elephant",
+   "Great white shark",
+   "Blue whale",
+   "Giraffe"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "What is the fastest land animal?",
+  "options": [
+   "Cheetah",
+   "Lion",
+   "Pronghorn",
+   "Horse"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What is the tallest animal in the world?",
+  "options": [
+   "Ostrich",
+   "Elephant",
+   "Giraffe",
+   "Camel"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "What is the national animal of India?",
+  "options": [
+   "Elephant",
+   "Lion",
+   "Leopard",
+   "Bengal tiger"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "What is the national bird of India?",
+  "options": [
+   "Eagle",
+   "Parrot",
+   "Sparrow",
+   "Indian peafowl"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "What is the national flower of India?",
+  "options": [
+   "Marigold",
+   "Jasmine",
+   "Rose",
+   "Lotus"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "What is the national tree of India?",
+  "options": [
+   "Banyan",
+   "Neem",
+   "Mango",
+   "Peepal"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What is the national fruit of India?",
+  "options": [
+   "Mango",
+   "Banana",
+   "Apple",
+   "Jackfruit"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What is the national aquatic animal of India?",
+  "options": [
+   "Whale shark",
+   "Ganges river dolphin",
+   "Crocodile",
+   "Sea turtle"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Nature",
+  "question": "How many legs does a spider have?",
+  "options": [
+   "10",
+   "6",
+   "8",
+   "4"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "How many legs does an insect have?",
+  "options": [
+   "6",
+   "8",
+   "4",
+   "10"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What do caterpillars turn into?",
+  "options": [
+   "Dragonflies",
+   "Beetles",
+   "Bees",
+   "Butterflies or moths"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "Which animal is known as the ship of the desert?",
+  "options": [
+   "Camel",
+   "Horse",
+   "Ostrich",
+   "Donkey"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which bird cannot fly and is the largest living bird?",
+  "options": [
+   "Penguin",
+   "Emu",
+   "Ostrich",
+   "Kiwi"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "Which bird is known for mimicking human speech?",
+  "options": [
+   "Eagle",
+   "Parrot",
+   "Owl",
+   "Crow"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Nature",
+  "question": "Which mammal can fly?",
+  "options": [
+   "Bat",
+   "Ostrich",
+   "Flying squirrel",
+   "Sugar glider"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which sea creature has eight arms?",
+  "options": [
+   "Jellyfish",
+   "Squid",
+   "Starfish",
+   "Octopus"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "What is a baby kangaroo called?",
+  "options": [
+   "Joey",
+   "Cub",
+   "Pup",
+   "Kit"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What is a group of lions called?",
+  "options": [
+   "Pride",
+   "Flock",
+   "Herd",
+   "Pack"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What is a group of fish called?",
+  "options": [
+   "Pride",
+   "School",
+   "Colony",
+   "Flock"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Nature",
+  "question": "What is a baby goat called?",
+  "options": [
+   "Calf",
+   "Kid",
+   "Foal",
+   "Lamb"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Nature",
+  "question": "Which animal produces wool commonly used in clothing?",
+  "options": [
+   "Horse",
+   "Cow",
+   "Sheep",
+   "Pig"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "Which insect makes honey?",
+  "options": [
+   "Ant",
+   "Bee",
+   "Butterfly",
+   "Wasp"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Nature",
+  "question": "Which animal is the symbol of the World Wildlife Fund?",
+  "options": [
+   "Giant panda",
+   "Polar bear",
+   "Tiger",
+   "Elephant"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which big cat has black spots on a golden coat and lives in Africa and Asia?",
+  "options": [
+   "Leopard",
+   "Cheetah",
+   "Lion",
+   "Jaguar"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which animal sleeps hanging upside down?",
+  "options": [
+   "Owl",
+   "Koala",
+   "Bat",
+   "Monkey"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "Which animal is known to have the longest lifespan among land animals, living over 150 years?",
+  "options": [
+   "Elephant",
+   "Giant tortoise",
+   "Crocodile",
+   "Parrot"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Nature",
+  "question": "What is the largest species of bear?",
+  "options": [
+   "Polar bear",
+   "Panda",
+   "Sloth bear",
+   "Grizzly bear"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What do pandas mainly eat?",
+  "options": [
+   "Fish",
+   "Honey",
+   "Meat",
+   "Bamboo"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "Which tree is known for producing acorns?",
+  "options": [
+   "Pine",
+   "Maple",
+   "Oak",
+   "Birch"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "Which plant is the tallest grass in the world?",
+  "options": [
+   "Bamboo",
+   "Wheat",
+   "Maize",
+   "Sugarcane"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What is the process by which a tadpole becomes a frog called?",
+  "options": [
+   "Metamorphosis",
+   "Migration",
+   "Hibernation",
+   "Pollination"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which gas do trees release during photosynthesis?",
+  "options": [
+   "Nitrogen",
+   "Methane",
+   "Carbon dioxide",
+   "Oxygen"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "Which season comes after summer in the Northern Hemisphere?",
+  "options": [
+   "Winter",
+   "Monsoon",
+   "Autumn",
+   "Spring"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "Which Indian season brings the heaviest rainfall?",
+  "options": [
+   "Monsoon",
+   "Spring",
+   "Winter",
+   "Summer"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "What is a rainbow formed by?",
+  "options": [
+   "Moonlight",
+   "Wind",
+   "Clouds only",
+   "Sunlight and raindrops"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "How many colours are in a rainbow?",
+  "options": [
+   "7",
+   "5",
+   "8",
+   "6"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which colour is at the top of a rainbow?",
+  "options": [
+   "Violet",
+   "Green",
+   "Blue",
+   "Red"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "What is the name of the biggest rainforest in the world?",
+  "options": [
+   "Congo",
+   "Sundarbans",
+   "Daintree",
+   "Amazon"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "Which Indian forest is famous for Royal Bengal tigers and is the largest mangrove forest?",
+  "options": [
+   "Sundarbans",
+   "Jim Corbett",
+   "Gir",
+   "Kaziranga"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which Indian national park is famous for Asiatic lions?",
+  "options": [
+   "Kaziranga",
+   "Bandipur",
+   "Ranthambore",
+   "Gir"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "Which Indian national park is famous for the one-horned rhinoceros?",
+  "options": [
+   "Periyar",
+   "Gir",
+   "Kaziranga",
+   "Corbett"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "Which was the first national park established in India?",
+  "options": [
+   "Kaziranga",
+   "Jim Corbett",
+   "Ranthambore",
+   "Gir"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Nature",
+  "question": "Which Indian state is home to Periyar National Park?",
+  "options": [
+   "Karnataka",
+   "Kerala",
+   "Goa",
+   "Tamil Nadu"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Nature",
+  "question": "Which animal is Project Tiger meant to protect?",
+  "options": [
+   "Rhino",
+   "Elephant",
+   "Tiger",
+   "Lion"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Nature",
+  "question": "What is the largest living reptile?",
+  "options": [
+   "Saltwater crocodile",
+   "Green anaconda",
+   "Leatherback turtle",
+   "Komodo dragon"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which animal is the largest living land carnivore?",
+  "options": [
+   "Lion",
+   "Grizzly bear",
+   "Tiger",
+   "Polar bear"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "Which animal has a trunk and big ears?",
+  "options": [
+   "Rhinoceros",
+   "Hippopotamus",
+   "Giraffe",
+   "Elephant"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "Which sense do bats use to find insects in the dark?",
+  "options": [
+   "Echolocation",
+   "Touch",
+   "Vision only",
+   "Smell"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Nature",
+  "question": "Which fruit is the heaviest tree fruit in the world, famous in South India?",
+  "options": [
+   "Coconut",
+   "Papaya",
+   "Mango",
+   "Jackfruit"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "What is the name of the substance that gives plants their green colour?",
+  "options": [
+   "Melanin",
+   "Keratin",
+   "Haemoglobin",
+   "Chlorophyll"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Nature",
+  "question": "Which part of a flower becomes the fruit?",
+  "options": [
+   "Sepal",
+   "Stamen",
+   "Petal",
+   "Ovary"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "Which spice is the most expensive in the world by weight?",
+  "options": [
+   "Cinnamon",
+   "Saffron",
+   "Vanilla",
+   "Cardamom"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which spice is called the king of spices?",
+  "options": [
+   "Cumin",
+   "Clove",
+   "Black pepper",
+   "Cardamom"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which fruit is known as the king of fruits in India?",
+  "options": [
+   "Banana",
+   "Mango",
+   "Apple",
+   "Papaya"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which lentil dish is a staple in North Indian meals, made from yellow or black lentils?",
+  "options": [
+   "Sambar",
+   "Dal",
+   "Rasam",
+   "Kadhi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which South Indian dish is a fermented rice and lentil crepe?",
+  "options": [
+   "Paratha",
+   "Naan",
+   "Dosa",
+   "Puri"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which South Indian steamed rice cake is a classic breakfast?",
+  "options": [
+   "Idli",
+   "Vada",
+   "Pongal",
+   "Upma"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian sweet is made of deep fried dough balls soaked in sugar syrup?",
+  "options": [
+   "Rasgulla",
+   "Ladoo",
+   "Jalebi",
+   "Gulab jamun"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian sweet is made of spiral fried batter soaked in syrup?",
+  "options": [
+   "Gulab jamun",
+   "Jalebi",
+   "Imarti",
+   "Barfi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian sweet is a soft spongy cheese ball in syrup from Bengal?",
+  "options": [
+   "Rasgulla",
+   "Mysore pak",
+   "Sandesh",
+   "Peda"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which dish is Hyderabad famous for during Ramzan, made from wheat and meat?",
+  "options": [
+   "Haleem",
+   "Paya",
+   "Biryani",
+   "Kebab"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which Gujarati snack is a steamed savoury cake made of gram flour?",
+  "options": [
+   "Thepla",
+   "Fafda",
+   "Dhokla",
+   "Khandvi"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which Rajasthani dish consists of baked wheat balls served with dal?",
+  "options": [
+   "Poha",
+   "Misal pav",
+   "Dal baati churma",
+   "Pav bhaji"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which Mumbai street food has a spicy mashed vegetable curry served with buttered buns?",
+  "options": [
+   "Pav bhaji",
+   "Misal pav",
+   "Bhel puri",
+   "Vada pav"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian bread is cooked in a tandoor?",
+  "options": [
+   "Dosa",
+   "Chapati",
+   "Naan",
+   "Puri"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian bread is deep fried and puffs up?",
+  "options": [
+   "Paratha",
+   "Roti",
+   "Puri",
+   "Naan"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "What is paneer made from?",
+  "options": [
+   "Soy only",
+   "Rice",
+   "Wheat",
+   "Milk"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "What is the main ingredient of hummus?",
+  "options": [
+   "Lentils",
+   "Peas",
+   "Beans",
+   "Chickpeas"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "Which Italian dish is a flat dough base with tomato and cheese?",
+  "options": [
+   "Pizza",
+   "Risotto",
+   "Lasagna",
+   "Ravioli"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which country is sushi from?",
+  "options": [
+   "Korea",
+   "China",
+   "Thailand",
+   "Japan"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "Which fruit has seeds on the outside?",
+  "options": [
+   "Strawberry",
+   "Raspberry",
+   "Blueberry",
+   "Cherry"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which nut is used to make marzipan?",
+  "options": [
+   "Cashew",
+   "Peanut",
+   "Walnut",
+   "Almond"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "Which drink is made by fermenting grapes?",
+  "options": [
+   "Beer",
+   "Whisky",
+   "Cider",
+   "Wine"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian state is the largest producer of tea?",
+  "options": [
+   "Assam",
+   "Kerala",
+   "Tamil Nadu",
+   "West Bengal"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian state is famous for Darjeeling tea?",
+  "options": [
+   "Sikkim",
+   "West Bengal",
+   "Assam",
+   "Himachal Pradesh"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian state is the largest producer of coffee?",
+  "options": [
+   "Andhra Pradesh",
+   "Tamil Nadu",
+   "Karnataka",
+   "Kerala"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian state is the largest producer of spices like pepper and cardamom?",
+  "options": [
+   "Punjab",
+   "Rajasthan",
+   "Gujarat",
+   "Kerala"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "Which vitamin do oranges and lemons provide in large amounts?",
+  "options": [
+   "Vitamin D",
+   "Vitamin K",
+   "Vitamin A",
+   "Vitamin C"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Food",
+  "question": "What is the main ingredient in guacamole?",
+  "options": [
+   "Tomato",
+   "Corn",
+   "Avocado",
+   "Pepper"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which cheese is traditionally used on a Greek salad?",
+  "options": [
+   "Gouda",
+   "Feta",
+   "Cheddar",
+   "Mozzarella"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which grain is used to make popcorn?",
+  "options": [
+   "Wheat",
+   "Corn",
+   "Rice",
+   "Barley"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which fruit is dried to make raisins?",
+  "options": [
+   "Dates",
+   "Grapes",
+   "Plums",
+   "Figs"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which dish is made of rice, lentils and ghee, often called comfort food in India?",
+  "options": [
+   "Upma",
+   "Khichdi",
+   "Pulao",
+   "Biryani"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Food",
+  "question": "Which spice gives turmeric curry its yellow colour?",
+  "options": [
+   "Paprika",
+   "Saffron",
+   "Turmeric",
+   "Cumin"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which frozen Indian dessert is dense and made with reduced milk?",
+  "options": [
+   "Kulfi",
+   "Gelato",
+   "Sorbet",
+   "Ice cream"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian dish is a chickpea curry commonly eaten with bhature?",
+  "options": [
+   "Dal makhani",
+   "Kadhi",
+   "Chole",
+   "Rajma"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Food",
+  "question": "Which dish is a creamy tomato and butter chicken curry from Delhi?",
+  "options": [
+   "Butter chicken",
+   "Chicken tikka",
+   "Korma",
+   "Tandoori chicken"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Food",
+  "question": "Which Indian snack is a crispy thin lentil wafer?",
+  "options": [
+   "Namkeen",
+   "Chakli",
+   "Papad",
+   "Murukku"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the epic Ramayana?",
+  "options": [
+   "Tulsidas",
+   "Kalidasa",
+   "Vyasa",
+   "Valmiki"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the epic Mahabharata?",
+  "options": [
+   "Vyasa",
+   "Kalidasa",
+   "Valmiki",
+   "Tagore"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the play Abhijnana Shakuntalam?",
+  "options": [
+   "Jayadeva",
+   "Kalidasa",
+   "Bhasa",
+   "Banabhatta"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Gitanjali and won the Nobel Prize in Literature in 1913?",
+  "options": [
+   "Bankim Chandra",
+   "Premchand",
+   "Sarat Chandra",
+   "Rabindranath Tagore"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Godaan and is called the Upanyas Samrat?",
+  "options": [
+   "Harivansh Rai Bachchan",
+   "Mahadevi Varma",
+   "Premchand",
+   "Jaishankar Prasad"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote The Guide and Malgudi Days?",
+  "options": [
+   "R K Narayan",
+   "Khushwant Singh",
+   "Ruskin Bond",
+   "Mulk Raj Anand"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the novel The God of Small Things?",
+  "options": [
+   "Arundhati Roy",
+   "Anita Desai",
+   "Jhumpa Lahiri",
+   "Kiran Desai"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Wings of Fire?",
+  "options": [
+   "Sudha Murty",
+   "A P J Abdul Kalam",
+   "Narayana Murthy",
+   "Ratan Tata"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Harry Potter?",
+  "options": [
+   "Roald Dahl",
+   "J K Rowling",
+   "C S Lewis",
+   "Enid Blyton"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Romeo and Juliet?",
+  "options": [
+   "Mark Twain",
+   "Jane Austen",
+   "William Shakespeare",
+   "Charles Dickens"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Pride and Prejudice?",
+  "options": [
+   "Jane Austen",
+   "Charlotte Bronte",
+   "George Eliot",
+   "Emily Bronte"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Oliver Twist?",
+  "options": [
+   "Thomas Hardy",
+   "Charles Dickens",
+   "Rudyard Kipling",
+   "Oscar Wilde"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote The Jungle Book?",
+  "options": [
+   "Lewis Carroll",
+   "J M Barrie",
+   "Rudyard Kipling",
+   "Roald Dahl"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Alice's Adventures in Wonderland?",
+  "options": [
+   "J M Barrie",
+   "A A Milne",
+   "Lewis Carroll",
+   "Roald Dahl"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Who created the detective Sherlock Holmes?",
+  "options": [
+   "Edgar Allan Poe",
+   "Arthur Conan Doyle",
+   "Dan Brown",
+   "Agatha Christie"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Literature",
+  "question": "Who created the detective Hercule Poirot?",
+  "options": [
+   "Ian Fleming",
+   "Dorothy Sayers",
+   "Agatha Christie",
+   "Arthur Conan Doyle"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote 1984 and Animal Farm?",
+  "options": [
+   "Aldous Huxley",
+   "H G Wells",
+   "Ray Bradbury",
+   "George Orwell"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote The Alchemist?",
+  "options": [
+   "Haruki Murakami",
+   "Dan Brown",
+   "Gabriel Garcia Marquez",
+   "Paulo Coelho"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote The Lord of the Rings?",
+  "options": [
+   "George R R Martin",
+   "C S Lewis",
+   "J R R Tolkien",
+   "J K Rowling"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the Panchatantra?",
+  "options": [
+   "Valmiki",
+   "Chanakya",
+   "Kalidasa",
+   "Vishnu Sharma"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the Arthashastra?",
+  "options": [
+   "Kalidasa",
+   "Chanakya",
+   "Vatsyayana",
+   "Panini"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the Telugu poem Maa Telugu Thalliki?",
+  "options": [
+   "Sankarambadi Sundaracharya",
+   "Sri Sri",
+   "Gurajada Apparao",
+   "Viswanatha Satyanarayana"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the Telugu play Kanyasulkam?",
+  "options": [
+   "Gurajada Apparao",
+   "Sri Sri",
+   "Devulapalli Krishna Sastri",
+   "Kandukuri Veeresalingam"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the epic Ramcharitmanas in Awadhi?",
+  "options": [
+   "Valmiki",
+   "Surdas",
+   "Tulsidas",
+   "Kabir"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Which Indian author wrote Midnight's Children and won the Booker Prize?",
+  "options": [
+   "Salman Rushdie",
+   "Vikram Seth",
+   "Amitav Ghosh",
+   "Rohinton Mistry"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the Shiva Trilogy?",
+  "options": [
+   "Devdutt Pattanaik",
+   "Amish Tripathi",
+   "Ashwin Sanghi",
+   "Chetan Bhagat"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote Five Point Someone?",
+  "options": [
+   "Durjoy Datta",
+   "Ravinder Singh",
+   "Amish Tripathi",
+   "Chetan Bhagat"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the Diary of a Young Girl?",
+  "options": [
+   "Malala Yousafzai",
+   "Jane Austen",
+   "Anne Frank",
+   "Helen Keller"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "Literature",
+  "question": "Who wrote the fairy tale The Ugly Duckling?",
+  "options": [
+   "Hans Christian Andersen",
+   "Charles Perrault",
+   "Aesop",
+   "Brothers Grimm"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "Literature",
+  "question": "Which poet wrote Where the Mind is Without Fear?",
+  "options": [
+   "Rabindranath Tagore",
+   "Sarojini Naidu",
+   "Subramania Bharati",
+   "Kabir"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which festival is known as the festival of lights?",
+  "options": [
+   "Diwali",
+   "Eid",
+   "Holi",
+   "Navratri"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which festival is known as the festival of colours?",
+  "options": [
+   "Pongal",
+   "Holi",
+   "Diwali",
+   "Onam"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which festival marks the harvest in Tamil Nadu in January?",
+  "options": [
+   "Bihu",
+   "Baisakhi",
+   "Pongal",
+   "Onam"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which festival is the harvest festival of Kerala?",
+  "options": [
+   "Lohri",
+   "Onam",
+   "Pongal",
+   "Ugadi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which festival is the Telugu New Year?",
+  "options": [
+   "Vinayaka Chavithi",
+   "Sankranti",
+   "Diwali",
+   "Ugadi"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Which festival in Andhra Pradesh and Telangana involves kite flying and bhogi mantalu in January?",
+  "options": [
+   "Sankranti",
+   "Holi",
+   "Dasara",
+   "Ugadi"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which festival in Telangana celebrates flowers with stacked floral arrangements?",
+  "options": [
+   "Bathukamma",
+   "Ugadi",
+   "Sammakka Sarakka",
+   "Bonalu"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which festival honours Lord Ganesha for ten days?",
+  "options": [
+   "Raksha Bandhan",
+   "Navratri",
+   "Ganesh Chaturthi",
+   "Dussehra"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which festival celebrates the bond between brothers and sisters with a thread?",
+  "options": [
+   "Makar Sankranti",
+   "Raksha Bandhan",
+   "Karva Chauth",
+   "Bhai Dooj only"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which festival commemorates the victory of Rama over Ravana?",
+  "options": [
+   "Dussehra",
+   "Onam",
+   "Pongal",
+   "Holi"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which festival marks the end of Ramzan fasting?",
+  "options": [
+   "Muharram",
+   "Eid ul-Fitr",
+   "Milad un Nabi",
+   "Eid ul-Adha"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which Indian festival is celebrated in Punjab on 13 April as the harvest festival?",
+  "options": [
+   "Teej",
+   "Lohri",
+   "Baisakhi",
+   "Gangaur"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which dance form is from Tamil Nadu?",
+  "options": [
+   "Kathak",
+   "Bharatanatyam",
+   "Odissi",
+   "Kuchipudi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which classical dance form originated in Andhra Pradesh?",
+  "options": [
+   "Manipuri",
+   "Bharatanatyam",
+   "Kuchipudi",
+   "Kathakali"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which classical dance form is from Kerala and is known for elaborate face makeup?",
+  "options": [
+   "Mohiniyattam",
+   "Odissi",
+   "Kathakali",
+   "Kathak"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which classical dance form is from Uttar Pradesh and known for spins and footwork with ghungroo?",
+  "options": [
+   "Bharatanatyam",
+   "Kathak",
+   "Sattriya",
+   "Odissi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which folk dance is from Gujarat and performed during Navratri?",
+  "options": [
+   "Bhangra",
+   "Lavani",
+   "Garba",
+   "Ghoomar"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which folk dance is from Punjab?",
+  "options": [
+   "Bhangra",
+   "Garba",
+   "Bihu",
+   "Lavani"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which folk dance is from Assam and celebrates Bihu?",
+  "options": [
+   "Chhau",
+   "Ghoomar",
+   "Dandiya",
+   "Bihu dance"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Which Indian state is Kathakali from?",
+  "options": [
+   "Odisha",
+   "Karnataka",
+   "Tamil Nadu",
+   "Kerala"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "How many official languages are listed in the Eighth Schedule of the Indian Constitution?",
+  "options": [
+   "22",
+   "15",
+   "28",
+   "18"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "What is the national currency of India?",
+  "options": [
+   "Rial",
+   "Dinar",
+   "Taka",
+   "Rupee"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "What is the colour at the top of the Indian national flag?",
+  "options": [
+   "White",
+   "Green",
+   "Saffron",
+   "Blue"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "How many spokes does the Ashoka Chakra on the Indian flag have?",
+  "options": [
+   "24",
+   "16",
+   "32",
+   "12"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "On which date is Indian Independence Day celebrated?",
+  "options": [
+   "2 October",
+   "14 November",
+   "26 January",
+   "15 August"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "On which date is Gandhi Jayanti observed?",
+  "options": [
+   "15 August",
+   "30 January",
+   "26 January",
+   "2 October"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Which day is celebrated as Children's Day in India?",
+  "options": [
+   "5 September",
+   "2 October",
+   "14 November",
+   "15 August"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which day is celebrated as Teachers' Day in India?",
+  "options": [
+   "5 September",
+   "26 January",
+   "2 October",
+   "14 November"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Whose birthday is celebrated as Teachers' Day in India?",
+  "options": [
+   "Dr A P J Abdul Kalam",
+   "Dr S Radhakrishnan",
+   "Dr Rajendra Prasad",
+   "Dr Zakir Husain"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Whose birthday is celebrated as National Youth Day on 12 January?",
+  "options": [
+   "Dr Ambedkar",
+   "Swami Vivekananda",
+   "Subhas Chandra Bose",
+   "Bhagat Singh"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which city hosts the Indian Parliament?",
+  "options": [
+   "Mumbai",
+   "Kolkata",
+   "Chennai",
+   "New Delhi"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "What is the official residence of the Prime Minister of India called today?",
+  "options": [
+   "Teen Murti",
+   "Raisina Hill",
+   "Lok Kalyan Marg",
+   "Rashtrapati Bhavan"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "What is the name of the official residence of the President of India?",
+  "options": [
+   "Lok Bhavan",
+   "Rashtrapati Bhavan",
+   "Rajpath",
+   "Raj Bhavan"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which monument is known as the Gateway to India in Mumbai?",
+  "options": [
+   "Gateway of India",
+   "India Gate",
+   "Charminar",
+   "Qutub Minar"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which monument in Delhi honours soldiers of World War I?",
+  "options": [
+   "Qutub Minar",
+   "Red Fort",
+   "India Gate",
+   "Humayun's Tomb"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which Hyderabad monument is a 16th century landmark with four minarets?",
+  "options": [
+   "Qutb Shahi Tombs",
+   "Golconda Fort",
+   "Charminar",
+   "Taj Falaknuma"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which Indian monument is a white marble mausoleum built for Mumtaz Mahal?",
+  "options": [
+   "Lotus Temple",
+   "Red Fort",
+   "Taj Mahal",
+   "Humayun's Tomb"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which temple in Tirupati is dedicated to Lord Venkateswara?",
+  "options": [
+   "Padmanabhaswamy Temple",
+   "Tirumala Venkateswara Temple",
+   "Meenakshi Temple",
+   "Jagannath Temple"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which temple in Madurai is famous for its colourful gopurams?",
+  "options": [
+   "Kapaleeshwarar",
+   "Meenakshi Amman Temple",
+   "Ramanathaswamy",
+   "Brihadeeswarar"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which city hosts the Jagannath Rath Yatra?",
+  "options": [
+   "Ujjain",
+   "Puri",
+   "Varanasi",
+   "Mathura"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which Indian city is known as the Manchester of India?",
+  "options": [
+   "Coimbatore",
+   "Kanpur",
+   "Ahmedabad",
+   "Mumbai"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which Indian city is known as the Pearl City?",
+  "options": [
+   "Visakhapatnam",
+   "Kochi",
+   "Surat",
+   "Hyderabad"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Which Indian city is called the Garden City?",
+  "options": [
+   "Bengaluru",
+   "Mysuru",
+   "Pune",
+   "Chandigarh"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which Indian city is called the Financial Capital?",
+  "options": [
+   "Kolkata",
+   "Delhi",
+   "Mumbai",
+   "Chennai"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which Indian state has the highest literacy rate?",
+  "options": [
+   "Kerala",
+   "Tamil Nadu",
+   "Goa",
+   "Mizoram"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which Indian state is the largest producer of wheat?",
+  "options": [
+   "Madhya Pradesh",
+   "Punjab",
+   "Uttar Pradesh",
+   "Haryana"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which city is the headquarters of ISRO?",
+  "options": [
+   "Sriharikota",
+   "Bengaluru",
+   "Thiruvananthapuram",
+   "Hyderabad"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "From where does ISRO launch most of its rockets?",
+  "options": [
+   "Bengaluru",
+   "Thumba",
+   "Balasore",
+   "Sriharikota"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Which Indian bank is the largest public sector bank?",
+  "options": [
+   "Bank of Baroda",
+   "Punjab National Bank",
+   "State Bank of India",
+   "Canara Bank"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which Indian industrialist founded the Tata group in the 1800s?",
+  "options": [
+   "Ratan Tata",
+   "Dorabji Tata",
+   "J R D Tata",
+   "Jamsetji Tata"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Which Indian company is known for the Maruti brand through a partnership with Suzuki?",
+  "options": [
+   "Maruti Suzuki",
+   "Mahindra",
+   "Tata Motors",
+   "Hero"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which is India's most popular two wheeler brand by sales?",
+  "options": [
+   "TVS",
+   "Royal Enfield",
+   "Bajaj",
+   "Hero"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Which Indian railway zone has its headquarters in Secunderabad?",
+  "options": [
+   "South Central Railway",
+   "East Coast Railway",
+   "Southern Railway",
+   "Western Railway"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which Indian city has the oldest metro rail system?",
+  "options": [
+   "Delhi",
+   "Chennai",
+   "Kolkata",
+   "Mumbai"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which Indian city is known for the Howrah Bridge?",
+  "options": [
+   "Mumbai",
+   "Kolkata",
+   "Chennai",
+   "Delhi"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which is the longest sea bridge in India, connecting Mumbai and Navi Mumbai?",
+  "options": [
+   "Bandra-Worli Sea Link",
+   "Pamban Bridge",
+   "Atal Setu",
+   "Vembanad Rail Bridge"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which statue is the world's tallest and honours Sardar Patel?",
+  "options": [
+   "Statue of Liberty",
+   "Statue of Equality",
+   "Spring Temple Buddha",
+   "Statue of Unity"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Where is the Statue of Unity located?",
+  "options": [
+   "Maharashtra",
+   "Madhya Pradesh",
+   "Gujarat",
+   "Rajasthan"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which Indian city hosts the Statue of Equality honouring Ramanujacharya?",
+  "options": [
+   "Hyderabad",
+   "Chennai",
+   "Bengaluru",
+   "Tirupati"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which Indian state is Hampi in?",
+  "options": [
+   "Karnataka",
+   "Andhra Pradesh",
+   "Tamil Nadu",
+   "Kerala"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "India",
+  "question": "Which cave temples near Aurangabad are UNESCO sites with Buddhist art?",
+  "options": [
+   "Badami",
+   "Ajanta",
+   "Elephanta",
+   "Mahabalipuram"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which beach town in Tamil Nadu is famous for its Shore Temple and rock carvings?",
+  "options": [
+   "Pondicherry",
+   "Mahabalipuram",
+   "Kanyakumari",
+   "Rameswaram"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "India",
+  "question": "Which Indian state is famous for backwaters and houseboats?",
+  "options": [
+   "Karnataka",
+   "Goa",
+   "Odisha",
+   "Kerala"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "India",
+  "question": "Which Indian state has the Rann of Kutch?",
+  "options": [
+   "Rajasthan",
+   "Maharashtra",
+   "Gujarat",
+   "Madhya Pradesh"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which hill station in Tamil Nadu is called the Queen of Hill Stations?",
+  "options": [
+   "Yercaud",
+   "Kodaikanal",
+   "Ooty",
+   "Coonoor"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "India",
+  "question": "Which hill station in Himachal is the summer capital of British India?",
+  "options": [
+   "Shimla",
+   "Dharamshala",
+   "Kullu",
+   "Manali"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "How many days are there in a leap year?",
+  "options": [
+   "366",
+   "367",
+   "364",
+   "365"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "How many minutes are in an hour?",
+  "options": [
+   "100",
+   "50",
+   "60",
+   "30"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "How many continents are there on Earth?",
+  "options": [
+   "7",
+   "5",
+   "8",
+   "6"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "How many days are in a week?",
+  "options": [
+   "8",
+   "7",
+   "6",
+   "5"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "How many months have 31 days?",
+  "options": [
+   "7",
+   "8",
+   "6",
+   "5"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "What is the next prime number after 7?",
+  "options": [
+   "10",
+   "11",
+   "13",
+   "9"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "What is 12 multiplied by 12?",
+  "options": [
+   "122",
+   "156",
+   "124",
+   "144"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "What is the square root of 81?",
+  "options": [
+   "9",
+   "11",
+   "7",
+   "8"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "What is the value of pi up to two decimal places?",
+  "options": [
+   "3.14",
+   "3.16",
+   "3.41",
+   "3.12"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "How many sides does a hexagon have?",
+  "options": [
+   "5",
+   "8",
+   "7",
+   "6"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "How many degrees are in a right angle?",
+  "options": [
+   "45",
+   "90",
+   "180",
+   "60"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "How many degrees are in a circle?",
+  "options": [
+   "270",
+   "360",
+   "420",
+   "180"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "Which Roman numeral represents 50?",
+  "options": [
+   "L",
+   "X",
+   "D",
+   "C"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which Roman numeral represents 100?",
+  "options": [
+   "D",
+   "M",
+   "L",
+   "C"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "What is the smallest prime number?",
+  "options": [
+   "3",
+   "1",
+   "2",
+   "0"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "What colour do you get by mixing blue and yellow?",
+  "options": [
+   "Brown",
+   "Purple",
+   "Orange",
+   "Green"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "What colour do you get by mixing red and white?",
+  "options": [
+   "Pink",
+   "Grey",
+   "Purple",
+   "Orange"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which colour is not in the Olympic rings: red, green, purple, yellow?",
+  "options": [
+   "Yellow",
+   "Red",
+   "Green",
+   "Purple"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "How many players are on a standard chess side at the start?",
+  "options": [
+   "12",
+   "18",
+   "14",
+   "16"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "How many squares are on a chessboard?",
+  "options": [
+   "81",
+   "72",
+   "49",
+   "64"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "Which piece in chess can move in an L shape?",
+  "options": [
+   "Knight",
+   "Pawn",
+   "Bishop",
+   "Rook"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "In which board game do you roll dice and climb ladders while avoiding snakes?",
+  "options": [
+   "Carrom",
+   "Ludo",
+   "Chess",
+   "Snakes and Ladders"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "In which game do you pocket coins with a striker on a wooden board, popular in India?",
+  "options": [
+   "Carrom",
+   "Chess",
+   "Ludo",
+   "Snooker"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "What is the name of the Indian board game derived from Pachisi?",
+  "options": [
+   "Monopoly",
+   "Chess",
+   "Carrom",
+   "Ludo"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "How many cards are in a standard deck without jokers?",
+  "options": [
+   "52",
+   "54",
+   "48",
+   "56"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "How many suits are in a standard deck of playing cards?",
+  "options": [
+   "6",
+   "4",
+   "5",
+   "3"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "What is the currency of the United Kingdom?",
+  "options": [
+   "Euro",
+   "Dollar",
+   "Franc",
+   "Pound sterling"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "What is the currency of Japan?",
+  "options": [
+   "Ringgit",
+   "Yuan",
+   "Won",
+   "Yen"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "What is the currency of the United States?",
+  "options": [
+   "Peso",
+   "Pound",
+   "Dollar",
+   "Euro"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "Which language is spoken in Brazil?",
+  "options": [
+   "English",
+   "French",
+   "Portuguese",
+   "Spanish"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "Which language has the most native speakers in the world?",
+  "options": [
+   "Mandarin Chinese",
+   "Hindi",
+   "English",
+   "Spanish"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which is the official language of Telangana besides Telugu?",
+  "options": [
+   "Kannada",
+   "Hindi",
+   "Tamil",
+   "Urdu"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "Which language is written in the Devanagari script?",
+  "options": [
+   "Tamil",
+   "Telugu",
+   "Bengali",
+   "Hindi"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "What is a polygon with three sides called?",
+  "options": [
+   "Square",
+   "Hexagon",
+   "Pentagon",
+   "Triangle"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "Which month has the fewest days?",
+  "options": [
+   "June",
+   "April",
+   "February",
+   "September"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "Which day follows Friday?",
+  "options": [
+   "Saturday",
+   "Thursday",
+   "Sunday",
+   "Monday"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which animal is on the Ferrari logo?",
+  "options": [
+   "Jaguar",
+   "Lion",
+   "Bull",
+   "Prancing horse"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "Which brand logo features a swoosh?",
+  "options": [
+   "Puma",
+   "Adidas",
+   "Reebok",
+   "Nike"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "Which brand's logo is a bitten apple?",
+  "options": [
+   "Google",
+   "Nokia",
+   "Apple",
+   "Samsung"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "Which brand's slogan is Just Do It?",
+  "options": [
+   "Nike",
+   "Puma",
+   "Reebok",
+   "Adidas"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which company runs the Prime membership with a smile logo?",
+  "options": [
+   "Walmart",
+   "eBay",
+   "Amazon",
+   "Flipkart"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "Which Indian e-commerce company was acquired by Walmart in 2018?",
+  "options": [
+   "Flipkart",
+   "Snapdeal",
+   "Meesho",
+   "Myntra"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which Indian food delivery app is known for its red logo and orange delivery bags?",
+  "options": [
+   "Uber Eats",
+   "Swiggy",
+   "Zomato",
+   "Dunzo"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "What does UPI stand for in Indian payments?",
+  "options": [
+   "United Payment Index",
+   "Unified Payments Interface",
+   "Universal Pay Integration",
+   "Unified Pay Invoice"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "Which Indian organisation conducts the civil services exam known as UPSC?",
+  "options": [
+   "Union Police Service Council",
+   "Union Parliament Service Cell",
+   "Union Public Service Commission",
+   "United Public Staff Committee"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "What is the Indian emergency number for the police?",
+  "options": [
+   "101",
+   "108",
+   "100",
+   "102"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "What is the Indian ambulance emergency number commonly used?",
+  "options": [
+   "100",
+   "101",
+   "108",
+   "112"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "What is the single pan-India emergency number?",
+  "options": [
+   "112",
+   "100",
+   "911",
+   "999"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which planet do astrology charts in India call Mangal?",
+  "options": [
+   "Venus",
+   "Mercury",
+   "Jupiter",
+   "Mars"
+  ],
+  "correct_answer": 3
+ },
+ {
+  "category": "General",
+  "question": "Which Nobel Prize did Mother Teresa receive?",
+  "options": [
+   "Peace",
+   "Literature",
+   "Medicine",
+   "Physics"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Who was the first Indian to win a Nobel Prize?",
+  "options": [
+   "Rabindranath Tagore",
+   "Amartya Sen",
+   "C V Raman",
+   "Mother Teresa"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which Indian physicist won the Nobel Prize for the Raman Effect?",
+  "options": [
+   "Homi Bhabha",
+   "Satyendra Nath Bose",
+   "C V Raman",
+   "S Chandrasekhar"
+  ],
+  "correct_answer": 2
+ },
+ {
+  "category": "General",
+  "question": "Which Indian mathematician is known for his work on infinite series and number theory, with a famous number 1729?",
+  "options": [
+   "Aryabhata",
+   "Srinivasa Ramanujan",
+   "Brahmagupta",
+   "Bhaskara II"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "Which ancient Indian astronomer wrote Aryabhatiya?",
+  "options": [
+   "Brahmagupta",
+   "Aryabhata",
+   "Charaka",
+   "Varahamihira"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "Which ancient Indian physician is known as the Father of Surgery?",
+  "options": [
+   "Charaka",
+   "Sushruta",
+   "Vagbhata",
+   "Dhanvantari"
+  ],
+  "correct_answer": 1
+ },
+ {
+  "category": "General",
+  "question": "Which ancient Indian text on medicine is attributed to Charaka?",
+  "options": [
+   "Charaka Samhita",
+   "Ashtanga Hridaya",
+   "Rigveda",
+   "Sushruta Samhita"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which Indian city hosts the headquarters of Infosys?",
+  "options": [
+   "Bengaluru",
+   "Chennai",
+   "Pune",
+   "Hyderabad"
+  ],
+  "correct_answer": 0
+ },
+ {
+  "category": "General",
+  "question": "Which Indian city is known as the IT hub with HITEC City?",
+  "options": [
+   "Noida",
+   "Gurugram",
+   "Hyderabad",
+   "Pune"
+  ],
+  "correct_answer": 2
+ }
+]

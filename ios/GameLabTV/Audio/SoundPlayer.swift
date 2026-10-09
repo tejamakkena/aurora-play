@@ -39,6 +39,15 @@ final class SoundPlayer {
         /// a token starts climbing a ladder. Deliberately lighter than
         /// `winFanfare` so a ladder never reads as the game being over.
         case ladderClimb   = "ladder_climb"
+        // Poker table (tools/generate_sounds.py): chips, a dealt card, a
+        // knock for a check, a toss for a fold, the all-in shove, and a
+        // quiet lounge loop that sits under the whole game.
+        case pokerChips    = "poker_chips"
+        case pokerCard     = "poker_card"
+        case pokerCheck    = "poker_check"
+        case pokerFold     = "poker_fold"
+        case pokerAllIn    = "poker_allin"
+        case pokerLounge   = "poker_lounge"
     }
 
     /// One reusable player per effect, plus a small pool for the click, which

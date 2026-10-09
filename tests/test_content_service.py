@@ -43,7 +43,10 @@ def start(game_id, room=None, roster=None, players=4):
 # the library
 # --------------------------------------------------------------------------
 
-@pytest.mark.parametrize("kind", [k for k, s in cs.KINDS.items() if s.ask and k != "mc"])
+# Truth or Dare decks are bundled in code (tested in test_truth_or_dare.py) and
+# grown by the AI refill; they have no JSON library file.
+@pytest.mark.parametrize("kind", [k for k, s in cs.KINDS.items()
+                                  if s.ask and k != "mc" and not k.startswith("td_")])
 def test_library_files_are_valid_and_add_real_variety(kind):
     raw = json.loads(cs.library_path(kind).read_text(encoding="utf-8"))
     parsed = [cs.KINDS[kind].parse(r) for r in raw]
@@ -277,8 +280,8 @@ def test_trivia_pool_also_grows_from_the_llm(monkeypatch):
 
 def test_trivia_falls_back_to_open_trivia_db_when_the_llm_fails(monkeypatch):
     from games import topic_gen
-    q = {"question": "What is the boiling point of water at sea level in Celsius?",
-         "options": ["90", "100", "110", "120"], "correct_answer": 1}
+    q = {"question": "Which fruit is traditionally used to make guacamole fresh?",
+         "options": ["Banana", "Avocado", "Grape", "Plum"], "correct_answer": 1}
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
     monkeypatch.setattr(cs.random, "random", lambda: 0.0)
 
@@ -287,3 +290,16 @@ def test_trivia_falls_back_to_open_trivia_db_when_the_llm_fails(monkeypatch):
     monkeypatch.setattr(llm_json, "json_items", boom)
     monkeypatch.setattr(topic_gen, "_opentdb_batch", lambda topic, cat, count, exclude=(): [q])
     assert cs.refill("mc") == 1
+
+
+def test_bundled_trivia_library_is_large_valid_and_categorised():
+    from games.native_hub.engines import content_packs as cp
+    items = cs.all_items("mc")
+    assert len(items) >= 600
+    assert len({cs.norm_key(i["question"]) for i in items}) == len(items)
+    assert all(i.get("category") for i in items)
+    extra = cs.mc_extra("trivia")
+    assert extra and all(len(t) == 4 and t[0] and t[0] != "" for t in extra)
+    # the English pool a game draws from is now several times the old 200
+    class R: question_history = {}
+    assert len(cp.fresh_questions(R(), "en", "trivia")) >= 700

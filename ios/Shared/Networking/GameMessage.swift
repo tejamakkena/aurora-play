@@ -58,6 +58,14 @@ struct JoinRoomPayload: Encodable {
     let playerName: String
     let playerID: String
     let isTV: Bool         // TV app sends true; phone sends false
+    /// One random id per app launch. A phone that was backgrounded and comes
+    /// back re-joins with the same one, so the server can tell "the same
+    /// phone, whose old socket has not timed out yet" from "a second phone
+    /// sharing this device id" and hand the first one its own seat back
+    /// instead of creating a duplicate player.
+    let clientID: String = JoinRoomPayload.launchID
+
+    static let launchID = UUID().uuidString
 }
 
 struct CreateRoomPayload: Encodable {
