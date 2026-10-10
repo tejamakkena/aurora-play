@@ -49,6 +49,7 @@ ACTIONS = {
     "antakshari": [("judge", {"verdict": "sang"}), ("pick_letter", {"letter": "M"})],
     "most_likely_to": [("vote", {"targetID": "p1"})],
     "would_rather": [("vote", {"side": "a"})],
+    "host_lies": [("press", {}), ("vote", {"side": "liar"})],
     "brain_battle": [("answer", {"choice": "A"})],
     "cipher_grid": [("give_clue", {"word": "animal", "count": 2}),
                     ("guess", {"index": 0}), ("end_turn", {})],

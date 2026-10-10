@@ -53,6 +53,7 @@ struct ControllerGameView: View {
         case .brainBattle:   BrainBattleControllerView(privateData: privateData, onAction: onAction)
         case .truthOrDare:   TruthDareControllerView(privateData: privateData, onAction: onAction)
         case .wouldRather:   WouldRatherControllerView(privateData: privateData, onAction: onAction)
+        case .hostLies:      HostLiesControllerView(privateData: privateData, onAction: onAction)
 
         // Mid group
         case .cipherGrid:    CipherGridControllerView(privateData: privateData, onAction: onAction)

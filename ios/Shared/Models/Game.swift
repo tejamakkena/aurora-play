@@ -55,6 +55,7 @@ enum GameID: String, Codable, CaseIterable {
     case brainBattle   = "brain_battle"
     case truthOrDare   = "truth_or_dare"
     case wouldRather   = "would_rather"
+    case hostLies      = "host_lies"
 
     // MARK: Mid group — roles, deduction and negotiation
     case cipherGrid        = "cipher_grid"
@@ -209,6 +210,10 @@ enum GameID: String, Codable, CaseIterable {
         case .brainBattle:
             return .init(displayName: "Brain Battle", sfSymbol: "brain", category: .knowledge,
                          minPlayers: 2, maxPlayers: 12, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .hostLies:
+            return .init(displayName: "The Host Is Lying", sfSymbol: "mic.fill", category: .knowledge,
+                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .wouldRather:
             return .init(displayName: "Would You Rather", sfSymbol: "arrow.left.arrow.right",

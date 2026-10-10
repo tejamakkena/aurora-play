@@ -194,6 +194,15 @@ def _policy_would_rather(engine, bot_id):
     return ("vote", {"side": random.choice(["a", "b"])})
 
 
+def _policy_host_lies(engine, bot_id):
+    phase = getattr(engine, "phase", "")
+    if phase == "grill" and bot_id not in engine.pressers and random.random() < 0.08:
+        return ("press", {})
+    if phase == "vote":
+        return ("vote", {"side": random.choice(["trust", "trust", "liar"])})
+    return None
+
+
 def _policy_brain_battle(engine, bot_id):
     if getattr(engine, "phase", "") != "answer":
         return None
@@ -247,6 +256,7 @@ POLICIES = {
     "atlas": _policy_atlas,
     "most_likely_to": _policy_most_likely_to,
     "would_rather": _policy_would_rather,
+    "host_lies": _policy_host_lies,
     "brain_battle": _policy_brain_battle,
     "hot_takes": _policy_hot_takes,
     "twenty_questions": _policy_twenty_questions,

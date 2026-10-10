@@ -291,6 +291,18 @@ RULES: dict[str, dict] = {
         ],
         "controls": "Tap a player on your phone to vote.",
     },
+    "host_lies": {
+        "title": "The Host Is Lying",
+        "objective": "Catch the host in a lie. You do not need to know the answer.",
+        "rules": [
+            "The host states a fact with total confidence. Sometimes it is true. Sometimes the host is lying.",
+            "Listen for tells: hedging, over-explaining, saying it twice, stalling, or talking fast.",
+            "Press the host to make them defend themselves. The first player to press is the challenger.",
+            "Everyone secretly votes Trust or Liar. Catching a lie scores 150, trusting the truth scores 100.",
+            "Calling an honest host a liar costs 50. Tells are only hints: an honest host fidgets too.",
+        ],
+        "controls": "Press the host, then tap Trust or Liar on your phone.",
+    },
     "would_rather": {
         "title": "Would You Rather",
         "objective": "Pick a side, then defend it.",
