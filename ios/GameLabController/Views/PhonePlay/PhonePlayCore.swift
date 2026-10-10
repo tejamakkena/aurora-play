@@ -5,7 +5,7 @@ import UIKit
 //
 // Games that run on ONE phone with no TV and no signal: the phone is
 // passed around the group (Spy, Mafia, Truth or Dare, Would You Rather,
-// Hot Potato, Story Chain), held to a forehead (Heads Up) or played solo
+// Hot Potato, Story Chain), held to a forehead (Forehead Charades) or played solo
 // (Daily Brain Challenge, Word of the Day, Pocket Arcade). Nothing here
 // touches the socket or the room; ControllerRootViewModel only creates
 // and tears down a PhonePlayViewModel, exactly like Travel Mode.
@@ -101,20 +101,25 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     }
 
     /// Mind Gym has its own hero card above the party games
-    /// (NeuroHomeCard), so it is not one of the grid cards.
+    /// (NeuroHomeCard), so it is not one of the grid cards. Daily Brain is
+    /// reached from that card too.
     var isGridCard: Bool {
         switch self {
         case .mindGym:
             return false
         case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
-             .storyChain, .daily, .wordOfDay, .arcade:
+             .storyChain, .wordOfDay, .arcade:
             return true
+        case .daily:
+            // Daily Brain lives on the Mind Gym card now ("Quick 5"): it was a
+            // second, near-identical daily brain game on the home screen.
+            return false
         }
     }
 
     var title: String {
         switch self {
-        case .headsUp:        return "Heads Up"
+        case .headsUp:        return "Forehead Charades"
         case .spy:            return "Spy"
         case .mafia:          return "Mafia"
         case .truthOrDare:    return "Truth or Dare"
@@ -123,7 +128,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .storyChain:     return "Story Chain"
         case .daily:          return "Daily Brain"
         case .wordOfDay:      return "Word of the Day"
-        case .arcade:         return "Pocket Arcade"
+        case .arcade:         return "Puzzles & Arcade"
         case .mindGym:        return "Mind Gym"
         }
     }
@@ -139,7 +144,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .storyChain:     return "One silly story, one line each, out loud."
         case .daily:          return "Five fresh puzzles a day. Keep your streak."
         case .wordOfDay:      return "One new word a day. Hear it, then use it."
-        case .arcade:         return "Reflex games and 2048. Beat your best."
+        case .arcade:         return "2048, reflex games and puzzles. Beat your best."
         case .mindGym:        return "A ten-step brain workout, once a day."
         }
     }

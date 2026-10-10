@@ -43,7 +43,7 @@ HERD_PROMPTS = [
     "Name a festival.",
 ]
 
-# ---- Emoji Movie: secret title, describe it in emoji -------------------------
+# ---- Emoji Charades: secret title, describe it in emoji -------------------------
 EMOJI_TITLES = [
     "Titanic", "The Lion King", "Jurassic Park", "Finding Nemo", "Frozen",
     "Sholay", "Dangal", "3 Idiots", "Lagaan", "Bahubali",
@@ -101,7 +101,7 @@ CIPHER_WORDS = [
     "FOSSIL", "KETTLE", "MEADOW", "SHADOW", "TRIDENT", "WALNUT", "ZEPHYR",
 ]
 
-# ---- Wavelength: the two ends of the dial ------------------------------------
+# ---- Spectrum: the two ends of the dial ------------------------------------
 WAVELENGTH_SPECTRA = [
     ("Cold", "Hot"), ("Cheap", "Expensive"), ("Underrated", "Overrated"),
     ("Boring", "Exciting"), ("Round", "Pointy"), ("Useless", "Essential"),

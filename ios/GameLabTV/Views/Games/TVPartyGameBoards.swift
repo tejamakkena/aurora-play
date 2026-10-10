@@ -405,7 +405,7 @@ struct TVHerdBoardView: View {
     }
 }
 
-// MARK: - Emoji Movie
+// MARK: - Emoji Charades
 
 struct EmojiMovieState {
     var base = RoundBoardState()
@@ -429,7 +429,7 @@ struct TVEmojiMovieBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(symbol: "clapperboard.fill", title: "Emoji Movie",
+            TVRoundHeader(symbol: "clapperboard.fill", title: "Emoji Charades",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: vm.state.base.phase)

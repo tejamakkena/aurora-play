@@ -43,7 +43,7 @@ private struct TVScoreHeader: View {
 //
 // Moved to TVPokerBoardView.swift.
 
-// MARK: - Connect 4 Board
+// MARK: - Four in a Row Board
 //
 // 2-4 players on a board that grows with the table (6x7, 7x9, 8x10). The
 // playfield is built like the real toy: a glassy blue front panel with holes
@@ -370,7 +370,7 @@ struct Connect4Seat: Identifiable, Equatable {
     var colorID: String
 }
 
-// MARK: Connect 4 -- pieces
+// MARK: Four in a Row -- pieces
 
 /// A glossy, 3D-looking disc: radial body, darker rim, an embossed inner
 /// ring like the real toy, and a soft specular highlight up and to the left.
@@ -514,7 +514,7 @@ private struct Connect4DiscLayer: View {
     }
 }
 
-// MARK: Connect 4 -- cabinet
+// MARK: Four in a Row -- cabinet
 
 /// The panel outline with every hole punched out (filled even-odd).
 private struct Connect4PanelShape: Shape {
@@ -713,7 +713,7 @@ private struct Connect4DropRail: View {
     }
 }
 
-// MARK: Connect 4 -- win, banner, chips, background
+// MARK: Four in a Row -- win, banner, chips, background
 
 /// Pulsing glow rings over the winning four, drawn above the panel.
 private struct Connect4WinOverlay: View {
@@ -938,7 +938,7 @@ private struct Connect4AmbientBackground: View {
     }
 }
 
-// MARK: Connect 4 -- state
+// MARK: Four in a Row -- state
 
 struct Connect4DropEvent {
     let row: Int
@@ -1096,7 +1096,7 @@ struct Connect4BoardState {
     /// Diffs two grids -- the same "what just changed between two
     /// consecutive state pushes" pattern used by the other TV board view
     /// models in this file -- and returns the first cell that went from
-    /// empty to non-empty. Connect 4 only ever drops one disc per turn, so
+    /// empty to non-empty. Four in a Row only ever drops one disc per turn, so
     /// there is at most one such cell in practice.
     private static func firstNewlyFilledCell(old: [[String]], new: [[String]]) -> (row: Int, col: Int)? {
         guard old.count == new.count else { return nil }

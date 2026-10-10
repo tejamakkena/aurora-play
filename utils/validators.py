@@ -24,7 +24,7 @@ GAME_IDS = frozenset({
     "digit_guess",
     # Party (8-20+)
     "bluff_it", "last_tap", "herd", "emoji_movie", "npat", "antakshari",
-    "most_likely_to", "brain_battle", "truth_or_dare",
+    "most_likely_to", "brain_battle", "truth_or_dare", "would_rather", "host_lies",
     # Mid group (4-12)
     "cipher_grid", "odd_one_out", "sealed_auction", "wavelength",
     "kbc", "bollywood_charades",

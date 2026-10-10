@@ -134,7 +134,7 @@ RULES: dict[str, dict] = {
         "controls": "Tilt your phone to move the paddle.",
     },
     "connect4": {
-        "title": "Connect 4",
+        "title": "Four in a Row",
         "objective": "Line up four of your discs before anyone else does.",
         "rules": [
             "2 to 4 players, each with their own disc colour.",
@@ -247,7 +247,7 @@ RULES: dict[str, dict] = {
         "controls": "Type your answer on your phone.",
     },
     "emoji_movie": {
-        "title": "Emoji Movie",
+        "title": "Emoji Charades",
         "objective": "Describe and guess movie titles.",
         "rules": [
             "One player describes a movie title using only emoji.",
@@ -290,6 +290,29 @@ RULES: dict[str, dict] = {
             "The most-voted players take the round's crown.",
         ],
         "controls": "Tap a player on your phone to vote.",
+    },
+    "host_lies": {
+        "title": "The Host Is Lying",
+        "objective": "Catch the host in a lie. You do not need to know the answer.",
+        "rules": [
+            "The host states a fact with total confidence. Sometimes it is true. Sometimes the host is lying.",
+            "Listen for tells: hedging, over-explaining, saying it twice, stalling, or talking fast.",
+            "Press the host to make them defend themselves. The first player to press is the challenger.",
+            "Everyone secretly votes Trust or Liar. Catching a lie scores 150, trusting the truth scores 100.",
+            "Calling an honest host a liar costs 50. Tells are only hints: an honest host fidgets too.",
+        ],
+        "controls": "Press the host, then tap Trust or Liar on your phone.",
+    },
+    "would_rather": {
+        "title": "Would You Rather",
+        "objective": "Pick a side, then defend it.",
+        "rules": [
+            "The TV shows a dilemma: would you rather A or B?",
+            "Everyone secretly picks a side on their phone.",
+            "The reveal shows how the room split, and who chose what.",
+            "Going with the crowd scores 100. Standing alone on your side scores 150.",
+        ],
+        "controls": "Tap A or B on your phone.",
     },
     "truth_or_dare": {
         "title": "Truth or Dare",
@@ -388,7 +411,7 @@ RULES: dict[str, dict] = {
         "controls": "Enter your bid on your phone.",
     },
     "wavelength": {
-        "title": "Wavelength",
+        "title": "Spectrum",
         "objective": "Read the psychic's mind.",
         "rules": [
             "One player (the psychic) sees a hidden target on a dial.",
@@ -433,7 +456,7 @@ RULES: dict[str, dict] = {
         "controls": "Tap wires and modules on your phone.",
     },
     "battleship": {
-        "title": "Battleship",
+        "title": "Sea Battle",
         "objective": "Sink the entire enemy fleet first.",
         "rules": [
             "Place your fleet on your phone's private grid.",

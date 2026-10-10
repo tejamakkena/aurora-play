@@ -100,7 +100,9 @@ struct PhonePlayHomeView: View {
                     NeuroHomeCard(state: mindGym,
                                   appeared: appeared,
                                   onPlay: { play.open(.mindGym) },
-                                  onProgress: play.openMindScore)
+                                  onProgress: play.openMindScore,
+                                  quickDone: dailyDone,
+                                  onQuick: { play.open(.daily) })
 
                     PhonePlaySectionLabel(text: "Party games")
                         .padding(.top, 4)
@@ -143,6 +145,11 @@ struct PhonePlayHomeView: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.text3)
                         .padding(.top, 4)
+
+                    Text("Some trivia questions come from Open Trivia DB (opentdb.com), licensed CC BY-SA 4.0.")
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text3)
+                        .multilineTextAlignment(.center)
 
                     Text(BuildStamp.displayString)
                         .font(.system(size: 11, weight: .semibold, design: .rounded))

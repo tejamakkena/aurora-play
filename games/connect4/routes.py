@@ -19,5 +19,5 @@ def login_required(f):
 @connect4_bp.route('/')
 @login_required
 def index():
-    """Connect 4 game page"""
+    """Four in a Row game page"""
     return render_template('games/connect4.html', user=session.get('user'))

@@ -1,4 +1,4 @@
-/* Duel and co-op games: Defuse, Battleship, Heist Escape, Ludo, Teen Patti.
+/* Duel and co-op games: Defuse, Sea Battle, Heist Escape, Ludo, Teen Patti.
  * Port of DuelControllers.swift.
  */
 (function () {
@@ -102,7 +102,7 @@
     };
   };
 
-  // ---- Battleship ----------------------------------------------------------------
+  // ---- Sea Battle ----------------------------------------------------------------
   AP.controllers.battleship = function (ctx) {
     var showingFleet = false;
     function shotMap(d, key) {
@@ -130,7 +130,7 @@
             result === 'hit' ? AP.icon('xmark', 11) : (result === 'miss' ? h('span', { style: { width: '6px', height: '6px', borderRadius: '50%', background: 'rgba(255,255,255,0.55)' } }) : null)));
         })(cell);
       }
-      return ui.shell({ title: 'Battleship', subtitle: mine ? 'Your shot' : "Opponent's turn" },
+      return ui.shell({ title: 'Sea Battle', subtitle: mine ? 'Your shot' : "Opponent's turn" },
         h('div', { class: 'col gap14', style: { flex: '1 1 auto', minHeight: 0, overflowY: 'auto', paddingBottom: '16px' } },
           h('div', { class: 'row gap10 px20', style: { paddingTop: '12px' } },
             ui.chip({ title: 'Fire', selected: !showingFleet, colors: [C.red, C.orange], onClick: function () { showingFleet = false; ctx.refresh(); } }),

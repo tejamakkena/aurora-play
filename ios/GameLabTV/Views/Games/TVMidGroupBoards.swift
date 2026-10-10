@@ -310,7 +310,7 @@ struct TVSealedAuctionBoardView: View {
     }
 }
 
-// MARK: - Wavelength
+// MARK: - Spectrum
 
 struct WavelengthState {
     var base = RoundBoardState()
@@ -342,7 +342,7 @@ struct TVWavelengthBoardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TVRoundHeader(symbol: "antenna.radiowaves.left.and.right", title: "Wavelength",
+            TVRoundHeader(symbol: "antenna.radiowaves.left.and.right", title: "Spectrum",
                           round: vm.state.base.round, totalRounds: vm.state.base.totalRounds,
                           secondsLeft: vm.state.base.secondsLeft,
                           phaseLabel: "\(vm.state.psychicName) is the psychic")

@@ -54,6 +54,8 @@ enum GameID: String, Codable, CaseIterable {
     case mostLikelyTo  = "most_likely_to"
     case brainBattle   = "brain_battle"
     case truthOrDare   = "truth_or_dare"
+    case wouldRather   = "would_rather"
+    case hostLies      = "host_lies"
 
     // MARK: Mid group — roles, deduction and negotiation
     case cipherGrid        = "cipher_grid"
@@ -133,7 +135,7 @@ enum GameID: String, Codable, CaseIterable {
                          minPlayers: 2, maxPlayers: 2, hasPrivateInfo: false,
                          phoneInputStyle: .tilt, supportsRemote: false, soloPlayable: false)
         case .connectFour:
-            return .init(displayName: "Connect 4", sfSymbol: "square.grid.3x3.fill", category: .strategy,
+            return .init(displayName: "Four in a Row", sfSymbol: "square.grid.3x3.fill", category: .strategy,
                          minPlayers: 2, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .chess:
@@ -175,7 +177,7 @@ enum GameID: String, Codable, CaseIterable {
                          minPlayers: 3, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .emojiMovie:
-            return .init(displayName: "Emoji Movie", sfSymbol: "clapperboard.fill", category: .party,
+            return .init(displayName: "Emoji Charades", sfSymbol: "clapperboard.fill", category: .party,
                          minPlayers: 3, maxPlayers: 16, hasPrivateInfo: true,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .npat:
@@ -209,6 +211,14 @@ enum GameID: String, Codable, CaseIterable {
             return .init(displayName: "Brain Battle", sfSymbol: "brain", category: .knowledge,
                          minPlayers: 2, maxPlayers: 12, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .hostLies:
+            return .init(displayName: "The Host Is Lying", sfSymbol: "mic.fill", category: .knowledge,
+                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .wouldRather:
+            return .init(displayName: "Would You Rather", sfSymbol: "arrow.left.arrow.right",
+                         category: .party, minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .truthOrDare:
             // One phone runs the whole table (it types the names and judges),
             // so a single player is enough to start it.
@@ -231,7 +241,7 @@ enum GameID: String, Codable, CaseIterable {
                          minPlayers: 2, maxPlayers: 8, hasPrivateInfo: true,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .wavelength:
-            return .init(displayName: "Wavelength", sfSymbol: "antenna.radiowaves.left.and.right", category: .party,
+            return .init(displayName: "Spectrum", sfSymbol: "antenna.radiowaves.left.and.right", category: .party,
                          minPlayers: 3, maxPlayers: 10, hasPrivateInfo: true,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .kbc:
@@ -251,7 +261,7 @@ enum GameID: String, Codable, CaseIterable {
                          minPlayers: 2, maxPlayers: 6, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .battleship:
-            return .init(displayName: "Battleship", sfSymbol: "sailboat.fill", category: .strategy,
+            return .init(displayName: "Sea Battle", sfSymbol: "sailboat.fill", category: .strategy,
                          minPlayers: 2, maxPlayers: 2, hasPrivateInfo: true,
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .airHockey:

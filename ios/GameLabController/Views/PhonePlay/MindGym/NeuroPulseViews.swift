@@ -837,8 +837,32 @@ private struct NeuroReflectArea: View {
     @ObservedObject var game: NeuroPulseViewModel
     let step: NeuroStep
 
+    private var cue: String {
+        if game.reflectCount >= game.reflectTarget { return "Nicely done." }
+        switch game.reflectCount {
+        case 0:  return "Look and listen. Tap a circle for each one you notice."
+        case 1:  return "Good. Find another."
+        default: return "Nearly there."
+        }
+    }
+
     var body: some View {
         VStack(spacing: 18) {
+            HStack {
+                Spacer()
+                Button {
+                    game.toggleGuideVoice()
+                } label: {
+                    Image(systemName: game.guideVoiceOn ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
+                        .frame(width: 40, height: 40)
+                        .background(Circle().fill(PhonePlayDesign.surface))
+                }
+                .buttonStyle(PhonePlayPressStyle())
+                .accessibilityLabel(game.guideVoiceOn ? "Turn the guide voice off" : "Turn the guide voice on")
+            }
+
             ZStack {
                 Circle()
                     .strokeBorder(PhonePlayDesign.green.opacity(0.18), lineWidth: 2)
@@ -847,16 +871,35 @@ private struct NeuroReflectArea: View {
                     .foregroundStyle(PhonePlayDesign.gradient(NeuroStyle.calm))
                     .phonePlayIdle(dy: 4, degrees: 4, duration: 2.2)
             }
-            .frame(width: 150, height: 150)
+            .frame(width: 130, height: 130)
+
+            HStack(spacing: 14) {
+                ForEach(0..<game.reflectTarget, id: \.self) { index in
+                    let done = index < game.reflectCount
+                    Button {
+                        game.tapReflectItem()
+                    } label: {
+                        Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 40, weight: .bold, design: .rounded))
+                            .foregroundColor(done ? PhonePlayDesign.green : PhonePlayDesign.text3)
+                            .scaleEffect(done ? 1.1 : 1)
+                    }
+                    .buttonStyle(PhonePlayPressStyle())
+                    .accessibilityLabel("Item \(index + 1) of \(game.reflectTarget)")
+                }
+            }
+            .animation(PhonePlayDesign.pop, value: game.reflectCount)
+
+            Text(cue)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
+                .multilineTextAlignment(.center)
+                .frame(minHeight: 44)
 
             Text(PhonePlayTime.clock(game.reflectSecondsLeft))
-                .font(.system(size: 32, weight: .black, design: .rounded).monospacedDigit())
-                .foregroundColor(.white)
-                .contentTransition(.numericText())
-
-            Text("No score here. Take the time.")
-                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .font(.system(size: 22, weight: .black, design: .rounded).monospacedDigit())
                 .foregroundColor(PhonePlayDesign.text3)
+                .contentTransition(.numericText())
 
             PhonePlayBigButton(title: "Done", symbol: "checkmark",
                                colors: NeuroStyle.calm) {

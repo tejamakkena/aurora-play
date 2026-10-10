@@ -286,7 +286,7 @@ def create_app(config_name='default'):
                 'preview': 'tictactoe'
             },
             {
-                'name': 'Connect 4',
+                'name': 'Four in a Row',
                 'url': '/connect4',
                 'icon': '🔴🟡',
                 'players': '2',
@@ -525,6 +525,6 @@ if __name__ == "__main__":
     print("   ✅ Texas Hold'em Poker")
     print("   ✅ Trivia")
     print("   ✅ Canvas Battle")
-    print("   ✅ Connect 4")
+    print("   ✅ Four in a Row")
     print()
     socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
