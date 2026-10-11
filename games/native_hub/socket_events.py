@@ -56,7 +56,7 @@ def _rate_limited(sid: str) -> bool:
 # along in an iCloud/iTunes backup. Two phones set up from the same backup
 # therefore send the *same* player id, and the old join path read that as
 # "this device is reclaiming its seat": both phones ended up driving one
-# seat, with one colour, one turn and one score. Connect 4 showed it most
+# seat, with one colour, one turn and one score. Four in a Row showed it most
 # plainly -- every disc came out the same colour however many people were
 # playing -- but it broke every turn-based game the same way.
 #

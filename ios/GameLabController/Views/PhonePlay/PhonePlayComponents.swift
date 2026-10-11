@@ -645,3 +645,37 @@ enum PhonePlayTime {
         return String(format: "%d:%02d", s / 60, s % 60)
     }
 }
+
+
+// MARK: - How to play card
+
+/// A short numbered "how it plays" list for a game's setup screen.
+struct PhonePlayHowToCard: View {
+    let steps: [String]
+    var accent: Color = PhonePlayDesign.cyan
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("How it plays", systemImage: "questionmark.circle.fill")
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .foregroundColor(accent)
+            ForEach(Array(steps.enumerated()), id: \.offset) { pair in
+                HStack(alignment: .top, spacing: 10) {
+                    Text("\(pair.offset + 1)")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .foregroundColor(.black)
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(accent))
+                    Text(pair.element)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
+            .fill(Color.white.opacity(0.06)))
+    }
+}

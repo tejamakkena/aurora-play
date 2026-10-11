@@ -190,7 +190,13 @@ final class TVVoiceHost: NSObject, ObservableObject {
     /// - Parameter completion: fired when the utterance finishes or is
     ///   cut off. The quizmaster uses it to open the listen window exactly
     ///   when the question ends.
-    func speak(_ text: String, completion: (() -> Void)? = nil) {
+    ///
+    /// `rate` (1.0 is normal) and `preDelay` (seconds of silence first) shape
+    /// the delivery. The Host Is Lying uses them for its tells: a rushed line,
+    /// a long stall. Both default to "no change", so every other caller is
+    /// untouched.
+    func speak(_ text: String, rate: Float = 1.0, preDelay: TimeInterval = 0,
+               completion: (() -> Void)? = nil) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { completion?(); return }
         stopSpeaking()
@@ -198,7 +204,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
         let token = speechToken
         pendingSpeechCompletion = completion
         if Self.sessionVoice == .device {
-            speakOnDevice(trimmed)
+            speakOnDevice(trimmed, rate: rate, preDelay: preDelay)
             return
         }
         // First line: a short wait decides the session. Once the cloud
@@ -211,14 +217,22 @@ final class TVVoiceHost: NSObject, ObservableObject {
             if let data, let player = try? AVAudioPlayer(data: data) {
                 Self.sessionVoice = .cloud
                 player.delegate = self
+                // A faster or slower read of the same clip; pitch moves a
+                // little with it, which only helps a "nervous" delivery.
+                if rate != 1.0 {
+                    player.enableRate = true
+                    player.rate = max(0.5, min(2.0, rate))
+                }
                 self.audioPlayer = player
-                if player.play() { return }
+                let started: Bool = preDelay > 0 ? player.play(atTime: player.deviceCurrentTime + preDelay)
+                                                 : player.play()
+                if started { return }
                 self.audioPlayer = nil
             }
             // The cloud voice is unavailable: use the device voice for the
             // rest of the session, never alternating.
             Self.sessionVoice = .device
-            self.speakOnDevice(trimmed)
+            self.speakOnDevice(trimmed, rate: rate, preDelay: preDelay)
         }
     }
 
@@ -274,13 +288,15 @@ final class TVVoiceHost: NSObject, ObservableObject {
         completion?()
     }
 
-    private func speakOnDevice(_ text: String) {
+    private func speakOnDevice(_ text: String, rate: Float = 1.0, preDelay: TimeInterval = 0) {
         // Callers have already torn down any in-flight audio. Do NOT call
         // stopSpeaking() here: it would fire pendingSpeechCompletion before
         // this utterance even starts, arming the mic while we're talking.
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = Self.deviceVoice
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.95
+        utterance.rate = min(AVSpeechUtteranceMaximumSpeechRate,
+                             AVSpeechUtteranceDefaultSpeechRate * 0.95 * rate)
+        utterance.preUtteranceDelay = preDelay
         currentUtteranceID = ObjectIdentifier(utterance)
         synthesizer.speak(utterance)
     }

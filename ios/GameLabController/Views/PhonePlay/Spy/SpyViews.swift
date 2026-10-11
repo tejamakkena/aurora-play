@@ -66,6 +66,15 @@ private struct SpySetupView: View {
                     PhonePlayNamesEditor(names: $game.names, range: game.playerRange,
                                          accent: SpyStyle.accent2)
 
+                    PhonePlayHowToCard(steps: [
+                        "Pass the phone round. Each player taps to see their card, then hides it before handing it on.",
+                        "Everyone sees the same place, except the Spy, who is only told they are the Spy.",
+                        "Take turns asking one other player a question about the place, like \"Would I need a ticket here?\" or \"Is it noisy?\". Answer truthfully, but do not give the place away.",
+                        "The Spy listens for clues and answers vaguely to blend in.",
+                        "The Spy can stop the game at any time: tap \"I'm the Spy\" and name the place. Right wins for the Spy, wrong wins for the town.",
+                        "When the timer ends, everyone points at a suspect. A caught Spy still gets one last guess at the place.",
+                    ], accent: SpyStyle.accent2)
+
                     VStack(spacing: 10) {
                         PhonePlaySectionLabel(text: "Discussion time")
                         HStack(spacing: 10) {
@@ -194,6 +203,8 @@ private struct SpyDiscussView: View {
     @ObservedObject var game: SpyViewModel
 
     @State private var showLocations: Bool = false
+    @State private var showGuess: Bool = false
+    @State private var pendingGuess: String? = nil
 
     private var fraction: Double {
         let total = Double(max(1, game.discussMinutes * 60))
@@ -254,6 +265,10 @@ private struct SpyDiscussView: View {
                         }
                     }
 
+                    PhonePlayGhostButton(title: "I'm the Spy: guess the place", symbol: "binoculars.fill") {
+                        showGuess = true
+                    }
+
                     PhonePlayBigButton(title: "Vote now", symbol: "hand.point.up.left.fill",
                                        colors: [PhonePlayDesign.red, PhonePlayDesign.orange]) {
                         game.goToVote()
@@ -267,10 +282,33 @@ private struct SpyDiscussView: View {
             SpyLocationsSheet()
                 .presentationDetents([.medium, .large])
         }
+        .sheet(isPresented: $showGuess) {
+            SpyLocationsSheet(title: "Spy: where are we?", onPick: { place in
+                showGuess = false
+                pendingGuess = place
+            })
+            .presentationDetents([.large])
+        }
+        .confirmationDialog(pendingGuess.map { "Guess \($0)?" } ?? "",
+                            isPresented: Binding(get: { pendingGuess != nil },
+                                                 set: { if !$0 { pendingGuess = nil } }),
+                            titleVisibility: .visible) {
+            Button("Yes, that's the place") {
+                if let place = pendingGuess { game.spyGuesses(place) }
+                pendingGuess = nil
+            }
+            Button("Cancel", role: .cancel) { pendingGuess = nil }
+        } message: {
+            Text("Only the Spy should do this. If it is wrong, the town wins.")
+        }
     }
 }
 
 private struct SpyLocationsSheet: View {
+    var title: String = "Possible locations"
+    /// When set, tapping a place picks it (the spy's guess).
+    var onPick: ((String) -> Void)? = nil
+
     private let columns: [GridItem] = [GridItem(.adaptive(minimum: 140), spacing: 10)]
 
     var body: some View {
@@ -278,19 +316,25 @@ private struct SpyLocationsSheet: View {
             PhonePlayDesign.surface.ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 14) {
-                    Text("Possible locations")
+                    Text(title)
                         .font(.system(size: 22, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                         .padding(.top, 20)
                     LazyVGrid(columns: columns, spacing: 10) {
                         ForEach(SpyLocations.all, id: \.self) { place in
-                            Text(place)
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
-                                    .fill(PhonePlayDesign.surface2))
+                            Button {
+                                onPick?(place)
+                            } label: {
+                                Text(place)
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
+                                        .fill(PhonePlayDesign.surface2))
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(onPick == nil)
                         }
                     }
                 }
@@ -403,12 +447,18 @@ private struct SpyResultView: View {
             PhonePlayTopBar(title: "Spy", backTitle: "Setup", onBack: game.editPlayers)
             ScrollView {
                 VStack(spacing: 22) {
-                    Text(game.spyCaught ? "Spy caught!" : "The spy got away!")
+                    Text(headline)
                         .font(.system(size: 34, weight: .black, design: .rounded))
-                        .foregroundColor(game.spyCaught ? PhonePlayDesign.green : PhonePlayDesign.red)
+                        .foregroundColor(headlineColor)
+                        .multilineTextAlignment(.center)
                         .padding(.top, 6)
 
-                    if !game.spyCaught {
+                    if let guess = game.guess {
+                        Text(guessLine(guess))
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(PhonePlayDesign.text2)
+                            .multilineTextAlignment(.center)
+                    } else if !game.spyCaught {
                         Text("You accused \(game.accusedName), who knew the place.")
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundColor(PhonePlayDesign.text2)
@@ -418,7 +468,7 @@ private struct SpyResultView: View {
                     PhonePlayFlip(flipped: flipped, front: cardFront, back: cardBack, duration: 0.7)
                         .frame(height: 230)
 
-                    if game.spyCaught {
+                    if game.spyCaught && game.guess == nil {
                         Text("Last chance: \(game.spyName), name the location to steal the win.")
                             .font(.system(size: 16, weight: .bold, design: .rounded))
                             .foregroundColor(PhonePlayDesign.yellow)
@@ -462,6 +512,29 @@ private struct SpyResultView: View {
                 flipped = true
                 PhonePlayHaptics.thump()
             }
+        }
+    }
+
+    private var headline: String {
+        switch game.guess {
+        case .right?: return "The spy found the place!"
+        case .wrong?: return "Wrong place! Town wins."
+        case nil:     return game.spyCaught ? "Spy caught!" : "The spy got away!"
+        }
+    }
+
+    private var headlineColor: Color {
+        switch game.guess {
+        case .right?: return PhonePlayDesign.red
+        case .wrong?: return PhonePlayDesign.green
+        case nil:     return game.spyCaught ? PhonePlayDesign.green : PhonePlayDesign.red
+        }
+    }
+
+    private func guessLine(_ guess: SpyViewModel.Guess) -> String {
+        switch guess {
+        case .right(let place): return "\(game.spyName) said \(place), and that was right. The spy wins."
+        case .wrong(let place): return "\(game.spyName) guessed \(place), but it was \(game.location)."
         }
     }
 

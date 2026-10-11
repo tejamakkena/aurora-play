@@ -214,7 +214,7 @@ private extension View {
     }
 }
 
-// MARK: - Connect 4 Controller
+// MARK: - Four in a Row Controller
 
 /// Phone palette for the server's disc colour ids (matches the TV board).
 private struct Connect4PhonePalette {
@@ -292,7 +292,7 @@ struct Connect4ControllerView: View {
     private var currentID: String { privateData["currentPlayerID"] as? String ?? "" }
 
     var body: some View {
-        ClassicShell(title: "Connect 4",
+        ClassicShell(title: "Four in a Row",
                      subtitle: "You are \(myColor.capitalized)",
                      trailing: {
                          Connect4PhoneDisc(colorID: myColor, size: 32)

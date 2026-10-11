@@ -1,4 +1,4 @@
-/* Mid-group games: Cipher Grid, Odd One Out, Sealed Auction, Wavelength,
+/* Mid-group games: Cipher Grid, Odd One Out, Sealed Auction, Spectrum,
  * Bollywood (Dumb) Charades. Port of MidGroupControllers.swift.
  *
  * These carry the most sensitive private state (a spymaster's key, a spy's
@@ -179,7 +179,7 @@
     };
   };
 
-  // ---- Wavelength -------------------------------------------------------------------
+  // ---- Spectrum -------------------------------------------------------------------
   AP.controllers.wavelength = function (ctx) {
     var clueText = '', dial = 50, lastSent = 0, pending = null;
     function sendDial(v) {
@@ -232,7 +232,7 @@
         main = waiting('wait', 'antenna.radiowaves.left.and.right', clue ? '“' + clue + '”' : 'Waiting for the clue...',
           isPsychic ? 'The team is turning the dial' : 'Watch the TV');
       }
-      return ui.shell({ title: 'Wavelength', subtitle: isPsychic ? "You're the psychic" : 'Read the clue',
+      return ui.shell({ title: 'Spectrum', subtitle: isPsychic ? "You're the psychic" : 'Read the clue',
           secondsLeft: pd.int(d, 'secondsLeft') },
         h('div', { class: 'col gap16', style: { flex: '1 1 auto', minHeight: 0, overflowY: 'auto' } }, ends, targetCard, main));
     };

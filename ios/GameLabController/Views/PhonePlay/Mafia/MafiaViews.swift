@@ -59,8 +59,13 @@ struct MafiaRootView: View {
             MafiaHandoffView(game: game)
                 .transition(.opacity)
         case .night:
-            MafiaNightView(game: game)
-                .transition(.opacity)
+            if game.selfRun {
+                MafiaAutoNightView(game: game)
+                    .transition(.opacity)
+            } else {
+                MafiaNightView(game: game)
+                    .transition(.opacity)
+            }
         case .morning:
             MafiaMorningView(game: game)
                 .transition(.scale(scale: 0.92).combined(with: .opacity))
@@ -112,12 +117,26 @@ private struct MafiaSetupView: View {
                     Text("Mafia")
                         .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundColor(.white)
-                    Text("One person narrates and does not play. The phone deals secret roles, then talks the town through each night.")
+                    Text("The phone deals secret roles, then acts as the narrator: it tells everyone when to close their eyes and who wakes up, and the Mafia, Doctor and Detective tap their choices on it.")
                         .font(.system(size: 15, weight: .semibold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.text2)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, 6)
+
+                VStack(spacing: 10) {
+                    PhonePlaySectionLabel(text: "Who runs the night?")
+                    HStack(spacing: 10) {
+                        MafiaModeChip(title: "The phone",
+                                      detail: "Everyone plays, eyes closed",
+                                      selected: game.selfRun) { game.selfRun = true }
+                        MafiaModeChip(title: "A person",
+                                      detail: "They watch and do not play",
+                                      selected: !game.selfRun) { game.selfRun = false }
+                    }
+                }
+
+                MafiaHowToCard(selfRun: game.selfRun)
 
                 PhonePlayNamesEditor(names: $game.names, range: game.playerRange,
                                      accent: MafiaStyle.accent)
@@ -227,7 +246,9 @@ private struct MafiaHandoffView: View {
                 Text("Roles are dealt")
                     .font(.system(size: 32, weight: .black, design: .rounded))
                     .foregroundColor(.white)
-                Text("Give the phone to the narrator. Everyone else, get ready to close your eyes.")
+                Text(game.selfRun
+                     ? "Put the phone flat in the middle of the circle, where the Mafia, Doctor and Detective can all reach it. When the voice says night falls, everybody closes their eyes and keeps them closed until it tells you to open them."
+                     : "Give the phone to the narrator. Everyone else, get ready to close your eyes.")
                     .font(.system(size: 16, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -429,6 +450,202 @@ private struct MafiaPickChip: View {
                 .scaleEffect(selected ? 1.05 : 1)
         }
         .buttonStyle(PhonePlayPressStyle())
+    }
+}
+
+// MARK: - Night, run by the phone
+
+/// The phone narrates and the awake player taps for themselves. Nothing here
+/// is secret from someone who peeks, so the screen is kept dark and quiet:
+/// the only thing on it that matters is the list of names while a role is
+/// awake. A role whose player is out sees the same screen (and taps are
+/// ignored), so nobody can tell who is still in.
+private struct MafiaAutoNightView: View {
+    @ObservedObject var game: MafiaViewModel
+
+    private let columns: [GridItem] = [GridItem(.adaptive(minimum: 100), spacing: 10)]
+
+    private var stepColor: Color {
+        game.currentStep.role?.color ?? PhonePlayDesign.yellow
+    }
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Text("NIGHT \(game.round)")
+                .font(.system(size: 13, weight: .heavy, design: .rounded))
+                .tracking(3)
+                .foregroundColor(.white.opacity(0.45))
+                .padding(.top, 8)
+
+            Image(systemName: game.currentStep.symbol)
+                .font(.system(size: 52, weight: .bold, design: .rounded))
+                .foregroundColor(stepColor)
+                .symbolEffect(.bounce, value: game.stepIndex)
+                .frame(height: 64)
+
+            Text(game.currentStep.title)
+                .font(.system(size: 28, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .id(game.stepIndex)
+                .transition(.push(from: .trailing))
+
+            Text(game.currentStep.line)
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .foregroundColor(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 26)
+
+            if game.showDetectiveResult, let checked = game.detectiveCheck,
+               game.players.indices.contains(checked) {
+                detectiveResult(game.players[checked])
+            } else if game.currentStep.needsPick {
+                pickGrid
+            } else {
+                Spacer(minLength: 0)
+                Text("Keep your eyes closed")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.4))
+                Spacer(minLength: 0)
+            }
+
+            Button {
+                PhonePlayHaptics.tap()
+                game.repeatLine()
+            } label: {
+                Label("Say it again", systemImage: "arrow.counterclockwise")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            .buttonStyle(PhonePlayPressStyle())
+            .padding(.bottom, 14)
+        }
+        .padding(.horizontal, 20)
+        .animation(PhonePlayDesign.smooth, value: game.stepIndex)
+        .animation(PhonePlayDesign.pop, value: game.currentPick)
+    }
+
+    private var pickGrid: some View {
+        VStack(spacing: 12) {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(game.pickChoices) { player in
+                        MafiaPickChip(name: player.name,
+                                      selected: game.currentPick == player.id,
+                                      tint: stepColor) {
+                            game.choose(player.id)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            PhonePlayBigButton(title: "Lock in", symbol: "lock.fill",
+                               colors: [stepColor, PhonePlayDesign.purple],
+                               enabled: game.awaitingLock && game.currentPick != nil) {
+                game.lockPick()
+            }
+        }
+        .opacity(game.awaitingLock || !game.stepRoleAlive ? 1 : 0.45)
+    }
+
+    private func detectiveResult(_ player: MafiaPlayer) -> some View {
+        let guilty: Bool = player.role.isMafia
+        return VStack(spacing: 10) {
+            Spacer(minLength: 0)
+            Image(systemName: guilty ? "hand.thumbsup.fill" : "hand.thumbsdown.fill")
+                .font(.system(size: 54, weight: .bold, design: .rounded))
+            Text(guilty ? "\(player.name) IS Mafia" : "\(player.name) is not Mafia")
+                .font(.system(size: 26, weight: .black, design: .rounded))
+                .multilineTextAlignment(.center)
+            Text("Only the Detective should see this.")
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .opacity(0.8)
+            Spacer(minLength: 0)
+        }
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity)
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
+            .fill(guilty ? PhonePlayDesign.red.opacity(0.85) : PhonePlayDesign.green.opacity(0.7)))
+        .transition(.scale.combined(with: .opacity))
+    }
+}
+
+private struct MafiaModeChip: View {
+    let title: String
+    let detail: String
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            PhonePlayHaptics.tap()
+            action()
+        } label: {
+            VStack(spacing: 3) {
+                Text(title)
+                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                Text(detail)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .opacity(0.75)
+            }
+            .foregroundColor(selected ? .black : .white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 6)
+            .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
+                .fill(selected ? MafiaStyle.accent : Color.white.opacity(0.08)))
+        }
+        .buttonStyle(PhonePlayPressStyle())
+    }
+}
+
+/// A short, plain walk through how the game plays, so nobody has to read the
+/// rules aloud.
+private struct MafiaHowToCard: View {
+    let selfRun: Bool
+
+    private var steps: [String] {
+        var out: [String] = [
+            "Each player gets a secret role from the phone: Mafia, Doctor, Detective or Villager.",
+        ]
+        if selfRun {
+            out.append("Put the phone in the middle. A voice says night falls and everyone closes their eyes. Eyes stay closed until the voice says to open them.")
+            out.append("The voice wakes the Mafia first. They open their eyes, silently agree on a victim and one of them taps the name, then Lock in. They close their eyes again.")
+            out.append("Then the Doctor taps who to save, and the Detective taps a suspect and sees on screen whether that person is Mafia.")
+            out.append("It also wakes the Doctor and Detective even after they are out, for a few seconds, so nobody can tell.")
+        } else {
+            out.append("The narrator does not play. They keep their eyes open, read each step aloud, and tap what the Mafia, Doctor and Detective silently point to.")
+        }
+        out.append("In the morning the town learns who was eliminated, talks it over, and votes someone out.")
+        out.append("Town wins when every Mafia is gone. Mafia win when they match the number of town players left.")
+        return out
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("How it plays", systemImage: "questionmark.circle.fill")
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .foregroundColor(MafiaStyle.accent)
+            ForEach(Array(steps.enumerated()), id: \.offset) { pair in
+                HStack(alignment: .top, spacing: 10) {
+                    Text("\(pair.offset + 1)")
+                        .font(.system(size: 12, weight: .heavy, design: .rounded))
+                        .foregroundColor(.black)
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(MafiaStyle.accent))
+                    Text(pair.element)
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.85))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
+            .fill(Color.white.opacity(0.06)))
     }
 }
 

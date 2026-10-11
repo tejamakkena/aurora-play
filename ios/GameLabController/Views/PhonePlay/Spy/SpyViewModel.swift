@@ -27,6 +27,12 @@ final class SpyViewModel: ObservableObject {
 
     enum Stage { case setup, reveal, discuss, vote, result }
 
+    /// The spy may stop the round at any time and name the place.
+    enum Guess: Equatable {
+        case right(String)
+        case wrong(String)
+    }
+
     @Published var names: [String] {
         didSet { PhonePlayRoster.save(names) }
     }
@@ -41,6 +47,7 @@ final class SpyViewModel: ObservableObject {
     @Published private(set) var paused: Bool = false
     @Published private(set) var accused: Int? = nil
     @Published private(set) var roundsPlayed: Int = 0
+    @Published private(set) var guess: Guess? = nil
 
     let playerRange: ClosedRange<Int> = 2...12
     let minuteChoices: [Int] = [3, 5, 8]
@@ -74,6 +81,7 @@ final class SpyViewModel: ObservableObject {
         firstAsker = Int.random(in: 0..<names.count)
         revealIndex = 0
         accused = nil
+        guess = nil
         paused = false
         stage = .reveal
     }
@@ -109,6 +117,23 @@ final class SpyViewModel: ObservableObject {
             PhonePlayHaptics.success()
         } else {
             PhonePlayHaptics.error()
+        }
+        stage = .result
+    }
+
+    /// "I am the spy": the round stops and the spy names the place. Right and
+    /// the spy wins on the spot; wrong and the town does.
+    func spyGuesses(_ place: String) {
+        guard stage == .discuss || stage == .vote else { return }
+        stopTimer()
+        roundsPlayed += 1
+        accused = spyIndex
+        if place == location {
+            guess = .right(place)
+            PhonePlayHaptics.error()
+        } else {
+            guess = .wrong(place)
+            PhonePlayHaptics.success()
         }
         stage = .result
     }

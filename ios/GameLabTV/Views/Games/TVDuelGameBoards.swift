@@ -720,7 +720,7 @@ struct TVDefuseBoardView: View {
     }
 }
 
-// MARK: - Battleship
+// MARK: - Sea Battle
 
 struct BattleshipState {
     var size = 8
@@ -778,7 +778,7 @@ struct TVBattleshipBoardView: View {
             TVAnimatedBackground(palette: TVTheme.ocean)
 
             VStack(spacing: 0) {
-                TVRoundHeader(symbol: "sailboat.fill", title: "Battleship",
+                TVRoundHeader(symbol: "sailboat.fill", title: "Sea Battle",
                               round: 0, totalRounds: 0, secondsLeft: 0,
                               phaseLabel: phaseLabel)
                 Spacer()

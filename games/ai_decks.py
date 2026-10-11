@@ -42,7 +42,7 @@ _ASK = {
     "quiz": ("multiple-choice quiz questions about {topic}. Exactly 4 options, one "
              "correct, correct_answer is its 0-based index",
              '{"question": "...?", "options": ["A", "B", "C", "D"], "correct_answer": 2}'),
-    "headsup": ("words, names or short phrases about {topic} for a Heads Up guessing "
+    "headsup": ("words, names or short phrases about {topic} for a Forehead Charades guessing "
                 "game: things people can describe or act out, 1 to 4 words each",
                 '"Shah Rukh Khan"'),
     "truth": ("truth questions for a truth-or-dare game, themed around {topic}",

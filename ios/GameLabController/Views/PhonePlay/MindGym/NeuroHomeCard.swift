@@ -11,6 +11,10 @@ struct NeuroHomeCard: View {
     let appeared: Bool
     let onPlay: () -> Void
     let onProgress: () -> Void
+    /// Opens the Daily Brain "Quick 5": five fast puzzles, the same for
+    /// everyone that day. `quickDone` is true once today's are finished.
+    var quickDone: Bool = false
+    var onQuick: (() -> Void)? = nil
 
     private static let colors: [Color] = [PhonePlayDesign.indigo,
                                           PhonePlayDesign.blue,
@@ -61,6 +65,9 @@ struct NeuroHomeCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             actionRow
+            if let onQuick {
+                quickRow(onQuick)
+            }
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -101,6 +108,31 @@ struct NeuroHomeCard: View {
             Spacer(minLength: 4)
             NeuroStreakRing(streak: state.streak)
         }
+    }
+
+    private func quickRow(_ action: @escaping () -> Void) -> some View {
+        Button {
+            PhonePlayHaptics.tap()
+            action()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: quickDone ? "checkmark.circle.fill" : "bolt.fill")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                Text(quickDone ? "Quick 5 done today" : "Quick 5: five fast puzzles, same for everyone")
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .opacity(0.7)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(Capsule().fill(Color.white.opacity(0.14)))
+        }
+        .buttonStyle(PhonePlayPressStyle())
     }
 
     private var actionRow: some View {

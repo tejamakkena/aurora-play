@@ -285,7 +285,7 @@ struct DefuseControllerView: View {
     }
 }
 
-// MARK: - Battleship
+// MARK: - Sea Battle
 
 struct BattleshipControllerView: View {
     let privateData: [String: Any]
@@ -315,7 +315,7 @@ struct BattleshipControllerView: View {
     @State private var showingFleet = false
 
     var body: some View {
-        ControllerShell(title: "Battleship",
+        ControllerShell(title: "Sea Battle",
                         subtitle: isMyTurn ? "Your shot" : "Opponent's turn") {
             VStack(spacing: 14) {
                 HStack(spacing: 10) {

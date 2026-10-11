@@ -141,7 +141,7 @@ def win_fanfare() -> list[float]:
 
 
 def coin_drop() -> list[float]:
-    """A Connect 4 disc landing in its slot: a short low wooden thud with a
+    """A Four in a Row disc landing in its slot: a short low wooden thud with a
     brief higher-pitched plastic-on-plastic clack riding on top of it."""
     duration = 0.22
     n = int(SAMPLE_RATE * duration)

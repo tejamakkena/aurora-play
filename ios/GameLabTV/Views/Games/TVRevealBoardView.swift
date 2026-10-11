@@ -40,7 +40,7 @@ struct TVRevealBoardView: View {
     /// The prompt, letter, or lot being revealed.
     let headline: String
     let rows: [TVRevealRow]
-    /// Nil for games with no single winner (e.g. Emoji Movie titles).
+    /// Nil for games with no single winner (e.g. Emoji Charades titles).
     let spotlight: TVRevealSpotlight?
     let emptyMessage: String
 

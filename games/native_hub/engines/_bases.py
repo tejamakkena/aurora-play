@@ -4,7 +4,7 @@ Most games in the catalog are one of two things, so the mechanics live here once
 rather than being re-derived in twenty-four modules.
 
 ``RoundBasedEngine``  -- everyone acts at once inside a deadline, then the round
-                         resolves and scores. Party games, Wavelength, auctions.
+                         resolves and scores. Party games, Spectrum, auctions.
 ``TurnBasedEngine``   -- players act one at a time in rotation. Board games.
 
 Both compute ``secondsLeft`` from a stored deadline rather than running a timer

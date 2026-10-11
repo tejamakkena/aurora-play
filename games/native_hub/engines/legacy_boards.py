@@ -1,6 +1,6 @@
 """Board and arcade engines ported from the browser games catalog.
 
-Connect 4, Memory and Pong port their win/physics logic straight from
+Four in a Row, Memory and Pong port their win/physics logic straight from
 ``games/connect4``, ``games/memory`` and ``games/pong``. Chess and
 Snake & Ladder have no working browser backend to port (their old
 ``games/snake_ladder`` module has an empty ``game_logic.py``/``models.py``),
@@ -15,7 +15,7 @@ from games.native_hub.engine import NativeGameEngine
 from games.native_hub.engines._bases import TurnBasedEngine
 
 # ---------------------------------------------------------------------------
-# Connect 4 -- ported from games/connect4/socket_events.py:check_winner
+# Four in a Row -- ported from games/connect4/socket_events.py:check_winner
 # ---------------------------------------------------------------------------
 
 

@@ -157,6 +157,18 @@ enum MafiaLines {
     ]
 }
 
+/// Runs a closure at most once: a spoken line finishing and its safety
+/// timeout both try to resume the same continuation.
+@MainActor
+private final class MafiaOnce {
+    private var done = false
+    func run(_ action: () -> Void) {
+        guard !done else { return }
+        done = true
+        action()
+    }
+}
+
 @MainActor
 final class MafiaViewModel: ObservableObject {
 
@@ -166,6 +178,12 @@ final class MafiaViewModel: ObservableObject {
         didSet { PhonePlayRoster.save(names) }
     }
     @Published var narrationOn: Bool = true
+    /// True (the default): the phone IS the narrator. It speaks every night
+    /// step, waits for the Mafia, Doctor and Detective to tap their choice
+    /// themselves, and moves on by itself, so everybody can close their eyes
+    /// and nobody has to sit the game out. False: a person narrates, keeps
+    /// their eyes open and taps through the night.
+    @Published var selfRun: Bool = true
 
     @Published private(set) var stage: Stage = .setup
     @Published private(set) var players: [MafiaPlayer] = []
@@ -180,6 +198,10 @@ final class MafiaViewModel: ObservableObject {
     @Published private(set) var dayVoteDone: Bool = false
     @Published private(set) var dayEliminated: Int? = nil
     @Published private(set) var winner: MafiaWinner? = nil
+    /// Self-run night: the current role is awake and the phone is waiting
+    /// for their tap, and the Detective's answer while it is on screen.
+    @Published private(set) var awaitingLock: Bool = false
+    @Published private(set) var showDetectiveResult: Bool = false
 
     let playerRange: ClosedRange<Int> = 5...15
 
@@ -188,6 +210,7 @@ final class MafiaViewModel: ObservableObject {
     private var narrationToken: Int = 0
     private var isActive: Bool = true
     private var lastLine: String = ""
+    private var autoToken: Int = 0
 
     init(speech: TravelSpeech) {
         self.speech = speech
@@ -296,6 +319,9 @@ final class MafiaViewModel: ObservableObject {
     func editPlayers() {
         speech.stop()
         narrationToken += 1
+        autoToken += 1
+        awaitingLock = false
+        showDetectiveResult = false
         stage = .setup
     }
 
@@ -306,6 +332,7 @@ final class MafiaViewModel: ObservableObject {
 
     func shutdown() {
         isActive = false
+        autoToken += 1
         narrationToken += 1
         prepareTask?.cancel()
         speech.stop()
@@ -323,9 +350,15 @@ final class MafiaViewModel: ObservableObject {
         dayVoteDone = false
         dayEliminated = nil
         stepIndex = 0
+        awaitingLock = false
+        showDetectiveResult = false
         stage = .night
         PhonePlayHaptics.thump()
-        narrate(currentStep.line)
+        if selfRun {
+            beginAutoStep()
+        } else {
+            narrate(currentStep.line)
+        }
     }
 
     func choose(_ playerID: Int) {
@@ -369,6 +402,85 @@ final class MafiaViewModel: ObservableObject {
         }
         stage = .morning
         checkWinner()
+    }
+
+    // MARK: - Self-run night
+
+    /// Speak this step's line, then wait for whoever it wakes. A role whose
+    /// player is already out is "woken" anyway for a believable few seconds,
+    /// so the table cannot tell who is still in the game.
+    private func beginAutoStep() {
+        autoToken += 1
+        let token = autoToken
+        let step = currentStep
+        awaitingLock = false
+        showDetectiveResult = false
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.speakAndWait(step.line, token: token)
+            guard self.isActive, self.autoToken == token, self.stage == .night else { return }
+            if step.needsPick {
+                if self.stepRoleAlive {
+                    self.awaitingLock = true
+                    PhonePlayHaptics.rigid()
+                    return                       // lockPick() carries on
+                }
+                let seconds = Double.random(in: 5...9)
+                try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            } else {
+                try? await Task.sleep(nanoseconds: 2_200_000_000)
+            }
+            guard self.isActive, self.autoToken == token, self.stage == .night else { return }
+            self.autoAdvance()
+        }
+    }
+
+    /// The awake player has chosen and confirms. The Detective's answer is
+    /// shown on screen (never spoken) for a few seconds first.
+    func lockPick() {
+        guard selfRun, stage == .night, awaitingLock, currentPick != nil else { return }
+        awaitingLock = false
+        PhonePlayHaptics.success()
+        autoToken += 1
+        let token = autoToken
+        let isDetective = currentStep == .detectiveWake
+        if isDetective { showDetectiveResult = true }
+        Task { @MainActor [weak self] in
+            let pause: Double = isDetective ? 4.5 : 0.8
+            try? await Task.sleep(nanoseconds: UInt64(pause * 1_000_000_000))
+            guard let self, self.isActive, self.autoToken == token, self.stage == .night else { return }
+            self.showDetectiveResult = false
+            self.autoAdvance()
+        }
+    }
+
+    private func autoAdvance() {
+        if isLastStep {
+            resolveNight()
+            return
+        }
+        stepIndex += 1
+        beginAutoStep()
+    }
+
+    /// Speaks `line` and returns when it has finished (or after a safety
+    /// timeout). With the voice off it simply waits long enough to read it.
+    private func speakAndWait(_ line: String, token: Int) async {
+        lastLine = line
+        guard narrationOn else {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            return
+        }
+        _ = await prepareTask?.value
+        guard isActive, autoToken == token else { return }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let once = MafiaOnce()
+            speech.speak(line) { once.run { continuation.resume() } }
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 14_000_000_000)
+                once.run { continuation.resume() }
+            }
+        }
     }
 
     // MARK: - Day

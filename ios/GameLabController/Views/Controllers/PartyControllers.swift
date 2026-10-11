@@ -288,7 +288,7 @@ struct HerdControllerView: View {
     }
 }
 
-// MARK: - Emoji Movie
+// MARK: - Emoji Charades
 
 struct EmojiMovieControllerView: View {
     let privateData: [String: Any]
@@ -312,7 +312,7 @@ struct EmojiMovieControllerView: View {
                            "⚔️","🏰","🎬","🎵","💀","👻","🧙","🕵️","🚗","✈️","🌍","⭐️"]
 
     var body: some View {
-        ControllerShell(title: "Emoji Movie",
+        ControllerShell(title: "Emoji Charades",
                         subtitle: phase == "compose" ? "Describe it in emoji" : "Guess the others",
                         secondsLeft: seconds) {
             ZStack {

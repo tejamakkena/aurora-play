@@ -51,7 +51,7 @@ enum AppConstants {
     /// up from another phone's backup used to come up with that phone's id.
     /// The server reads one id as one seat, so the two phones shared a seat:
     /// one colour, one turn and one score between them, which is what made
-    /// Connect 4 drop the same colour disc for both people.
+    /// Four in a Row drop the same colour disc for both people.
     ///
     /// The vendor identifier is per-device and is not restored from a
     /// backup, so storing it alongside the id tells us when the id has

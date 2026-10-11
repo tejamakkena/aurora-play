@@ -2,7 +2,7 @@
 questions and words, and remembers who has already seen them.
 
 Before this, each game drew from a small fixed list (7 Mind Meld
-categories, 10 drawing prompts, 15 Wavelength spectra, 23 Bluff facts...)
+categories, 10 drawing prompts, 15 Spectrum spectra, 23 Bluff facts...)
 and only avoided repeats inside one game -- Play Again, or the next game
 night, started from scratch.
 
@@ -136,6 +136,29 @@ def _parse_pair(raw):
     return (left, right)
 
 
+def _parse_wyr(raw):
+    if isinstance(raw, dict):
+        raw = (raw.get("left"), raw.get("right"))
+    if not isinstance(raw, (list, tuple)) or len(raw) != 2:
+        return None
+    a, b = _clean(raw[0], 70), _clean(raw[1], 70)
+    if not a or not b or norm_key(a) == norm_key(b):
+        return None
+    return (a, b)
+
+
+def _parse_host_fact(raw):
+    """A true statement, its false twin and a one-line why."""
+    if isinstance(raw, dict):
+        raw = (raw.get("true"), raw.get("false"), raw.get("why"))
+    if not isinstance(raw, (list, tuple)) or len(raw) != 3:
+        return None
+    true, false, why = _clean(raw[0], 140), _clean(raw[1], 140), _clean(raw[2], 160)
+    if not true or not false or not why or norm_key(true) == norm_key(false):
+        return None
+    return (true, false, why)
+
+
 def _parse_lot(raw):
     if isinstance(raw, dict):
         raw = (raw.get("lot"), raw.get("value"))
@@ -215,9 +238,22 @@ KINDS: dict[str, Kind] = {k.name: k for k in [
                '"Railway station"'),
     Kind("wavelength", _bundled(_C, "WAVELENGTH_SPECTRA"), _parse_pair,
          lambda i: {"left": i[0], "right": i[1]}, lambda i: norm_key(i[0] + "|" + i[1]),
-         "opposite ends of a spectrum for the game Wavelength, where a clue-giver names "
+         "opposite ends of a spectrum for the game Spectrum, where a clue-giver names "
          "something that sits somewhere between them (fun, debatable spectra)",
          '{"left": "Overrated", "right": "Underrated"}'),
+    Kind("would_rather", _bundled("games.native_hub.engines._wyr", "DILEMMAS"), _parse_wyr,
+         lambda i: {"left": i[0], "right": i[1]}, lambda i: norm_key(i[0] + "|" + i[1]),
+         '"Would you rather" dilemmas for a family party: two funny, harmless choices, '
+         'each a short phrase that completes "Would you rather ..." (never mean, scary or rude)',
+         '{"left": "be able to fly", "right": "be able to turn invisible"}'),
+    Kind("host_fact", _bundled("games.native_hub.engines._hostlies", "FACTS"), _parse_host_fact,
+         lambda i: {"true": i[0], "false": i[1], "why": i[2]}, lambda i: norm_key(i[0]),
+         "pairs for a game where the host sometimes lies: a TRUE statement, a FALSE twin that "
+         "changes exactly one detail so it reads just as plausibly, and a one-line reason the true "
+         "one is true. Only settled, family friendly facts you are certain of; the false twin must "
+         "be definitely false",
+         '{"true": "Octopuses have three hearts.", "false": "Octopuses have five hearts.", '
+         '"why": "Two pump blood to the gills and one to the body."}'),
     Kind("auction", _bundled(_C, "AUCTION_LOTS"), _parse_lot,
          lambda i: {"lot": i[0], "value": i[1]}, lambda i: norm_key(i[0]),
          "funny or dreamy things to bid on in a party auction game, each with a value "

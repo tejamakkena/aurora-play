@@ -116,7 +116,8 @@
       h('div', { class: 'scroll' },
         h('div', { class: 'col gap20', style: { padding: '6px 20px 28px' } },
           header, resumeCard, codeCard, nameCard, joinBtn, qr,
-          h('div', { class: 'txt-center c-text3', style: { fontSize: '11px' } }, 'Aurora Play web controller'))));
+          h('div', { class: 'txt-center c-text3', style: { fontSize: '11px' } },
+            'Aurora Play web controller. Some trivia questions come from Open Trivia DB (opentdb.com), CC BY-SA 4.0.'))));
   };
 
   // ---- Loading ------------------------------------------------------------

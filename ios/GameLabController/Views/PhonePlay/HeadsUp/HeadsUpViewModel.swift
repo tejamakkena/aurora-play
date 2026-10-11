@@ -1,7 +1,7 @@
 import CoreMotion
 import SwiftUI
 
-// MARK: - Heads Up
+// MARK: - Forehead Charades
 //
 // The guesser holds the phone to their forehead, screen facing the group.
 // Tilt the screen DOWN towards the floor = got it; tilt it UP towards the
