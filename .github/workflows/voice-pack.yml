@@ -1,0 +1,86 @@
+name: Render voice pack
+
+# Renders the offline voice clips (tools/render_voice_pack.py) and pushes them
+# to a branch. Run it from the Actions tab: "Run workflow". It never touches
+# main; open a pull request from the branch it prints when you are happy.
+#
+#   piper   free, runs here with no account (check the voice's licence).
+#   openai  the same cloud voice the app uses today; needs the OPENAI_API_KEY
+#           repository secret and spends credits ONCE for the whole pack.
+
+on:
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: "Voice engine"
+        type: choice
+        options: [piper, openai]
+        default: piper
+      piper_voice:
+        description: "Piper voice id (piper engine only), e.g. en_US-ljspeech-high"
+        default: en_US-ljspeech-high
+      limit:
+        description: "Render at most this many NEW clips (0 = all). Try 40 first."
+        default: "40"
+      max_mb:
+        description: "Stop when the pack reaches this size in MB (0 = no limit)"
+        default: "0"
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install ffmpeg and the project's Python packages
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ffmpeg
+          pip install -r requirements.txt
+
+      - name: Install Piper and download the voice
+        if: ${{ inputs.engine == 'piper' }}
+        run: |
+          pip install piper-tts==1.2.0
+          voice="${{ inputs.piper_voice }}"
+          lang_region="${voice%%-*}"          # en_US
+          lang="${lang_region%%_*}"           # en
+          rest="${voice#*-}"                  # ljspeech-high
+          name="${rest%%-*}"                  # ljspeech
+          quality="${rest##*-}"               # high
+          base="https://huggingface.co/rhasspy/piper-voices/resolve/main/${lang}/${lang_region}/${name}/${quality}/${voice}"
+          mkdir -p voices
+          curl -fL -o "voices/${voice}.onnx" "${base}.onnx"
+          curl -fL -o "voices/${voice}.onnx.json" "${base}.onnx.json"
+          ls -la voices
+
+      - name: Render clips
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          args="--engine ${{ inputs.engine }} --max-mb ${{ inputs.max_mb }}"
+          if [ "${{ inputs.limit }}" != "0" ]; then args="$args --limit ${{ inputs.limit }}"; fi
+          if [ "${{ inputs.engine }}" = "piper" ]; then
+            args="$args --piper-model voices/${{ inputs.piper_voice }}.onnx"
+          fi
+          python3 tools/render_voice_pack.py --dry-run
+          python3 tools/render_voice_pack.py $args
+
+      - name: Push the clips to a branch
+        run: |
+          branch="voice-pack/${{ github.run_id }}"
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add ios/Shared/Voice/Pack
+          git commit -m "Voice pack: ${{ inputs.engine }} clips (run ${{ github.run_id }})"
+          git push origin "$branch"
+          echo "Pushed branch $branch. Listen to a few clips, then open a pull request from it." >> "$GITHUB_STEP_SUMMARY"

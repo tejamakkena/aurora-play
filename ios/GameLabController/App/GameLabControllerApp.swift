@@ -6,6 +6,7 @@ struct GameLabControllerApp: App {
         WindowGroup {
             RootControllerView()
                 .onAppear {
+                    VoicePack.selfCheck()
                     GameSocketManager.shared.connect(to: AppConstants.serverURL)
                 }
                 .preferredColorScheme(.dark)

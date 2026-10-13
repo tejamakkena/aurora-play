@@ -115,6 +115,12 @@ final class TVVoiceHost: NSObject, ObservableObject {
     }
 
     private let synthesizer = AVSpeechSynthesizer()
+    /// Plays the bundled offline clips (Shared/Voice/VoicePack.swift).
+    private let clips = VoiceClipSequencer()
+    /// Set while a sentence of a clip-backed line is spoken live on the
+    /// device voice: called when that sentence ends, in place of the
+    /// whole-line completion.
+    private var liveDone: (() -> Void)?
 
     override init() {
         super.init()
@@ -203,7 +209,20 @@ final class TVVoiceHost: NSObject, ObservableObject {
         speechToken += 1
         let token = speechToken
         pendingSpeechCompletion = completion
-        if Self.sessionVoice == .device {
+        // Fixed lines come from the bundled pack (offline, free, natural);
+        // only the sentences it lacks (a player's name) are spoken live.
+        if clips.play(trimmed, rate: rate, preDelay: preDelay,
+                      live: { [weak self] piece, done in
+                          guard let self, token == self.speechToken else { return }
+                          self.speakLivePiece(piece, rate: rate, done: done)
+                      },
+                      completion: { [weak self] in
+                          guard let self, token == self.speechToken else { return }
+                          self.finishSpeechCompletion()
+                      }) {
+            return
+        }
+        if Self.sessionVoice == .device || !VoiceSettings.cloudAllowed {
             speakOnDevice(trimmed, rate: rate, preDelay: preDelay)
             return
         }
@@ -261,6 +280,8 @@ final class TVVoiceHost: NSObject, ObservableObject {
 
     func stopSpeaking() {
         speechToken += 1
+        clips.stop()
+        liveDone = nil
         audioPlayer?.stop()
         audioPlayer = nil
         currentUtteranceID = nil
@@ -279,7 +300,19 @@ final class TVVoiceHost: NSObject, ObservableObject {
         // may fire the completion (else the mic would open mid-question).
         guard currentUtteranceID == id else { return }
         currentUtteranceID = nil
+        if let done = liveDone {
+            liveDone = nil
+            done()
+            return
+        }
         finishSpeechCompletion()
+    }
+
+    /// One sentence of a clip-backed line that the pack does not have (it
+    /// holds a player's name): the device voice, then on to the next sentence.
+    private func speakLivePiece(_ text: String, rate: Float, done: @escaping () -> Void) {
+        liveDone = done
+        speakOnDevice(text, rate: rate, preDelay: 0)
     }
 
     private func finishSpeechCompletion() {

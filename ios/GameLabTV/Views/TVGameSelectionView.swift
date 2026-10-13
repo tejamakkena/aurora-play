@@ -12,6 +12,7 @@ struct TVGameSelectionView: View {
     @FocusState private var focusedGame: GameID?
     @State private var hasAppeared = false
     @State private var isPulsing = false
+    @State private var studioVoice = VoiceSettings.cloudAllowed
 
     // Every soloPlayable game also supports more than one player (Neon
     // Snake, 2048, Simon Says: up to 4; Brick Breaker: up to 2) -- picking
@@ -229,6 +230,19 @@ struct TVGameSelectionView: View {
             }
 
             Spacer(minLength: 0)
+
+            // Which voice reads the questions: the bundled offline voice
+            // (free, works without internet) or the cloud studio voice,
+            // which spends credits on every line.
+            Button {
+                studioVoice.toggle()
+                VoiceSettings.cloudAllowed = studioVoice
+            } label: {
+                Label(studioVoice ? "Voice: Studio (online)" : "Voice: Offline",
+                      systemImage: studioVoice ? "cloud.fill" : "speaker.wave.2.fill")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.violet, fontSize: 20))
+            .accessibilityIdentifier("voiceModeButton")
 
             // Connection status dot -- breathes gently while reconnecting
             // so the state reads as "actively retrying", not stuck.
