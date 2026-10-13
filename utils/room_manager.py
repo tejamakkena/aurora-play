@@ -29,7 +29,7 @@ from typing import Any, Callable
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 6
 
-EMPTY_GRACE_SECONDS = 120       # room with nobody in it survives this long
+EMPTY_GRACE_SECONDS = 600       # room with nobody in it survives this long (switching apps, a Wi-Fi blip)
 ROOM_TTL_SECONDS = 6 * 3600     # hard ceiling regardless of activity (a long Game Night)
 #: A lobby seat survives a dropped connection this long (a phone switching
 #: apps or tabs). Mid-game seats are never evicted: the seat holds the
@@ -212,6 +212,7 @@ class Room:
             "contentPack": self.content_pack,
             "topic": self.topic,
             "options": _options_json(self),
+            "tvConnected": bool(self.tv_sids),
             "micPlayerID": self.mic_player_id,
             "botsAllowed": self.game_id in POLICIES,
             "usesContentPack": self.game_id in PACK_GAMES,

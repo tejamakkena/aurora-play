@@ -54,8 +54,18 @@ def push_room(socketio, room) -> None:
 
 
 def push_error(socketio, sid: str, message: str, code: str | None = None) -> None:
-    socketio.emit("error", {"message": message, "code": code},
+    from games.native_hub.errors import describe
+    socketio.emit("error", {"code": code, **describe(code, message)},
                   to=sid, namespace=NAMESPACE)
+
+
+def push_room_closed(socketio, room, reason: str) -> None:
+    """Tell everyone still attached that this room is gone for good."""
+    from games.native_hub.errors import describe
+    socketio.emit("room_closed",
+                  {"roomCode": room.code, "reason": reason, "code": "ROOM_CLOSED",
+                   **describe("ROOM_CLOSED")},
+                  to=room.code, namespace=NAMESPACE)
 
 
 def broadcast_state(socketio, room) -> None:
@@ -250,6 +260,7 @@ def _reaper(socketio) -> None:
                     push_room(socketio, room)
             for room in rooms.reapable(now):
                 logger.info("reaping room %s", room.code)
+                push_room_closed(socketio, room, "expired")
                 rooms.remove(room.code)
         except Exception:
             logger.exception("reaper error")

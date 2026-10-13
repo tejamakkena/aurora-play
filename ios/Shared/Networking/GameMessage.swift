@@ -45,6 +45,7 @@ enum ServerEvent: String {
     case privateState   = "private_state"  // private data for phone only
     case gameEnded      = "game_ended"
     case error          = "error"
+    case roomClosed     = "room_closed"
     // Voice quizmaster
     case micReassigned  = "mic_reassigned"
     case voiceState      = "voice_state"
@@ -101,6 +102,24 @@ struct PrivateStateResponse: Decodable {
 struct ErrorResponse: Decodable {
     let message: String
     let code: String?
+    /// What to do about it, in plain English (games/native_hub/errors.py).
+    let hint: String?
+    /// True when the room is gone for good: leave the game screen.
+    let fatal: Bool?
+
+    /// "Headline\nhint", the form the phone's error screen shows.
+    var displayText: String {
+        guard let hint, !hint.isEmpty else { return message }
+        return message + "\n" + hint
+    }
+}
+
+/// The server dropped the room (idle too long, expired, or the TV left).
+struct RoomClosedResponse: Decodable {
+    let roomCode: String
+    let reason: String?
+    let message: String?
+    let hint: String?
 }
 
 // MARK: - Voice quizmaster payloads

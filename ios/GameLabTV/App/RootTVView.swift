@@ -107,8 +107,23 @@ struct RootTVView: View {
             }
         }
         .environmentObject(vm)
+        .overlay(alignment: .top) {
+            if let notice = vm.notice {
+                Text(notice)
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 36).padding(.vertical, 16)
+                    .background(Capsule().fill(ShellTheme.gold))
+                    .padding(.top, 40)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: vm.notice)
         .onChange(of: keepsScreenAwake, initial: true) { _, _ in applyIdleTimer() }
-        .onChange(of: scenePhase) { _, _ in applyIdleTimer() }
+        .onChange(of: scenePhase) { _, phase in
+            applyIdleTimer()
+            if phase == .active { vm.appBecameActive() }
+        }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
         // Menu is intercepted through a window-level UIKit press
         // recognizer rather than SwiftUI's .onExitCommand -- see
@@ -158,6 +173,10 @@ final class TVRootViewModel: ObservableObject {
     /// True while a remote-only game is running with no phones connected.
     @Published private(set) var isSolo = false
 
+    /// A one-line message for the game list ("That room closed. Pick a
+    /// game to start a new one."). Clears itself after a few seconds.
+    @Published var notice: String? = nil
+
     /// The room was created from the home screen's Game Night card: the
     /// lobby shows the night setup panel until `start_night` lands (after
     /// which `Room.night` drives everything).
@@ -187,8 +206,20 @@ final class TVRootViewModel: ObservableObject {
             self?.pendingRules = nil
         }
 
+        // The room is gone for good (idle too long, expired): back to the game
+        // list with a plain explanation instead of a dead room code.
+        socket.on(.roomClosed) { [weak self] (r: RoomClosedResponse) in
+            guard let self, self.currentRoomCode == r.roomCode || self.currentRoomCode == nil else { return }
+            self.roomIsGone(r.message ?? "That room has closed")
+        }
+        socket.on(.error) { [weak self] (r: ErrorResponse) in
+            guard let self, r.fatal == true else { return }
+            self.roomIsGone(r.message)
+        }
+
         socket.on(.roomUpdated) { [weak self] (response: Room) in
             guard let self else { return }
+            Self.rememberRoom(response.code)
             switch response.state {
             case .lobby:
                 // Used to auto-emit startGame instantly here for a solo
@@ -226,6 +257,51 @@ final class TVRootViewModel: ObservableObject {
         }
     }
 
+    // MARK: Staying in the same room
+
+    // The TV remembers its room so that going to the Apple TV home screen
+    // and back (even if tvOS closed the app meanwhile) lands in the same
+    // room with the same join code, instead of starting a new one that the
+    // phones don't know.
+    private static let roomKey = "aurora_tv_room_code"
+    private static let roomAtKey = "aurora_tv_room_at"
+    private static let roomWindow: TimeInterval = 30 * 60
+
+    private static func rememberRoom(_ code: String) {
+        let d = UserDefaults.standard
+        d.set(code, forKey: roomKey)
+        d.set(Date().timeIntervalSince1970, forKey: roomAtKey)
+    }
+
+    private static func forgetRoom() {
+        let d = UserDefaults.standard
+        d.removeObject(forKey: roomKey)
+        d.removeObject(forKey: roomAtKey)
+    }
+
+    private static func savedRoom() -> String? {
+        let d = UserDefaults.standard
+        guard let code = d.string(forKey: roomKey), code.count == 6 else { return nil }
+        let at = d.double(forKey: roomAtKey)
+        guard at > 0, Date().timeIntervalSince1970 - at < roomWindow else { return nil }
+        return code
+    }
+
+    private func roomIsGone(_ message: String) {
+        let hadRoom: Bool = currentRoomCode != nil || Self.savedRoom() != nil
+        Self.forgetRoom()
+        guard hadRoom else { return }
+        isSolo = false
+        isNightSetup = false
+        pendingRules = nil
+        screen = .gameSelection
+        notice = message + ". Pick a game to start a new one."
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            self?.notice = nil
+        }
+    }
+
     private var currentRoomCode: String? {
         switch screen {
         case .lobby(let room), .playing(let room), .results(let room): return room.code
@@ -233,8 +309,25 @@ final class TVRootViewModel: ObservableObject {
         }
     }
 
+    /// Back from the Apple TV home screen: make sure there is a live socket
+    /// and that this board is attached to its room again, with the same
+    /// join code. Silence after the rejoin means a dead connection, so dial again.
+    func appBecameActive() {
+        let returnedAt = Date()
+        socket.nudge()
+        if socket.isConnected { rejoinAsBoard() }
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard let self, self.currentRoomCode != nil else { return }
+            if self.socket.lastInboundAt < returnedAt { self.socket.forceReconnect() }
+        }
+    }
+
     private func rejoinAsBoard() {
-        guard let code = currentRoomCode else { return }
+        // After a relaunch there is no room on screen yet: try the one this
+        // TV last showed. If it is gone, the server answers room-not-found
+        // and the game list simply stays as it is.
+        guard let code = currentRoomCode ?? Self.savedRoom() else { return }
         socket.emit(.joinRoom, payload: JoinRoomPayload(
             roomCode: code, playerName: "TV",
             playerID: AppConstants.deviceID, isTV: true
@@ -414,6 +507,7 @@ final class TVRootViewModel: ObservableObject {
     }
 
     func returnToSelection() {
+        Self.forgetRoom()
         isSolo = false
         isNightSetup = false
         nightTotalsBeforeGame = [:]

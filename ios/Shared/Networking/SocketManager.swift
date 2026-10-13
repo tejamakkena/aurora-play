@@ -9,6 +9,11 @@ final class GameSocketManager: ObservableObject {
 
     @Published var isConnected = false
 
+    /// When the server last said anything at all (any event). A socket that
+    /// died while the app was suspended can still read as connected; silence
+    /// after a rejoin is how the apps tell (see `forceReconnect`).
+    private(set) var lastInboundAt = Date.distantPast
+
     private var manager: SocketManager?
     private var socket: SocketIOClient?
 
@@ -54,6 +59,14 @@ final class GameSocketManager: ObservableObject {
     /// was suspended is reconnected now instead of at the next backoff tick;
     /// a socket that looks alive is left alone (its owner re-sends join_room
     /// to resync, see ControllerRootViewModel.appBecameActive).
+    /// Drops the socket and dials again. For a connection that only looks
+    /// alive: the connect hooks then re-seat this device in its room.
+    func forceReconnect() {
+        guard let socket else { return }
+        socket.disconnect()
+        socket.connect()
+    }
+
     func nudge() {
         guard let socket, socket.status != .connected, socket.status != .connecting else { return }
         socket.connect()
@@ -137,7 +150,10 @@ final class GameSocketManager: ObservableObject {
     private func attach(_ key: String) {
         guard let socket, let dispatch = handlers[key] else { return }
         socket.off(key)
-        socket.on(key) { data, _ in dispatch(data) }
+        socket.on(key) { [weak self] data, _ in
+            DispatchQueue.main.async { self?.lastInboundAt = Date() }
+            dispatch(data)
+        }
     }
 
     private func attachAllHandlers() {

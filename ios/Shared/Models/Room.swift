@@ -23,6 +23,9 @@ struct Room: Codable, Equatable {
     // Per-game lobby picks (Poker: hands, chips, re-buys). nil or empty for
     // games without any.
     var options: [GameOption]? = nil
+    // False while no TV board is attached (the TV app was switched away or
+    // lost Wi-Fi). Phones show a "waiting for the TV" banner. nil on older servers.
+    var tvConnected: Bool? = nil
 
     var hostPlayerID: String { players.first?.id ?? "" }
 }

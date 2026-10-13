@@ -796,6 +796,11 @@ def register_native_events(socketio):
         payload = v.action_data(data.get("data"))
 
         room = rooms.get(code) if code else None
+        if code and room is None:
+            # The room is gone (reaped, or the server restarted): say so
+            # instead of leaving the phone on a controller that does nothing.
+            push_error(socketio, sid, "This room has closed", "ROOM_CLOSED")
+            return
         if room is None or pid is None or verb is None:
             return
         if (room.state is not RoomState.PLAYING or room.engine is None

@@ -92,6 +92,23 @@
     var key = S.screen + (S.room ? S.room.code : '');
     node._key = key;
     AP.patch(root, node);
+    tvOfflineBanner();
+  }
+
+  // The TV app was switched away or lost its connection: tell the table. A
+  // plain element outside the patched tree, so it never disturbs a screen.
+  function tvOfflineBanner() {
+    var offline = !!(S.room && S.room.tvConnected === false &&
+      (S.screen === 'waiting' || S.screen === 'rules' || S.screen === 'playing'));
+    var el = document.getElementById('tv-offline-banner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'tv-offline-banner';
+      el.className = 'tv-banner';
+      el.textContent = 'Lost the TV. Waiting for it to come back...';
+      document.body.appendChild(el);
+    }
+    el.style.display = offline ? 'block' : 'none';
   }
 
   AP.start = function () {
