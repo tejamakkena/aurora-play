@@ -37,7 +37,6 @@ final class TVMicController: ObservableObject {
     func attach() {
         guard !attached else { return }
         attached = true
-        Task { _ = await voice.requestAuthorization() }
         socket.on(.micReassigned) { [weak self] (r: MicReassignedResponse) in
             guard let self, r.roomCode == self.roomCode else { return }
             self.micPlayerID = r.playerID
@@ -65,6 +64,10 @@ final class TVMicController: ObservableObject {
     }
 
     func claimMic() {
+        // Ask for the microphone and speech permissions only now, when this
+        // player chooses to be the one the TV listens to, not at the start of
+        // every TV game.
+        Task { _ = await voice.requestAuthorization() }
         socket.emit(.claimMic, payload: ClaimMicPayload(
             roomCode: roomCode, playerID: playerID))
     }

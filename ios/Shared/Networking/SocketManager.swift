@@ -129,10 +129,16 @@ final class GameSocketManager: ObservableObject {
         let key = event.rawValue
         handlers[key] = { data in
             guard let raw = data.first,
-                  let jsonData = try? JSONSerialization.data(withJSONObject: raw),
-                  let decoded = try? JSONDecoder().decode(T.self, from: jsonData)
+                  let jsonData = try? JSONSerialization.data(withJSONObject: raw)
             else { return }
-            DispatchQueue.main.async { handler(decoded) }
+            do {
+                let decoded = try JSONDecoder().decode(T.self, from: jsonData)
+                DispatchQueue.main.async { handler(decoded) }
+            } catch {
+                // A payload that does not match its struct used to vanish,
+                // leaving a blank game. Leave a trace in the console log.
+                print("[socket] could not decode \(key) as \(T.self): \(error)")
+            }
         }
         attach(key)
     }

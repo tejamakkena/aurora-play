@@ -341,7 +341,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
                 let letters = ["A", "B", "C", "D"]
                 let answerText = options.indices.contains(correctIndex)
                     ? options[correctIndex] : ""
-                let letter = letters[correctIndex % letters.count]
+                let letter = letters[abs(correctIndex) % letters.count]
                 let text: String
                 switch correct {
                 case true:

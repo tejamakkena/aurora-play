@@ -22,7 +22,9 @@ extension Dictionary where Key == String, Value == Any {
         self[key] as? Bool ?? fallback
     }
     func dbl(_ key: String, _ fallback: Double = 0) -> Double {
-        self[key] as? Double ?? fallback
+        if let value = self[key] as? Double { return value }
+        if let value = self[key] as? Int { return Double(value) }
+        return fallback
     }
     func strings(_ key: String) -> [String] {
         (self[key] as? [Any] ?? []).compactMap { $0 as? String }
