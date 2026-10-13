@@ -161,16 +161,25 @@ class TestPhaseFlow:
 
 
 class TestCategoryVote:
-    def test_three_doors_and_majority_wins(self):
+    def test_six_doors_and_majority_wins(self):
         engine, roster = make(players=3)
         to_phase(engine, "category_vote")
-        assert len(engine.categories) == 3
-        assert len(set(engine.categories)) == 3
+        assert len(engine.categories) == 6
+        assert len(set(engine.categories)) == 6
+        assert engine.public_state()["categories"] and len(engine.public_state()["categories"]) == 6
         for p in roster:
-            engine.handle_action(p.id, "vote_category", {"index": 2})
+            engine.handle_action(p.id, "vote_category", {"index": 5})
         engine.tick(0.0)                   # all voted: closes early
         assert engine.phase == "category_reveal"
-        assert engine.chosen_category == engine.categories[2]
+        assert engine.chosen_category == engine.categories[5]
+
+    def test_each_round_offers_other_categories_first(self):
+        engine, _ = make(players=3)
+        to_phase(engine, "category_vote")
+        first = set(engine.categories)
+        again = set(engine._offer_categories())
+        # Thirteen categories exist: the second offer favours the seven not just shown.
+        assert len(first & again) <= 1
 
     def test_tie_is_broken_randomly_between_the_leaders(self):
         winners = set()

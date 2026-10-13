@@ -3,7 +3,7 @@
 An original party-quiz format built for the TV-plus-phones setup:
 
 ``intro``            title card.
-``category_vote``    three category doors on the TV, phones vote (random
+``category_vote``    six category doors on the TV, phones vote (random
                      tie-break). Skipped for custom quizzes.
 ``category_reveal``  the winning door swings open.
 ``power_pick``       before every second question: each player throws one
@@ -59,7 +59,7 @@ POWERS = [
 ATTACK_POWERS = {p["id"] for p in POWERS if p["kind"] == "attack"}
 POWER_IDS = {p["id"] for p in POWERS}
 
-#: Shown on the extra door when the pack has fewer than three categories
+#: Shown on the extra door when the pack has fewer than six categories
 #: with questions left. It deals a mixed set.
 MIXED_CATEGORY = "Surprise Mix"
 
@@ -258,21 +258,31 @@ class TriviaEngine(NativeGameEngine):
     def _unused(self) -> list[tuple]:
         return [q for q in self.pool if q[1] not in self._used]
 
+    #: Doors on offer each round.
+    CATEGORY_DOORS = 6
+
     def _offer_categories(self) -> list[str]:
+        """Six categories with enough questions left, favouring ones the
+        table has not just been offered so every round looks different."""
         counts: dict[str, int] = {}
         for q in self._unused():
             counts[q[0]] = counts.get(q[0], 0) + 1
         need = self.QUESTIONS_PER_ROUND
+        doors = self.CATEGORY_DOORS
         rich = [c for c, n in counts.items() if n >= need and c != MIXED_CATEGORY]
         random.shuffle(rich)
-        offer = rich[:3]
-        if len(offer) < 3:
+        last = set(getattr(self, "_last_offer", []))
+        rich.sort(key=lambda c: c in last)           # fresh ones first, order otherwise random
+        offer = rich[:doors]
+        if len(offer) < doors:
             thin = [c for c, n in counts.items() if c not in offer and n > 0]
             random.shuffle(thin)
-            offer += thin[:3 - len(offer)]
-        if len(offer) < 3:
+            offer += thin[:doors - len(offer)]
+        if len(offer) < doors:
             offer.append(MIXED_CATEGORY)
-        return offer[:3]
+        offer = offer[:doors]
+        self._last_offer = list(offer)
+        return offer
 
     def _deal_round(self, category: str) -> None:
         """Pick this round's questions: the voted category first, then mixed."""

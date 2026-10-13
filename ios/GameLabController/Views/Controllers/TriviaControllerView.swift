@@ -209,12 +209,20 @@ struct TriviaControllerView: View {
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.text2)
                     .multilineTextAlignment(.center)
-                ForEach(Array(categories.enumerated()), id: \.offset) { index, name in
-                    QuizPadDoorButton(index: index,
-                                      name: name,
-                                      isPicked: voted == index,
-                                      isDimmed: voted != nil && voted != index) {
-                        vote(index)
+                // Six doors sit two across so they all fit without scrolling
+                // far; up to three keep the big full-width buttons.
+                let compact: Bool = categories.count > 3
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12),
+                                         count: compact ? 2 : 1),
+                          spacing: 14) {
+                    ForEach(Array(categories.enumerated()), id: \.offset) { index, name in
+                        QuizPadDoorButton(index: index,
+                                          name: name,
+                                          compact: compact,
+                                          isPicked: voted == index,
+                                          isDimmed: voted != nil && voted != index) {
+                            vote(index)
+                        }
                     }
                 }
             }
@@ -402,6 +410,7 @@ enum QuizPadStyle {
     static let tileShapes: [String] = ["triangle.fill", "diamond.fill", "circle.fill", "square.fill"]
     static let doorColors: [Color] = [
         Color(hex: "FF4D8D"), Color(hex: "3DA5FF"), Color(hex: "FFB020"),
+        Color(hex: "7C5CFF"), Color(hex: "2FCB86"), Color(hex: "FF7A45"),
     ]
     /// The TV's avatar palette exactly, so a player is one colour on both
     /// screens.
@@ -563,6 +572,7 @@ private struct QuizPadMessage: View {
 private struct QuizPadDoorButton: View {
     let index: Int
     let name: String
+    var compact: Bool = false
     let isPicked: Bool
     let isDimmed: Bool
     let action: () -> Void
@@ -571,25 +581,25 @@ private struct QuizPadDoorButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 16) {
+            HStack(spacing: compact ? 10 : 16) {
                 Text("\(index + 1)")
-                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .font(.system(size: compact ? 24 : 34, weight: .black, design: .rounded))
                     .foregroundColor(color)
-                    .frame(width: 58, height: 58)
+                    .frame(width: compact ? 40 : 58, height: compact ? 40 : 58)
                     .background(Circle().fill(Color.white))
                 Text(name)
-                    .font(.system(size: 24, weight: .black, design: .rounded))
+                    .font(.system(size: compact ? 18 : 24, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.leading)
                     .minimumScaleFactor(0.6)
                     .lineLimit(2)
                 Spacer(minLength: 0)
                 Image(systemName: isPicked ? "checkmark.circle.fill" : "door.left.hand.closed")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(.system(size: compact ? 20 : 30, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
-            .padding(.horizontal, 18)
-            .frame(maxWidth: .infinity, minHeight: 104)
+            .padding(.horizontal, compact ? 12 : 18)
+            .frame(maxWidth: .infinity, minHeight: compact ? 92 : 104)
             .background(
                 ZStack {
                     RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
