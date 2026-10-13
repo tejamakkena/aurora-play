@@ -2,9 +2,9 @@ import SwiftUI
 
 // MARK: - Forehead Charades decks
 //
-// Bundled, offline and family-friendly. Each deck has 40+ cards; a round
-// of 60 seconds rarely gets through more than 20, and cards are not
-// repeated within a session until the deck runs out.
+// Bundled, offline and family-friendly. Each deck has 140 to 270 cards, and
+// the phone remembers what it dealt (PhonePlayDealer) so cards do not come
+// round again until a deck has been played through.
 
 struct HeadsUpDeck: Identifiable, Equatable {
     let id: String
@@ -21,24 +21,55 @@ struct HeadsUpDeck: Identifiable, Equatable {
 enum HeadsUpDecks {
 
     static let all: [HeadsUpDeck] = [
-        movies, animals, stars, cricket, food, jobs, home, places,
+        tollywoodMovies, bollywoodMovies, tollywoodActors, bollywoodActors, hollywoodMovies,
+        animals, cricket, food, jobs, home, places,
     ]
 
-    static let movies = HeadsUpDeck(
-        id: "movies", title: "Movies", symbol: "film.fill",
-        colorHex: ["FF5F6D", "FFC371"],
-        words: [
-            "The Lion King", "Frozen", "Toy Story", "Finding Nemo", "Harry Potter",
-            "Star Wars", "Jurassic Park", "Spider-Man", "Batman", "Superman",
-            "Titanic", "Shrek", "Aladdin", "Moana", "Coco",
-            "Up", "Cars", "Inside Out", "Zootopia", "Encanto",
-            "The Jungle Book", "Kung Fu Panda", "Madagascar", "Ice Age", "Minions",
-            "Despicable Me", "Avatar", "The Avengers", "Iron Man", "Black Panther",
-            "Home Alone", "Mary Poppins", "The Wizard of Oz", "Ratatouille", "WALL-E",
-            "Monsters Inc", "The Incredibles", "Beauty and the Beast", "Cinderella", "Tangled",
-            "Paddington", "Matilda", "Night at the Museum", "Pirates of the Caribbean", "E.T.",
-        ]
+    static let tollywoodMovies = HeadsUpDeck(
+        id: "tollywood_movies", title: "Tollywood Movies", symbol: "film.stack.fill",
+        colorHex: ["F7971E", "FF4E50"],
+        words: HeadsUpData.tollywoodMovies
     )
+
+    static let bollywoodMovies = HeadsUpDeck(
+        id: "bollywood_movies", title: "Bollywood Movies", symbol: "popcorn.fill",
+        colorHex: ["FF512F", "DD2476"],
+        words: HeadsUpData.bollywoodMovies
+    )
+
+    static let tollywoodActors = HeadsUpDeck(
+        id: "tollywood_actors", title: "Tollywood Actors", symbol: "star.fill",
+        colorHex: ["FDC830", "F37335"],
+        words: HeadsUpData.tollywoodActors
+    )
+
+    static let bollywoodActors = HeadsUpDeck(
+        id: "bollywood_actors", title: "Bollywood Actors", symbol: "star.circle.fill",
+        colorHex: ["EC008C", "FC6767"],
+        words: HeadsUpData.bollywoodActors
+    )
+
+    static let hollywoodMovies = HeadsUpDeck(
+        id: "hollywood_movies", title: "Hollywood Movies", symbol: "film.fill",
+        colorHex: ["FF5F6D", "FFC371"],
+        words: HeadsUpData.hollywoodMovies + HeadsUpDecks.classicMovies
+    )
+
+    /// The original family movie cards, kept as part of the Hollywood deck.
+    private static let classicMovies: [String] = [
+        "The Lion King", "Frozen", "Toy Story", "Finding Nemo",
+        "Harry Potter", "Star Wars", "Jurassic Park", "Spider-Man",
+        "Batman", "Superman", "Titanic", "Shrek",
+        "Aladdin", "Moana", "Coco", "Up",
+        "Cars", "Inside Out", "Zootopia", "Encanto",
+        "The Jungle Book", "Kung Fu Panda", "Madagascar", "Ice Age",
+        "Minions", "Despicable Me", "Avatar", "The Avengers",
+        "Iron Man", "Black Panther", "Home Alone", "Mary Poppins",
+        "The Wizard of Oz", "Ratatouille", "WALL-E", "Monsters Inc",
+        "The Incredibles", "Beauty and the Beast", "Cinderella", "Tangled",
+        "Paddington", "Matilda", "Night at the Museum", "Pirates of the Caribbean",
+        "E.T.",
+    ]
 
     static let animals = HeadsUpDeck(
         id: "animals", title: "Animals", symbol: "pawprint.fill",
@@ -53,24 +84,7 @@ enum HeadsUpDecks {
             "Duck", "Crab", "Turtle", "Bat", "Wolf",
             "Fox", "Bear", "Hippo", "Rhino", "Cheetah",
             "Flamingo", "Jellyfish", "Polar Bear", "Gorilla", "Hedgehog",
-        ]
-    )
-
-    static let stars = HeadsUpDeck(
-        id: "stars", title: "Tollywood and Bollywood", symbol: "star.fill",
-        colorHex: ["F7971E", "FF4E50"],
-        words: [
-            "Shah Rukh Khan", "Amitabh Bachchan", "Salman Khan", "Aamir Khan", "Deepika Padukone",
-            "Priyanka Chopra", "Alia Bhatt", "Ranveer Singh", "Hrithik Roshan", "Akshay Kumar",
-            "Katrina Kaif", "Kareena Kapoor", "Ranbir Kapoor", "Madhuri Dixit", "Rajinikanth",
-            "Chiranjeevi", "Mahesh Babu", "Prabhas", "Allu Arjun", "Jr NTR",
-            "Ram Charan", "Samantha", "Nani", "Vijay Deverakonda", "Pawan Kalyan",
-            "Nagarjuna", "Venkatesh", "Rashmika Mandanna", "Kamal Haasan", "Sridevi",
-            "Baahubali", "RRR", "Pushpa", "Sholay", "Lagaan",
-            "3 Idiots", "Dangal", "Dilwale Dulhania Le Jayenge", "Magadheera", "Eega",
-            "Kalki", "Arjun Reddy", "Jawan", "Pathaan", "Taare Zameen Par",
-            "Ala Vaikunthapurramuloo", "Mahanati", "Chak De India",
-        ]
+        ] + HeadsUpData.animals
     )
 
     static let cricket = HeadsUpDeck(
@@ -86,7 +100,7 @@ enum HeadsUpDecks {
             "Duck", "Yorker", "Googly", "Bouncer", "Run Out",
             "Stumped", "LBW", "Super Over", "World Cup", "IPL",
             "Umpire", "Third Umpire", "Wicket Keeper", "Free Hit", "Maiden Over",
-        ]
+        ] + HeadsUpData.cricket
     )
 
     static let food = HeadsUpDeck(
@@ -102,7 +116,7 @@ enum HeadsUpDecks {
             "Gongura Pickle", "Rasam", "Sambar", "Curd Rice", "Halwa",
             "Ladoo", "Kheer", "Momos", "Spring Rolls", "Doughnut",
             "Cupcake", "Watermelon", "Pineapple", "Banana", "Coconut",
-        ]
+        ] + HeadsUpData.food
     )
 
     static let jobs = HeadsUpDeck(
@@ -118,7 +132,7 @@ enum HeadsUpDecks {
             "Cashier", "Mechanic", "Bus Driver", "Taxi Driver", "Sailor",
             "Soldier", "Gardener", "Baker", "Painter", "Clown",
             "Detective", "News Reader", "Cricket Umpire", "Software Developer", "Architect",
-        ]
+        ] + HeadsUpData.jobs
     )
 
     static let home = HeadsUpDeck(
@@ -134,7 +148,7 @@ enum HeadsUpDecks {
             "Shoes", "Slippers", "Door Bell", "Key", "Window",
             "Curtains", "Bookshelf", "Calendar", "Charger", "Laptop",
             "Vacuum Cleaner", "Iron", "Doormat", "Flower Pot", "Light Switch",
-        ]
+        ] + HeadsUpData.home
     )
 
     static let places = HeadsUpDeck(
@@ -150,6 +164,6 @@ enum HeadsUpDecks {
             "Christ the Redeemer", "Golden Gate Bridge", "Buckingham Palace", "Kerala Backwaters", "Goa Beaches",
             "Hampi", "Ajanta Caves", "Marina Beach", "Lotus Temple", "Victoria Memorial",
             "Hussain Sagar", "Araku Valley", "Statue of Unity", "Kaziranga", "Amazon Rainforest",
-        ]
+        ] + HeadsUpData.places
     )
 }

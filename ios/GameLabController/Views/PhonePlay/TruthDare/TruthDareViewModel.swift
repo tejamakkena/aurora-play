@@ -52,8 +52,8 @@ final class TruthDareViewModel: ObservableObject {
 
     private var extraTruths: [TruthDareLevel: [String]] = [:]
     private var extraDares: [TruthDareLevel: [String]] = [:]
-    private var truthDealer = PhonePlayDealer()
-    private var dareDealer = PhonePlayDealer()
+    private var truthDealer = PhonePlayDealer(deck: "truth")
+    private var dareDealer = PhonePlayDealer(deck: "dare")
     private var promptCounter: Int = 0
     private var spinToken: Int = 0
     private var spinTask: Task<Void, Never>? = nil

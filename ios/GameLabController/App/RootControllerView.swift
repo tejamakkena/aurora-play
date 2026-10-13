@@ -99,6 +99,15 @@ struct RootControllerView: View {
             }
         }
         .environmentObject(vm)
+        // The TV app was switched away or lost its connection: say so, so
+        // the table is not left wondering why nothing moves.
+        .overlay(alignment: .top) {
+            if vm.tvOffline {
+                TVOfflineBanner()
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: vm.tvOffline)
         // Joining a TV room: room code, name and the QR hint, over the home.
         .sheet(isPresented: joinSheetBinding) {
             JoinRoomView(onJoin: vm.joinRoom,
@@ -216,12 +225,42 @@ struct LoadingJoinView: View {
     }
 }
 
+/// A thin notice at the top of the phone when the TV board is not connected.
+struct TVOfflineBanner: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 15, weight: .bold, design: .rounded))
+            Text("Lost the TV. Waiting for it to come back...")
+                .font(.system(size: 14, weight: .heavy, design: .rounded))
+        }
+        .foregroundColor(.black)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 9)
+        .background(Capsule().fill(PhonePlayDesign.yellow))
+        .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
+        .padding(.top, 6)
+        .allowsHitTesting(false)
+    }
+}
+
 struct ErrorJoinView: View {
     let message: String
     let onRetry: () -> Void
     var onHome: (() -> Void)? = nil
 
     @State private var appeared = false
+
+    /// "Headline\nwhat to do" from the server's friendly errors; anything
+    /// without a second line keeps the old generic title.
+    private var title: String {
+        message.contains("\n") ? String(message.prefix(while: { $0 != "\n" })) : "Could not join"
+    }
+
+    private var detail: String {
+        guard let breakIndex = message.firstIndex(of: "\n") else { return message }
+        return String(message[message.index(after: breakIndex)...])
+    }
 
     var body: some View {
         VStack(spacing: 24) {
@@ -239,10 +278,12 @@ struct ErrorJoinView: View {
             .scaleEffect(appeared ? 1 : 0.6)
             .opacity(appeared ? 1 : 0)
             VStack(spacing: 8) {
-                Text("Could not join")
-                    .font(.system(size: 28, weight: .black, design: .rounded))
+                Text(title)
+                    .font(.system(size: 26, weight: .black, design: .rounded))
                     .foregroundColor(.white)
-                Text(message)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                Text(detail)
                     .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.text2)
                     .multilineTextAlignment(.center)
@@ -339,6 +380,16 @@ final class ControllerRootViewModel: ObservableObject {
         currentRoom?.players.first(where: { $0.id == playerID })?.isHost ?? false
     }
 
+    /// True while seated in a room whose TV board is not attached.
+    var tvOffline: Bool {
+        switch screen {
+        case .waiting(let room), .rules(let room, _), .playing(let room, _):
+            return room.tvConnected == false
+        default:
+            return false
+        }
+    }
+
     /// See joinRoom(code:name:)'s own comment: a bounded fallback for a join
     /// that never gets any response back at all.
     private var joinTimeoutTask: Task<Void, Never>?
@@ -387,7 +438,11 @@ final class ControllerRootViewModel: ObservableObject {
             case .results:
                 self.screen = .results(room)
             case .playing:
-                break  // privateState event drives the playing transition
+                // privateState drives the playing transition; here only the
+                // room itself is refreshed (the TV-connected flag lives in it).
+                if case .playing(_, let data) = self.screen {
+                    self.screen = .playing(room, data)
+                }
             }
         }
 
@@ -437,14 +492,33 @@ final class ControllerRootViewModel: ObservableObject {
         socket.on(.error) { [weak self] (r: ErrorResponse) in
             guard let self else { return }
             self.joinTimeoutTask?.cancel()
-            // Only show error overlay from loading state; in-game errors stay silent
             if case .loading = self.screen {
                 if let attempted = self.pendingJoinCode {
                     self.forgetResumableRoom(ifCode: attempted)
                 }
-                self.screen = .error(r.message)
+                self.screen = .error(r.displayText)
+            } else if r.fatal == true, self.currentRoom != nil {
+                // The room is gone (closed, expired, or this seat was dropped)
+                // while a game was on screen. Say so instead of leaving a
+                // controller that no longer does anything.
+                self.roomIsGone(r.displayText)
             }
+            // Other in-game errors stay silent: they are stray taps, not news.
         }
+
+        // The server closed the room under us.
+        socket.on(.roomClosed) { [weak self] (r: RoomClosedResponse) in
+            guard let self, let room = self.currentRoom, room.code == r.roomCode else { return }
+            let headline = r.message ?? "This room has closed"
+            self.roomIsGone(headline + "\n" + (r.hint ?? ""))
+        }
+    }
+
+    /// The room this phone sat in no longer exists: forget it and show why.
+    private func roomIsGone(_ text: String) {
+        if let room = currentRoom { forgetResumableRoom(ifCode: room.code) }
+        pendingRules = nil
+        screen = .error(text.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     func joinRoom(code: String, name: String) {
@@ -479,7 +553,7 @@ final class ControllerRootViewModel: ObservableObject {
             guard let self, !Task.isCancelled else { return }
             if case .loading = self.screen {
                 self.forgetResumableRoom(ifCode: upper)
-                self.screen = .error("Couldn't join. Check the room code and try again.")
+                self.screen = .error("We couldn't reach that room\nCheck the code on the TV and your connection, then try again.")
             }
         }
     }
@@ -634,8 +708,18 @@ final class ControllerRootViewModel: ObservableObject {
     /// seated, say so again (idempotent; the server answers with a fresh
     /// private_state so the controller resyncs).
     func appBecameActive() {
+        let returnedAt = Date()
         socket.nudge()
         if socket.isConnected { rejoinIfSeated() }
+        guard currentRoom != nil else { return }
+        // A connection that died while the app was asleep can still look
+        // alive. The room answers a rejoin at once, so three seconds of
+        // silence means a dead pipe: dial again (the connect hook re-seats us).
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard let self, self.currentRoom != nil else { return }
+            if self.socket.lastInboundAt < returnedAt { self.socket.forceReconnect() }
+        }
     }
 
     private func rejoinIfSeated() {
@@ -676,6 +760,11 @@ final class ControllerRootViewModel: ObservableObject {
     func removeBot(_ botID: String) {
         guard let room = currentRoom else { return }
         socket.emit(.removeBot, payload: ["roomCode": room.code, "botID": botID])
+    }
+
+    func setOption(key: String, value: String) {
+        guard let room = currentRoom else { return }
+        socket.emit(.setOption, payload: ["roomCode": room.code, "key": key, "value": value])
     }
 
     func setContentPack(_ pack: ContentPack) {

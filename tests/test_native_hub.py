@@ -95,7 +95,7 @@ class TestCreateRoom:
         room = latest(tv, "room_updated")
         assert set(room) == {"code", "gameID", "players", "state", "phase",
                                "contentPack", "topic", "botsAllowed",
-                               "usesContentPack", "micPlayerID", "night", "teams"}
+                               "usesContentPack", "micPlayerID", "night", "teams", "options", "tvConnected"}
         assert room["gameID"] == "trivia" and room["state"] == "lobby"
         assert len(room["code"]) == 6
 
@@ -108,7 +108,7 @@ class TestCreateRoom:
         tv.emit("create_room", {"gameID": "not_a_game", "hostName": "TV", "hostID": "t"},
                 namespace=NS)
         error = latest(tv, "error")
-        assert set(error) == {"message", "code"}
+        assert set(error) == {"message", "code", "hint", "fatal"}
         assert error["code"] == "INVALID_GAME"
 
 
@@ -585,6 +585,42 @@ class TestLobbyOptions:
         assert rooms.get(code).content_pack == "te"
         tv.emit("set_content_pack", {"roomCode": code, "contentPack": "xx"}, namespace=NS)
         assert latest(tv, "room_updated")["contentPack"] == "en"
+
+    def test_tv_picks_poker_table_options(self, tv):
+        tv.emit("create_room", {"gameID": "poker", "hostName": "TV", "hostID": "tv-1"},
+                namespace=NS)
+        room = latest(tv, "room_updated")
+        menu = {o["key"]: o for o in room["options"]}
+        assert menu["hands"]["value"] == "20" and menu["rebuys"]["value"] == "off"
+        code = room["code"]
+        tv.emit("set_option", {"roomCode": code, "key": "hands", "value": "0"}, namespace=NS)
+        assert {o["key"]: o["value"] for o in latest(tv, "room_updated")["options"]}["hands"] == "0"
+        tv.emit("set_option", {"roomCode": code, "key": "hands", "value": "999"}, namespace=NS)
+        assert latest(tv, "error")["code"] == "INVALID_OPTION"
+        assert rooms.get(code).options["hands"] == "0"
+
+    def test_an_action_for_a_closed_room_says_so(self, tv):
+        tv.emit("game_action", {"roomCode": "ZZZZZZ", "playerID": "p1", "action": "tap",
+                                "data": {}}, namespace=NS)
+        error = latest(tv, "error")
+        assert error["code"] == "ROOM_CLOSED" and error["fatal"] is True
+        assert error["hint"]
+
+    def test_the_room_reports_whether_a_tv_is_attached(self, tv):
+        tv.emit("create_room", {"gameID": "herd", "hostName": "TV", "hostID": "tv-1"},
+                namespace=NS)
+        room = latest(tv, "room_updated")
+        assert room["tvConnected"] is True
+        rooms.get(room["code"]).tv_sids.clear()
+        assert rooms.get(room["code"]).to_json()["tvConnected"] is False
+
+    def test_non_host_phone_cannot_set_options(self, server, tv):
+        app, socketio = server
+        code, phones = open_room(app, socketio, tv, "poker", players=2)
+        phones[1].emit("set_option", {"roomCode": code, "key": "rebuys", "value": "on"},
+                       namespace=NS)
+        assert latest(phones[1], "error")["code"] == "NOT_HOST"
+        assert "rebuys" not in rooms.get(code).options
 
     def test_non_host_phone_cannot_switch_pack(self, server, tv):
         app, socketio = server

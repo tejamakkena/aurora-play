@@ -51,7 +51,7 @@ final class HotPotatoViewModel: ObservableObject {
     }
 
     private var extras: [String] = []
-    private var dealer = PhonePlayDealer()
+    private var dealer = PhonePlayDealer(deck: "hotpotato")
     private var fuse: Double = 30
     private var litAt: Date = Date()
     private var loop: Task<Void, Never>? = nil

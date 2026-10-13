@@ -19,6 +19,7 @@ import random
 import string
 import time
 
+from games import content_service as cs
 from games.native_hub.engine import NativeGameEngine
 from games.native_hub.engines import _content as C
 
@@ -102,7 +103,7 @@ class AtlasEngine(NativeGameEngine):
         self.lives = {pid: self.MAX_LIVES for pid in self.order}
         self.places = {pid: 0 for pid in self.order}
         self.alive = list(self.order)
-        seed = random.choice(C.ATLAS_SEEDS)
+        seed = cs.pick_one(self.room, "atlas_seed") or random.choice(C.ATLAS_SEEDS)
         self.chain = [{"playerID": None, "name": "Start", "place": seed,
                        "letter": seed[0].upper(), "endLetter": seed[-1].upper()}]
         self.letter = seed[-1].upper()
@@ -230,7 +231,10 @@ class AtlasEngine(NativeGameEngine):
             if place:
                 entry["place"] = place
         if not letter or letter in HARD_LETTERS:
-            fresh = random.choice(C.ATLAS_EASY_LETTERS)
+            recent = {cs.norm_key(x) for x in
+                      [e.get("endLetter") for e in self.chain[-4:]] + [self.letter, letter]}
+            fresh = cs.pick_one(self.room, "atlas_letter", avoid=recent) \
+                or random.choice(C.ATLAS_EASY_LETTERS)
             self.skipped = {"from": letter or "", "to": fresh,
                             "reason": reason if letter else "timeout"}
             letter = fresh
@@ -504,11 +508,21 @@ class AntakshariEngine(NativeGameEngine):
 
     def start(self, players):
         self._build_teams(players)
-        self.letter = random.choice(C.ANTAKSHARI_LETTERS)
+        self.used_letters: list[str] = []
+        self.used_hints: list[str] = []
+        self.letter = self._new_letter()
         self.singing = 0
         now = time.time()
         self.ends_at = now + self.GAME_SECONDS
         self._enter("beat")
+
+    def _new_letter(self) -> str:
+        """A starting letter this game and this table have not had lately."""
+        letter = cs.pick_one(self.room, "antakshari_letter",
+                          avoid={cs.norm_key(x) for x in self.used_letters}) \
+            or random.choice(C.ANTAKSHARI_LETTERS)
+        self.used_letters.append(letter)
+        return letter
 
     def _enter(self, phase):
         self.phase = phase
@@ -518,7 +532,10 @@ class AntakshariEngine(NativeGameEngine):
 
     def _start_turn(self):
         self.round += 1
-        self.turn_hint = random.choice(C.ANTAKSHARI_HINTS)
+        self.turn_hint = cs.pick_one(self.room, "antakshari_hint",
+                                   avoid={cs.norm_key(h) for h in self.used_hints}) \
+            or random.choice(C.ANTAKSHARI_HINTS)
+        self.used_hints.append(self.turn_hint)
         self.turn_started = time.time()
         self._enter("sing")
 
@@ -566,7 +583,7 @@ class AntakshariEngine(NativeGameEngine):
         if self.history and self.history[-1]["team"] == self.singing:
             self.history[-1]["endLetter"] = letter or ""
         if not letter or letter in HARD_LETTERS:
-            fresh = random.choice(C.ANTAKSHARI_LETTERS)
+            fresh = self._new_letter()
             self.skipped = {"from": letter or "", "to": fresh,
                             "reason": reason if letter else "timeout"}
             letter = fresh

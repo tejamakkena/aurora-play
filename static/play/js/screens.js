@@ -156,8 +156,9 @@
           h('span', { class: 'idle', style: { '--deg': '5deg', '--dur': '0.8s', display: 'inline-flex' } },
             AP.icon('exclamationmark.triangle.fill', 48))),
         h('div', { class: 'col center gap8' },
-          h('div', { style: { fontSize: '28px', fontWeight: 900 } }, 'Could not join'),
-          h('div', { class: 'c-text2 txt-center', style: { fontSize: '17px', padding: '0 32px' } }, S.errorMessage))),
+          h('div', { class: 'txt-center', style: { fontSize: '26px', fontWeight: 900, padding: '0 24px' } },
+            S.errorHint ? S.errorMessage : 'Could not join'),
+          h('div', { class: 'c-text2 txt-center', style: { fontSize: '17px', padding: '0 32px' } }, S.errorHint || S.errorMessage))),
       h('div', { class: 'col gap12 w100', style: { padding: '0 32px 24px' } },
         ui.bigButton({ title: 'Try Again', icon: 'arrow.counterclockwise', colors: TV_COLORS, onClick: A.returnToJoin }),
         ui.ghostButton({ title: 'Back to home', icon: 'house.fill', onClick: A.returnHome })));

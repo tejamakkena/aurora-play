@@ -22,6 +22,7 @@
   var S = AP.S = {
     screen: 'join',          // join | loading | error | waiting | rules | playing | results
     errorMessage: '',
+    errorHint: '',
     room: null,
     rules: null,
     privateData: {},
@@ -106,7 +107,8 @@
       if (S.screen === 'loading') {
         forgetResumable(upper);
         if (S.autoResuming) { S.autoResuming = false; setScreen('join'); changed(); return; }
-        S.errorMessage = "Couldn't join. Check the room code and try again.";
+        S.errorMessage = "We couldn't reach that room";
+        S.errorHint = 'Check the code on the TV and your connection, then try again.';
         setScreen('error');
         AP.haptic.error();
         changed();
@@ -180,6 +182,7 @@
   // ---- lobby controls ------------------------------------------------
   A.addBot = function () { var r = currentRoom(); if (r) { AP.net.emit('add_bot', { roomCode: r.code }); } };
   A.removeBot = function (id) { var r = currentRoom(); if (r) { AP.net.emit('remove_bot', { roomCode: r.code, botID: id }); } };
+  A.setOption = function (key, value) { var r = currentRoom(); if (r) { AP.net.emit('set_option', { roomCode: r.code, key: key, value: value }); } };
   A.setContentPack = function (p) { var r = currentRoom(); if (r) { AP.net.emit('set_content_pack', { roomCode: r.code, contentPack: p }); } };
   A.setTeams = function (count) {
     var r = currentRoom(); if (!r) { return; }
@@ -295,15 +298,37 @@
         }
       });
 
+      // The room is gone (closed, expired, or this seat was dropped) while a
+      // game was on screen: say so instead of leaving a dead controller.
+      function roomIsGone(message, hint) {
+        var room = currentRoom();
+        if (room) { forgetResumable(room.code); }
+        S.rules = null;
+        S.errorMessage = message || 'This room has closed';
+        S.errorHint = hint || '';
+        setScreen('error');
+        AP.haptic.error();
+        changed();
+      }
+
+      AP.net.on('room_closed', function (r) {
+        var room = currentRoom();
+        if (!room || !r || r.roomCode !== room.code) { return; }
+        roomIsGone(r.message, r.hint);
+      });
+
       AP.net.on('error', function (r) {
         cancelJoinTimer();
         if (S.screen === 'loading') {
           if (S.pendingJoinCode) { forgetResumable(S.pendingJoinCode); }
           if (S.autoResuming) { S.autoResuming = false; setScreen('join'); changed(); return; }
           S.errorMessage = (r && r.message) || 'Something went wrong.';
+          S.errorHint = (r && r.hint) || '';
           setScreen('error');
           AP.haptic.error();
           changed();
+        } else if (r && r.fatal && currentRoom()) {
+          roomIsGone(r.message, r.hint);
         }
       });
     }

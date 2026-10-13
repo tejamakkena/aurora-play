@@ -11,14 +11,29 @@ import Foundation
 /// guided), and mixes with whatever else is playing. A speaker button on the
 /// step turns it off; the choice is remembered.
 @MainActor
-final class NeuroGuideVoice {
+final class NeuroGuideVoice: NSObject, AVSpeechSynthesizerDelegate {
 
     static let shared = NeuroGuideVoice()
 
     private let synthesizer = AVSpeechSynthesizer()
+    private let clips = VoiceClipSequencer()
+    private var liveDone: (() -> Void)?
     private static let defaultsKey = "neuro_guide_voice_on"
 
-    private init() {}
+    private override init() {
+        super.init()
+        synthesizer.delegate = self
+    }
+
+    /// A live sentence between bundled clips ended: on to the next one.
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
+                                       didFinish utterance: AVSpeechUtterance) {
+        Task { @MainActor in
+            guard let done = self.liveDone else { return }
+            self.liveDone = nil
+            done()
+        }
+    }
 
     var isEnabled: Bool {
         get { UserDefaults.standard.object(forKey: Self.defaultsKey) as? Bool ?? true }
@@ -34,7 +49,22 @@ final class NeuroGuideVoice {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .spokenAudio, options: [.mixWithOthers])
         try? session.setActive(true)
-        if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
+        stop()
+        // The step prompts are fixed text: play the bundled recording when
+        // there is one, and speak any other sentence in the device voice.
+        if clips.play(line,
+                      live: { [weak self] piece, done in
+                          guard let self else { return }
+                          self.liveDone = done
+                          self.speakOnDevice(piece)
+                      },
+                      completion: nil) {
+            return
+        }
+        speakOnDevice(line)
+    }
+
+    private func speakOnDevice(_ line: String) {
         let utterance = AVSpeechUtterance(string: line)
         // Slower and a touch lower than normal speech: this is a calming voice.
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * 0.82
@@ -44,6 +74,8 @@ final class NeuroGuideVoice {
     }
 
     func stop() {
+        clips.stop()
+        liveDone = nil
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
     }
 }

@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Would You Rather dilemmas
 //
-// 150 bundled, family-friendly dilemmas. Each side is the part after
+// 600 bundled (150 here, 450 in WouldRatherMore), family-friendly dilemmas. Each side is the part after
 // "Would you rather", so the card can split them into two halves.
 
 struct WouldRatherDilemma: Identifiable, Equatable {
@@ -58,7 +58,7 @@ struct WouldRatherDilemma: Identifiable, Equatable {
 
 enum WouldRatherDeck {
 
-    static let all: [WouldRatherDilemma] = pairs.map { WouldRatherDilemma(a: $0.0, b: $0.1) }
+    static let all: [WouldRatherDilemma] = (pairs + WouldRatherMore.pairs).map { WouldRatherDilemma(a: $0.0, b: $0.1) }
 
     private static let pairs: [(String, String)] = [
         ("be able to fly", "be able to turn invisible"),

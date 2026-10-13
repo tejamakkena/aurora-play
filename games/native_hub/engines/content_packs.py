@@ -389,11 +389,11 @@ def fresh_questions(room, pack_id: str, kind: str, pool=None) -> list:
     grown in the background from Open Trivia DB), so the bank keeps growing
     past the bundled questions.
 
-    Skipped, in order of preference: questions asked in this room
-    recently (record_questions) AND questions any player's device has
-    seen in earlier rooms or nights; then just the room's history; then
-    nothing -- a full pool with a few repeats beats a starved one (the
-    quarter-of-the-bank rule).
+    Skipped: questions asked in this room recently (record_questions) AND
+    questions any player's device has seen in earlier rooms or nights.
+    When fewer than a quarter of the bank is left unseen, the stalest half
+    of the bank is offered instead, oldest first, so a repeat is always
+    one nobody has seen for a long while.
     """
     from games import content_service as cs
     bank = list(pool) if pool is not None else list(questions_for(pack_id, kind))
@@ -414,8 +414,11 @@ def fresh_questions(room, pack_id: str, kind: str, pool=None) -> list:
         cs.request_refill("mc")
     if len(fresh) >= enough:
         return fresh
-    fresh = [q for q in bank if _question_text(kind, q) not in room_seen]
-    return fresh if len(fresh) >= enough else bank
+    # Nearly everything has been seen: offer the STALEST half of the bank
+    # (never seen first, then longest ago), so a repeat is always an old one.
+    ranks = cs.recency(room, "mc")
+    stalest = sorted(bank, key=lambda q: ranks.get(cs.norm_key(_question_text(kind, q)), -1))
+    return stalest[:max(enough, len(bank) // 2)]
 
 
 def record_questions(room, pack_id: str, kind: str, questions) -> None:

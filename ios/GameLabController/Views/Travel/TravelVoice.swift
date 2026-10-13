@@ -63,6 +63,26 @@ final class TravelVoiceListener: NSObject, ObservableObject {
             onFinal?("", 0)
             return
         }
+        // Arming the microphone without permission, or without a recording
+        // audio session, hands the tap a zero-rate format and AVAudioEngine
+        // raises an exception that cannot be caught: the app dies. So check
+        // both first, and treat anything short of a working mic as "heard
+        // nothing" (the caller falls back to tapping).
+        guard SFSpeechRecognizer.authorizationStatus() == .authorized,
+              AVAudioSession.sharedInstance().recordPermission == .granted
+        else {
+            onFinal?("", 0)
+            return
+        }
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, mode: .default,
+                                    options: [.defaultToSpeaker, .duckOthers, .allowBluetoothA2DP])
+            try session.setActive(true)
+        } catch {
+            onFinal?("", 0)
+            return
+        }
         self.onPartial = onPartial
         self.onFinal = onFinal
         didFinish = false
@@ -83,9 +103,16 @@ final class TravelVoiceListener: NSObject, ObservableObject {
 
         let inputNode = audioEngine.inputNode
         let format = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) {
-            [weak self] buffer, _ in
-            self?.recognitionRequest?.append(buffer)
+        guard format.sampleRate > 0, format.channelCount > 0 else {
+            self.audioEngine = nil
+            self.recognitionRequest = nil
+            onFinal?("", 0)
+            return
+        }
+        // The tap runs on the audio thread: hand it the request itself, not
+        // a main-actor property that stop() may be clearing.
+        inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+            request.append(buffer)
         }
         audioEngine.prepare()
         do {

@@ -40,6 +40,10 @@ final class TravelSpeech: NSObject, ObservableObject {
 
     private let synthesizer = AVSpeechSynthesizer()
     private var currentUtterance: AVSpeechUtterance?
+    /// Bundled offline clips (Shared/Voice/VoicePack.swift), and the
+    /// completion for a live sentence spoken between clips.
+    private let clips = VoiceClipSequencer()
+    private var liveDone: (() -> Void)?
 
     nonisolated private static func isNovelty(_ v: AVSpeechSynthesisVoice) -> Bool {
         if v.voiceTraits.contains(.isNoveltyVoice) { return true }
@@ -135,6 +139,7 @@ final class TravelSpeech: NSObject, ObservableObject {
 
     /// Wake the server early (it sleeps when idle) so `prepare` finds it up.
     func warmUpServer() {
+        guard VoiceSettings.cloudAllowed else { return }
         prefetch("Let's play!")
     }
 
@@ -142,6 +147,12 @@ final class TravelSpeech: NSObject, ObservableObject {
     /// `timeout`, else the device voice. Called once per session.
     func prepare(firstLine: String, timeout: TimeInterval = 10) async {
         guard voice == .undecided else { return }
+        // The paid cloud voice is opt-in: otherwise it is the bundled clips
+        // and the device voice, with no network probe at all.
+        guard VoiceSettings.cloudAllowed else {
+            voice = .device
+            return
+        }
         let fetch = audio(for: firstLine)
         let timer = Task { () -> Data? in
             try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
@@ -160,7 +171,7 @@ final class TravelSpeech: NSObject, ObservableObject {
 
     /// Fetch and keep a line's audio so speaking it later starts instantly.
     func prefetch(_ text: String) {
-        guard voice != .device else { return }
+        guard voice != .device, VoiceSettings.cloudAllowed else { return }
         _ = audio(for: text)
     }
 
@@ -176,7 +187,21 @@ final class TravelSpeech: NSObject, ObservableObject {
         let myToken = token
         pendingCompletion = completion
         isSpeaking = true
-        if voice != .cloud {
+        // Fixed lines come from the bundled offline pack; only sentences it
+        // lacks (names, numbers) use the device voice.
+        if clips.play(line,
+                      live: { [weak self] piece, done in
+                          guard let self, self.token == myToken else { return }
+                          self.liveDone = done
+                          self.speakOnDevice(piece)
+                      },
+                      completion: { [weak self] in
+                          guard let self, self.token == myToken else { return }
+                          self.finished(token: myToken)
+                      }) {
+            return
+        }
+        if voice != .cloud || !VoiceSettings.cloudAllowed {
             speakOnDevice(line)
             return
         }
@@ -199,6 +224,8 @@ final class TravelSpeech: NSObject, ObservableObject {
 
     func stop() {
         token += 1
+        clips.stop()
+        liveDone = nil
         pendingCompletion = nil
         audioPlayer?.stop()
         audioPlayer = nil
@@ -278,6 +305,13 @@ final class TravelSpeech: NSObject, ObservableObject {
         // Only the line we're waiting on may advance the game; a cancelled
         // older utterance reports in late and must be ignored.
         guard utterance === currentUtterance else { return }
+        if let done = liveDone {
+            // A live sentence inside a clip-backed line: on to the next one.
+            liveDone = nil
+            currentUtterance = nil
+            done()
+            return
+        }
         finished(token: token)
     }
 }

@@ -224,7 +224,7 @@ struct TShowState {
 // MARK: - Palette
 
 enum TShowPalette {
-    /// Answer tiles A-D and the three doors: this game's own identity, not
+    /// Answer tiles A-D and the category doors: this game's own identity, not
     /// the shared palette. `QuizPadStyle` on the phone carries the same four
     /// hexes so a tile is the same colour in your hand and on the wall.
     static let tileColors: [Color] = [
@@ -232,7 +232,8 @@ enum TShowPalette {
     ]
     static let tileShapes: [String] = ["triangle.fill", "diamond.fill", "circle.fill", "square.fill"]
     static let letters: [String] = ["A", "B", "C", "D"]
-    static let doorColors: [Color] = [Color(hex: "FF4D8D"), Color(hex: "3DA5FF"), Color(hex: "FFB020")]
+    static let doorColors: [Color] = [Color(hex: "FF4D8D"), Color(hex: "3DA5FF"), Color(hex: "FFB020"),
+                                      Color(hex: "7C5CFF"), Color(hex: "2FCB86"), Color(hex: "FF7A45")]
     static let gold = TVTheme.gold
 
     // The studio set: a violet stage under warm spotlights. Also identity,
@@ -774,11 +775,22 @@ private struct TShowDoorsStage: View {
                                tint: TShowPalette.magenta, size: 110)
                 }
             }
-            HStack(spacing: 60) {
-                ForEach(state.doors) { door in
-                    TShowDoor(door: door,
-                              isOpen: revealing && door.id == state.chosenIndex,
-                              isDimmed: revealing && door.id != state.chosenIndex)
+            // Six doors sit in two rows of three; three or fewer keep the
+            // big single row.
+            let compact: Bool = state.doors.count > 3
+            let rows: [[TShowDoorInfo]] = stride(from: 0, to: state.doors.count, by: 3).map {
+                Array(state.doors[$0..<min($0 + 3, state.doors.count)])
+            }
+            VStack(spacing: compact ? 26 : 0) {
+                ForEach(0..<rows.count, id: \.self) { rowIndex in
+                    HStack(spacing: compact ? 36 : 60) {
+                        ForEach(rows[rowIndex]) { door in
+                            TShowDoor(door: door,
+                                      compact: compact,
+                                      isOpen: revealing && door.id == state.chosenIndex,
+                                      isDimmed: revealing && door.id != state.chosenIndex)
+                        }
+                    }
                 }
             }
         }
@@ -787,12 +799,13 @@ private struct TShowDoorsStage: View {
 
 private struct TShowDoor: View {
     let door: TShowDoorInfo
+    var compact: Bool = false
     let isOpen: Bool
     let isDimmed: Bool
 
     private var color: Color { TShowPalette.doorColors[door.id % TShowPalette.doorColors.count] }
-    private let width: CGFloat = 380
-    private let height: CGFloat = 520
+    private var width: CGFloat { compact ? 400 : 380 }
+    private var height: CGFloat { compact ? 250 : 520 }
 
     var body: some View {
         ZStack {
@@ -816,12 +829,12 @@ private struct TShowDoor: View {
             RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(RadialGradient(colors: [TShowPalette.spotlightCore, TShowPalette.gold, color.opacity(0.9)],
                                      center: .center, startRadius: 10, endRadius: 360))
-            VStack(spacing: 18) {
+            VStack(spacing: compact ? 8 : 18) {
                 Image(systemName: "sparkles")
-                    .font(.system(size: 70, weight: .heavy, design: .rounded))
+                    .font(.system(size: compact ? 40 : 70, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
                 Text(door.name)
-                    .font(.system(size: 50, weight: .black, design: .rounded))
+                    .font(.system(size: compact ? 38 : 50, weight: .black, design: .rounded))
                     .foregroundColor(TShowPalette.stageInk)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
@@ -840,29 +853,37 @@ private struct TShowDoor: View {
             RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
                 .fill(LinearGradient(colors: [color, color.opacity(0.75)],
                                      startPoint: .topLeading, endPoint: .bottomTrailing))
-            VStack(spacing: 22) {
-                RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 5)
-                    .frame(height: 150)
-                    .overlay(
-                        Text("\(door.id + 1)")
-                            .font(.system(size: 96, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                    )
+            VStack(spacing: compact ? 10 : 22) {
+                if compact {
+                    Text("\(door.id + 1)")
+                        .font(.system(size: 70, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                } else {
+                    RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 5)
+                        .frame(height: 150)
+                        .overlay(
+                            Text("\(door.id + 1)")
+                                .font(.system(size: 96, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                        )
+                }
                 Text(door.name)
-                    .font(.system(size: 40, weight: .black, design: .rounded))
+                    .font(.system(size: compact ? 34 : 40, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.5)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
+                    .padding(.vertical, compact ? 10 : 18)
                     .background(RoundedRectangle(cornerRadius: ShellTheme.buttonRadius).fill(Color.black.opacity(0.25)))
-                RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 5)
-                    .frame(height: 110)
+                if !compact {
+                    RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 5)
+                        .frame(height: 110)
+                }
             }
-            .padding(30)
+            .padding(compact ? 20 : 30)
             Circle()
                 .fill(TShowPalette.gold)
                 .frame(width: 30, height: 30)

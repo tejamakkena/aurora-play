@@ -20,8 +20,41 @@ struct Room: Codable, Equatable {
     var night: GameNight? = nil
     // Teams mode (games/teams.py). nil when everyone plays for themselves.
     var teams: RoomTeams? = nil
+    // Per-game lobby picks (Poker: hands, chips, re-buys). nil or empty for
+    // games without any.
+    var options: [GameOption]? = nil
+    // False while no TV board is attached (the TV app was switched away or
+    // lost Wi-Fi). Phones show a "waiting for the TV" banner. nil on older servers.
+    var tvConnected: Bool? = nil
 
     var hostPlayerID: String { players.first?.id ?? "" }
+}
+
+/// One lobby pick for a game (games/native_hub/options.py): a short menu the
+/// TV or host cycles through before the game starts.
+struct GameOption: Codable, Equatable, Identifiable {
+    struct Choice: Codable, Equatable {
+        let value: String
+        let label: String
+    }
+
+    let key: String
+    let label: String
+    let value: String
+    let choices: [Choice]
+
+    var id: String { key }
+
+    var currentLabel: String {
+        choices.first(where: { $0.value == value })?.label ?? value
+    }
+
+    /// The value after the current one, wrapping round.
+    var nextValue: String {
+        guard !choices.isEmpty else { return value }
+        let index: Int = choices.firstIndex(where: { $0.value == value }) ?? -1
+        return choices[(index + 1) % choices.count].value
+    }
 }
 
 /// Question languages the server ships (games/native_hub/engines/content_packs.py).

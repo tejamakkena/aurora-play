@@ -29,7 +29,7 @@ from typing import Any, Callable
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 CODE_LENGTH = 6
 
-EMPTY_GRACE_SECONDS = 120       # room with nobody in it survives this long
+EMPTY_GRACE_SECONDS = 600       # room with nobody in it survives this long (switching apps, a Wi-Fi blip)
 ROOM_TTL_SECONDS = 6 * 3600     # hard ceiling regardless of activity (a long Game Night)
 #: A lobby seat survives a dropped connection this long (a phone switching
 #: apps or tabs). Mid-game seats are never evicted: the seat holds the
@@ -100,6 +100,11 @@ def _teams_json(room):
     return teams.to_json(room)
 
 
+def _options_json(room):
+    from games.native_hub import options
+    return options.to_json(room)
+
+
 def _night_json(room):
     from games import game_night
     return game_night.to_json(room)
@@ -126,6 +131,8 @@ class Room:
     #: ``getattr(room, "topic", "")``; when non-empty they generate fresh
     #: questions from games/topic_gen.py instead of the fixed packs.
     topic: str = ""
+    #: Per-game lobby picks (games/native_hub/options.py), {key: value}.
+    options: dict = field(default_factory=dict)
     #: Externally fetched questions injected at room creation: the iOS
     #: client calls GET /api/travel/questions (or legacy POST
     #: /trivia/generate) and passes the result as "seedQuestions" in
@@ -204,6 +211,8 @@ class Room:
             "phase": self.phase,
             "contentPack": self.content_pack,
             "topic": self.topic,
+            "options": _options_json(self),
+            "tvConnected": bool(self.tv_sids),
             "micPlayerID": self.mic_player_id,
             "botsAllowed": self.game_id in POLICIES,
             "usesContentPack": self.game_id in PACK_GAMES,

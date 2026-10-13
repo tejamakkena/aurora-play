@@ -281,30 +281,82 @@ struct PhonePlaySeededRandom: RandomNumberGenerator {
 
 // MARK: - No-repeat dealing
 
-/// Hands out items from a pool without repeating any within a session.
-/// Items are compared case-insensitively; when every item in the pool has
-/// been dealt, the pool starts over.
+/// Hands out items from a pool without repeating any, across sessions.
+///
+/// Every dealt item is remembered (most recent last) under the deck's name,
+/// in UserDefaults, so Play Again, closing the app and tomorrow's game all
+/// skip what this phone has already shown. Items are compared
+/// case-insensitively. Once every item in the pool has been dealt, the
+/// dealer recycles the longest-ago ones first, never the ones just seen.
 struct PhonePlayDealer {
-    private var used: Set<String> = []
+    private static let historyCap = 600
+
+    private let storeKey: String?
+    private var order: [String]            // oldest first, most recent last
+
+    /// `deck` names the persisted history; nil keeps it for this session only.
+    init(deck: String? = nil) {
+        if let deck = deck {
+            let key = "phoneplay_dealt_" + deck
+            storeKey = key
+            order = UserDefaults.standard.stringArray(forKey: key) ?? []
+        } else {
+            storeKey = nil
+            order = []
+        }
+    }
 
     func remaining(in pool: [String]) -> Int {
-        pool.filter { !used.contains(PhonePlayDealer.key($0)) }.count
+        let seen = Set(order)
+        return pool.filter { !seen.contains(PhonePlayDealer.key($0)) }.count
+    }
+
+    /// The pool in the order to deal it: unseen items shuffled, then the
+    /// seen ones, longest ago first.
+    func ordered(_ pool: [String]) -> [String] {
+        var rank: [String: Int] = [:]
+        for (index, key) in order.enumerated() { rank[key] = index }
+        let fresh = pool.filter { rank[PhonePlayDealer.key($0)] == nil }
+        let stale = pool
+            .filter { rank[PhonePlayDealer.key($0)] != nil }
+            .sorted { (rank[PhonePlayDealer.key($0)] ?? 0) < (rank[PhonePlayDealer.key($1)] ?? 0) }
+        return fresh.shuffled() + stale
     }
 
     mutating func draw(from pool: [String]) -> String? {
         guard !pool.isEmpty else { return nil }
-        var fresh = pool.filter { !used.contains(PhonePlayDealer.key($0)) }
-        if fresh.isEmpty {
-            for item in pool { used.remove(PhonePlayDealer.key(item)) }
-            fresh = pool
+        let seen = Set(order)
+        let fresh = pool.filter { !seen.contains(PhonePlayDealer.key($0)) }
+        if let pick = fresh.randomElement() {
+            mark(pick)
+            return pick
         }
-        guard let pick = fresh.randomElement() else { return nil }
-        used.insert(PhonePlayDealer.key(pick))
+        // Everything has been dealt: pick from the longest-ago third.
+        let stale = ordered(pool)
+        let window = max(1, stale.count / 3)
+        guard let pick = stale.prefix(window).randomElement() else { return nil }
+        mark(pick)
         return pick
     }
 
+    /// Records that `item` was shown (moves it to the most recent end).
+    mutating func mark(_ item: String) {
+        let key = PhonePlayDealer.key(item)
+        order.removeAll { $0 == key }
+        order.append(key)
+        if order.count > PhonePlayDealer.historyCap {
+            order.removeFirst(order.count - PhonePlayDealer.historyCap)
+        }
+        if let storeKey = storeKey {
+            UserDefaults.standard.set(order, forKey: storeKey)
+        }
+    }
+
     mutating func reset() {
-        used = []
+        order = []
+        if let storeKey = storeKey {
+            UserDefaults.standard.removeObject(forKey: storeKey)
+        }
     }
 
     static func key(_ text: String) -> String {

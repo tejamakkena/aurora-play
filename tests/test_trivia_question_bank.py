@@ -190,16 +190,19 @@ def test_kbc_skips_recent_questions_in_the_next_session():
     assert not any(q[0] in seeded for q in engine2.pool)
 
 
-def test_fresh_questions_falls_back_to_full_bank_when_history_starves():
-    # If the history would leave fewer than a quarter of the bank, the
-    # full bank is returned rather than a tiny leftover pool. The Telugu
-    # trivia bank (40 questions) fits inside the 60-question history cap,
-    # so seeding it with every question exercises the fallback.
+def test_fresh_questions_offers_the_stalest_half_when_history_starves():
+    # If the history would leave fewer than a quarter of the bank, a tiny
+    # leftover pool is not used. Instead the stalest half of the bank is
+    # offered, so a repeat is always an old question, never one just asked.
+    # The Telugu trivia bank (40 questions) fits inside the 60-question
+    # history cap, so seeding it with every question exercises the fallback.
     te_pool = questions_for("te", "trivia")
     _, _, room = _make("trivia", pack="te")
     record_questions(room, "te", "trivia", te_pool)
     fresh = fresh_questions(room, "te", "trivia")
-    assert len(fresh) == len(te_pool)
+    assert len(fresh) == len(te_pool) // 2
+    newest = {q[1] for q in te_pool[-len(te_pool) // 2:]}
+    assert not any(q[1] in newest for q in fresh)
 
 
 def test_record_questions_caps_and_refreshes_history():

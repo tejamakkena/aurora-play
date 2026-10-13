@@ -226,14 +226,15 @@ RULES: dict[str, dict] = {
     },
     "last_tap": {
         "title": "Last Tap Standing",
-        "objective": "Survive to the last round.",
+        "objective": "Be the last player with lives left.",
         "rules": [
-            "Wait for the random countdown on the TV.",
-            "When GO appears, tap as fast as you can.",
-            "The slowest player each round is eliminated.",
-            "The last player standing wins.",
+            "Every round is a different quick challenge on your phone.",
+            "Fastest finger: wait for GO, then tap. Tapping early is a false start.",
+            "Keep tapping: the most taps wins. Find the colour: tap the tile the TV names.",
+            "No greys: tap every colour, never a grey. Count up: tap 1, 2, 3 in order.",
+            "The weakest player each round loses a life. No lives left, you are out.",
         ],
-        "controls": "Tap as fast as you can.",
+        "controls": "Tap, and watch the TV for what to do.",
     },
     "herd": {
         "title": "Herd",

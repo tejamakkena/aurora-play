@@ -52,41 +52,95 @@
 
   // ---- Last Tap Standing ------------------------------------------------------
   AP.controllers.last_tap = function (ctx) {
+    function pad(d, kind, go, canTap) {
+      var pump = kind === 'pump';
+      var label = pump ? (go ? String(pd.int(d, 'myTaps')) : 'READY') : (go ? 'TAP!' : 'WAIT');
+      var sub = pump ? (go ? 'Keep tapping!' : 'Tap when it starts') : (go ? 'Hit it!' : 'Tap the moment it turns green');
+      var lit = go;
+      return h('div', { class: 'center', key: 'pad', style: { flex: '1 1 auto', display: 'flex', padding: '30px', minHeight: 0 } },
+        h('button', {
+          class: 'press' + (lit ? ' idle' : ''),
+          style: { '--sc': '0.03', '--dur': '0.25s', appearance: 'none', border: lit ? '0' : '2px solid rgba(255,255,255,0.08)',
+            aspectRatio: '1', width: 'min(100%, 62vh)', maxWidth: '100%', borderRadius: '50%', color: lit ? '#000' : 'rgba(255,255,255,0.35)',
+            background: lit ? AP.grad([TINT.lastTap, C.cyan]) : AP.grad([C.surface2, C.surface]),
+            boxShadow: lit ? '0 0 30px ' + AP.alpha(TINT.lastTap, 0.55) : 'none',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '0 30px',
+            touchAction: 'manipulation' },
+          onpointerdown: function (ev) {
+            ev.preventDefault();
+            if (!canTap) { return; }
+            if (go && !pump) { AP.haptic.thump(); } else { AP.haptic.rigid(); }
+            ctx.send('tap', {});
+          }
+        },
+          h('div', { style: { fontSize: pump && go ? '88px' : '56px', fontWeight: 900, letterSpacing: pump ? '0' : '3px' } }, label),
+          h('div', { class: 'txt-center', style: { fontSize: '15px', fontWeight: 700, color: lit ? 'rgba(0,0,0,0.6)' : C.text3 } }, sub)));
+    }
+
+    function intro(d, kind) {
+      var target = d.target && typeof d.target.name === 'string' ? d.target.name : '';
+      return h('div', { class: 'center', key: 'intro', style: { flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: '14px', padding: '30px' } },
+        h('div', { class: 'txt-center', style: { fontSize: '40px', fontWeight: 900, color: '#fff' } }, pd.str(d, 'title').toUpperCase()),
+        h('div', { class: 'txt-center', style: { fontSize: '20px', fontWeight: 600, color: C.text2 } }, pd.str(d, 'howTo')),
+        kind === 'colour' && target
+          ? h('div', { class: 'txt-center', style: { fontSize: '26px', fontWeight: 700, color: TINT.lastTap } }, 'Find ' + target) : null,
+        h('div', { class: 'txt-center', style: { fontSize: '16px', fontWeight: 700, color: C.text3, marginTop: '8px' } }, 'Get ready...'));
+    }
+
+    function grid(d, kind, canTap) {
+      var tiles = Array.isArray(d.tiles) ? d.tiles : [];
+      var head = kind === 'colour' ? 'Tap ' + (d.target && d.target.name ? d.target.name : 'the colour')
+        : kind === 'grey' ? 'Every colour. No greys!' : 'Tap ' + (pd.int(d, 'nextNumber') || 1);
+      return h('div', { key: 'grid', style: { flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: '12px', padding: '8px 16px', minHeight: 0 } },
+        h('div', { class: 'txt-center', style: { fontSize: '22px', fontWeight: 900, color: '#fff' } }, head),
+        h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' } },
+          tiles.map(function (t, i) {
+            var done = !!t.done;
+            return h('button', {
+              key: 't' + i, class: 'press',
+              style: { appearance: 'none', border: '0', aspectRatio: '1', borderRadius: '18px', background: '#' + (t.hex || '666666'),
+                color: '#fff', fontSize: '40px', fontWeight: 900, opacity: done ? 0.12 : 1, touchAction: 'manipulation' },
+              onpointerdown: function (ev) {
+                ev.preventDefault();
+                if (!canTap || done) { return; }
+                AP.haptic.rigid();
+                ctx.send('tap', { tile: i });
+              }
+            }, t.label || '');
+          })));
+    }
+
     return function (d) {
       var phase = pd.str(d, 'phase', 'arming');
+      var kind = pd.str(d, 'kind', 'reaction');
       var alive = pd.bool(d, 'isAlive', true);
       var canTap = pd.bool(d, 'canTap');
       var myMs = typeof d.myMs === 'number' ? d.myMs : null;
+      var myDetail = typeof d.myDetail === 'string' ? d.myDetail : null;
       var falseStart = pd.bool(d, 'falseStart');
+      var failed = pd.bool(d, 'failed');
+      var lives = pd.int(d, 'lives');
+      var hearts = new Array(Math.max(0, lives) + 1).join('\u2665');
+      var hasResult = kind !== 'pump' && (myMs !== null || myDetail !== null);
       var content;
       if (!alive) {
         content = waiting('out', 'xmark.octagon.fill', "You're out", 'Watch the rest fight it out on the TV');
-      } else if (myMs !== null) {
-        content = waiting('ms-' + falseStart, falseStart ? 'nosign' : 'stopwatch.fill', falseStart ? 'Too early!' : myMs + ' ms',
+      } else if (hasResult) {
+        var text = falseStart ? 'Too early!' : (myDetail || (myMs !== null ? myMs + ' ms' : 'Done'));
+        content = waiting('res-' + text, falseStart || failed ? 'nosign' : 'stopwatch.fill', text,
           falseStart ? 'You tapped before GO' : 'Waiting for the others...');
+      } else if (phase === 'reveal') {
+        content = waiting('reveal', 'tv.fill', 'Results on the TV', hearts ? 'Lives left: ' + hearts : null);
+      } else if (kind === 'pump') {
+        content = pad(d, kind, phase === 'go', canTap);
+      } else if (kind === 'reaction') {
+        content = pad(d, kind, phase === 'go', canTap);
+      } else if (phase === 'go' && Array.isArray(d.tiles) && d.tiles.length) {
+        content = grid(d, kind, canTap);
       } else {
-        var go = phase === 'go';
-        content = h('div', { class: 'center', key: 'pad', style: { flex: '1 1 auto', display: 'flex', padding: '30px', minHeight: 0 } },
-          h('button', {
-            class: 'press' + (go ? ' idle' : ''),
-            style: { '--sc': '0.03', '--dur': '0.25s', appearance: 'none', border: go ? '0' : '2px solid rgba(255,255,255,0.08)',
-              aspectRatio: '1', width: 'min(100%, 62vh)', maxWidth: '100%', borderRadius: '50%', color: go ? '#000' : 'rgba(255,255,255,0.35)',
-              background: go ? AP.grad([TINT.lastTap, C.cyan]) : AP.grad([C.surface2, C.surface]),
-              boxShadow: go ? '0 0 30px ' + AP.alpha(TINT.lastTap, 0.55) : 'none',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '0 30px',
-              touchAction: 'manipulation' },
-            onpointerdown: function (ev) {
-              ev.preventDefault();
-              if (!canTap) { return; }
-              if (go) { AP.haptic.thump(); } else { AP.haptic.rigid(); }
-              ctx.send('tap', {});
-            }
-          },
-            h('div', { style: { fontSize: '56px', fontWeight: 900, letterSpacing: '3px' } }, go ? 'TAP!' : 'WAIT'),
-            h('div', { class: 'txt-center', style: { fontSize: '15px', fontWeight: 700, color: go ? 'rgba(0,0,0,0.6)' : C.text3 } },
-              go ? 'Hit it!' : 'Tap the moment it turns green')));
+        content = intro(d, kind);
       }
-      return ui.shell({ title: 'Last Tap Standing', subtitle: alive ? 'Round ' + pd.int(d, 'round') : 'Eliminated' }, content);
+      return ui.shell({ title: 'Last Tap Standing', subtitle: alive ? 'Round ' + pd.int(d, 'round') + '  ' + hearts : 'Eliminated' }, content);
     };
   };
 

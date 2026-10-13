@@ -134,6 +134,16 @@
                              colors: [C.cyan, C.blue], onClick: function () { A.setContentPack(p[0]); } });
           })))));
     }
+    (Array.isArray(room.options) ? room.options : []).forEach(function (opt) {
+      kids.push(ui.card({},
+        h('div', { class: 'col gap10', key: 'opt-' + opt.key },
+          h('div', { class: 'row gap8', style: { fontSize: '15px', fontWeight: 800, color: 'rgba(255,255,255,0.85)' } },
+            AP.icon('slider.horizontal.3', 17), opt.label),
+          h('div', { class: 'row gap8' }, (opt.choices || []).map(function (c) {
+            return ui.chip({ title: c.label, selected: opt.value === c.value,
+                             colors: [C.green, C.cyan], onClick: function () { A.setOption(opt.key, c.value); } });
+          })))));
+    });
     if (room.botsAllowed) {
       kids.push(h('button', {
         class: 'press', disabled: !canAddBot,

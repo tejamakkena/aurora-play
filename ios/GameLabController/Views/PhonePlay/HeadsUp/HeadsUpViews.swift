@@ -177,9 +177,32 @@ private struct HeadsUpReadyView: View {
                         }
                     }
 
-                    Text("\(game.roundLength) seconds. Guess as many as you can.")
+                    Text("Round length")
+                        .font(.system(size: 14, weight: .heavy, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text3)
+                    HStack(spacing: 10) {
+                        ForEach(HeadsUpViewModel.lengthOptions, id: \.self) { seconds in
+                            let chosen: Bool = game.roundLength == seconds
+                            Button {
+                                game.roundLength = seconds
+                                PhonePlayHaptics.tap()
+                            } label: {
+                                Text("\(seconds / 60) min")
+                                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                                    .foregroundColor(chosen ? .black : .white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(chosen ? AnyShapeStyle(PhonePlayDesign.gradient(game.deck.colors))
+                                                     : AnyShapeStyle(Color.white.opacity(0.08))))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    Text("Guess as many as you can before time runs out.")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.text2)
+                        .multilineTextAlignment(.center)
 
                     PhonePlayBigButton(title: "Start", symbol: "play.fill",
                                        colors: game.deck.colors) {

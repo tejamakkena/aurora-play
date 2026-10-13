@@ -275,6 +275,11 @@ struct Connect4ControllerView: View {
     let onAction: (String, [String: Any]) -> Void
 
     @State private var aimedCol: Int? = nil
+    /// The column this phone just dropped into. The disc falls down that
+    /// column at once, so the player sees the move land without waiting for
+    /// the TV round trip; the strip is locked until it has finished.
+    @State private var droppingCol: Int? = nil
+    @State private var dropToken = 0
 
     private var isMyTurn: Bool { privateData["isMyTurn"] as? Bool ?? false }
     private var myColor: String { privateData["color"] as? String ?? "red" }
@@ -322,12 +327,17 @@ struct Connect4ControllerView: View {
 
     @ViewBuilder
     private var statusLine: some View {
-        if isMyTurn {
+        if droppingCol != nil {
+            Text("Dropped!")
+                .font(.system(size: 30, weight: .black, design: .rounded))
+                .foregroundColor(Connect4PhonePalette.of(myColor).light)
+                .transition(.opacity)
+        } else if isMyTurn {
             VStack(spacing: 4) {
                 Text("Your move!")
                     .font(.system(size: 30, weight: .black, design: .rounded))
                     .foregroundColor(Connect4PhonePalette.of(myColor).light)
-                Text("Drag to aim, let go to drop")
+                Text("Touch a column, slide to aim, lift to drop")
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .foregroundColor(PhonePlayDesign.text3)
             }
@@ -360,8 +370,8 @@ struct Connect4ControllerView: View {
             pickerStrip(width: geo.size.width)
         }
         .frame(height: 260)
-        .opacity(isMyTurn ? 1.0 : 0.35)
-        .allowsHitTesting(isMyTurn)
+        .opacity(isMyTurn || droppingCol != nil ? 1.0 : 0.35)
+        .allowsHitTesting(isMyTurn && droppingCol == nil)
         .animation(.easeInOut(duration: 0.2), value: isMyTurn)
     }
 
@@ -400,10 +410,6 @@ struct Connect4ControllerView: View {
                 if aimed {
                     Connect4PhoneDisc(colorID: myColor, size: discSize)
                         .transition(.move(edge: .top).combined(with: .opacity))
-                } else {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white.opacity(full ? 0.1 : 0.35))
                 }
             }
             .frame(height: 36)
@@ -420,6 +426,12 @@ struct Connect4ControllerView: View {
                         .foregroundColor(.white.opacity(0.25)) : nil
                 )
                 .shadow(color: aimed ? palette.base.opacity(0.45) : .clear, radius: 10, y: 4)
+                .overlay(alignment: .top) {
+                    if droppingCol == col {
+                        Connect4FallingDisc(colorID: myColor, size: discSize, distance: 260 - 36 - 6 - 18 - discSize)
+                            .id(dropToken)
+                    }
+                }
             Text("\(col + 1)")
                 .font(.system(size: 12, weight: .heavy, design: .rounded))
                 .foregroundColor(aimed ? .white : PhonePlayDesign.text3)
@@ -490,7 +502,34 @@ struct Connect4ControllerView: View {
         }
         aimedCol = nil
         PhonePlayHaptics.rigid()
+        dropToken += 1
+        let token: Int = dropToken
+        droppingCol = col
         onAction("drop", ["column": col])
+        // Unlock again shortly, even if the server turned the move down.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+            if dropToken == token { droppingCol = nil }
+        }
+    }
+}
+
+/// A disc that drops down its column the instant a move is sent.
+private struct Connect4FallingDisc: View {
+    let colorID: String
+    let size: CGFloat
+    let distance: CGFloat
+
+    @State private var y: CGFloat = 0
+    @State private var opacity: Double = 1
+
+    var body: some View {
+        Connect4PhoneDisc(colorID: colorID, size: size)
+            .offset(y: y)
+            .opacity(opacity)
+            .onAppear {
+                withAnimation(.easeIn(duration: 0.28)) { y = max(distance, 40) }
+                withAnimation(.easeOut(duration: 0.25).delay(0.3)) { opacity = 0 }
+            }
     }
 }
 

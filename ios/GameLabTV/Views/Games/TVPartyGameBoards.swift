@@ -243,29 +243,84 @@ struct TVBluffItBoardView: View {
 // MARK: - Last Tap Standing
 
 struct LastTapState {
+    struct Result: Identifiable {
+        let id: String
+        let name: String
+        let detail: String
+        let lives: Int
+        let out: Bool
+        let falseStart: Bool
+    }
+
     var phase = "arming"
     var round = 0
+    var kind = "reaction"
+    var title = ""
+    var howTo = ""
+    var targetName = ""
+    var targetHex = ""
+    var secondsLeft = 0.0
+    var introSeconds = 0.0
     var aliveCount = 0
     var alive: Set<String> = []
-    var eliminated: [String] = []
-    var results: [(name: String, ms: Int, falseStart: Bool)] = []
+    var eliminated: Set<String> = []
+    var progress: [String: Double] = [:]
+    var lives: [String: Int] = [:]
+    var maxLives = 2
+    var results: [Result] = []
     var players: [BoardPlayer] = []
     var winner: String? = nil
+
+    private static func number(_ value: Any?) -> Double? {
+        if let v = value as? Double { return v }
+        if let v = value as? Int { return Double(v) }
+        return nil
+    }
 
     mutating func update(from d: [String: AnyCodable]) {
         if let v = d["phase"]?.value as? String { phase = v }
         if let v = d["round"]?.value as? Int { round = v }
+        if let v = d["kind"]?.value as? String { kind = v }
+        if let v = d["title"]?.value as? String { title = v }
+        if let v = d["howTo"]?.value as? String { howTo = v }
+        if let v = d["maxLives"]?.value as? Int { maxLives = v }
+        if let t = d["target"]?.value as? [String: Any] {
+            targetName = t["name"] as? String ?? ""
+            targetHex = t["hex"] as? String ?? ""
+        } else {
+            targetName = ""
+            targetHex = ""
+        }
+        secondsLeft = LastTapState.number(d["secondsLeft"]?.value) ?? 0
+        introSeconds = LastTapState.number(d["introSeconds"]?.value) ?? 0
         if let v = d["aliveCount"]?.value as? Int { aliveCount = v }
         if let v = d["alivePlayerIDs"]?.value as? [Any] {
             alive = Set(v.compactMap { $0 as? String })
         }
-        eliminated = (d["eliminatedPlayerIDs"]?.value as? [Any] ?? []).compactMap { $0 as? String }
+        eliminated = Set((d["eliminatedPlayerIDs"]?.value as? [Any] ?? []).compactMap { $0 as? String })
         winner = d["winner"]?.value as? String
         players = BoardPlayer.list(from: d["players"]?.value)
+        var livesNow: [String: Int] = [:]
+        for raw in d["players"]?.value as? [Any] ?? [] {
+            if let p = raw as? [String: Any], let id = p["id"] as? String {
+                livesNow[id] = p["lives"] as? Int ?? 0
+            }
+        }
+        lives = livesNow
+        var bars: [String: Double] = [:]
+        for (key, value) in d["progress"]?.value as? [String: Any] ?? [:] {
+            bars[key] = LastTapState.number(value) ?? 0
+        }
+        progress = bars
+        let gone = eliminated
         results = (d["results"]?.value as? [Any] ?? []).compactMap {
-            guard let r = $0 as? [String: Any] else { return nil }
-            return (r["name"] as? String ?? "", r["ms"] as? Int ?? 0,
-                    r["falseStart"] as? Bool ?? false)
+            guard let r = $0 as? [String: Any], let id = r["playerID"] as? String else { return nil }
+            return Result(id: id,
+                          name: r["name"] as? String ?? "",
+                          detail: r["detail"] as? String ?? "",
+                          lives: r["lives"] as? Int ?? 0,
+                          out: gone.contains(id),
+                          falseStart: r["falseStart"] as? Bool ?? false)
         }
     }
 }
@@ -274,9 +329,14 @@ struct TVLastTapBoardView: View {
     let room: Room
     @StateObject private var vm = TVBoardModel(initial: LastTapState()) { $0.update(from: $1) }
 
+    private var isReactionGo: Bool { vm.state.kind == "reaction" && vm.state.phase == "go" }
+
     private var background: Color {
+        if isReactionGo { return TVTheme.green }
+        if vm.state.kind == "colour" && vm.state.phase == "go" && !vm.state.targetHex.isEmpty {
+            return Color(hex: vm.state.targetHex)
+        }
         switch vm.state.phase {
-        case "go":     return TVTheme.green
         case "arming": return Color(hex: "1a0d2e")
         default:       return .black.opacity(0.4)
         }
@@ -292,44 +352,179 @@ struct TVLastTapBoardView: View {
                               round: vm.state.round, totalRounds: 0, secondsLeft: 0,
                               phaseLabel: "\(vm.state.aliveCount) still in")
                 Spacer()
-                switch vm.state.phase {
-                case "arming":
-                    Text("WAIT…")
-                        .font(.system(size: 120, weight: .heavy, design: .rounded)).tracking(10)
-                        .foregroundColor(.white.opacity(0.25))
-                case "go":
-                    Text("TAP!")
-                        .font(.system(size: 190, weight: .heavy, design: .rounded)).tracking(12)
-                        .foregroundColor(.black)
-                case "final":
-                    VStack(spacing: 16) {
-                        Image(systemName: "trophy.fill").font(.system(size: 100, weight: .regular, design: .rounded)).foregroundColor(TVTheme.yellow)
-                        Text(vm.state.players.first { $0.id == vm.state.winner }?.name ?? "Winner")
-                            .font(.system(size: 62, weight: .heavy, design: .rounded)).foregroundColor(TVTheme.yellow)
-                    }
-                default:
-                    VStack(spacing: 14) {
-                        ForEach(Array(vm.state.results.prefix(8).enumerated()), id: \.offset) { i, r in
-                            HStack(spacing: 20) {
-                                Text("\(i + 1)").font(.system(.title2, design: .rounded, weight: .bold))
-                                    .foregroundColor(.white.opacity(0.4)).frame(width: 44)
-                                Text(r.name).font(.system(.title2, design: .rounded)).foregroundColor(.white)
-                                Spacer()
-                                Text(r.falseStart ? "too early" : "\(r.ms) ms")
-                                    .font(.system(.title3, design: .rounded, weight: .bold))
-                                    .foregroundColor(r.falseStart ? TVTheme.red : TVTheme.cyan)
-                            }
-                            .padding(.horizontal, 30).padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.05)))
-                        }
-                    }
-                    .padding(.horizontal, 200)
-                }
+                content
                 Spacer()
-                TVScoreStrip(players: vm.state.players, highlight: vm.state.alive)
+                livesStrip
             }
         }
         .onAppear { vm.bind(roomCode: room.code) }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch vm.state.phase {
+        case "arming":
+            arming
+        case "go":
+            playing
+        case "final":
+            VStack(spacing: 16) {
+                Image(systemName: "trophy.fill").font(.system(size: 100, weight: .regular, design: .rounded)).foregroundColor(TVTheme.yellow)
+                Text(vm.state.players.first { $0.id == vm.state.winner }?.name ?? "Winner")
+                    .font(.system(size: 62, weight: .heavy, design: .rounded)).foregroundColor(TVTheme.yellow)
+            }
+        default:
+            reveal
+        }
+    }
+
+    private var arming: some View {
+        VStack(spacing: 18) {
+            if vm.state.kind == "reaction" {
+                Text("WAIT…")
+                    .font(.system(size: 120, weight: .heavy, design: .rounded)).tracking(10)
+                    .foregroundColor(.white.opacity(0.25))
+                Text(vm.state.howTo)
+                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.6))
+            } else {
+                Text("NEXT UP")
+                    .font(.system(size: 28, weight: .bold, design: .rounded)).tracking(6)
+                    .foregroundColor(TVTheme.cyan)
+                Text(vm.state.title.uppercased())
+                    .font(.system(size: 104, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .minimumScaleFactor(0.5).lineLimit(1)
+                Text(vm.state.howTo)
+                    .font(.system(size: 40, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.75))
+                if vm.state.kind == "colour", !vm.state.targetName.isEmpty {
+                    Text("Get ready to find \(vm.state.targetName)")
+                        .font(.system(size: 30, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                }
+            }
+        }
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 120)
+    }
+
+    @ViewBuilder
+    private var playing: some View {
+        switch vm.state.kind {
+        case "reaction":
+            Text("TAP!")
+                .font(.system(size: 190, weight: .heavy, design: .rounded)).tracking(12)
+                .foregroundColor(.black)
+        case "colour":
+            VStack(spacing: 10) {
+                Text("TAP")
+                    .font(.system(size: 44, weight: .bold, design: .rounded)).tracking(10)
+                    .foregroundColor(.white.opacity(0.9))
+                Text(vm.state.targetName.uppercased())
+                    .font(.system(size: 190, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .shadow(color: .black.opacity(0.45), radius: 10)
+                    .minimumScaleFactor(0.5).lineLimit(1)
+                timer
+            }
+        default:
+            VStack(spacing: 28) {
+                Text(vm.state.title.uppercased())
+                    .font(.system(size: 84, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .minimumScaleFactor(0.5).lineLimit(1)
+                progressBars
+                timer
+            }
+        }
+    }
+
+    private var timer: some View {
+        Text(String(format: "%.0f", max(0, vm.state.secondsLeft.rounded(.up))))
+            .font(.system(size: 64, weight: .bold, design: .rounded))
+            .foregroundColor(.white.opacity(0.8))
+            .monospacedDigit()
+    }
+
+    private var progressBars: some View {
+        VStack(spacing: 14) {
+            ForEach(vm.state.players.filter { vm.state.alive.contains($0.id) }) { p in
+                HStack(spacing: 20) {
+                    Text(p.name)
+                        .font(.system(size: 30, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(width: 260, alignment: .leading)
+                        .lineLimit(1)
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.12))
+                            Capsule()
+                                .fill(TVTheme.cyan)
+                                .frame(width: max(14, geo.size.width * CGFloat(min(1, vm.state.progress[p.id] ?? 0))))
+                                .animation(.easeOut(duration: 0.12), value: vm.state.progress[p.id] ?? 0)
+                        }
+                    }
+                    .frame(height: 26)
+                }
+            }
+        }
+        .padding(.horizontal, 160)
+    }
+
+    private var reveal: some View {
+        VStack(spacing: 14) {
+            Text(vm.state.title.uppercased())
+                .font(.system(size: 34, weight: .bold, design: .rounded)).tracking(6)
+                .foregroundColor(TVTheme.cyan)
+            ForEach(Array(vm.state.results.prefix(8).enumerated()), id: \.offset) { i, r in
+                HStack(spacing: 20) {
+                    Text("\(i + 1)").font(.system(.title2, design: .rounded, weight: .bold))
+                        .foregroundColor(.white.opacity(0.4)).frame(width: 44)
+                    Text(r.name).font(.system(.title2, design: .rounded)).foregroundColor(.white)
+                    Spacer()
+                    if r.out {
+                        Text("OUT")
+                            .font(.system(.headline, design: .rounded, weight: .heavy))
+                            .foregroundColor(TVTheme.red)
+                    } else {
+                        Text(String(repeating: "\u{2665}", count: max(0, r.lives)))
+                            .font(.system(.headline, design: .rounded))
+                            .foregroundColor(TVTheme.red)
+                    }
+                    Text(r.detail)
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .foregroundColor(r.falseStart || r.out ? TVTheme.red : TVTheme.cyan)
+                        .frame(minWidth: 220, alignment: .trailing)
+                }
+                .padding(.horizontal, 30).padding(.vertical, 12)
+                .background(RoundedRectangle(cornerRadius: 10).fill(.white.opacity(0.05)))
+            }
+        }
+        .padding(.horizontal, 200)
+    }
+
+    /// Lives for everyone still in (hearts), so the table sees who is close
+    /// to going out.
+    private var livesStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                ForEach(vm.state.players) { p in
+                    let alive = vm.state.alive.contains(p.id)
+                    HStack(spacing: 10) {
+                        Text(p.name).font(.system(.headline, design: .rounded))
+                            .foregroundColor(alive ? .white : .white.opacity(0.35))
+                        Text(alive ? String(repeating: "\u{2665}", count: max(0, vm.state.lives[p.id] ?? 0)) : "out")
+                            .font(.system(.subheadline, design: .rounded, weight: .bold))
+                            .foregroundColor(alive ? TVTheme.red : .white.opacity(0.35))
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .background(Capsule().fill(.white.opacity(alive ? 0.1 : 0.04)))
+                }
+            }
+            .padding(.horizontal, 60)
+        }
+        .padding(.bottom, 24)
     }
 }
 

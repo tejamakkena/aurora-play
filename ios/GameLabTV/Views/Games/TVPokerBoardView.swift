@@ -48,6 +48,7 @@ struct PokerSeat: Identifiable, Equatable {
     let currentBet: Int
     let status: String  // "active", "folded", "all-in"
     let isCurrentTurn: Bool
+    var buyIns: Int = 1
 }
 
 struct PokerShowdownHand: Equatable {
@@ -88,6 +89,12 @@ struct PokerBoardState {
     var winnerID: String?
     var handNumber = 0
     var maxHands = 0
+    /// Table options picked in the lobby: no hand limit, re-buys allowed,
+    /// and how many players have asked to end an unlimited game.
+    var unlimited = false
+    var rebuys = false
+    var endVotes = 0
+    var endVotesNeeded = 0
     var lastHand: PokerHandResult?
     var showdown: [PokerShowdownHand] = []
     var dealerID: String?
@@ -104,6 +111,10 @@ struct PokerBoardState {
     mutating func update(from data: [String: AnyCodable]) {
         if let v = Self.int(data["handNumber"]?.value) { handNumber = v }
         if let v = Self.int(data["maxHands"]?.value) { maxHands = v }
+        if let v = data["unlimited"]?.value as? Bool { unlimited = v }
+        if let v = data["rebuys"]?.value as? Bool { rebuys = v }
+        if let v = Self.int(data["endVotes"]?.value) { endVotes = v }
+        if let v = Self.int(data["endVotesNeeded"]?.value) { endVotesNeeded = v }
         if let v = Self.int(data["pot"]?.value) { pot = v }
         if let v = data["phase"]?.value as? String { phase = v }
         if let v = data["communityCards"]?.value as? [Any] {
@@ -144,7 +155,8 @@ struct PokerBoardState {
                                    chips: int(d["chips"]) ?? 0,
                                    currentBet: int(d["currentBet"]) ?? 0,
                                    status: d["status"] as? String ?? "active",
-                                   isCurrentTurn: d["isCurrentTurn"] as? Bool ?? false))
+                                   isCurrentTurn: d["isCurrentTurn"] as? Bool ?? false,
+                                   buyIns: int(d["buyIns"]) ?? 1))
         }
         return seats
     }
@@ -530,7 +542,8 @@ enum PokerReveal {
     }
 
     private func speakNewHand(_ next: PokerBoardState) {
-        var line = next.maxHands > 0 ? "Hand \(next.handNumber) of \(next.maxHands)." : "New hand."
+        var line = next.maxHands > 0 ? "Hand \(next.handNumber) of \(next.maxHands)."
+            : (next.unlimited ? "Hand \(next.handNumber)." : "New hand.")
         if let dealer = next.playerSeats.first(where: { $0.id == next.dealerID }) {
             line += " \(dealer.name) deals."
         }
@@ -900,6 +913,10 @@ private struct PKTStageView: View {
                               startChips: vm.handStartChips,
                               handNumber: state.handNumber,
                               maxHands: state.maxHands,
+                              unlimited: state.unlimited,
+                              rebuys: state.rebuys,
+                              endVotes: state.endVotes,
+                              endVotesNeeded: state.endVotesNeeded,
                               winnerIDs: Set(state.lastHand?.winnerIDs ?? []))
                     .transition(.scale(scale: 0.85).combined(with: .opacity))
                     .position(x: PKTStage.center.x, y: PKTStage.center.y)
@@ -914,7 +931,7 @@ private struct PKTStageView: View {
         ZStack {
             HStack(alignment: .center, spacing: 0) {
                 PKTTitleBlock(handNumber: state.handNumber, maxHands: state.maxHands,
-                              bigBlind: state.bigBlind)
+                              unlimited: state.unlimited, bigBlind: state.bigBlind)
                 Spacer(minLength: 0)
                 PKTStreetTracker(phase: state.phase)
             }
@@ -1761,6 +1778,7 @@ private struct PKTCountdownRing: View {
 private struct PKTTitleBlock: View {
     let handNumber: Int
     let maxHands: Int
+    var unlimited: Bool = false
     let bigBlind: Int
 
     var body: some View {
@@ -1788,6 +1806,8 @@ private struct PKTTitleBlock: View {
         var parts: [String] = ["Texas Hold'em"]
         if maxHands > 0 && handNumber > 0 {
             parts.append("Hand \(handNumber) of \(maxHands)")
+        } else if unlimited && handNumber > 0 {
+            parts.append("Hand \(handNumber), play on")
         }
         let small: Int = max(bigBlind / 2, 1)
         parts.append("Blinds \(PKTFormat.chips(small)) / \(PKTFormat.chips(bigBlind))")
@@ -1939,6 +1959,10 @@ private struct PKTScoreboard: View {
     let startChips: [String: Int]
     let handNumber: Int
     let maxHands: Int
+    var unlimited: Bool = false
+    var rebuys: Bool = false
+    var endVotes: Int = 0
+    var endVotesNeeded: Int = 0
     let winnerIDs: Set<String>
 
     private var ranked: [PokerSeat] {
@@ -1951,7 +1975,21 @@ private struct PKTScoreboard: View {
     private var title: String {
         if maxHands > 0 && handNumber >= maxHands { return "FINAL STANDINGS" }
         if maxHands > 0 { return "AFTER HAND \(handNumber) OF \(maxHands)" }
+        if unlimited && handNumber > 0 { return "AFTER HAND \(handNumber)" }
         return "STANDINGS"
+    }
+
+    /// Reminders for an open-ended table: broke players can buy back in, and
+    /// everyone can vote to call it a night.
+    private var footerLine: String? {
+        var parts: [String] = []
+        if rebuys && seats.contains(where: { $0.chips <= 0 }) {
+            parts.append("Broke? Buy back in on your phone")
+        }
+        if unlimited && endVotesNeeded > 0 {
+            parts.append("End the game: \(endVotes) of \(endVotesNeeded) agree")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: "   |   ")
     }
 
     var body: some View {
@@ -1966,6 +2004,13 @@ private struct PKTScoreboard: View {
                 row(rank: i + 1, seat: seat)
                     .frame(height: rowHeight)
                     .tvStaggeredAppear(index: i, step: 0.05)
+            }
+            if let footer = footerLine {
+                Text(footer)
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                    .foregroundColor(Color.white.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 8)
             }
         }
         .padding(.horizontal, 34)
@@ -2008,7 +2053,12 @@ private struct PKTScoreboard: View {
                     .monospacedDigit()
                     .foregroundColor(delta > 0 ? PKTColors.mint : Color(hex: "fb7185"))
             }
-            Text(seat.chips > 0 ? PKTFormat.chips(seat.chips) : "OUT")
+            if seat.buyIns > 1 {
+                Text("\(seat.buyIns)x in")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(Color.white.opacity(0.5))
+            }
+            Text(seat.chips > 0 ? PKTFormat.chips(seat.chips) : (rebuys ? "BROKE" : "OUT"))
                 .font(.system(size: 30, weight: .black, design: .rounded))
                 .monospacedDigit()
                 .foregroundColor(seat.chips > 0 ? .white : Color.white.opacity(0.4))

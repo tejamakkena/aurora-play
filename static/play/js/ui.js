@@ -218,6 +218,18 @@
     app.appendChild(scrim);
   };
 
+  /** A scrolling info sheet (rules, rankings) with a Done button. */
+  ui.infoSheet = function (title, body) {
+    var app = document.getElementById('app');
+    var scrim = h('div', { class: 'scrim', onclick: function (ev) { if (ev.target === scrim) { close(); } } },
+      h('div', { class: 'sheet col gap12', style: { maxHeight: '86vh', overflowY: 'auto' } },
+        h('div', { class: 'txt-center', style: { fontSize: '18px', color: '#fff', fontWeight: 800 } }, title),
+        body,
+        h('button', { class: 'btn-ghost press', onclick: close }, 'Done')));
+    function close() { if (scrim.parentNode) { scrim.parentNode.removeChild(scrim); } }
+    app.appendChild(scrim);
+  };
+
   /** Safe getters over the untyped privateData dictionary (ControllerKit). */
   AP.pd = {
     str: function (d, k, f) { var v = d[k]; return typeof v === 'string' ? v : (f === undefined ? '' : f); },

@@ -70,8 +70,8 @@ final class StoryChainViewModel: ObservableObject {
             .map { (name: $0.name, votes: $0.votes) }
     }
 
-    private var openerDealer = PhonePlayDealer()
-    private var twistDealer = PhonePlayDealer()
+    private var openerDealer = PhonePlayDealer(deck: "storyopener")
+    private var twistDealer = PhonePlayDealer(deck: "storytwist")
     private var loop: Task<Void, Never>? = nil
     private var token: Int = 0
     private var isActive: Bool = true

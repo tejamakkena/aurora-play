@@ -26,7 +26,7 @@
   }
 
   AP.controllers.connect4 = function (ctx) {
-    var aimed = null, lastTurn = null;
+    var aimed = null, lastTurn = null, dropping = null, dropTimer = null;
     return function (d) {
       var mine = pd.bool(d, 'isMyTurn');
       var myColor = pd.str(d, 'color', 'red');
@@ -41,10 +41,13 @@
       var spacing = count > 8 ? 4 : 6;
 
       var status;
-      if (mine) {
+      if (dropping !== null) {
+        status = h('div', { class: 'col center gap4', key: 'dropped' },
+          h('div', { style: { fontSize: '30px', fontWeight: 900, color: p[1] } }, 'Dropped!'));
+      } else if (mine) {
         status = h('div', { class: 'col center gap4 pop-in', key: 'mine' },
           h('div', { style: { fontSize: '30px', fontWeight: 900, color: p[1] } }, 'Your move!'),
-          h('div', { class: 'c-text3', style: { fontSize: '14px' } }, 'Drag to aim, let go to drop'));
+          h('div', { class: 'c-text3', style: { fontSize: '14px' } }, 'Touch a column, slide to aim, lift to drop'));
       } else if (currentName) {
         status = h('div', { class: 'row gap10', key: 'wait', style: { padding: '10px 16px', borderRadius: '999px', background: C.surface } },
           currentColor ? disc(currentColor, 20) : null,
@@ -72,21 +75,31 @@
         return h('div', { key: 'c' + c, class: 'col center', style: { gap: '6px', minWidth: 0 } },
           h('div', { style: { height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' } },
             on ? h('span', { class: 'pop-in' }, disc(myColor, 30))
-               : h('span', { style: { color: 'rgba(255,255,255,' + (isFull ? 0.1 : 0.35) + ')', display: 'inline-flex' } }, AP.icon('chevron.down', 12))),
+               : null),
           h('div', { class: 'grow w100', style: { background: fill, borderRadius: Math.min(12, 10) + 'px', transition: 'background .2s',
               border: (on ? 2 : 1) + 'px solid ' + (on ? AP.alpha(p[1], 0.9) : 'rgba(255,255,255,0.08)'),
               boxShadow: on ? '0 4px 10px ' + AP.alpha(p[0], 0.45) : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'rgba(255,255,255,0.25)' } }, isFull ? AP.icon('xmark', 11) : null),
+              position: 'relative', color: 'rgba(255,255,255,0.25)' } }, isFull ? AP.icon('xmark', 11) : null,
+            dropping !== null && dropping.col === c
+              ? h('span', { key: 'fall' + dropping.n, class: 'disc-fall', style: { '--dsz': '30px', '--fall': '190px' } }, disc(myColor, 30)) : null),
           h('div', { style: { fontSize: '12px', fontWeight: 800, color: on ? '#fff' : C.text3 } }, String(c + 1)));
       }
 
       var strip = h('div', { key: 'strip', style: { display: 'grid', gridTemplateColumns: 'repeat(' + count + ', 1fr)', gap: spacing + 'px', height: '260px',
-          touchAction: 'none', opacity: mine ? 1 : 0.35, pointerEvents: mine ? 'auto' : 'none', transition: 'opacity .2s' },
+          touchAction: 'none', opacity: mine || dropping !== null ? 1 : 0.35, pointerEvents: mine && dropping === null ? 'auto' : 'none', transition: 'opacity .2s' },
         onpointerdown: function (ev) { ev.currentTarget.setPointerCapture(ev.pointerId); aimTo(colAt(ev.currentTarget, ev.clientX)); },
         onpointermove: function (ev) { if (ev.buttons || ev.pressure > 0) { aimTo(colAt(ev.currentTarget, ev.clientX)); } },
         onpointerup: function (ev) {
           aimTo(colAt(ev.currentTarget, ev.clientX));
-          if (mine && aimed !== null && full.indexOf(aimed) < 0) { var col = aimed; aimed = null; AP.haptic.rigid(); ctx.send('drop', { column: col }); }
+          if (mine && aimed !== null && full.indexOf(aimed) < 0) {
+            var col = aimed; aimed = null; AP.haptic.rigid();
+            // Drop the disc locally at once; do not wait for the TV round trip.
+            var n = (dropping ? dropping.n : 0) + 1;
+            dropping = { col: col, n: n };
+            if (dropTimer) { clearTimeout(dropTimer); }
+            dropTimer = setTimeout(function () { dropping = null; ctx.refresh(); }, 1100);
+            ctx.send('drop', { column: col });
+          }
           else { aimed = null; }
           ctx.refresh();
         },

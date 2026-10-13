@@ -16,7 +16,7 @@
   var INK = 'var(--bg)';
   var TILE = ['#FF3D7F', '#3D8BFF', '#FFB020', '#22C77A'];
   var SHAPE = ['triangle.fill', 'diamond.fill', 'circle.fill', 'square.fill'];
-  var DOOR = ['#FF4D8D', '#3DA5FF', '#FFB020'];
+  var DOOR = ['#FF4D8D', '#3DA5FF', '#FFB020', '#7C5CFF', '#2FCB86', '#FF7A45'];
   var AVATAR = ['#F43F5E', '#F97316', '#EAB308', '#22C55E', '#14B8A6', '#06B6D4', '#3B82F6', '#6366F1', '#A855F7', '#EC4899'];
   var ICE_TAPS = 5;
 
@@ -157,14 +157,15 @@
             h('div', { style: { fontSize: '30px', fontWeight: 900 } }, voted === null ? 'Pick a door!' : 'Vote locked in!'),
             h('div', { class: 'c-text2 txt-center', style: { fontSize: '15px' } },
               voted === null ? 'The most votes opens. Ties are a coin flip.' : 'Waiting for everyone else...'),
-            cats.map(function (name, i) { return door(i, name, voted === i, voted !== null && voted !== i); })));
+            h('div', { style: { display: 'grid', gridTemplateColumns: cats.length > 3 ? 'repeat(2, 1fr)' : '1fr', gap: '14px', width: '100%' } },
+              cats.map(function (name, i) { return door(i, name, voted === i, voted !== null && voted !== i, cats.length > 3); }))));
       }
-      function door(i, name, picked, dimmed) {
+      function door(i, name, picked, dimmed, compact) {
         var color = DOOR[i % DOOR.length];
         return h('button', {
           class: 'press', key: 'door-' + i, disabled: picked || dimmed,
-          style: { appearance: 'none', border: picked ? '4px solid #fff' : '0', width: '100%', minHeight: '104px',
-            display: 'flex', alignItems: 'center', gap: '16px', padding: '0 18px', color: '#fff', textAlign: 'left',
+          style: { appearance: 'none', border: picked ? '4px solid #fff' : '0', width: '100%', minHeight: compact ? '92px' : '104px',
+            display: 'flex', alignItems: 'center', gap: compact ? '10px' : '16px', padding: compact ? '0 12px' : '0 18px', color: '#fff', textAlign: 'left',
             borderRadius: 'var(--r-card)', background: 'linear-gradient(180deg, ' + color + ', ' + AP.alpha(color, 0.8) + ')',
             boxShadow: '0 6px 0 ' + AP.alpha(color, 0.55), opacity: dimmed ? 0.35 : 1,
             transform: picked ? 'scale(1.03)' : 'none', transition: 'transform .38s var(--pop), opacity .2s' },
@@ -176,10 +177,10 @@
             ctx.refresh();
           }
         },
-          h('span', { style: { width: '58px', height: '58px', borderRadius: '50%', background: '#fff', color: color,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '34px', fontWeight: 900, flex: '0 0 auto' } }, String(i + 1)),
-          h('span', { class: 'grow', style: { fontSize: '24px', fontWeight: 900, lineHeight: 1.1 } }, name),
-          AP.icon(picked ? 'checkmark.circle.fill' : 'door.left.hand.closed', 30));
+          h('span', { style: { width: compact ? '40px' : '58px', height: compact ? '40px' : '58px', borderRadius: '50%', background: '#fff', color: color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: compact ? '24px' : '34px', fontWeight: 900, flex: '0 0 auto' } }, String(i + 1)),
+          h('span', { class: 'grow', style: { fontSize: compact ? '18px' : '24px', fontWeight: 900, lineHeight: 1.1, minWidth: 0 } }, name),
+          AP.icon(picked ? 'checkmark.circle.fill' : 'door.left.hand.closed', compact ? 20 : 30));
       }
 
       function powerPick() {

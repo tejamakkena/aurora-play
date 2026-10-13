@@ -27,9 +27,9 @@ final class HeadsUpViewModel: ObservableObject {
     enum Flash { case correct, pass }
 
     @Published private(set) var stage: Stage = .pick
-    @Published private(set) var deck: HeadsUpDeck = HeadsUpDecks.movies
+    @Published private(set) var deck: HeadsUpDeck = HeadsUpDecks.hollywoodMovies
     @Published private(set) var word: String = ""
-    @Published private(set) var secondsLeft: Int = 60
+    @Published private(set) var secondsLeft: Int = 300
     @Published private(set) var countdown: Int = 3
     @Published private(set) var flash: Flash? = nil
     @Published private(set) var results: [HeadsUpResult] = []
@@ -38,7 +38,12 @@ final class HeadsUpViewModel: ObservableObject {
     /// Tilt control is on when the phone supports it; tap buttons otherwise.
     @Published var useTilt: Bool
 
-    let roundLength: Int = 60
+    /// Seconds per round: 1, 2, 3 or 5 minutes, remembered between games.
+    @Published var roundLength: Int {
+        didSet { UserDefaults.standard.set(roundLength, forKey: HeadsUpViewModel.lengthKey) }
+    }
+    static let lengthOptions: [Int] = [60, 120, 180, 300]
+    private static let lengthKey = "headsup_round_seconds"
     let motionAvailable: Bool
 
     var correctCount: Int { results.filter { $0.correct }.count }
@@ -49,7 +54,11 @@ final class HeadsUpViewModel: ObservableObject {
     private var countdownEnds: Date = Date()
     private var roundEnds: Date = Date()
     private var queue: [String] = []
-    private var used: [String: Set<String>] = [:]
+    private var dealers: [String: PhonePlayDealer] = [:]
+
+    private func dealer(for deck: HeadsUpDeck) -> PhonePlayDealer {
+        dealers[deck.id] ?? PhonePlayDealer(deck: "headsup_" + deck.id)
+    }
     private var tiltFrames: Int = 0
     private var levelFrames: Int = 0
     private var pendingTilt: Flash? = nil
@@ -64,6 +73,8 @@ final class HeadsUpViewModel: ObservableObject {
     private let framesToLevel: Int = 4
 
     init() {
+        let saved = UserDefaults.standard.integer(forKey: HeadsUpViewModel.lengthKey)
+        roundLength = HeadsUpViewModel.lengthOptions.contains(saved) ? saved : 300
         let manager = CMMotionManager()
         let available: Bool = manager.isDeviceMotionAvailable
         motion = manager
@@ -276,15 +287,9 @@ final class HeadsUpViewModel: ObservableObject {
     // MARK: - Cards
 
     private func refillQueue() {
-        var seen: Set<String> = used[deck.id] ?? []
-        var fresh = deck.words.filter { !seen.contains($0) }
-        if fresh.count < 12 {
-            // Deck nearly exhausted this session: start it over.
-            seen = []
-            fresh = deck.words
-        }
-        used[deck.id] = seen
-        queue = fresh.shuffled()
+        // Unseen words first, then the longest-ago ones; remembered across
+        // rounds, games and app launches.
+        queue = dealer(for: deck).ordered(deck.words)
     }
 
     private func nextWord() {
@@ -294,9 +299,9 @@ final class HeadsUpViewModel: ObservableObject {
             return
         }
         let next = queue.removeFirst()
-        var seen: Set<String> = used[deck.id] ?? []
-        seen.insert(next)
-        used[deck.id] = seen
+        var dealt = dealer(for: deck)
+        dealt.mark(next)
+        dealers[deck.id] = dealt
         word = next
     }
 }

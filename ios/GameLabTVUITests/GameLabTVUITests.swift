@@ -155,6 +155,8 @@ final class GameLabTVUITests: XCTestCase {
 
     func testSelectPressFiresPickForFocusedCard() {
         let app = XCUIApplication()
+        // The TV now remembers its room across launches; each test starts clean.
+        app.launchArguments += ["-aurora_fresh_start"]
         app.launch()
         _ = focusedTriviaCard(in: app)
 
@@ -163,6 +165,8 @@ final class GameLabTVUITests: XCTestCase {
 
     func testPlayPausePressFiresPickForFocusedCard() {
         let app = XCUIApplication()
+        // The TV now remembers its room across launches; each test starts clean.
+        app.launchArguments += ["-aurora_fresh_start"]
         app.launch()
         _ = focusedTriviaCard(in: app)
 

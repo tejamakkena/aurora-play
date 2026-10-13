@@ -11,6 +11,7 @@ from games import content_service as cs
 from games.native_hub.engines import _content as C
 from games.native_hub.engines._matching import guess_matches
 from games.native_hub.engines._bases import RoundBasedEngine
+from games.native_hub.engines.last_tap import LastTapEngine
 from games.native_hub.engine import NativeGameEngine
 from utils.room_manager import Player
 
@@ -162,146 +163,6 @@ class BluffItEngine(RoundBasedEngine):
             "myPick": self.picks.get(player_id),
         })
         return state
-
-
-class LastTapEngine(NativeGameEngine):
-    """Reflex elimination. Random countdown, then GO -- slowest players drop out.
-
-    Not round-based in the submission sense: the whole game is one clock, so it
-    manages its own phases rather than using RoundBasedEngine.
-    """
-
-    game_id = "last_tap"
-    min_players = 2
-    max_players = 20
-    # GO has to reach the phones the moment it happens: at the 1 Hz baseline
-    # pump it landed up to a second late and that lag was counted in
-    # everyone's reaction time.
-    tick_hz = 10.0
-
-    ARM_MIN, ARM_MAX = 2.0, 6.0
-    REVEAL_SECONDS = 5.0
-    FALSE_START_PENALTY = 9.999
-
-    def __init__(self, room, broadcaster):
-        super().__init__(room, broadcaster)
-        self.phase = "arming"
-        self.go_at = 0.0
-        self.go_shown_at = 0.0
-        self.phase_until = 0.0
-        self.alive: list[str] = []
-        self.times: dict[str, float] = {}
-        self.eliminated_this_round: list[str] = []
-        self.round = 0
-        self._finished = False
-
-    def start(self, players):
-        self.alive = [p.id for p in players]
-        self.round = 1
-        self._arm()
-
-    def _arm(self):
-        self.phase = "arming"
-        self.times = {}
-        self.eliminated_this_round = []
-        self.go_at = time.time() + random.uniform(self.ARM_MIN, self.ARM_MAX)
-        self.phase_until = 0.0
-
-    def handle_action(self, player_id, action, data):
-        if action != "tap" or player_id not in self.alive:
-            return
-        if player_id in self.times:
-            return
-        now = time.time()
-        if self.phase == "arming":
-            # Tapped before GO -- recorded as a false start, not ignored, so the
-            # player still sees a result instead of silence.
-            self.times[player_id] = self.FALSE_START_PENALTY
-        elif self.phase == "go":
-            self.times[player_id] = max(0.0, now - self.go_shown_at)
-
-    def tick(self, dt):
-        if self._finished:
-            return
-        now = time.time()
-        if self.phase == "arming" and now >= self.go_at:
-            self.phase = "go"
-            # Timed from when GO is actually published, not when it was due.
-            self.go_shown_at = now
-        elif self.phase == "go":
-            everyone_in = all(pid in self.times for pid in self.alive)
-            if everyone_in or now - self.go_at > 5.0:
-                self._resolve()
-        elif self.phase == "reveal" and now >= self.phase_until:
-            if len(self.alive) <= 1:
-                self._finished = True
-                self.phase = "final"
-            else:
-                self.round += 1
-                self._arm()
-
-    def _resolve(self):
-        # Anyone who never tapped is treated as slowest.
-        for pid in self.alive:
-            self.times.setdefault(pid, self.FALSE_START_PENALTY)
-
-        ranked = sorted(self.alive, key=lambda p: self.times[p])
-        # Drop the slowest 20%, but always at least one and never everyone.
-        cut = max(1, round(len(ranked) * 0.2))
-        cut = min(cut, len(ranked) - 1)
-        survivors, dropped = ranked[:-cut], ranked[-cut:]
-
-        for rank, pid in enumerate(survivors):
-            player = self.room.player(pid)
-            if player is not None:
-                player.score += max(1, len(survivors) - rank)
-
-        self.eliminated_this_round = dropped
-        self.alive = survivors
-        self.phase = "reveal"
-        self.phase_until = time.time() + self.REVEAL_SECONDS
-
-    def public_state(self):
-        return {
-            "phase": self.phase,
-            "round": self.round,
-            "aliveCount": len(self.alive),
-            "alivePlayerIDs": self.alive,
-            "eliminatedPlayerIDs": self.eliminated_this_round,
-            "winner": self.alive[0] if self._finished and self.alive else None,
-            "results": [
-                {"playerID": pid, "name": self.player_name(pid),
-                 "ms": int(self.times[pid] * 1000),
-                 "falseStart": self.times[pid] >= self.FALSE_START_PENALTY}
-                for pid in sorted(self.times, key=lambda p: self.times[p])
-            ] if self.phase in ("reveal", "final") else [],
-            "players": [
-                {"id": p.id, "name": p.name, "score": p.score,
-                 "isAlive": p.id in self.alive}
-                for p in self.room.players
-            ],
-        }
-
-    def private_state(self, player_id):
-        return {
-            "phase": self.phase,
-            "isAlive": player_id in self.alive,
-            "canTap": self.phase in ("arming", "go") and player_id in self.alive
-                      and player_id not in self.times,
-            "myMs": int(self.times[player_id] * 1000) if player_id in self.times else None,
-            "falseStart": self.times.get(player_id, 0) >= self.FALSE_START_PENALTY,
-            "round": self.round,
-        }
-
-    def is_over(self):
-        return self._finished
-
-    def results(self):
-        return self.ranked_results({p.id: p.score for p in self.room.players})
-
-    def on_player_leave(self, player_id):
-        if player_id in self.alive:
-            self.alive.remove(player_id)
 
 
 class HerdEngine(RoundBasedEngine):
@@ -516,12 +377,10 @@ class NPATEngine(RoundBasedEngine):
 
     def begin_phase(self, phase):
         if phase == "fill":
-            pool = [c for c in C.NPAT_LETTERS if c not in self.used]
-            if not pool:
-                self.used.clear()
-                pool = list(C.NPAT_LETTERS)
-            self.letter = random.choice(pool)
-            self.used.add(self.letter)
+            # Room + device history, so the next game starts on a new letter.
+            self.letter = cs.pick_one(self.room, "npat_letter", avoid=self.used) \
+                or random.choice(C.NPAT_LETTERS)
+            self.used.add(cs.norm_key(self.letter))
             self.breakdown = []
 
     def handle_action(self, player_id, action, data):

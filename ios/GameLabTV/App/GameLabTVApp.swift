@@ -6,6 +6,7 @@ struct GameLabTVApp: App {
         WindowGroup {
             RootTVView()
                 .onAppear {
+                    VoicePack.selfCheck()
                     GameSocketManager.shared.connect(to: AppConstants.serverURL)
                 }
         }
