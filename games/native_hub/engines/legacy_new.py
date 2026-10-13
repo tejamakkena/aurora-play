@@ -269,6 +269,8 @@ class StockPanicEngine(NativeGameEngine):
         self.cash: dict[str, int] = {}
         self.portfolio: dict[str, dict[str, int]] = {}
         self.latest_news: str | None = None
+        self._last_stock: str | None = None
+        self._last_news: str | None = None
         self.deadline = 0.0
         self.next_tick_at = 0.0
         self._finished = False
@@ -315,14 +317,19 @@ class StockPanicEngine(NativeGameEngine):
             self._finished = True
             return
         if now >= self.next_tick_at:
-            stock = random.choice(STOCK_NAMES)
+            # Not the same stock twice running, so the ticker keeps moving.
+            stock = random.choice([n for n in STOCK_NAMES if n != self._last_stock] or STOCK_NAMES)
+            self._last_stock = stock
             pct = random.uniform(-0.15, 0.18)
             old = self.prices[stock]
             new = max(1, int(round(old * (1 + pct))))
             self.changes[stock] = new - old
             self.prices[stock] = new
             if abs(pct) > 0.1:
-                self.latest_news = random.choice(NEWS_TEMPLATES).format(s=stock)
+                template = random.choice([t for t in NEWS_TEMPLATES if t != self._last_news]
+                                         or NEWS_TEMPLATES)
+                self._last_news = template
+                self.latest_news = template.format(s=stock)
             self.next_tick_at = now + self.TICK_INTERVAL
             for pid in self.cash:
                 self._update_net_worth(pid)

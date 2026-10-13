@@ -538,29 +538,46 @@ TWENTY_THINGS: dict[str, list[str]] = {
         "Big Ben", "Grand Canyon", "Niagara Falls", "Mount Everest",
         "Sahara Desert", "Amazon Rainforest", "Golden Gate Bridge",
         "Burj Khalifa", "The Colosseum",
+        "Leaning Tower of Pisa", "Machu Picchu", "Stonehenge", "Red Fort",
+        "Gateway of India", "Mount Fuji", "Times Square", "Hollywood Sign",
+        "Disneyland", "Great Barrier Reef", "Victoria Falls",
+        "Buckingham Palace", "Mount Rushmore", "Dead Sea", "Santorini",
     ],
     "foods": [
         "Pizza", "Ice cream", "Popcorn", "Mango", "Watermelon",
         "Chocolate cake", "Pancakes", "Spaghetti", "Hamburger",
         "Apple pie", "French fries", "Sushi", "Tacos", "Donuts",
         "Sandwich",
+        "Biryani", "Samosa", "Noodles", "Dosa", "Pineapple", "Cupcake",
+        "Hot dog", "Lasagna", "Banana", "Cheesecake", "Gulab jamun",
+        "Waffles", "Burrito", "Jalebi", "Cotton candy",
     ],
     "movies": [
         "Frozen", "Toy Story", "The Lion King", "Harry Potter",
         "Titanic", "Jaws", "E.T.", "Jurassic Park", "Star Wars",
         "Avatar", "Finding Nemo", "Spider-Man", "The Avengers",
         "Home Alone", "Shrek",
+        "The Incredibles", "Moana", "Coco", "Aladdin", "Cars", "Up",
+        "Inside Out", "Minions", "Kung Fu Panda", "The Jungle Book",
+        "Black Panther", "Batman", "Ratatouille", "Madagascar",
+        "Mary Poppins",
     ],
     "animals": [
         "Elephant", "Kangaroo", "Penguin", "Giraffe", "Lion",
         "Tiger", "Dolphin", "Polar bear", "Owl", "Parrot",
         "Monkey", "Horse", "Octopus", "Crocodile", "Sloth",
+        "Zebra", "Panda", "Camel", "Peacock", "Whale", "Bat", "Frog",
+        "Butterfly", "Rabbit", "Squirrel", "Flamingo", "Turtle", "Shark",
+        "Cow", "Bear",
     ],
     "objects": [
         "Umbrella", "Toothbrush", "Bicycle", "Telescope", "Guitar",
         "Candle", "Compass", "Hot air balloon", "Rubber duck", "Kite",
         "Alarm clock", "Treasure chest", "Magnifying glass", "Trophy",
         "Light bulb",
+        "Scissors", "Mirror", "Piano", "Skateboard", "Backpack", "Globe",
+        "Camera", "Key", "Hammer", "Pillow", "Balloon", "Broom",
+        "Sunglasses", "Helmet", "Ladder",
     ],
 }
 
@@ -682,16 +699,17 @@ class TwentyQuestionsEngine(RoundBasedEngine):
         return pid
 
     def _pick_secret(self) -> tuple[str, str]:
-        pool = [(cat, item)
-                for cat, items in TWENTY_THINGS.items()
-                for item in items
-                if (cat, item) not in self.used]
-        if not pool:
-            self.used.clear()
-            pool = [(cat, item) for cat, items in TWENTY_THINGS.items() for item in items]
-        # Vary the category round to round: prefer one not used last time.
-        fresh = [pair for pair in pool if pair[0] != self._last_category] or pool
-        category, secret = random.choice(fresh)
+        """A secret nobody at the table has met (room + device history), and
+        in a different category from the last one when the pool allows."""
+        avoid = {cs.norm_key(item) for _, item in self.used}
+        if self._last_category:
+            avoid |= {cs.norm_key(i) for c, i in cs.all_items("twenty_thing")
+                      if c == self._last_category}
+        got = cs.pick_one(self.room, "twenty_thing", avoid=avoid)
+        if got is None or cs.norm_key(got[1]) in avoid:
+            got = cs.pick_one(self.room, "twenty_thing",
+                              avoid={cs.norm_key(item) for _, item in self.used})
+        category, secret = got
         self.used.add((category, secret))
         self._last_category = category
         return category, secret

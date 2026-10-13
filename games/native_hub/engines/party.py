@@ -516,12 +516,10 @@ class NPATEngine(RoundBasedEngine):
 
     def begin_phase(self, phase):
         if phase == "fill":
-            pool = [c for c in C.NPAT_LETTERS if c not in self.used]
-            if not pool:
-                self.used.clear()
-                pool = list(C.NPAT_LETTERS)
-            self.letter = random.choice(pool)
-            self.used.add(self.letter)
+            # Room + device history, so the next game starts on a new letter.
+            self.letter = cs.pick_one(self.room, "npat_letter", avoid=self.used) \
+                or random.choice(C.NPAT_LETTERS)
+            self.used.add(cs.norm_key(self.letter))
             self.breakdown = []
 
     def handle_action(self, player_id, action, data):

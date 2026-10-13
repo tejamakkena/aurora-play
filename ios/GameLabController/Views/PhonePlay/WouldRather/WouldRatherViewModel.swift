@@ -66,7 +66,7 @@ final class WouldRatherViewModel: ObservableObject {
     }
 
     private var extras: [WouldRatherDilemma] = []
-    private var dealer = PhonePlayDealer()
+    private var dealer = PhonePlayDealer(deck: "wouldrather")
     private var aiTask: Task<Void, Never>? = nil
     private var isActive: Bool = true
 
