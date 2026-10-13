@@ -151,8 +151,13 @@ class PokerEngine(TurnBasedEngine):
     SMALL_BLIND = 10
     BIG_BLIND = 20
     STREETS = ["preflop", "flop", "turn", "river", "showdown"]
-    MAX_HANDS = 10
+    #: Defaults; the lobby picks (games/native_hub/options.py) override them
+    #: per room: hands (0 = unlimited), chips per stack, re-buys on/off.
+    MAX_HANDS = 20
     HAND_PAUSE_SECONDS = 6
+    #: With re-buys on, how long the table waits after a hand for broke
+    #: players to buy back in.
+    REBUY_PAUSE_SECONDS = 20
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)
@@ -185,17 +190,37 @@ class PokerEngine(TurnBasedEngine):
         # call, fold or go all in for what they have.
         self.last_raise = self.BIG_BLIND
         self.raises = 0
+        # Table options (set from the lobby in setup()).
+        self.max_hands = self.MAX_HANDS
+        self.stack = self.STARTING_CHIPS
+        self.rebuys = False
+        self.buy_ins: dict[str, int] = {}
+        self.end_votes: set[str] = set()
+        self.sitting_out: set[str] = set()
 
     MAX_RAISES = 4
 
     def setup(self):
-        self.chips = {pid: self.STARTING_CHIPS for pid in self.order}
+        from games.native_hub import options
+        try:
+            self.max_hands = int(options.get(self.room, "hands"))
+            self.stack = int(options.get(self.room, "stack"))
+        except ValueError:
+            self.max_hands, self.stack = self.MAX_HANDS, self.STARTING_CHIPS
+        self.rebuys = options.get(self.room, "rebuys") == "on"
+        # Blinds scale with the stack so a big stack does not play slowly.
+        self.BIG_BLIND = max(20, self.stack // 50)
+        self.SMALL_BLIND = self.BIG_BLIND // 2
+        self.last_raise = self.BIG_BLIND
+        self.chips = {pid: self.stack for pid in self.order}
+        self.buy_ins = {pid: 1 for pid in self.order}
         self._start_hand()
 
     # ---- hand lifecycle ------------------------------------------------
 
     def _seated(self):
-        return [pid for pid in self.order if self.chips.get(pid, 0) > 0]
+        return [pid for pid in self.order
+                if self.chips.get(pid, 0) > 0 and pid not in self.sitting_out]
 
     def _start_hand(self):
         seated = self._seated()
@@ -250,13 +275,22 @@ class PokerEngine(TurnBasedEngine):
         }
         self._sync_scores()
         self.deadline = 0.0
-        if len(self._seated()) < 2 or self.hand_number >= self.MAX_HANDS:
+        self.sitting_out = set()
+        broke = [pid for pid in self.order if self.chips.get(pid, 0) <= 0]
+        if self._everyone_voted_end():
             self.game_over_pending = True
-        self.next_hand_at = time.time() + self.HAND_PAUSE_SECONDS
+        elif self.max_hands and self.hand_number >= self.max_hands:
+            self.game_over_pending = True
+        elif len(self._seated()) < 2 and not (self.rebuys and broke):
+            self.game_over_pending = True
+        pause = self.HAND_PAUSE_SECONDS
+        if self.rebuys and broke and not self.game_over_pending:
+            pause = self.REBUY_PAUSE_SECONDS      # time for broke players to buy back in
+        self.next_hand_at = time.time() + pause
 
     def _finish_game(self):
         self._sync_scores()
-        leader = max(self.order, key=lambda pid: self.chips.get(pid, 0)) if self.order else None
+        leader = max(self.order, key=lambda pid: self._net(pid)) if self.order else None
         self.finish(winner=leader)
 
     def tick(self, dt):
@@ -271,6 +305,59 @@ class PokerEngine(TurnBasedEngine):
                     self._start_hand()
             return
         super().tick(dt)
+
+    # ---- table options: re-buys, ending, net result ---------------------
+
+    def _net(self, pid) -> int:
+        """Chips won or lost against everything the player bought in for."""
+        return self.chips.get(pid, 0) - self.buy_ins.get(pid, 1) * self.stack
+
+    def _humans_present(self) -> list[str]:
+        out = []
+        for pid in self.order:
+            player = self.room.player(pid)
+            if player is not None and player.connected and not player.is_bot:
+                out.append(pid)
+        return out
+
+    def _everyone_voted_end(self) -> bool:
+        present = self._humans_present()
+        return bool(present) and all(pid in self.end_votes for pid in present)
+
+    def _toggle_end_vote(self, pid) -> None:
+        if pid in self.end_votes:
+            self.end_votes.discard(pid)
+        else:
+            self.end_votes.add(pid)
+        if self._everyone_voted_end():
+            # Finish the hand in play (or go straight to the end between hands).
+            if self.next_hand_at:
+                self.game_over_pending = True
+                self.next_hand_at = min(self.next_hand_at, time.time() + 1.0)
+
+    def _rebuy(self, pid) -> None:
+        if not self.rebuys or not self.next_hand_at or self.game_over_pending:
+            return
+        if pid not in self.order or self.chips.get(pid, 0) >= self.stack:
+            return
+        self.chips[pid] += self.stack
+        self.buy_ins[pid] = self.buy_ins.get(pid, 1) + 1
+        self._sync_scores()
+        # Everyone who was broke is back in: no need to wait out the pause.
+        broke = [p for p in self.order if self.chips.get(p, 0) <= 0
+                 and p not in self.sitting_out]
+        if not broke and len(self._seated()) >= 2:
+            self.next_hand_at = min(self.next_hand_at, time.time() + 3.0)
+
+    def _sit_out(self, pid) -> None:
+        """A broke player passes on buying back in for the coming hand."""
+        if not self.next_hand_at or self.chips.get(pid, 0) > 0:
+            return
+        self.sitting_out.add(pid)
+        broke = [p for p in self.order if self.chips.get(p, 0) <= 0
+                 and p not in self.sitting_out]
+        if not broke and len(self._seated()) >= 2:
+            self.next_hand_at = min(self.next_hand_at, time.time() + 2.0)
 
     def on_turn_timeout(self):
         # An idle phone checks when it can and folds when it would have to pay.
@@ -327,6 +414,16 @@ class PokerEngine(TurnBasedEngine):
         return all(pid in self.acted and self.contrib[pid] == self.current_bet for pid in live)
 
     def handle_action(self, player_id, action, data):
+        if player_id in self.order and not self._finished:
+            if action == "vote_end":
+                self._toggle_end_vote(player_id)
+                return
+            if action == "rebuy":
+                self._rebuy(player_id)
+                return
+            if action == "sit_out":
+                self._sit_out(player_id)
+                return
         if (self._finished or self.next_hand_at or player_id in self.folded
                 or player_id in self.all_in or not self.is_my_turn(player_id)):
             return
@@ -469,10 +566,11 @@ class PokerEngine(TurnBasedEngine):
 
     def _sync_scores(self):
         for pid in self.order:
-            self.scores[pid] = self.chips.get(pid, 0)
+            net = self._net(pid)
+            self.scores[pid] = net
             player = self.room.player(pid)
             if player is not None:
-                player.score = self.chips.get(pid, 0)
+                player.score = net
 
     def _status(self, pid):
         if pid in self.folded:
@@ -491,12 +589,20 @@ class PokerEngine(TurnBasedEngine):
             "players": [
                 {"id": pid, "name": self.player_name(pid), "chips": self.chips.get(pid, 0),
                  "currentBet": self.contrib.get(pid, 0), "status": self._status(pid),
-                 "isCurrentTurn": pid == current}
+                 "isCurrentTurn": pid == current,
+                 "buyIns": self.buy_ins.get(pid, 1), "net": self._net(pid),
+                 "wantsToEnd": pid in self.end_votes}
                 for pid in self.order
             ],
             "showdown": self.showdown,
             "handNumber": self.hand_number,
-            "maxHands": self.MAX_HANDS,
+            "maxHands": self.max_hands,
+            "unlimited": self.max_hands == 0,
+            "rebuys": self.rebuys,
+            "stack": self.stack,
+            "endVotes": len(self.end_votes & set(self._humans_present())),
+            "endVotesNeeded": len(self._humans_present()),
+            "betweenHands": bool(self.next_hand_at),
             "lastHand": self.last_hand,
             "dealerID": self.dealer_id,
             "smallBlindID": self.small_blind_id,
@@ -526,7 +632,19 @@ class PokerEngine(TurnBasedEngine):
                          and player_id not in self.folded and player_id not in self.all_in),
             "phase": self.phase,
             "handNumber": self.hand_number,
-            "maxHands": self.MAX_HANDS,
+            "maxHands": self.max_hands,
+            "unlimited": self.max_hands == 0,
+            "rebuys": self.rebuys,
+            "stack": self.stack,
+            "betweenHands": bool(self.next_hand_at),
+            "canRebuy": (self.rebuys and bool(self.next_hand_at) and not self.game_over_pending
+                         and self.chips.get(player_id, 0) < self.stack),
+            "isBroke": self.chips.get(player_id, 0) <= 0,
+            "buyIns": self.buy_ins.get(player_id, 1),
+            "net": self._net(player_id),
+            "votedEnd": player_id in self.end_votes,
+            "endVotes": len(self.end_votes & set(self._humans_present())),
+            "endVotesNeeded": len(self._humans_present()),
             "lastHand": self.last_hand,
             "myBet": self.contrib.get(player_id, 0),
             "currentBet": self.current_bet,

@@ -253,6 +253,11 @@ final class TVRootViewModel: ObservableObject {
         socket.emit(.removeBot, payload: ["roomCode": code, "botID": botID])
     }
 
+    func setOption(key: String, value: String) {
+        guard let code = currentRoomCode else { return }
+        socket.emit(.setOption, payload: ["roomCode": code, "key": key, "value": value])
+    }
+
     func setContentPack(_ pack: ContentPack) {
         guard let code = currentRoomCode else { return }
         socket.emit(.setContentPack, payload: ["roomCode": code, "contentPack": pack.rawValue])

@@ -259,16 +259,18 @@ struct TVLobbyView: View {
     @ViewBuilder
     private var lobbyOptions: some View {
         if (room.usesContentPack ?? false) || (room.botsAllowed ?? false) || room.gameID == .trivia
-            || allowsTeams {
+            || allowsTeams || !(room.options ?? []).isEmpty {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 14) {
                     questionOptions
+                    gameOptionButtons
                     botOptions
                     teamOptions
                 }
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 14) {
                         questionOptions
+                        gameOptionButtons
                     }
                     HStack(spacing: 14) {
                         botOptions
@@ -303,6 +305,20 @@ struct TVLobbyView: View {
                 Label("Questions: \(current.label)", systemImage: "character.bubble.fill")
             }
             .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.cyan, fontSize: 22))
+        }
+    }
+
+    /// The game's own picks (Poker: hands, chips, re-buys): each button shows
+    /// the current choice and moves to the next one when pressed.
+    @ViewBuilder
+    private var gameOptionButtons: some View {
+        ForEach(room.options ?? []) { option in
+            Button {
+                vm.setOption(key: option.key, value: option.nextValue)
+            } label: {
+                Label("\(option.label): \(option.currentLabel)", systemImage: "slider.horizontal.3")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.green, fontSize: 22))
         }
     }
 

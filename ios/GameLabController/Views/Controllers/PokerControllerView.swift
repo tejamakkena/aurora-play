@@ -22,6 +22,7 @@ struct PokerControllerView: View {
 
     @State private var raiseTo: Double = 0
     @State private var peeking = false
+    @State private var showRankings = false
 
     // MARK: Private state
 
@@ -37,6 +38,16 @@ struct PokerControllerView: View {
     private var allIn: Bool { privateData["allIn"] as? Bool ?? false }
     private var handNumber: Int { int("handNumber") ?? 0 }
     private var maxHands: Int { int("maxHands") ?? 0 }
+    private var unlimited: Bool { privateData["unlimited"] as? Bool ?? false }
+    private var canRebuy: Bool { privateData["canRebuy"] as? Bool ?? false }
+    private var isBroke: Bool { privateData["isBroke"] as? Bool ?? false }
+    private var rebuysOn: Bool { privateData["rebuys"] as? Bool ?? false }
+    private var stack: Int { int("stack") ?? 1000 }
+    private var buyIns: Int { int("buyIns") ?? 1 }
+    private var net: Int { int("net") ?? 0 }
+    private var votedEnd: Bool { privateData["votedEnd"] as? Bool ?? false }
+    private var endVotes: Int { int("endVotes") ?? 0 }
+    private var endVotesNeeded: Int { int("endVotesNeeded") ?? 0 }
 
     private func int(_ key: String) -> Int? {
         if let v = privateData[key] as? Int { return v }
@@ -100,10 +111,16 @@ struct PokerControllerView: View {
                     .padding(.bottom, 20)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {
-                statusLine
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 32)
+                VStack(spacing: 12) {
+                    tableControls
+                    statusLine
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
             }
+        }
+        .sheet(isPresented: $showRankings) {
+            PKCRankingsSheet()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PKCBackground().ignoresSafeArea())
@@ -122,13 +139,24 @@ struct PokerControllerView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
+            Button {
+                PhonePlayHaptics.tap()
+                showRankings = true
+            } label: {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 26, weight: .semibold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.text2)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel("Poker hand rankings")
             PKCStat(label: "STACK", value: PKCFormat.chips(chips), tint: PKCColors.gold)
             if let pot {
                 PKCStat(label: "POT", value: PKCFormat.chips(pot), tint: .white)
             }
             Spacer(minLength: 4)
-            if maxHands > 0 && handNumber > 0 {
-                Text("HAND \(handNumber)/\(maxHands)")
+            if handNumber > 0 && (maxHands > 0 || unlimited) {
+                Text(unlimited ? "HAND \(handNumber)" : "HAND \(handNumber)/\(maxHands)")
                     .font(.system(size: 13, weight: .heavy, design: .rounded))
                     .tracking(1.5)
                     .foregroundColor(PhonePlayDesign.text2)
@@ -315,6 +343,142 @@ struct PokerControllerView: View {
 
     private func clamp(_ value: Double, _ lo: Double, _ hi: Double) -> Double {
         min(hi, max(lo, value))
+    }
+}
+
+// MARK: - Table controls (re-buy, end the game)
+
+extension PokerControllerView {
+    /// Between hands: buy back in when short, and (in an unlimited game)
+    /// vote to end. Hidden when there is nothing to offer.
+    @ViewBuilder
+    fileprivate var tableControls: some View {
+        VStack(spacing: 10) {
+            if rebuysOn && (buyIns > 1 || net != 0) {
+                Text(netLine)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(net >= 0 ? PKCColors.gold : PhonePlayDesign.text2)
+            }
+            if canRebuy {
+                PKCActionButton(title: "Buy back in",
+                                subtitle: "+" + PKCFormat.chips(stack),
+                                fill: PKCColors.gold, ink: PhonePlayDesign.bg) {
+                    PhonePlayHaptics.thump()
+                    onAction("rebuy", [:])
+                }
+                if isBroke {
+                    Button {
+                        PhonePlayHaptics.tap()
+                        onAction("sit_out", [:])
+                    } label: {
+                        Text("Sit this hand out")
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundColor(PhonePlayDesign.text2)
+                            .padding(.vertical, 8)
+                    }
+                }
+            }
+            if unlimited {
+                Button {
+                    PhonePlayHaptics.tap()
+                    onAction("vote_end", [:])
+                } label: {
+                    Text(votedEnd
+                         ? "You want to end (\(endVotes)/\(endVotesNeeded)). Tap to undo"
+                         : "End the game (\(endVotes)/\(endVotesNeeded) agree)")
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundColor(votedEnd ? PKCColors.red : PhonePlayDesign.text2)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
+                                .fill(PhonePlayDesign.surface)
+                        )
+                }
+            }
+        }
+    }
+
+    fileprivate var netLine: String {
+        let sign: String = net >= 0 ? "+" : "-"
+        return "Bought in \(buyIns)x  |  Net \(sign)\(PKCFormat.chips(abs(net)))"
+    }
+}
+
+// MARK: - Hand rankings ("i" button)
+
+private struct PKCRankingsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private struct Rank: Identifiable {
+        let id: Int
+        let name: String
+        let example: String
+        let note: String
+    }
+
+    private let ranks: [Rank] = [
+        Rank(id: 1, name: "Royal Flush", example: "A\u{2660} K\u{2660} Q\u{2660} J\u{2660} 10\u{2660}", note: "Ace to ten, one suit"),
+        Rank(id: 2, name: "Straight Flush", example: "9\u{2665} 8\u{2665} 7\u{2665} 6\u{2665} 5\u{2665}", note: "Five in a row, one suit"),
+        Rank(id: 3, name: "Four of a Kind", example: "Q\u{2660} Q\u{2665} Q\u{2666} Q\u{2663} 4\u{2660}", note: "Four cards of one rank"),
+        Rank(id: 4, name: "Full House", example: "K\u{2660} K\u{2665} K\u{2666} 8\u{2663} 8\u{2660}", note: "Three of a kind plus a pair"),
+        Rank(id: 5, name: "Flush", example: "A\u{2666} J\u{2666} 8\u{2666} 6\u{2666} 2\u{2666}", note: "Five cards of one suit"),
+        Rank(id: 6, name: "Straight", example: "10\u{2660} 9\u{2665} 8\u{2666} 7\u{2663} 6\u{2660}", note: "Five in a row, any suits"),
+        Rank(id: 7, name: "Three of a Kind", example: "7\u{2660} 7\u{2665} 7\u{2666} K\u{2663} 2\u{2660}", note: "Three cards of one rank"),
+        Rank(id: 8, name: "Two Pair", example: "J\u{2660} J\u{2665} 4\u{2666} 4\u{2663} A\u{2660}", note: "Two different pairs"),
+        Rank(id: 9, name: "One Pair", example: "10\u{2660} 10\u{2665} A\u{2666} 7\u{2663} 3\u{2660}", note: "Two cards of one rank"),
+        Rank(id: 10, name: "High Card", example: "A\u{2660} J\u{2665} 8\u{2666} 5\u{2663} 2\u{2660}", note: "None of the above: highest card plays"),
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 10) {
+                    Text("Best hand wins. Strongest at the top.")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
+                        .padding(.bottom, 4)
+                    ForEach(ranks) { rank in
+                        HStack(spacing: 12) {
+                            Text("\(rank.id)")
+                                .font(.system(size: 18, weight: .black, design: .rounded))
+                                .foregroundColor(PKCColors.gold)
+                                .frame(width: 26)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(rank.name)
+                                    .font(.system(size: 17, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text(rank.example)
+                                    .font(.system(size: 17, weight: .bold, design: .monospaced))
+                                    .foregroundColor(PKCColors.gold)
+                                Text(rank.note)
+                                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                                    .foregroundColor(PhonePlayDesign.text3)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(12)
+                        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
+                            .fill(PhonePlayDesign.surface))
+                    }
+                    Text("Each player makes the best five cards from their two cards plus the five on the table.")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text3)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 6)
+                }
+                .padding(16)
+            }
+            .background(PhonePlayDesign.bg.ignoresSafeArea())
+            .navigationTitle("Hand rankings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.large])
     }
 }
 

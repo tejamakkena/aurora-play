@@ -268,6 +268,23 @@ private struct HostLobbyControls: View {
                 }
                 .phonePlaySurfaceCard()
             }
+            ForEach(room.options ?? []) { option in
+                VStack(alignment: .leading, spacing: 10) {
+                    Label(option.label, systemImage: "slider.horizontal.3")
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white.opacity(0.85))
+                    HStack(spacing: 8) {
+                        ForEach(option.choices, id: \.value) { choice in
+                            PhonePlayChip(title: choice.label,
+                                          selected: option.value == choice.value,
+                                          colors: [PhonePlayDesign.green, PhonePlayDesign.cyan]) {
+                                vm.setOption(key: option.key, value: choice.value)
+                            }
+                        }
+                    }
+                }
+                .phonePlaySurfaceCard()
+            }
             if room.botsAllowed ?? false {
                 Button {
                     PhonePlayHaptics.tap()

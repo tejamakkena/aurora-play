@@ -408,6 +408,32 @@ def register_native_events(socketio):
             room.touch()
         push_room(socketio, room)
 
+    # ---- set_option -----------------------------------------------------
+    # Per-game lobby picks (Poker: hands, chips, re-buys). TV or host phone.
+    @socketio.on("set_option", namespace=NAMESPACE)
+    def handle_set_option(data):
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        from games.native_hub import options
+        key, value = data.get("key"), data.get("value")
+        with room.lock:
+            if not _lobby_controller(room, sid, "change the game options"):
+                return
+            if room.state is RoomState.PLAYING:
+                return
+            if not options.valid(room.game_id, key, value):
+                push_error(socketio, sid, "That option is not available", "INVALID_OPTION")
+                return
+            room.options[key] = value
+            room.touch()
+        push_room(socketio, room)
+
     def _lobby_controller(room, sid, what: str) -> bool:
         """TV board or host phone may change lobby settings (callers hold
         room.lock). Pushes a NOT_HOST error otherwise."""

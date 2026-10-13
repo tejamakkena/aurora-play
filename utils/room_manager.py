@@ -100,6 +100,11 @@ def _teams_json(room):
     return teams.to_json(room)
 
 
+def _options_json(room):
+    from games.native_hub import options
+    return options.to_json(room)
+
+
 def _night_json(room):
     from games import game_night
     return game_night.to_json(room)
@@ -126,6 +131,8 @@ class Room:
     #: ``getattr(room, "topic", "")``; when non-empty they generate fresh
     #: questions from games/topic_gen.py instead of the fixed packs.
     topic: str = ""
+    #: Per-game lobby picks (games/native_hub/options.py), {key: value}.
+    options: dict = field(default_factory=dict)
     #: Externally fetched questions injected at room creation: the iOS
     #: client calls GET /api/travel/questions (or legacy POST
     #: /trivia/generate) and passes the result as "seedQuestions" in
@@ -204,6 +211,7 @@ class Room:
             "phase": self.phase,
             "contentPack": self.content_pack,
             "topic": self.topic,
+            "options": _options_json(self),
             "micPlayerID": self.mic_player_id,
             "botsAllowed": self.game_id in POLICIES,
             "usesContentPack": self.game_id in PACK_GAMES,

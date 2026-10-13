@@ -678,6 +678,11 @@ final class ControllerRootViewModel: ObservableObject {
         socket.emit(.removeBot, payload: ["roomCode": room.code, "botID": botID])
     }
 
+    func setOption(key: String, value: String) {
+        guard let room = currentRoom else { return }
+        socket.emit(.setOption, payload: ["roomCode": room.code, "key": key, "value": value])
+    }
+
     func setContentPack(_ pack: ContentPack) {
         guard let room = currentRoom else { return }
         socket.emit(.setContentPack, payload: ["roomCode": room.code, "contentPack": pack.rawValue])

@@ -17,6 +17,7 @@ enum ClientEvent: String {
     case removeBot      = "remove_bot"
     case setContentPack = "set_content_pack" // question language (Trivia/KBC)
     case setTopic       = "set_topic"        // free-text quiz topic (lobby)
+    case setOption      = "set_option"       // per-game lobby pick (Poker hands, chips...)
     case setCustomQuestions = "set_custom_questions" // make-your-own quiz
     // Game Night (TV or host, between games)
     case startNight     = "start_night"

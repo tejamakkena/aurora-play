@@ -188,6 +188,7 @@
     'exclamationmark': strokePath('M12 4v10M12 19v.1'),
     'info.circle.fill': disc() + cut('M12 11v6M12 7.6v.1', 2.4),
     'speaker.wave.2.fill': fillPath('M3 9.5h3.5L11 5.5v13l-4.5-4H3z') + strokePath('M15 9a4 4 0 010 6M17.5 6.5a8 8 0 010 11'),
+    'slider.horizontal.3': strokePath('M4 7h9M17 7h3M4 17h3M11 17h9M13 4.500v5M7 14.500v5'),
     'rectangle.portrait.and.arrow.right': strokePath('M10 4H6a2 2 0 00-2 2v12a2 2 0 002 2h4M16 8l4 4-4 4M20 12H9')
   };
 

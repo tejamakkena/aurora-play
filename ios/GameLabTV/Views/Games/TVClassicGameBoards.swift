@@ -61,7 +61,7 @@ private let connect4MarginRatio: CGFloat = 0.32
 /// fall further and take longer) -- drives the fall animation and times the
 /// landing sound so the "clack" plays when the disc visually lands.
 private func connect4DropDuration(forRow row: Int) -> Double {
-    0.22 + Double(row + 1) * 0.075
+    0.14 + Double(row + 1) * 0.045
 }
 
 /// Display palette for a disc colour id from the server.
@@ -471,16 +471,16 @@ private struct Connect4DiscSlot: View {
         let first: CGFloat = -layout.cell * 0.20
         let second: CGFloat = -layout.cell * 0.07
         DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            withAnimation(.easeOut(duration: 0.11)) { offsetY = first }
+            withAnimation(.easeOut(duration: 0.08)) { offsetY = first }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.11) {
-            withAnimation(.easeIn(duration: 0.11)) { offsetY = 0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.08) {
+            withAnimation(.easeIn(duration: 0.08)) { offsetY = 0 }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.22) {
-            withAnimation(.easeOut(duration: 0.07)) { offsetY = second }
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.16) {
+            withAnimation(.easeOut(duration: 0.05)) { offsetY = second }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.29) {
-            withAnimation(.easeIn(duration: 0.07)) { offsetY = 0 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.21) {
+            withAnimation(.easeIn(duration: 0.05)) { offsetY = 0 }
         }
     }
 }
@@ -688,7 +688,7 @@ private struct Connect4Trapezoid: Shape {
     }
 }
 
-/// A little marker above the column the last disc went into.
+/// The strip above the board that discs fall in from (kept for spacing).
 private struct Connect4DropRail: View {
     let layout: Connect4Layout
     let lastMove: Connect4Move?
@@ -696,20 +696,10 @@ private struct Connect4DropRail: View {
     var body: some View {
         ZStack(alignment: .topLeading) {
             Color.clear
-            if let move = lastMove, move.col >= 0, move.col < layout.cols {
-                marker(colorID: move.colorID)
-                    .position(x: layout.center(row: 0, col: move.col).x, y: 14)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.7), value: move.col)
-            }
+            // No arrow any more. It stayed parked over the last column through
+            // the whole next turn, which read as "drop here now". The disc
+            // itself falls in from the top of the board, and that is the cue.
         }
-    }
-
-    private func marker(colorID: String) -> some View {
-        let palette = Connect4Palette.of(colorID)
-        return Image(systemName: "arrowtriangle.down.fill")
-            .font(.system(size: 22, weight: .bold, design: .rounded))
-            .foregroundColor(palette.base)
-            .shadow(color: palette.glow.opacity(0.8), radius: 8)
     }
 }
 

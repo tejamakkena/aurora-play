@@ -180,6 +180,7 @@
   // ---- lobby controls ------------------------------------------------
   A.addBot = function () { var r = currentRoom(); if (r) { AP.net.emit('add_bot', { roomCode: r.code }); } };
   A.removeBot = function (id) { var r = currentRoom(); if (r) { AP.net.emit('remove_bot', { roomCode: r.code, botID: id }); } };
+  A.setOption = function (key, value) { var r = currentRoom(); if (r) { AP.net.emit('set_option', { roomCode: r.code, key: key, value: value }); } };
   A.setContentPack = function (p) { var r = currentRoom(); if (r) { AP.net.emit('set_content_pack', { roomCode: r.code, contentPack: p }); } };
   A.setTeams = function (count) {
     var r = currentRoom(); if (!r) { return; }
