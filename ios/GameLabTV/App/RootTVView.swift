@@ -280,6 +280,12 @@ final class TVRootViewModel: ObservableObject {
     }
 
     private static func savedRoom() -> String? {
+        // UI tests launch with this flag so a room left over from the
+        // previous test run never replaces the game list.
+        if CommandLine.arguments.contains("-aurora_fresh_start") {
+            forgetRoom()
+            return nil
+        }
         let d = UserDefaults.standard
         guard let code = d.string(forKey: roomKey), code.count == 6 else { return nil }
         let at = d.double(forKey: roomAtKey)
