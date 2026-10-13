@@ -156,37 +156,200 @@ struct LastTapControllerView: View {
     let onAction: (String, [String: Any]) -> Void
 
     private var phase: String { privateData.str("phase", "arming") }
+    private var kind: String { privateData.str("kind", "reaction") }
     private var isAlive: Bool { privateData.bool("isAlive", true) }
     private var canTap: Bool { privateData.bool("canTap") }
     private var myMs: Int? { privateData["myMs"] as? Int }
+    private var myDetail: String? { privateData["myDetail"] as? String }
     private var falseStart: Bool { privateData.bool("falseStart") }
+    private var lives: Int { privateData.int("lives") }
+    private var tiles: [[String: Any]] { privateData.dicts("tiles") }
+
+    private var hearts: String {
+        String(repeating: "\u{2665}", count: max(0, lives))
+    }
+
+    private var subtitle: String {
+        isAlive ? "Round \(privateData.int("round"))  \(hearts)" : "Eliminated"
+    }
+
+    /// True once this phone has a result for the round (a finished or failed
+    /// tile round, a reaction time, a false start). Pump rounds just keep
+    /// counting taps.
+    private var hasResult: Bool {
+        kind != "pump" && (myMs != nil || myDetail != nil)
+    }
 
     var body: some View {
-        ControllerShell(title: "Last Tap Standing",
-                        subtitle: isAlive ? "Round \(privateData.int("round"))" : "Eliminated") {
+        ControllerShell(title: "Last Tap Standing", subtitle: subtitle) {
             ZStack {
                 if !isAlive {
                     WaitingState(systemIcon: "xmark.octagon.fill", text: "You're out",
                                  detail: "Watch the rest fight it out on the TV")
                         .transition(.partyPadPop)
-                } else if let ms = myMs {
-                    WaitingState(systemIcon: falseStart ? "nosign" : "stopwatch.fill",
-                                 text: falseStart ? "Too early!" : "\(ms) ms",
-                                 detail: falseStart ? "You tapped before GO"
-                                                    : "Waiting for the others…")
+                } else if hasResult {
+                    WaitingState(systemIcon: resultIcon,
+                                 text: resultText,
+                                 detail: resultDetail)
+                        .transition(.partyPadPop)
+                } else if phase == "reveal" {
+                    WaitingState(systemIcon: "tv.fill", text: "Results on the TV",
+                                 detail: hearts.isEmpty ? nil : "Lives left: \(hearts)")
                         .transition(.partyPadPop)
                 } else {
-                    tapPad
+                    playing
                         .transition(.partyPadPop)
                 }
             }
             .animation(PhonePlayDesign.pop, value: isAlive)
-            .animation(PhonePlayDesign.pop, value: myMs)
+            .animation(PhonePlayDesign.pop, value: myDetail)
+            .animation(PhonePlayDesign.pop, value: kind)
         }
     }
 
-    /// The giant tap target. It stays live while waiting (the server judges
-    /// a false start), and turns green and throbs on GO.
+    private var resultIcon: String {
+        if falseStart || privateData.bool("failed") { return "nosign" }
+        return "stopwatch.fill"
+    }
+
+    private var resultText: String {
+        if falseStart { return "Too early!" }
+        if let detail = myDetail, !detail.isEmpty { return detail }
+        if let ms = myMs { return "\(ms) ms" }
+        return "Done"
+    }
+
+    private var resultDetail: String {
+        if falseStart { return "You tapped before GO" }
+        if privateData.bool("failed") { return "Waiting for the others…" }
+        return "Waiting for the others…"
+    }
+
+    @ViewBuilder
+    private var playing: some View {
+        switch kind {
+        case "pump":
+            pumpPad
+        case "colour", "grey", "numbers":
+            if phase == "go" && !tiles.isEmpty {
+                tileGrid
+            } else {
+                intro
+            }
+        default:
+            tapPad
+        }
+    }
+
+    // The title card shown before a tile round starts.
+    private var intro: some View {
+        VStack(spacing: 14) {
+            Text(privateData.str("title").uppercased())
+                .font(.system(size: 40, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+            Text(privateData.str("howTo"))
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text2)
+                .multilineTextAlignment(.center)
+            if kind == "colour", let target = privateData["target"] as? [String: Any],
+               let name = target["name"] as? String {
+                Text("Find \(name)")
+                    .font(.system(size: 26, weight: .bold, design: .rounded))
+                    .foregroundColor(PartyPadTint.lastTap)
+            }
+            Text("Get ready…")
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(PhonePlayDesign.text3)
+                .padding(.top, 8)
+        }
+        .padding(30)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Keep tapping: one giant pad and a live count.
+    private var pumpPad: some View {
+        let go: Bool = phase == "go"
+        return Button(action: {
+            guard canTap else { return }
+            PhonePlayHaptics.rigid()
+            onAction("tap", [:])
+        }) {
+            ZStack {
+                Circle()
+                    .fill(go ? PhonePlayDesign.gradient([PartyPadTint.lastTap, PhonePlayDesign.cyan])
+                             : PhonePlayDesign.gradient([PhonePlayDesign.surface2, PhonePlayDesign.surface]))
+                    .shadow(color: go ? PartyPadTint.lastTap.opacity(0.55) : .clear, radius: 30)
+                VStack(spacing: 6) {
+                    Text(go ? "\(privateData.int("myTaps"))" : "READY")
+                        .font(.system(size: go ? 88 : 48, weight: .black, design: .rounded))
+                        .foregroundColor(go ? .black : .white.opacity(0.4))
+                        .monospacedDigit()
+                    Text(go ? "Keep tapping!" : "Tap when it starts")
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .foregroundColor(go ? .black.opacity(0.6) : PhonePlayDesign.text3)
+                }
+            }
+            .aspectRatio(1, contentMode: .fit)
+            .padding(30)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PhonePlayPressStyle())
+    }
+
+    /// Colour / grey / numbers: a grid of tiles laid out just for this phone.
+    private var tileGrid: some View {
+        let target = privateData["target"] as? [String: Any]
+        return VStack(spacing: 12) {
+            Text(headline(target: target))
+                .font(.system(size: 22, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .padding(.top, 8)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+                ForEach(Array(tiles.enumerated()), id: \.offset) { index, tile in
+                    tileButton(index: index, tile: tile)
+                }
+            }
+            .padding(.horizontal, 16)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private func headline(target: [String: Any]?) -> String {
+        switch kind {
+        case "colour": return "Tap " + ((target?["name"] as? String) ?? "the colour")
+        case "grey":   return "Every colour. No greys!"
+        default:       return "Tap \(privateData.int("nextNumber", 1))"
+        }
+    }
+
+    private func tileButton(index: Int, tile: [String: Any]) -> some View {
+        let done = tile["done"] as? Bool ?? false
+        let hex = tile["hex"] as? String ?? "666666"
+        let label = tile["label"] as? String ?? ""
+        return Button(action: {
+            guard canTap, !done else { return }
+            PhonePlayHaptics.rigid()
+            onAction("tap", ["tile": index])
+        }) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color(hex: hex))
+                .aspectRatio(1, contentMode: .fit)
+                .overlay(
+                    Text(label)
+                        .font(.system(size: 40, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                )
+                .opacity(done ? 0.12 : 1)
+        }
+        .buttonStyle(PhonePlayPressStyle())
+        .disabled(done)
+    }
+
+    /// The giant tap target for the reaction round. It stays live while
+    /// waiting (the server judges a false start), and turns green and
+    /// throbs on GO.
     private var tapPad: some View {
         let go: Bool = phase == "go"
         return Button(action: {

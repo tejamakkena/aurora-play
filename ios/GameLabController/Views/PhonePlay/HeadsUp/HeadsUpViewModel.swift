@@ -27,9 +27,9 @@ final class HeadsUpViewModel: ObservableObject {
     enum Flash { case correct, pass }
 
     @Published private(set) var stage: Stage = .pick
-    @Published private(set) var deck: HeadsUpDeck = HeadsUpDecks.movies
+    @Published private(set) var deck: HeadsUpDeck = HeadsUpDecks.hollywoodMovies
     @Published private(set) var word: String = ""
-    @Published private(set) var secondsLeft: Int = 60
+    @Published private(set) var secondsLeft: Int = 300
     @Published private(set) var countdown: Int = 3
     @Published private(set) var flash: Flash? = nil
     @Published private(set) var results: [HeadsUpResult] = []
@@ -38,7 +38,12 @@ final class HeadsUpViewModel: ObservableObject {
     /// Tilt control is on when the phone supports it; tap buttons otherwise.
     @Published var useTilt: Bool
 
-    let roundLength: Int = 60
+    /// Seconds per round: 1, 2, 3 or 5 minutes, remembered between games.
+    @Published var roundLength: Int {
+        didSet { UserDefaults.standard.set(roundLength, forKey: HeadsUpViewModel.lengthKey) }
+    }
+    static let lengthOptions: [Int] = [60, 120, 180, 300]
+    private static let lengthKey = "headsup_round_seconds"
     let motionAvailable: Bool
 
     var correctCount: Int { results.filter { $0.correct }.count }
@@ -68,6 +73,8 @@ final class HeadsUpViewModel: ObservableObject {
     private let framesToLevel: Int = 4
 
     init() {
+        let saved = UserDefaults.standard.integer(forKey: HeadsUpViewModel.lengthKey)
+        roundLength = HeadsUpViewModel.lengthOptions.contains(saved) ? saved : 300
         let manager = CMMotionManager()
         let available: Bool = manager.isDeviceMotionAvailable
         motion = manager
