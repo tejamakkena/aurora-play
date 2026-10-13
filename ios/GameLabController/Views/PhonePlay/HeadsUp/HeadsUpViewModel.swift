@@ -49,7 +49,11 @@ final class HeadsUpViewModel: ObservableObject {
     private var countdownEnds: Date = Date()
     private var roundEnds: Date = Date()
     private var queue: [String] = []
-    private var used: [String: Set<String>] = [:]
+    private var dealers: [String: PhonePlayDealer] = [:]
+
+    private func dealer(for deck: HeadsUpDeck) -> PhonePlayDealer {
+        dealers[deck.id] ?? PhonePlayDealer(deck: "headsup_" + deck.id)
+    }
     private var tiltFrames: Int = 0
     private var levelFrames: Int = 0
     private var pendingTilt: Flash? = nil
@@ -276,15 +280,9 @@ final class HeadsUpViewModel: ObservableObject {
     // MARK: - Cards
 
     private func refillQueue() {
-        var seen: Set<String> = used[deck.id] ?? []
-        var fresh = deck.words.filter { !seen.contains($0) }
-        if fresh.count < 12 {
-            // Deck nearly exhausted this session: start it over.
-            seen = []
-            fresh = deck.words
-        }
-        used[deck.id] = seen
-        queue = fresh.shuffled()
+        // Unseen words first, then the longest-ago ones; remembered across
+        // rounds, games and app launches.
+        queue = dealer(for: deck).ordered(deck.words)
     }
 
     private func nextWord() {
@@ -294,9 +292,9 @@ final class HeadsUpViewModel: ObservableObject {
             return
         }
         let next = queue.removeFirst()
-        var seen: Set<String> = used[deck.id] ?? []
-        seen.insert(next)
-        used[deck.id] = seen
+        var dealt = dealer(for: deck)
+        dealt.mark(next)
+        dealers[deck.id] = dealt
         word = next
     }
 }

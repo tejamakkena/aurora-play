@@ -35,6 +35,7 @@ import random
 import re
 import threading
 import time
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -66,7 +67,16 @@ def _clean(text, limit: int) -> str | None:
 
 
 def norm_key(text) -> str:
-    return re.sub(r"[^a-z0-9]+", "", str(text or "").lower())
+    """A comparison key: lower-case letters, digits and combining marks only.
+
+    Keeps non-Latin scripts (Telugu, Hindi) intact -- stripping to a-z0-9
+    turned every Telugu question into the same empty key, so those packs
+    could never remember what a table had seen.
+    """
+    text = str(text or "").lower()
+    if text.isascii():
+        return re.sub(r"[^a-z0-9]+", "", text)
+    return "".join(c for c in text if unicodedata.category(c)[0] in "LNM")
 
 
 # ---------------------------------------------------------------------------
@@ -306,6 +316,57 @@ KINDS: dict[str, Kind] = {k.name: k for k in [
 ]}
 
 
+def _plain_kind(name, bundled, parse) -> Kind:
+    """A bundled-only kind (no model generation, no library file)."""
+    return Kind(name, bundled, parse, lambda i: i, norm_key, None)
+
+
+def _parse_twenty(raw):
+    if isinstance(raw, dict):
+        raw = (raw.get("category"), raw.get("item"))
+    if isinstance(raw, (list, tuple)) and len(raw) == 2 and all(isinstance(x, str) and x for x in raw):
+        return (raw[0], raw[1])
+    return None
+
+
+def _atlas_seeds() -> list:
+    from games.native_hub.engines import _content as C
+    names = list(C.ATLAS_SEEDS) + [p.title() for p in sorted(C.ATLAS_PLACES)]
+    out, seen = [], set()
+    for n in names:
+        # Seeds hand the next speaker the seed's last letter: never a hard one.
+        if n[-1].lower() not in "qxz" and norm_key(n) not in seen:
+            seen.add(norm_key(n))
+            out.append(n)
+    return out
+
+
+def _letters(attr: str) -> Callable[[], list]:
+    return lambda: list(getattr(importlib.import_module(_C), attr))
+
+
+def _parse_letter(raw):
+    return raw.upper() if isinstance(raw, str) and len(raw) == 1 and raw.isalpha() else None
+
+
+def _parse_any_text(raw):
+    return " ".join(raw.split()) if isinstance(raw, str) and raw.strip() else None
+
+
+for _k in (
+        _plain_kind("atlas_seed", _atlas_seeds, _parse_any_text),
+        _plain_kind("npat_letter", _letters("NPAT_LETTERS"), _parse_letter),
+        _plain_kind("antakshari_letter", _letters("ANTAKSHARI_LETTERS"), _parse_letter),
+        _plain_kind("atlas_letter", _letters("ATLAS_EASY_LETTERS"), _parse_letter),
+        _plain_kind("antakshari_hint", _bundled(_C, "ANTAKSHARI_HINTS"), _parse_any_text),
+        Kind("twenty_thing",
+             lambda: [(c, i) for c, items in importlib.import_module("games.native_hub.engines.talk").TWENTY_THINGS.items() for i in items],
+             _parse_twenty, lambda i: {"category": i[0], "item": i[1]},
+             lambda i: norm_key(i[1]), None),
+):
+    KINDS[_k.name] = _k
+
+
 # Truth or Dare decks: one kind per (card type, tone level) so the TV game
 # can deal cumulative levels and still never repeat for a table.
 _TD = "games.native_hub.engines._truthdare"
@@ -514,12 +575,41 @@ def pick(room, kind: str, count: int = 1, avoid=()) -> list:
         if i == 0:
             fresh_left = len(candidates)
         if len(candidates) >= count or i == len(tiers) - 1:
-            chosen = random.sample(candidates, min(count, len(candidates)))
+            if i >= 2:
+                # Everything has been seen: recycle the OLDEST first rather
+                # than a random one, so a small pool cycles through all of
+                # its items before any repeats.
+                chosen = _oldest_first(room, kind, spec, candidates, count)
+            else:
+                chosen = random.sample(candidates, min(count, len(candidates)))
             break
     record(room, kind, [spec.key(c) for c in chosen])
     if fresh_left - len(chosen) < LOW_WATER:
         request_refill(kind)
     return chosen
+
+
+def recency(room, kind: str) -> dict[str, int]:
+    """key -> how recently this table saw it (bigger = more recent; unseen
+    keys are absent). Room history outranks other players' device history."""
+    with _lock:
+        ranks: dict[str, int] = {}
+        store = _heard_store()
+        for d in _devices(room):
+            for n, k in enumerate(store.get(d, {}).get(kind, [])):
+                ranks[k] = max(ranks.get(k, -1), n)
+        base = DEVICE_HISTORY_CAP + 1
+        for n, k in enumerate(_room_history(room, kind)):
+            ranks[k] = base + n
+        return ranks
+
+
+def _oldest_first(room, kind: str, spec, candidates: list, count: int) -> list:
+    """The ``count`` candidates seen longest ago (never seen first); ties random."""
+    ranks = recency(room, kind)
+    shuffled = random.sample(candidates, len(candidates))
+    shuffled.sort(key=lambda item: ranks.get(spec.key(item), -1))
+    return shuffled[:count]
 
 
 def pick_one(room, kind: str, avoid=()):

@@ -61,7 +61,7 @@ final class SpyViewModel: ObservableObject {
     var spyCaught: Bool { accused == spyIndex }
 
     private var timer: Task<Void, Never>? = nil
-    private var lastLocations: [String] = []
+    private var locationDealer = PhonePlayDealer(deck: "spylocation")
 
     init() {
         let saved = PhonePlayRoster.load()
@@ -73,10 +73,7 @@ final class SpyViewModel: ObservableObject {
     func start() {
         guard canStart else { return }
         stopTimer()
-        let fresh = SpyLocations.all.filter { !lastLocations.contains($0) }
-        location = (fresh.randomElement() ?? SpyLocations.all.randomElement()) ?? "Beach"
-        lastLocations.append(location)
-        if lastLocations.count > 10 { lastLocations.removeFirst() }
+        location = locationDealer.draw(from: SpyLocations.all) ?? "Beach"
         spyIndex = Int.random(in: 0..<names.count)
         firstAsker = Int.random(in: 0..<names.count)
         revealIndex = 0
