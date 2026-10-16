@@ -677,9 +677,11 @@ struct ResultsControllerView: View {
     @State private var appeared = false
 
     private var myID: String { vm.playerID }
-    private var sorted: [Player] { room.players.sorted { $0.score > $1.score } }
+    /// The game's own ranking (server-side), so a game that only knows its
+    /// winner never lists the host first by accident. Equal ranks are ties.
+    private var sorted: [RoomResult] { room.finalRanking }
     private var myRank: Int {
-        (sorted.firstIndex(where: { $0.id == myID }) ?? 0) + 1
+        sorted.first(where: { $0.id == myID })?.rank ?? sorted.count
     }
 
     // Phone Play look (PhonePlayDesign / PhonePlayBigButton): this screen
@@ -719,11 +721,12 @@ struct ResultsControllerView: View {
                     .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
                     .phonePlayIdle(dy: 3, degrees: 5, duration: 1.2)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("You finished \(ordinal(myRank))")
+                    Text(sorted.filter { $0.rank == myRank }.count > 1
+                         ? "You tied for \(ordinal(myRank))" : "You finished \(ordinal(myRank))")
                         .font(.system(size: 24, weight: .black, design: .rounded))
                         .foregroundColor(.white)
                     if let me = sorted.first(where: { $0.id == myID }) {
-                        Text("\(me.score) points")
+                        Text(me.detail.map { "\($0)  ·  \(me.score) points" } ?? "\(me.score) points")
                             .font(.system(size: 15, weight: .bold, design: .rounded))
                             .foregroundColor(.white.opacity(0.85))
                     }
@@ -749,19 +752,27 @@ struct ResultsControllerView: View {
             ScrollView {
                 VStack(spacing: 8) {
                     PhonePlaySectionLabel(text: "Leaderboard")
-                    ForEach(Array(sorted.enumerated()), id: \.element.id) { rank, player in
+                    ForEach(Array(sorted.enumerated()), id: \.element.id) { index, player in
                         HStack(spacing: 12) {
-                            Text("\(rank + 1)")
+                            Text("\(player.rank)")
                                 .font(.system(size: 14, weight: .heavy, design: .rounded))
-                                .foregroundColor(rank < 3 ? .black : .white.opacity(0.75))
+                                .foregroundColor(player.rank <= 3 ? .black : .white.opacity(0.75))
                                 .frame(width: 30, height: 30)
-                                .background(Circle().fill(rank < 3 ? NightStandingsList.rankColor(rank + 1)
-                                                                   : PhonePlayDesign.surface2))
-                            Text(player.name)
-                                .font(.system(size: 17, weight: player.id == myID ? .heavy : .semibold,
-                                              design: .rounded))
-                                .foregroundColor(player.id == myID ? PhonePlayDesign.cyan : .white)
-                                .lineLimit(1)
+                                .background(Circle().fill(player.rank <= 3 ? NightStandingsList.rankColor(player.rank)
+                                                                           : PhonePlayDesign.surface2))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(player.name)
+                                    .font(.system(size: 17, weight: player.id == myID ? .heavy : .semibold,
+                                                  design: .rounded))
+                                    .foregroundColor(player.id == myID ? PhonePlayDesign.cyan : .white)
+                                    .lineLimit(1)
+                                if let detail = player.detail {
+                                    Text(detail)
+                                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                        .foregroundColor(PhonePlayDesign.text2)
+                                        .lineLimit(1)
+                                }
+                            }
                             if player.id == myID {
                                 Text("YOU")
                                     .font(.system(size: 10, weight: .heavy, design: .rounded))
@@ -781,7 +792,7 @@ struct ResultsControllerView: View {
                         )
                         .offset(y: appeared ? 0 : 24)
                         .opacity(appeared ? 1 : 0)
-                        .animation(PhonePlayDesign.pop.delay(0.15 + Double(min(rank, 8)) * 0.05), value: appeared)
+                        .animation(PhonePlayDesign.pop.delay(0.15 + Double(min(index, 8)) * 0.05), value: appeared)
                     }
                 }
                 .padding(.horizontal, 20).padding(.top, 18)
@@ -833,7 +844,8 @@ struct ResultsControllerView: View {
     }
 
     private func ordinal(_ n: Int) -> String {
-        switch n { case 1: return "1st"; case 2: return "2nd"; case 3: return "3rd"; default: return "\(n)th" }
+        if (11...13).contains(n % 100) { return "\(n)th" }
+        switch n % 10 { case 1: return "\(n)st"; case 2: return "\(n)nd"; case 3: return "\(n)rd"; default: return "\(n)th" }
     }
 }
 

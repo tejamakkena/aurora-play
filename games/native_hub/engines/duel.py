@@ -257,6 +257,17 @@ class BattleshipEngine(TurnBasedEngine):
         hits = {c for c, r in self.shots[shooter].items() if r == "hit"}
         return sum(1 for ship in self.fleets[owner] if set(ship).issubset(hits))
 
+    def results(self):
+        """Winner (whoever sank the whole fleet) first; the score is hits,
+        with ships sunk alongside."""
+        rows = super().results()
+        for row in rows:
+            pid = row["playerID"]
+            opponent = self._opponent(pid)
+            sunk = self._sunk_ships(opponent, pid) if opponent and pid in self.shots else 0
+            row["detail"] = f"{sunk}/{len(self.FLEET)} ships sunk"
+        return rows
+
     def public_state(self):
         state = self.base_public()
         state.update({
@@ -714,6 +725,29 @@ class LudoEngine(TurnBasedEngine):
     def _has_won(self, player_id):
         return all(v >= 100 + self.HOME_RUN - 1 for v in self.tokens[player_id])
 
+    def _steps(self, value):
+        """How far one token has come: 0 in the yard, up to a full lap plus
+        the home run once it is home."""
+        if value < 0:
+            return 0
+        if value < 100:
+            return value + 1
+        return self.TRACK + 1 + (value - 100)
+
+    def results(self):
+        """Ranked by the race, not by captures: the winner first, then
+        whoever has the most of their tokens' journey done. The score shown is
+        that progress (squares travelled); captures are in the detail."""
+        progress = {pid: sum(self._steps(v) for v in self.tokens.get(pid, []))
+                    for pid in self.order}
+        rows = self.winner_first(self.ranked_results(progress))
+        for row in rows:
+            toks = self.tokens.get(row["playerID"], [])
+            home = sum(1 for v in toks if v >= 100 + self.HOME_RUN - 1)
+            caps = self.scores.get(row["playerID"], 0)
+            row["detail"] = f"{home}/{len(toks)} home" + (f", {caps} captured" if caps else "")
+        return rows
+
     def _end_turn(self, extra):
         # `die` keeps the last roll so the TV and phones can still show it;
         # `rolled` is what gates the next roll/move.
@@ -1097,22 +1131,49 @@ class TeenPattiEngine(TurnBasedEngine):
         if not live:
             self._finished = True
             return
-        best = max(live, key=lambda p: self._hand_rank(self.hands[p]))
+        top = max(self._hand_rank(self.hands[p]) for p in live)
+        best = [p for p in live if self._hand_rank(self.hands[p]) == top]
         self.showdown = [
             {"playerID": p, "name": self.player_name(p),
              "cards": self.hands[p], "rank": self._hand_rank(self.hands[p])[0]}
             for p in live
         ]
-        self._award(best)
+        self._award(*best)
 
-    def _award(self, winner):
-        self.chips[winner] = self.chips.get(winner, 0) + self.pot
+    def _award(self, *winners):
+        """Pay the pot out (split evenly between equal best hands, the odd
+        chip to the first) and end the hand."""
+        share, odd = divmod(self.pot, len(winners))
+        for index, pid in enumerate(winners):
+            self.chips[pid] = self.chips.get(pid, 0) + share + (odd if index == 0 else 0)
+        self.pot = 0
+        self._sync_chip_scores()
+        self.finish(winner=winners[0] if len(winners) == 1 else None)
+
+    def _sync_chip_scores(self):
         for pid in self.order:
             self.scores[pid] = self.chips.get(pid, 0)
             player = self.room.player(pid)
             if player is not None:
                 player.score = self.chips.get(pid, 0)
-        self.finish(winner=winner)
+
+    def results(self):
+        """Ranked by chips. A hand cut short (idle, too few players) hands the
+        pot back to the players still in it, split evenly."""
+        if not self._finished and self.pot:
+            live = self._live() or list(self.order)
+            share, odd = divmod(self.pot, len(live))
+            for index, pid in enumerate(live):
+                self.chips[pid] = self.chips.get(pid, 0) + share + (odd if index == 0 else 0)
+            self.pot = 0
+        self._sync_chip_scores()
+        rows = self.winner_first(self.ranked_results(dict(self.scores)))
+        for row in rows:
+            if row["playerID"] in self.folded:
+                row["detail"] = "Folded"
+            elif any(s["playerID"] == row["playerID"] for s in self.showdown or []):
+                row["detail"] = "Showdown"
+        return rows
 
     def public_state(self):
         state = self.base_public()

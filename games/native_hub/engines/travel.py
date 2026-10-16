@@ -299,7 +299,20 @@ class StoryChainEngine(NativeGameEngine):
         return self._finished
 
     def results(self) -> list[dict]:
-        return self.ranked_results(self.scores)
+        # A game cut short while voting (idle, too few players) still counts
+        # the votes already cast.
+        if self.phase == "vote" and not self.round_results:
+            self._tally_and_finish()
+        rows = self.ranked_results(self.scores)
+        funniest = {r["playerID"] for r in self.round_results if r.get("funniest")}
+        votes = {r["playerID"]: r["votes"] for r in self.round_results}
+        for row in rows:
+            n = votes.get(row["playerID"], 0)
+            if row["playerID"] in funniest:
+                row["detail"] = f"Funniest line, {n} {'vote' if n == 1 else 'votes'}"
+            elif n:
+                row["detail"] = f"{n} {'vote' if n == 1 else 'votes'}"
+        return rows
 
     def on_player_leave(self, player_id: str) -> None:
         self.votes.pop(player_id, None)

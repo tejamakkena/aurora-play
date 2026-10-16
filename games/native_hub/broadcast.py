@@ -102,8 +102,79 @@ def broadcast_state(socketio, room) -> None:
         socketio.emit("private_state", payload, to=sid, namespace=NAMESPACE)
 
 
-def finish_game(socketio, room) -> None:
-    """Move a room to results and publish the final ranking."""
+def final_results(room, results, forfeit: bool = False) -> list[dict]:
+    """The engine's ranking, made safe to show as-is on every results screen.
+
+    Each player appears once, in the engine's order, with an int score and a
+    rank that never goes down the list (equal ranks are ties). Phones that
+    have a seat but no row (an engine that only ranks the players still in
+    at the end) are added below everyone else rather than vanishing. Each
+    seat's ``score`` is set to its final score too, so an older app that still
+    sorts ``players`` by score shows the right numbers.
+
+    ``forfeit``: the game ended because too few players were left. Whoever
+    stayed ranks above whoever walked away (a duel's leaver forfeits instead
+    of winning on the points they had when they left).
+    """
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for row in results or []:
+        if not isinstance(row, dict):
+            continue
+        pid = row.get("playerID")
+        if not isinstance(pid, str) or pid in seen:
+            continue
+        seen.add(pid)
+        player = room.player(pid)
+        score = row.get("score", 0)
+        try:
+            score = int(score)
+        except (TypeError, ValueError):
+            score = 0
+        clean = dict(row)           # keeps game extras (brainTitle, ...)
+        clean.update({"playerID": pid,
+                      "name": row.get("name") or (player.name if player else "Player"),
+                      "score": score,
+                      "rank": row.get("rank")})
+        if not (isinstance(clean.get("detail"), str) and clean["detail"]):
+            clean.pop("detail", None)
+        rows.append(clean)
+    for player in room.players:
+        if player.id not in seen:
+            rows.append({"playerID": player.id, "name": player.name,
+                         "score": int(player.score or 0), "rank": None})
+    if forfeit:
+        def stayed(row):
+            player = room.player(row["playerID"])
+            return player is not None and player.connected
+        if any(map(stayed, rows)) and not all(map(stayed, rows)):
+            original = {id(r): r["rank"] for r in rows}
+            rows.sort(key=lambda r: not stayed(r))      # stable: engine order kept
+            for index, row in enumerate(rows):
+                prev = rows[index - 1] if index else None
+                same = (prev is not None and original[id(row)] is not None
+                        and stayed(prev) == stayed(row)
+                        and original[id(prev)] == original[id(row)])
+                row["rank"] = prev["rank"] if same else (
+                    index + 1 if original[id(row)] is not None else None)
+    previous = 0
+    for index, row in enumerate(rows):
+        rank = row["rank"]
+        if not isinstance(rank, int) or isinstance(rank, bool) or rank < max(previous, 1):
+            tied = index > 0 and rows[index - 1]["score"] == row["score"]
+            rank = max(previous if tied else index + 1, 1)
+        row["rank"] = rank
+        previous = rank
+    for row in rows:
+        player = room.player(row["playerID"])
+        if player is not None:
+            player.score = row["score"]
+    return rows
+
+
+def finish_game(socketio, room, forfeit: bool = False) -> None:
+    """Move a room to results and publish the final ranking. ``forfeit``:
+    ended because too few players were left (see ``final_results``)."""
     with room.lock:
         if room.state is RoomState.RESULTS:
             return
@@ -118,6 +189,8 @@ def finish_game(socketio, room) -> None:
                 engine.stop()
             except Exception:
                 logger.exception("engine stop failed room=%s", room.code)
+        results = final_results(room, results, forfeit=forfeit)
+        room.results = results
         room.state = RoomState.RESULTS
         room.generation += 1          # stop the pump
         room.touch()
@@ -212,6 +285,7 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
                 else:
                     over = False
 
+            forfeit = False
             if not over:
                 # A table that can no longer play (everyone but one has left
                 # or gone dark) must not hold the survivor hostage.
@@ -222,6 +296,7 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
                     elif time.time() - short_since > UNDERSTAFFED_END_SECONDS:
                         logger.info("room %s understaffed, ending game", code)
                         over = True
+                        forfeit = True
                 else:
                     short_since = None
 
@@ -233,7 +308,7 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
                 over = True
 
             if over:
-                finish_game(socketio, room)
+                finish_game(socketio, room, forfeit=forfeit)
                 return
 
             broadcast_state(socketio, room)

@@ -409,7 +409,8 @@ class TestHotTakesRounds:
             engine.advance()
         assert engine.phase == "final"
         results = engine.results()
-        assert [r["rank"] for r in results] == [1, 2, 3, 4]
+        # Equal scores share a rank (1, 1, 3), never split by join order.
+        assert [r["rank"] for r in results] == [1 + sum(1 for o in results if o["score"] > r["score"]) for r in results]
         assert results[0]["score"] >= results[-1]["score"]
         assert {r["playerID"] for r in results} == {p.id for p in roster}
         json.dumps(results)

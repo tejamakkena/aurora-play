@@ -88,15 +88,30 @@ class NativeGameEngine(ABC):
         player = self.room.player(player_id)
         return player.name if player else "Player"
 
+    def winner_first(self, ranked: list[dict], winner: str | None = None) -> list[dict]:
+        """Put the winner (default ``self.winner``) alone at 1st; everyone
+        else keeps shared ranks for equal scores, counted from 2nd."""
+        winner = winner if winner is not None else getattr(self, "winner", None)
+        if winner:
+            ranked.sort(key=lambda r: r["playerID"] != winner)
+            for index, row in enumerate(ranked):
+                tied = index > 1 and row["score"] == ranked[index - 1]["score"]
+                row["rank"] = ranked[index - 1]["rank"] if tied else index + 1
+        return ranked
+
     def ranked_results(self, scores: dict[str, int]) -> list[dict]:
-        """Build a standard results list from a ``{player_id: score}`` map."""
+        """Build a standard results list from a ``{player_id: score}`` map.
+
+        Equal scores share a rank (1, 1, 3): a tie is a tie, never decided by
+        who happened to join the room first."""
         ordered = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
-        return [
-            {
+        rows: list[dict] = []
+        for index, (pid, score) in enumerate(ordered):
+            tied = index > 0 and score == ordered[index - 1][1]
+            rows.append({
                 "playerID": pid,
                 "name": self.player_name(pid),
                 "score": score,
-                "rank": rank,
-            }
-            for rank, (pid, score) in enumerate(ordered, start=1)
-        ]
+                "rank": rows[-1]["rank"] if tied else index + 1,
+            })
+        return rows

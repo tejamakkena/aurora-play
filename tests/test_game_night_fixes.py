@@ -77,7 +77,8 @@ class TestTurnBasedRanking:
         last = roster[-1].id
         engine.finish(winner=last)
         assert engine.results()[0]["playerID"] == last
-        assert [r["rank"] for r in engine.results()] == [1, 2, 3]
+        # Nobody else moved: the other two tie for 2nd.
+        assert [r["rank"] for r in engine.results()] == [1, 2, 2]
 
 
 class _Clock:

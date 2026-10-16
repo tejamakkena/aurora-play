@@ -241,7 +241,8 @@ class TestFullGame:
             assert {"playerID", "name", "score", "rank"} <= set(row)
         scores = [r["score"] for r in results]
         assert scores == sorted(scores, reverse=True)
-        assert [r["rank"] for r in results] == list(range(1, len(roster) + 1))
+        # Equal scores share a rank (1, 1, 3), never split by join order.
+        assert [r["rank"] for r in results] == [1 + sum(1 for o in results if o["score"] > r["score"]) for r in results]
 
     def test_state_stays_json_serialisable(self):
         engine, roster = make()

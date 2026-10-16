@@ -507,6 +507,30 @@ class ChessEngine(TurnBasedEngine):
                 self.draw = True                  # stalemate: nothing can move
                 self.finish(winner=None)
 
+    PIECE_VALUES = {"P": 1, "N": 3, "B": 3, "R": 5, "Q": 9, "K": 0}
+
+    def results(self):
+        """Winner first; the score is the material each side took (pawn 1,
+        knight/bishop 3, rook 5, queen 9), so a draw or an abandoned game
+        still shows who was ahead."""
+        material = {pid: sum(self.PIECE_VALUES.get(self._piece_kind(p), 0)
+                             for p in self.captured.get(self.piece_color.get(pid), []))
+                    for pid in self.order}
+        rows = self.winner_first(self.ranked_results(material))
+        for row in rows:
+            if self.draw:
+                row["rank"] = 1                   # stalemate is a draw
+            colour = self.piece_color.get(row["playerID"], "")
+            if self.winner == row["playerID"]:
+                row["detail"] = f"Won with {colour}"
+            elif self.draw:
+                row["detail"] = f"Stalemate ({colour})"
+            else:
+                row["detail"] = colour.capitalize() if colour else None
+            if not row["detail"]:
+                row.pop("detail")
+        return rows
+
     def _has_any_move(self, color):
         for r in range(8):
             for c in range(8):
@@ -683,6 +707,12 @@ class SnakeLadderEngine(TurnBasedEngine):
             # player, so a late-joining client never replays a stale one.
             self.last_slide.pop(player_id, None)
         self.positions[player_id] = new_pos
+        # The score is the square reached, so the race order is the ranking
+        # (the winner on 100 first, then whoever was closest).
+        self.scores[player_id] = new_pos
+        player = self.room.player(player_id)
+        if player is not None:
+            player.score = new_pos
 
         self.last_roller = player_id
         self.roll_seq += 1

@@ -351,6 +351,12 @@ def register_native_events(socketio):
                     push_error(socketio, sid, "Only the host can remove bots",
                                "NOT_HOST")
                     return
+            if room.state is RoomState.PLAYING:
+                # The bot's seat holds its score and the engine's references:
+                # deleting it mid-game drops it from the results.
+                push_error(socketio, sid, "Bots can only be removed between games",
+                           "GAME_IN_PROGRESS")
+                return
             if room.remove_bot(bot_id) is None:
                 return
         push_room(socketio, room)

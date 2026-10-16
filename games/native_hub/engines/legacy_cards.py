@@ -290,8 +290,11 @@ class PokerEngine(TurnBasedEngine):
 
     def _finish_game(self):
         self._sync_scores()
-        leader = max(self.order, key=lambda pid: self._net(pid)) if self.order else None
-        self.finish(winner=leader)
+        nets = [self._net(pid) for pid in self.order]
+        top = max(nets, default=None)
+        # A shared top net is a shared win: no seat-order tie-break.
+        leaders = [pid for pid in self.order if self._net(pid) == top]
+        self.finish(winner=leaders[0] if len(leaders) == 1 else None)
 
     def tick(self, dt):
         if self._finished:
@@ -825,7 +828,16 @@ class TambolaEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        return self.ranked_results(dict(self.scores))
+        """Ranked by prize points (a Full House is worth the most, but a
+        player with several smaller prizes can still out-earn it); the detail
+        names the prizes each player won."""
+        rows = self.ranked_results({**{pid: 0 for pid in self.tickets}, **self.scores})
+        labels = {key: label for key, label, _ in self.PRIZES}
+        for row in rows:
+            won = [labels[k] for k, pid in self.prize_winners.items() if pid == row["playerID"]]
+            if won:
+                row["detail"] = ", ".join(won)
+        return rows
 
 
 # ---------------------------------------------------------------------------
@@ -1149,8 +1161,31 @@ class DigitGuessEngine(NativeGameEngine):
     def is_over(self):
         return self._finished
 
+    def _closest(self, pid) -> tuple[int, int]:
+        """(bulls, cows) of a player's best guess."""
+        return max(((g["bulls"], g["cows"]) for g in self.guesses.get(pid, [])), default=(0, 0))
+
     def results(self):
-        return self.ranked_results({p.id: p.score for p in self.room.players})
+        """The solver first; everyone else by how close their best guess got
+        (right digit in the right place 100, right digit elsewhere 25)."""
+        scores = {}
+        for pid in self.guesses:
+            player = self.room.player(pid)
+            if pid == self.winner and player is not None:
+                scores[pid] = player.score
+            else:
+                bulls, cows = self._closest(pid)
+                scores[pid] = bulls * 100 + cows * 25
+        rows = self.winner_first(self.ranked_results(scores))
+        for row in rows:
+            pid = row["playerID"]
+            tries = len(self.guesses.get(pid, []))
+            if pid == self.winner:
+                row["detail"] = f"Cracked it in {tries}"
+            else:
+                bulls, cows = self._closest(pid)
+                row["detail"] = f"Best: {bulls} right, {cows} close"
+        return rows
 
 
 ENGINES = {

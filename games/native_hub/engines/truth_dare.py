@@ -91,7 +91,23 @@ class TruthOrDareEngine(NativeGameEngine):
             self._add_participant(player.id, player.name, guest=False)
 
     def on_player_leave(self, player_id):
-        self._remove_participant(player_id)
+        # A phone that drops (often just an app switch) keeps its name and
+        # points: it only sits out turns until it is back. Taking the seat
+        # away lost the score and, since nothing re-adds a returning phone,
+        # the player too.
+        if self.current == player_id and self.phase in ("choose", "prompt", "punish"):
+            self._next_turn("")
+
+    def _present(self, pid: str) -> bool:
+        """Guests (names typed on the host phone) are always here; a phone
+        player only while connected."""
+        entry = next((p for p in self.participants if p["id"] == pid), None)
+        if entry is None:
+            return False
+        if entry.get("guest"):
+            return True
+        player = self.room.player(pid)
+        return player is not None and (player.connected or player.is_bot)
 
     def is_over(self):
         return self._ended
@@ -184,7 +200,7 @@ class TruthOrDareEngine(NativeGameEngine):
     # ---- turns ---------------------------------------------------------------
 
     def _next_turn(self, lead_in: str) -> None:
-        live = [p["id"] for p in self.participants]
+        live = [p["id"] for p in self.participants if self._present(p["id"])]
         if len(live) < MIN_PARTICIPANTS:
             self.phase = "setup"
             self.current = None
