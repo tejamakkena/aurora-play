@@ -197,9 +197,27 @@ class CipherGridEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        scores = {p.id: (1 if self.teams.get(p.id) == self.winner else 0)
-                  for p in self.room.players}
-        return self.ranked_results(scores)
+        """The winning team first; the score is the team's words found, so
+        an unfinished game still shows which team was ahead."""
+        def found(team):
+            total = sum(1 for k in self.key if k == team)
+            return total - self._remaining(team)
+
+        scores = {pid: found(team) for pid, team in self.teams.items()}
+        rows = self.ranked_results(scores)
+        if self.winner:
+            rows.sort(key=lambda r: self.teams.get(r["playerID"]) != self.winner)
+            for index, row in enumerate(rows):
+                won = self.teams.get(row["playerID"]) == self.winner
+                prev = rows[index - 1] if index else None
+                tied = prev is not None and (self.teams.get(prev["playerID"]) == self.winner) == won \
+                    and prev["score"] == row["score"]
+                row["rank"] = prev["rank"] if tied else index + 1
+        for row in rows:
+            team = self.teams.get(row["playerID"], "")
+            role = " spymaster" if self.spymasters.get(team) == row["playerID"] else ""
+            row["detail"] = f"{team.capitalize()}{role}" + (", won" if team == self.winner else "")
+        return rows
 
 
 class OddOneOutEngine(NativeGameEngine):
@@ -771,9 +789,18 @@ class KBCEngine(NativeGameEngine):
                     self.deadline = 0.0
                 else:
                     self._start_seat()
+            elif not self._hot_seat_here():
+                # Left during the reveal: walk away with what is banked
+                # rather than time out on the next question and lose it.
+                self.outcome = "walked"
+                self._end_seat()
             else:
                 self.rung += 1
                 self._load_question()
+
+    def _hot_seat_here(self) -> bool:
+        player = self.room.player(self.hot_seat) if self.hot_seat else None
+        return player is not None and (player.connected or player.is_bot)
 
     def on_player_leave(self, player_id):
         if player_id == self.hot_seat and self.phase in ("answer", "poll"):
@@ -846,7 +873,17 @@ class KBCEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        return self.ranked_results(dict(self.banked_by))
+        """Ranked by money banked. Players who never got a turn in the hot
+        seat (more players than seats) are listed after everyone who did,
+        not tied with a player who lost it all."""
+        seated = [pid for pid in self.order if pid in self.banked_by] if self.order else list(self.banked_by)
+        rows = self.ranked_results({pid: self.banked_by.get(pid, 0) for pid in seated})
+        unseated_rank = len(rows) + 1
+        for pid in self.banked_by:
+            if pid not in seated:
+                rows.append({"playerID": pid, "name": self.player_name(pid), "score": 0,
+                             "rank": unseated_rank, "detail": "No turn in the hot seat"})
+        return rows
 
 
 class BollywoodCharadesEngine(RoundBasedEngine):
@@ -867,17 +904,33 @@ class BollywoodCharadesEngine(RoundBasedEngine):
         self.correct_ids: list[str] = []
         self.used: set[str] = set()
         self.started_at = 0.0
+        self._turn = 0
 
     def start(self, players):
         self.order = [p.id for p in players]
+        # Everyone acts the same number of times: at least six turns in all,
+        # and never some players twice while others act once.
+        n = max(1, len(self.order))
+        self.total_rounds = n * -(-6 // n) if n < 6 else n
+        self._turn = 0
         super().start(players)
+
+    def _next_actor(self) -> str | None:
+        """Next in the rotation, skipping phones that are offline right now."""
+        for _ in range(len(self.order)):
+            pid = self.order[self._turn % len(self.order)]
+            self._turn += 1
+            player = self.room.player(pid)
+            if player is not None and (player.connected or player.is_bot):
+                return pid
+        return self.order[(self.round - 1) % len(self.order)] if self.order else None
 
     def begin_phase(self, phase):
         if phase == "act":
             self.title = cs.pick_one(self.room, "charades", avoid=self.used)
             self.used.add(cs.norm_key(self.title))
             if self.order:
-                self.actor = self.order[(self.round - 1) % len(self.order)]
+                self.actor = self._next_actor()
             self.correct_ids = []
             self.started_at = time.time()
 

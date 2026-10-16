@@ -92,6 +92,8 @@ class LastTapEngine(NativeGameEngine):
         self.eliminated_this_round: list[str] = []
         self.lost_life_this_round: list[str] = []
         self.out_order: list[str] = []
+        #: player -> the round they were knocked out in.
+        self.out_round: dict[str, int] = {}
         self._finished = False
 
     # ---- lifecycle -----------------------------------------------------
@@ -306,6 +308,8 @@ class LastTapEngine(NativeGameEngine):
                 out.append(pid)
         self.eliminated_this_round = out
         self.out_order.extend(out)
+        for pid in out:
+            self.out_round[pid] = self.round
         self.alive = [p for p in self.alive if p not in out]
         self.phase = "reveal"
         self.phase_until = time.time() + self.REVEAL_SECONDS
@@ -408,4 +412,30 @@ class LastTapEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        return self.ranked_results({p.id: p.score for p in self.room.players})
+        """Elimination order decides the places: whoever is still standing
+        first, then the rest by how long they lasted (out later = higher).
+        Round points only break ties inside one of those groups."""
+        points = {p.id: p.score for p in self.room.players}
+        everyone = [pid for pid in points if pid in self.alive or pid in self.out_round]
+        everyone += [pid for pid in points if pid not in everyone]
+
+        def lasted(pid):
+            return 10 ** 6 if pid in self.alive else self.out_round.get(pid, 0)
+
+        order = sorted(everyone, key=lambda pid: (-lasted(pid), -points[pid]))
+        rows: list[dict] = []
+        for index, pid in enumerate(order):
+            prev = order[index - 1] if index else None
+            tied = prev is not None and (lasted(prev), points[prev]) == (lasted(pid), points[pid])
+            if pid in self.alive:
+                detail = "Last one standing" if len(self.alive) == 1 else "Still standing"
+            elif pid in self.out_round:
+                detail = f"Out in round {self.out_round[pid]}"
+            else:
+                detail = None
+            row = {"playerID": pid, "name": self.player_name(pid), "score": points[pid],
+                   "rank": rows[-1]["rank"] if tied else index + 1}
+            if detail:
+                row["detail"] = detail
+            rows.append(row)
+        return rows

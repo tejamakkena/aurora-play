@@ -26,8 +26,38 @@ struct Room: Codable, Equatable {
     // False while no TV board is attached (the TV app was switched away or
     // lost Wi-Fi). Phones show a "waiting for the TV" banner. nil on older servers.
     var tvConnected: Bool? = nil
+    // The finished game's ranking, best first (only while state is
+    // .results). Every results screen shows this as-is: rank and score come
+    // from the game itself, so a game that only knows its winner, or keeps
+    // its own score, still ranks right. nil on older servers.
+    var results: [RoomResult]? = nil
 
     var hostPlayerID: String { players.first?.id ?? "" }
+
+    /// The ranking to show at the end: the server's when it sent one, else
+    /// (older servers) the players sorted by score.
+    var finalRanking: [RoomResult] {
+        if let results, !results.isEmpty { return results }
+        var rows: [RoomResult] = []
+        for player in players.sorted(by: { $0.score > $1.score }) {
+            let tied: Bool = rows.last.map { $0.score == player.score } ?? false
+            rows.append(RoomResult(playerID: player.id, name: player.name, score: player.score,
+                                   rank: tied ? (rows.last?.rank ?? 1) : rows.count + 1, detail: nil))
+        }
+        return rows
+    }
+}
+
+/// One row of a finished game's ranking. Equal ranks are a tie.
+struct RoomResult: Codable, Equatable, Identifiable {
+    let playerID: String
+    let name: String
+    let score: Int
+    let rank: Int
+    /// A short note shown with the score ("Winner", "Out in round 3").
+    var detail: String? = nil
+
+    var id: String { playerID }
 }
 
 /// One lobby pick for a game (games/native_hub/options.py): a short menu the

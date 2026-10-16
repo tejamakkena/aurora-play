@@ -95,7 +95,8 @@ class TestCreateRoom:
         room = latest(tv, "room_updated")
         assert set(room) == {"code", "gameID", "players", "state", "phase",
                                "contentPack", "topic", "botsAllowed",
-                               "usesContentPack", "micPlayerID", "night", "teams", "options", "tvConnected"}
+                               "usesContentPack", "micPlayerID", "night", "teams", "options", "tvConnected",
+                               "results"}
         assert room["gameID"] == "trivia" and room["state"] == "lobby"
         assert len(room["code"]) == 6
 

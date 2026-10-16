@@ -223,13 +223,31 @@
   }
   AP.rankColor = rankColor;
 
+  /* The finished game's ranking, best first: the server's own (room.results)
+   * so a game that only knows its winner never lists the host first by
+   * accident; older servers fall back to the seats sorted by score. Rows are
+   * {id, name, score, rank, detail}; equal ranks are a tie. */
+  AP.finalRanking = function (room) {
+    if (room.results && room.results.length) {
+      return room.results.map(function (r) {
+        return { id: r.playerID, name: r.name, score: r.score, rank: r.rank, detail: r.detail || null };
+      });
+    }
+    var rows = [];
+    room.players.slice().sort(function (a, b) { return b.score - a.score; }).forEach(function (p, i) {
+      var prev = rows[i - 1];
+      rows.push({ id: p.id, name: p.name, score: p.score, rank: prev && prev.score === p.score ? prev.rank : i + 1, detail: null });
+    });
+    return rows;
+  };
+
   AP.screens.results = function () {
     var room = S.room;
-    var sorted = room.players.slice().sort(function (a, b) { return b.score - a.score; });
-    var idx = -1;
-    sorted.forEach(function (p, i) { if (p.id === S.playerID) { idx = i; } });
-    var myRank = (idx < 0 ? 0 : idx) + 1;
-    var me = idx >= 0 ? sorted[idx] : null;
+    var sorted = AP.finalRanking(room);
+    var me = null;
+    sorted.forEach(function (p) { if (p.id === S.playerID) { me = p; } });
+    var myRank = me ? me.rank : sorted.length;
+    var tiedMe = sorted.filter(function (p) { return p.rank === myRank; }).length > 1;
     var colors = RANK_COLORS[myRank] || [C.purple, C.blue];
 
     var header = h('div', { class: 'col center gap6 pop-in', style: { padding: '36px 0 20px' } },
@@ -243,20 +261,24 @@
       h('span', { class: 'idle', style: { '--dy': '3px', '--deg': '5deg', '--dur': '1.2s', display: 'inline-flex' } },
         AP.icon(myRank === 1 ? 'trophy.fill' : (myRank <= 3 ? 'medal.fill' : 'star.fill'), 34)),
       h('div', { class: 'col gap4' },
-        h('div', { style: { fontSize: '24px', fontWeight: 900 } }, 'You finished ' + AP.ordinal(myRank)),
-        me ? h('div', { style: { fontSize: '15px', fontWeight: 700, color: 'rgba(255,255,255,0.85)' } }, me.score + ' points') : null));
+        h('div', { style: { fontSize: '24px', fontWeight: 900 } }, (tiedMe ? 'You tied for ' : 'You finished ') + AP.ordinal(myRank)),
+        me ? h('div', { style: { fontSize: '15px', fontWeight: 700, color: 'rgba(255,255,255,0.85)' } },
+          (me.detail ? me.detail + '  \u00b7  ' : '') + me.score + ' points') : null));
 
     var board = h('div', { class: 'col gap8', style: { padding: '18px 20px 0' } },
       ui.sectionLabel('Leaderboard'),
-      sorted.map(function (p, rank) {
-        var mine = p.id === S.playerID;
+      sorted.map(function (p, index) {
+        var mine = p.id === S.playerID, top = p.rank <= 3;
         return h('div', { class: 'row gap12 rise-in', style: { padding: '10px 14px', borderRadius: 'var(--r-button)',
-            background: mine ? AP.alpha(C.cyan, 0.12) : C.surface, animationDelay: (0.15 + Math.min(rank, 8) * 0.05) + 's' } },
+            background: mine ? AP.alpha(C.cyan, 0.12) : C.surface, animationDelay: (0.15 + Math.min(index, 8) * 0.05) + 's' } },
           h('div', { class: 'row', style: { width: '30px', height: '30px', borderRadius: '50%', justifyContent: 'center',
-              fontSize: '14px', fontWeight: 800, color: rank < 3 ? '#000' : 'rgba(255,255,255,0.75)',
-              background: rank < 3 ? rankColor(rank + 1) : C.surface2, flex: '0 0 auto' } }, String(rank + 1)),
-          h('div', { class: 'grow', style: { fontSize: '17px', fontWeight: mine ? 800 : 600, color: mine ? C.cyan : '#fff',
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.name),
+              fontSize: '14px', fontWeight: 800, color: top ? '#000' : 'rgba(255,255,255,0.75)',
+              background: top ? rankColor(p.rank) : C.surface2, flex: '0 0 auto' } }, String(p.rank)),
+          h('div', { class: 'col grow', style: { minWidth: 0 } },
+            h('div', { style: { fontSize: '17px', fontWeight: mine ? 800 : 600, color: mine ? C.cyan : '#fff',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.name),
+            p.detail ? h('div', { class: 'c-text2', style: { fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap',
+                overflow: 'hidden', textOverflow: 'ellipsis' } }, p.detail) : null),
           mine ? ui.tag('YOU') : null,
           h('div', { class: 'num', style: { fontSize: '18px', fontWeight: 900 } }, String(p.score)));
       }));

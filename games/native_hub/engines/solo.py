@@ -49,6 +49,9 @@ class NeonSnakeEngine(NativeGameEngine):
         self.snakes: dict[str, dict] = {}
         self.food: tuple = (10, 10)
         self._finished = False
+        self.ticks = 0
+        #: player -> tick their snake crashed on (survival breaks food ties).
+        self.died_at: dict[str, int] = {}
 
     def start(self, players):
         for i, player in enumerate(players):
@@ -82,6 +85,7 @@ class NeonSnakeEngine(NativeGameEngine):
     def tick(self, dt):
         if self._finished:
             return
+        self.ticks += 1
         for snake in self.snakes.values():
             if not snake["alive"]:
                 continue
@@ -104,6 +108,8 @@ class NeonSnakeEngine(NativeGameEngine):
                 snake["body"].pop()
 
         for pid, snake in self.snakes.items():
+            if not snake["alive"]:
+                self.died_at.setdefault(pid, self.ticks)
             player = self.room.player(pid)
             if player is not None:
                 player.score = snake["score"]
@@ -139,7 +145,25 @@ class NeonSnakeEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        return self.ranked_results({pid: s["score"] for pid, s in self.snakes.items()})
+        """Most food first; on equal food, the snake that lasted longer."""
+        def lasted(pid):
+            return self.died_at.get(pid, 10 ** 9)
+
+        order = sorted(self.snakes, key=lambda pid: (-self.snakes[pid]["score"], -lasted(pid)))
+        rows: list[dict] = []
+        for index, pid in enumerate(order):
+            prev = order[index - 1] if index else None
+            tied = prev is not None and (self.snakes[prev]["score"], lasted(prev)) == \
+                (self.snakes[pid]["score"], lasted(pid))
+            row = {"playerID": pid, "name": self.player_name(pid),
+                   "score": self.snakes[pid]["score"],
+                   "rank": rows[-1]["rank"] if tied else index + 1}
+            if len(self.snakes) > 1 and pid not in self.died_at:
+                row["detail"] = "Still going"
+            elif len(self.snakes) > 1 and lasted(pid) == max(self.died_at.values(), default=0):
+                row["detail"] = "Last snake standing"
+            rows.append(row)
+        return rows
 
 
 class Twenty48Engine(NativeGameEngine):
@@ -573,6 +597,10 @@ class SimonSaysEngine(NativeGameEngine):
         self.round = 0
         self._finished = False
         self.last_wrong: str | None = None
+        #: Knocked out, first out first. The last one in is never added.
+        self.out_order: list[str] = []
+        #: player -> longest sequence they repeated.
+        self.best: dict[str, int] = {}
 
     def start(self, players):
         self.order = [p.id for p in players]
@@ -605,24 +633,41 @@ class SimonSaysEngine(NativeGameEngine):
                 player = self.room.player(player_id)
                 if player is not None:
                     player.score += len(self.sequence) * 10
+                self.best[player_id] = max(self.best.get(player_id, 0), len(self.sequence))
                 # Pass the remote on in a group game.
                 self.turn_index += 1
                 self._next_round()
         else:
             self.last_wrong = player_id
-            if len(self.order) <= 1:
-                self._finished = True
-            else:
-                self.order.remove(player_id)
-                if not self.order:
-                    self._finished = True
-                else:
-                    self.turn_index %= len(self.order)
-                    self.sequence = []
-                    self._next_round()
+            self._knock_out(player_id)
+
+    def _knock_out(self, player_id):
+        if len(self.order) <= 1:
+            self._finished = True
+        elif player_id in self.order:
+            self.order.remove(player_id)
+            self.out_order.append(player_id)
+            self.turn_index %= len(self.order)
+            self.sequence = []
+            self._next_round()
+
+    #: The player on turn may be offline this long (an app switch) before
+    #: they are out; otherwise a closed phone stalls the whole game.
+    AWAY_OUT_SECONDS = 20.0
+
+    def _current_gone(self) -> bool:
+        pid = self.current_player()
+        player = self.room.player(pid) if pid else None
+        if player is None or player.connected or player.is_bot:
+            return False
+        gone = player.disconnected_at
+        return gone is not None and time.time() - gone >= self.AWAY_OUT_SECONDS
 
     def tick(self, dt):
         if self._finished:
+            return
+        if len(self.order) > 1 and self._current_gone():
+            self._knock_out(self.current_player())
             return
         if self.phase == "show" and time.time() >= self.phase_until:
             self.phase = "input"
@@ -662,7 +707,26 @@ class SimonSaysEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        return self.ranked_results({p.id: p.score for p in self.room.players})
+        """Elimination decides the places: the last one in first, then the
+        others by how long they lasted. Points only break a tie (players
+        who were never knocked out because the game ended early)."""
+        points = {p.id: p.score for p in self.room.players}
+        lasted = {pid: len(self.out_order) - i for i, pid in enumerate(self.out_order)}
+        still_in = [pid for pid in points if pid not in lasted]
+        order = sorted(still_in, key=lambda pid: -points[pid]) + list(reversed(self.out_order))
+        order = [pid for pid in order if pid in points]
+        rows: list[dict] = []
+        for index, pid in enumerate(order):
+            prev = order[index - 1] if index else None
+            tied = (prev is not None and prev in still_in and pid in still_in
+                    and points[prev] == points[pid])
+            row = {"playerID": pid, "name": self.player_name(pid), "score": points[pid],
+                   "rank": rows[-1]["rank"] if tied else index + 1}
+            best = self.best.get(pid, 0)
+            if best:
+                row["detail"] = f"Longest sequence {best}"
+            rows.append(row)
+        return rows
 
 
 ENGINES = {

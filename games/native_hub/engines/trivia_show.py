@@ -626,8 +626,12 @@ class TriviaEngine(NativeGameEngine):
 
     def _end_finale(self) -> None:
         if self.winner_id is None:
+            # Nobody reached the top: the highest tower wins, then the higher
+            # score. Still level on both is a shared win (no winner named).
             order = self._placement()
-            self.winner_id = order[0] if order else None
+            best = [(self.rungs.get(p, 0), self.scores.get(p, 0)) for p in order[:2]]
+            if order and (len(best) < 2 or best[0] != best[1]):
+                self.winner_id = order[0]
         self._enter("summary", self.SUMMARY_SECONDS)
 
     # ======================================================================
@@ -709,11 +713,11 @@ class TriviaEngine(NativeGameEngine):
         return {pid: i + 1 for i, (pid, _) in enumerate(ordered)}
 
     def _leader_by_score(self) -> str | None:
-        ranks = self._ranks()
-        for pid, rank in ranks.items():
-            if rank == 1:
-                return pid
-        return None
+        """The single top scorer, or None on a shared top score (a tie is
+        never settled by who joined first)."""
+        top = max(self.scores.values(), default=None)
+        leaders = [pid for pid, score in self.scores.items() if score == top]
+        return leaders[0] if len(leaders) == 1 else None
 
     def _placement(self) -> list[str]:
         """Final order: finale winner, then tower height, then score."""
@@ -886,10 +890,16 @@ class TriviaEngine(NativeGameEngine):
 
     def results(self):
         rows = []
-        for rank, pid in enumerate(self._placement(), start=1):
+        prev = None
+        for index, pid in enumerate(self._placement()):
+            # Same tower height and score is a tie (never the finale winner).
+            standing = (pid == self.winner_id, self.rungs.get(pid, 0), self.scores.get(pid, 0))
+            tied = prev is not None and standing == prev and pid != self.winner_id
             rows.append({"playerID": pid, "name": self.player_name(pid),
-                         "score": self.scores.get(pid, 0), "rank": rank,
+                         "score": self.scores.get(pid, 0),
+                         "rank": rows[-1]["rank"] if tied else index + 1,
                          "rung": self.rungs.get(pid, 0)})
+            prev = standing
         return rows
 
     def on_player_join(self, player):

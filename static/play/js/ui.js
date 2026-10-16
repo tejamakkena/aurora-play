@@ -240,5 +240,9 @@
     dicts: function (d, k) { var v = d[k]; return Array.isArray(v) ? v.filter(function (x) { return x && typeof x === 'object' && !Array.isArray(x); }) : []; },
     arr: function (d, k) { var v = d[k]; return Array.isArray(v) ? v : []; }
   };
-  AP.ordinal = function (n) { return n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : n + 'th'; };
+  AP.ordinal = function (n) {
+    var t = n % 100, u = n % 10;
+    if (t >= 11 && t <= 13) { return n + 'th'; }
+    return n + (u === 1 ? 'st' : u === 2 ? 'nd' : u === 3 ? 'rd' : 'th');
+  };
 })();

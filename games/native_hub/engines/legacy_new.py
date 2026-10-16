@@ -240,7 +240,27 @@ class HeistEngine(NativeGameEngine):
         return self._finished
 
     def results(self):
-        return self.ranked_results({p.id: p.score for p in self.room.players})
+        """The winning side first. A game cut short (idle, too few players)
+        goes to the guard, as when the rounds run out with nobody out. On a
+        thieves' win, the ones who actually escaped rank above the rest."""
+        winner = self.winner or "guard"
+        scores: dict[str, int] = {}
+        if self.guard_id:
+            scores[self.guard_id] = 1000 if winner == "guard" else 0
+        for pid in self.thieves:
+            scores[pid] = (1000 + (200 if self.escaped.get(pid) else 0)) if winner == "thieves" else 0
+        rows = self.ranked_results(scores)
+        for row in rows:
+            pid = row["playerID"]
+            if pid == self.guard_id:
+                row["detail"] = "Guard"
+            elif self.escaped.get(pid):
+                row["detail"] = "Thief, escaped"
+            elif self.caught.get(pid):
+                row["detail"] = "Thief, caught"
+            else:
+                row["detail"] = "Thief"
+        return rows
 
 
 # ---------------------------------------------------------------------------
