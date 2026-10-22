@@ -56,7 +56,8 @@ class TestJSONShape:
         payload = room.to_json()
         assert set(payload) == {"code", "gameID", "players", "state", "phase",
                                "contentPack", "topic", "botsAllowed", "usesContentPack",
-                               "micPlayerID", "night", "teams", "options", "tvConnected"}
+                               "micPlayerID", "night", "teams", "options", "tvConnected",
+                               "results"}
         assert payload["gameID"] == "trivia"
         assert payload["state"] == "lobby"
         assert payload["phase"] == "play"

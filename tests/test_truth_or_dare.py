@@ -227,19 +227,38 @@ def test_host_can_end_at_any_time_and_results_rank():
     assert engine2.is_over()
 
 
-def test_leaving_player_is_removed_and_turn_moves_on():
+def _drop(room, pid):
+    player = room.player(pid)
+    player.connected, player.sid, player.disconnected_at = False, None, 0.0
+
+
+def test_a_dropped_phone_keeps_its_points_and_its_turn_moves_on():
     engine, room, h = begin("A, B, C")
-    cur = engine.current
-    engine.on_player_leave(cur)
-    assert all(p["id"] != cur for p in engine.participants)
-    assert engine.phase == "choose" and engine.current != cur
+    engine.current, engine.phase = h, "choose"
+    engine._score(h, 30)
+    _drop(room, h)
+    engine.on_player_leave(h)
+    me = next(p for p in engine.participants if p["id"] == h)
+    assert me["score"] == 30                        # still listed, points kept
+    assert engine.phase == "choose" and engine.current != h
+    for _ in range(8):                              # sits out while away
+        engine._next_turn("")
+        assert engine.current != h
+    room.player(h).connected = True                 # back: in the rotation again
+    seen = set()
+    for _ in range(12):
+        engine._next_turn("")
+        seen.add(engine.current)
+    assert h in seen
+    assert any(r["playerID"] == h and r["score"] == 30 for r in engine.results())
 
 
-def test_too_few_players_returns_to_setup():
+def test_too_few_players_present_returns_to_setup():
     engine, room, h = begin("A")
     assert len(engine.participants) == 2           # the host phone plus A
-    engine.on_player_leave(engine.participants[-1]["id"])
-    assert len(engine.participants) == 1
+    _drop(room, h)
+    engine._next_turn("")
+    assert len(engine.participants) == 2           # nobody is deleted
     assert engine.phase == "setup"                 # waits for more names
 
 

@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, redirect, url_for, session, request, jsonify
 from flask_socketio import SocketIO
 from flask_limiter import Limiter
@@ -515,7 +516,13 @@ def create_app(config_name='default'):
 
 
 if __name__ == "__main__":
-    app, socketio = create_app('development')
+    # The hosted server runs this file directly (Dockerfile). Debug mode is
+    # for a developer's laptop only: its file-watching reloader re-scans every
+    # loaded module once a second and its debugger serves a code console on
+    # errors -- real CPU on a small host, and not something to expose.
+    # FLASK_DEBUG=1 turns it back on locally.
+    debug = os.environ.get("FLASK_DEBUG", "").strip().lower() in ("1", "true", "yes")
+    app, socketio = create_app('development' if debug else 'production')
     print("\n🚀 Starting Futuristic Games Hub...")
     print("📍 Server running at: http://localhost:5000")
     print("🎮 Games loaded:")
@@ -527,4 +534,5 @@ if __name__ == "__main__":
     print("   ✅ Canvas Battle")
     print("   ✅ Four in a Row")
     print()
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+    socketio.run(app, debug=debug, use_reloader=debug, host='0.0.0.0', port=5000,
+                 allow_unsafe_werkzeug=True)

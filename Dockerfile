@@ -23,7 +23,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Set environment variables
 ENV FLASK_APP=app.py
-ENV FLASK_ENV=development
+# Production mode unless FLASK_DEBUG=1 (see app.py's __main__).
+ENV FLASK_DEBUG=0
 
 # Expose application port
 EXPOSE 5000

@@ -11,19 +11,26 @@ struct TVResultsEntry: Identifiable, Equatable {
     let name: String
     let score: Int
     let isBot: Bool
+    /// 1 = winner. Equal ranks are a tie.
+    var rank: Int
+    /// A short note under the score ("Winner", "Out in round 3").
+    var detail: String? = nil
 
-    init(player: Player) {
-        id = player.id
-        name = player.name
-        score = player.score
-        isBot = player.isBot
+    init(result: RoomResult, isBot: Bool) {
+        id = result.playerID
+        name = result.name
+        score = result.score
+        self.isBot = isBot
+        rank = result.rank
+        detail = result.detail
     }
 
-    init(standing: NightStanding) {
+    init(standing: NightStanding, rank: Int) {
         id = standing.playerID
         name = standing.name
         score = standing.points
         isBot = standing.isBot ?? false
+        self.rank = rank
     }
 }
 
@@ -59,13 +66,19 @@ struct TVResultsView: View {
 
     private var entries: [TVResultsEntry] {
         if isChampion, let night = room.night {
-            return night.standings
-                .sorted { $0.points > $1.points }
-                .map { TVResultsEntry(standing: $0) }
+            var rows: [TVResultsEntry] = []
+            for standing in night.standings.sorted(by: { $0.points > $1.points }) {
+                let tied: Bool = rows.last.map { $0.score == standing.points } ?? false
+                rows.append(TVResultsEntry(standing: standing,
+                                           rank: tied ? (rows.last?.rank ?? 1) : rows.count + 1))
+            }
+            return rows
         }
-        return room.players
-            .sorted { $0.score > $1.score }
-            .map { TVResultsEntry(player: $0) }
+        // The game's own ranking from the server: a game that only records
+        // its winner (Battleship, Chess) or keeps its own score no longer
+        // falls back to join order, which put the host first.
+        let bots: Set<String> = Set(room.players.filter(\.isBot).map(\.id))
+        return room.finalRanking.map { TVResultsEntry(result: $0, isBot: bots.contains($0.playerID)) }
     }
 
     private var podiumEntries: [TVResultsEntry] { Array(entries.prefix(3)) }
@@ -156,7 +169,7 @@ struct TVResultsView: View {
         guard let winner = entries.first else {
             return isChampion ? "Night over" : "Game over"
         }
-        if entries.count > 1, entries[1].score == winner.score {
+        if entries.count > 1, entries[1].rank == winner.rank {
             return "It's a tie!"
         }
         return isChampion ? "\(winner.name) wins the night!" : "\(winner.name) wins!"
@@ -178,7 +191,6 @@ struct TVResultsView: View {
                 if !restEntries.isEmpty {
                     ResultsRankingList(title: isChampion ? "EVERYONE TONIGHT" : "LEADERBOARD",
                                        entries: restEntries,
-                                       startRank: 4,
                                        isShown: stage >= 4)
                         .frame(width: 620)
                 }
@@ -322,10 +334,13 @@ private struct ResultsPodium: View {
         .rotation3DEffect(.degrees(8), axis: (x: 1, y: 0, z: 0), anchor: .bottom, perspective: 0.4)
     }
 
-    private func column(rank: Int) -> some View {
-        let index: Int = rank - 1
+    /// `place` is the podium step (1 middle, 2 left, 3 right); the number
+    /// on the block is the player's real rank, so a tie shows two 1s.
+    private func column(rank place: Int) -> some View {
+        let index: Int = place - 1
         let player: TVResultsEntry? = index < entries.count ? entries[index] : nil
-        return PodiumColumn(player: player, rank: rank, isRisen: stage >= Self.revealStage(for: rank))
+        return PodiumColumn(player: player, rank: place, label: player?.rank ?? place,
+                            isRisen: stage >= Self.revealStage(for: place))
     }
 
     /// Third place rises first, the winner last.
@@ -340,7 +355,10 @@ private struct ResultsPodium: View {
 
 private struct PodiumColumn: View {
     let player: TVResultsEntry?
+    /// Podium step: sets the block's height and colour.
     let rank: Int
+    /// Number printed on the block (the player's rank; ties share it).
+    let label: Int
     let isRisen: Bool
 
     private var blockHeight: CGFloat {
@@ -406,7 +424,7 @@ private struct PodiumColumn: View {
                     .init(color: Color.black.opacity(0), location: 0.7),
                     .init(color: Color.black.opacity(0.3), location: 1.0)
                 ], startPoint: .leading, endPoint: .trailing))
-            Text("\(rank)")
+            Text("\(label)")
                 .font(ShellTheme.display(rank == 1 ? 120 : 96, weight: .black))
                 .foregroundColor(Color.white.opacity(0.9))
                 .shadow(color: darkColor.opacity(0.9), radius: 0, x: 0, y: 4)
@@ -419,7 +437,7 @@ private struct PodiumColumn: View {
     @ViewBuilder
     private var playerHeader: some View {
         VStack(spacing: 8) {
-            if rank == 1 {
+            if label == 1 {
                 Image(systemName: "crown.fill")
                     .font(.system(size: 46, weight: .bold, design: .rounded))
                     .foregroundStyle(LinearGradient(colors: [Color(hex: "FEF08A"), Color(hex: "EAB308")],
@@ -444,6 +462,13 @@ private struct PodiumColumn: View {
                 Text("\(player.score) pts")
                     .font(ShellTheme.display(rank == 1 ? 28 : 24, weight: .heavy))
                     .foregroundColor(rank == 1 ? ShellTheme.gold : ShellTheme.cyan)
+                if let detail = player.detail {
+                    Text(detail)
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundColor(ShellTheme.textSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
             } else {
                 ShellGhostToken(size: tokenSize)
                 Text("--")
@@ -477,7 +502,6 @@ private struct PodiumTopShape: Shape {
 private struct ResultsRankingList: View {
     let title: String
     let entries: [TVResultsEntry]
-    let startRank: Int
     let isShown: Bool
 
     private var isCompact: Bool { entries.count > 7 }
@@ -499,7 +523,7 @@ private struct ResultsRankingList: View {
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: isCompact ? 10 : 14) {
                 ForEach(Array(entries.enumerated()), id: \.element.id) { index, player in
-                    RankingCard(rank: startRank + index, player: player, isCompact: isCompact)
+                    RankingCard(rank: player.rank, player: player, isCompact: isCompact)
                         .opacity(isShown ? 1 : 0)
                         .offset(x: isShown ? 0 : 140)
                         .rotation3DEffect(.degrees(isShown ? 0 : -40),
@@ -531,11 +555,19 @@ private struct RankingCard: View {
                              size: isCompact ? 40 : 54,
                              isBot: player.isBot)
 
-            Text(player.name)
-                .font(.system(size: isCompact ? 21 : 26, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(player.name)
+                    .font(.system(size: isCompact ? 21 : 26, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                if let detail = player.detail {
+                    Text(detail)
+                        .font(.system(size: isCompact ? 15 : 18, weight: .medium, design: .rounded))
+                        .foregroundColor(ShellTheme.textTertiary)
+                        .lineLimit(1)
+                }
+            }
 
             Spacer(minLength: 8)
 

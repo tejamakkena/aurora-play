@@ -331,7 +331,8 @@ class TestResults:
     def test_results_carry_titles_and_scores(self):
         engine, roster = make()
         rows = self._finish(engine, roster, {"p0", "p1"})
-        assert [r["rank"] for r in rows] == [1, 2, 3, 4]
+        # p0 and p1 got everything right: a tie shares 1st.
+        assert [r["rank"] for r in rows] == [1, 1, 3, 3]
         top = {r["playerID"]: r for r in rows}
         assert top["p0"]["brainScore"] == 100
         assert top["p0"]["brainTitle"] in bb.BRAIN_TITLES.values()

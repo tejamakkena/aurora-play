@@ -169,6 +169,9 @@ class Room:
     #: Teams mode (games/teams.py): 2-4 named teams scoring together.
     #: None when everyone plays for themselves.
     teams: dict | None = None
+    #: The last finished game's ranking (broadcast.final_results): what every
+    #: results screen shows, in order. Sent only while state is RESULTS.
+    results: list = field(default_factory=list)
     # Bumped on start and on finish. A background pump captures the value it was
     # spawned with and exits as soon as it no longer matches, so a pump from a
     # previous round can never double-broadcast into the next one.
@@ -218,6 +221,8 @@ class Room:
             "usesContentPack": self.game_id in PACK_GAMES,
             "night": _night_json(self),
             "teams": _teams_json(self),
+            # Additive: the final ranking, best first, while on results.
+            "results": list(self.results) if self.state is RoomState.RESULTS else None,
         }
 
     # ---- mutations (callers hold self.lock) --------------------------------

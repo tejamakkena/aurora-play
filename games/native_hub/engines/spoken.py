@@ -398,16 +398,26 @@ class AtlasEngine(NativeGameEngine):
             alive = pid in self.alive
             return (0 if pid == self.winner else 1,
                     0 if alive else 1,
+                    -self.lives.get(pid, 0) if alive else 0,
                     -out_at.get(pid, -1),
                     -self.places.get(pid, 0))
 
         ranked = sorted(self.order, key=key)
-        return [
-            {"playerID": pid, "name": self.player_name(pid),
-             "score": self.places.get(pid, 0) * self.POINTS_PER_PLACE,
-             "rank": rank}
-            for rank, pid in enumerate(ranked, start=1)
-        ]
+        rows: list[dict] = []
+        for index, pid in enumerate(ranked):
+            tied = index > 0 and key(ranked[index - 1]) == key(pid)
+            if pid == self.winner:
+                detail = "Last one standing"
+            elif pid in self.alive:
+                lives = self.lives.get(pid, 0)
+                detail = f"Still in, {lives} {'life' if lives == 1 else 'lives'} left"
+            else:
+                detail = "Knocked out"
+            rows.append({"playerID": pid, "name": self.player_name(pid),
+                         "score": self.places.get(pid, 0) * self.POINTS_PER_PLACE,
+                         "rank": rows[-1]["rank"] if tied else index + 1,
+                         "detail": detail})
+        return rows
 
 
 # ---------------------------------------------------------------------------
