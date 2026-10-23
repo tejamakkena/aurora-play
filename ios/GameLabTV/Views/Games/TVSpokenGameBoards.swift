@@ -1149,11 +1149,20 @@ private struct SpokenBeatBars: View {
                     let wave: Double = sin(t * 9.0 + Double(index) * 0.8)
                     let pulse: Double = abs(sin(t * 4.5))
                     let level: Double = 0.25 + 0.75 * abs(wave) * (0.6 + 0.4 * pulse)
-                    Capsule()
-                        .fill(LinearGradient(colors: [Color.white, tint],
-                                             startPoint: .top, endPoint: .bottom))
-                        .frame(width: 22, height: max(8, 70 * CGFloat(level)))
-                        .shadow(color: tint.opacity(0.7), radius: 8)
+                    let height: CGFloat = max(8, 70 * CGFloat(level))
+                    ZStack(alignment: .bottom) {
+                        // Glow as a wider, faint capsule: a blurred shadow
+                        // on 12 bars that change height every frame meant
+                        // 12 blurs per frame.
+                        Capsule()
+                            .fill(tint.opacity(0.3))
+                            .frame(width: 34, height: height + 12)
+                            .offset(y: 6)
+                        Capsule()
+                            .fill(LinearGradient(colors: [Color.white, tint],
+                                                 startPoint: .top, endPoint: .bottom))
+                            .frame(width: 22, height: height)
+                    }
                 }
             }
             .frame(maxHeight: .infinity, alignment: .bottom)

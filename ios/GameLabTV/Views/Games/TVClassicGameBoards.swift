@@ -731,12 +731,22 @@ private struct Connect4WinRing: View {
 
     var body: some View {
         let palette = Connect4Palette.of(colorID)
-        return Circle()
-            .strokeBorder(Color.white.opacity(0.95), lineWidth: max(3, size * 0.06))
-            .background(Circle().fill(palette.glow.opacity(pulse ? 0.35 : 0.08)))
-            .frame(width: size * 1.06, height: size * 1.06)
-            .shadow(color: palette.glow, radius: pulse ? size * 0.32 : size * 0.10)
-            .shadow(color: Color.white.opacity(pulse ? 0.6 : 0.2), radius: size * 0.06)
+        // The pulse is a fade of a still, blurred glow plus a scale: a
+        // shadow whose radius animated was re-blurred every frame.
+        return ZStack {
+            Circle()
+                .fill(palette.glow)
+                .frame(width: size * 1.3, height: size * 1.3)
+                .blur(radius: size * 0.16)
+                .opacity(pulse ? 0.9 : 0.3)
+            Circle()
+                .fill(palette.glow.opacity(0.2))
+                .frame(width: size * 1.06, height: size * 1.06)
+            Circle()
+                .strokeBorder(Color.white.opacity(0.95), lineWidth: max(3, size * 0.06))
+                .frame(width: size * 1.06, height: size * 1.06)
+                .shadow(color: Color.white.opacity(0.4), radius: size * 0.06)
+        }
             .scaleEffect(pulse ? 1.10 : 0.96)
             .onAppear {
                 // Next runloop, so the forever-animation never captures the
@@ -810,7 +820,15 @@ private struct Connect4TurnBannerCapsule: View {
                 )
         )
         .overlay(Capsule().strokeBorder(tint.opacity(glow ? 0.95 : 0.45), lineWidth: 3))
-        .shadow(color: tint.opacity(glow ? 0.75 : 0.25), radius: glow ? 26 : 10)
+        // The breathing glow is a still, blurred capsule that only fades. It
+        // used to be a shadow whose radius animated for the whole game, which
+        // re-blurred the banner every frame.
+        .background {
+            Capsule()
+                .fill(tint)
+                .blur(radius: 18)
+                .opacity(glow ? 0.6 : 0.18)
+        }
         .onAppear {
             // Next runloop, so the forever-animation never captures the
             // view's own initial layout.

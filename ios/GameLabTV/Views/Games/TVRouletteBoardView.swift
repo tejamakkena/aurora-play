@@ -434,17 +434,27 @@ struct TVRouletteBoardView: View {
     // MARK: Left — the wheel
 
     private func wheelPanel(size: CGFloat) -> some View {
-        TimelineView(.animation) { context in
+        // Full frame rate only while a spin plays; the idle drift (4 degrees
+        // a second) looks the same at 15 fps and no longer redraws the wheel
+        // 60 times a second for the whole game.
+        TimelineView(.animation(minimumInterval: wheel.isSpinning ? nil : 1.0 / 15.0)) { context in
             let now = context.date
             let wheelAngle = wheel.wheelAngle(at: now)
             let ballAngle = wheel.ballAngle(at: now)
             let ballR = wheel.ballRadiusFraction(at: now)
 
             ZStack {
+                // The wheel's drop shadow, cast by a still disc underneath.
+                // On the turning wheel itself it was re-blurred (radius 30, at
+                // 4K) on every frame, because the rotated content changed.
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: size, height: size)
+                    .shadow(color: .black.opacity(0.6), radius: 30, y: 12)
+
                 RouletteWheelFace(highlight: wheel.landedNumber)
                     .frame(width: size, height: size)
                     .rotationEffect(.degrees(wheelAngle))
-                    .shadow(color: .black.opacity(0.6), radius: 30, y: 12)
 
                 // The ball
                 Circle()
