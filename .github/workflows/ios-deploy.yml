@@ -184,7 +184,51 @@ jobs:
             -scheme GameLabTV \
             -destination 'platform=tvOS Simulator,name=Apple TV' \
             -only-testing:GameLabTVUITests \
+            -resultBundlePath TVUITests.xcresult \
             CODE_SIGNING_ALLOWED=NO
+
+      # When the app crashes under test, XCTest only says "crashed in
+      # <external symbol>". Print the crash report itself so the failing
+      # frame is in the log, and keep the result bundle for a closer look.
+      - name: Show tvOS app crash reports
+        if: failure()
+        run: |
+          shopt -s nullglob
+          found=0
+          for f in ~/Library/Logs/DiagnosticReports/GameLabTV*.ips ~/Library/Logs/DiagnosticReports/*/GameLabTV*.ips; do
+            found=1
+            echo "===== $f"
+            python3 - "$f" <<'PY'
+          import json, sys
+          raw = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+          header, _, body = raw.partition("\n")
+          try:
+              report = json.loads(body)
+          except ValueError:
+              print(raw[:6000]); sys.exit()
+          exc = report.get("exception", {})
+          print("exception:", exc.get("type"), exc.get("signal"), exc.get("subtype", ""))
+          for line in (report.get("asi") or {}).values():
+              print("asi:", line)
+          images = report.get("usedImages", [])
+          for t in report.get("threads", []):
+              if not t.get("triggered"):
+                  continue
+              print("crashed thread:", t.get("name", ""), t.get("queue", ""))
+              for fr in t.get("frames", [])[:40]:
+                  img = images[fr.get("imageIndex", 0)].get("name", "?") if images else "?"
+                  print("  ", img, fr.get("symbol", hex(fr.get("imageOffset", 0))))
+          PY
+          done
+          [ "$found" = 1 ] || echo "No GameLabTV crash report found."
+
+      - name: Keep the UI test result bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvos-ui-test-results
+          path: ios/TVUITests.xcresult
+          retention-days: 7
 
   # ── Deploy iOS controller app to TestFlight ─────────────────────────────────
   deploy-ios:
