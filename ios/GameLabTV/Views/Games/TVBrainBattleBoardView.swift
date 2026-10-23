@@ -516,9 +516,15 @@ private struct BrainHeader: View {
 struct BrainNebulaBackground: View {
     let accent: Color
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
+        // GPU-rendered at 20 fps (was 30, CPU-composited): three screen-blended
+        // full-screen gradients and a 110-star Canvas, redrawn behind the
+        // whole board. Shapes only, no Text, so the drawingGroup pass is safe.
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { timeline in
             BrainNebulaLayer(time: timeline.date.timeIntervalSinceReferenceDate, accent: accent)
+                .drawingGroup()
         }
         .ignoresSafeArea()
     }

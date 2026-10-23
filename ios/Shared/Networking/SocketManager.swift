@@ -127,10 +127,22 @@ final class GameSocketManager: ObservableObject {
     /// before `connect(to:)` has ever run -- see `handlers`' own doc comment.
     func on<T: Decodable>(_ event: ServerEvent, handler: @escaping (T) -> Void) {
         let key = event.rawValue
+        // The server re-sends a board once a second even when nothing on it
+        // changed (a game with no clock), and every copy made the TV redraw
+        // the whole board. A board update identical to the last one this
+        // handler saw is dropped. The memory is per registration, so a board
+        // that has just subscribed always gets the next copy.
+        let skipRepeats: Bool = event == .gameState
+        var lastPayload: Data? = nil
         handlers[key] = { data in
             guard let raw = data.first,
-                  let jsonData = try? JSONSerialization.data(withJSONObject: raw)
+                  let jsonData = try? JSONSerialization.data(withJSONObject: raw,
+                                                             options: skipRepeats ? [.sortedKeys] : [])
             else { return }
+            if skipRepeats {
+                if jsonData == lastPayload { return }
+                lastPayload = jsonData
+            }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: jsonData)
                 DispatchQueue.main.async { handler(decoded) }
