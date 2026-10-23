@@ -596,7 +596,9 @@ private struct BrainGlassCard: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
         return ZStack {
-            shape.fill(.ultraThinMaterial)
+            // Not a system Material: that re-blurred the moving nebula behind
+            // every card on every frame.
+            shape.fill(ShellTheme.panel.opacity(0.62))
             shape.fill(LinearGradient(colors: [Color.white.opacity(0.14), Color.white.opacity(0.03)],
                                       startPoint: .topLeading, endPoint: .bottomTrailing))
             shape.stroke(LinearGradient(colors: [accent.opacity(0.9), Color.white.opacity(0.15), accent.opacity(0.5)],

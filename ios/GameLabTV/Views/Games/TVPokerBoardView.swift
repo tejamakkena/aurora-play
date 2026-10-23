@@ -1762,11 +1762,16 @@ private struct PKTCountdownRing: View {
             ZStack {
                 Circle()
                     .stroke(Color.black.opacity(0.45), lineWidth: 8)
+                // Glow as a wider, faint stroke under the arc: a blurred
+                // shadow on an arc that shrinks every frame was a blur per frame.
+                Circle()
+                    .trim(from: 0, to: CGFloat(fraction))
+                    .stroke(tint.opacity(0.35), style: StrokeStyle(lineWidth: 16, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
                 Circle()
                     .trim(from: 0, to: CGFloat(fraction))
                     .stroke(tint, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .shadow(color: tint.opacity(0.8), radius: 8)
             }
             .frame(width: 112, height: 112)
         }

@@ -285,6 +285,11 @@ struct TVGameSelectionView: View {
     /// change swaps the banner with a short rise-and-fade.
     private var heroBanner: some View {
         ZStack {
+            // The glass panel (two large blurred shadows) stays put and is
+            // drawn once; only the game's content and its tint change. It
+            // used to be rebuilt -- shadows and all -- on every remote press.
+            ShellGlassSurface(cornerRadius: ShellTheme.cardRadius, tint: ShellTheme.violet)
+
             TVGameHero(game: heroGame)
                 .id(heroGame)
                 .transition(.asymmetric(
@@ -469,7 +474,28 @@ private struct TVGameCard: View {
     private var depth: CGFloat { isFocused ? 13 : 8 }
 
     var body: some View {
-        cardBody
+        // GPU budget: the card itself (slab, face, text, border and its
+        // drop shadow) is drawn once per focus change and then left alone;
+        // everything that moves every frame (the breathing glow, the shine
+        // sweep, the hopping, drifting icon and the sway below) is a separate
+        // layer that only changes transform or opacity. Animating inside the
+        // shadowed card used to re-render the card and re-blur its two big
+        // shadows on every frame of every animation, at 4K.
+        ZStack {
+            if isFocused {
+                haloGlow
+            }
+            cardBody
+                // Focus restyles the card in one step; only the outer lift,
+                // tilt and scale spring. Springing the inner gradients, border
+                // and slab re-rendered the shadowed card every frame of it.
+                .transaction { $0.animation = nil }
+            if isFocused {
+                shineLayer
+                floatingIcon
+            }
+        }
+        .frame(width: Self.cardWidth, height: Self.cardHeight)
         .rotation3DEffect(.degrees(isFocused ? 8 : 0),
                           axis: (x: 1, y: 0, z: 0), perspective: 0.5)
         .rotation3DEffect(.degrees(isFocused ? (sway ? 5 : -5) : 0),
@@ -500,12 +526,11 @@ private struct TVGameCard: View {
                 face
             }
             .frame(width: Self.cardWidth, height: Self.cardHeight)
-            // One composited layer, so the shadows below are cast by the
-            // finished card rather than separately by each sublayer.
+            // One composited layer, so the shadow below is cast by the
+            // finished card rather than separately by each sublayer. Nothing
+            // inside it animates, so it is rendered once per focus change.
             .compositingGroup()
             .shadow(color: Color.black.opacity(0.55), radius: 26, x: 0, y: 28)
-            .shadow(color: style.accent.opacity(halo ? 0.75 : 0.4),
-                    radius: halo ? 42 : 26, x: 0, y: 0)
         } else {
             ZStack {
                 // Unblurred contact shadow: a dark copy of the shape.
@@ -532,10 +557,11 @@ private struct TVGameCard: View {
     private var face: some View {
         ZStack {
             backgroundLayers
-            cardContent
+            // The focused card's icon is drawn by `floatingIcon`, above the
+            // composited card, so its hop and drift don't re-render it.
+            cardContent(showsText: true, showsIcon: !isFocused)
         }
         .frame(width: Self.cardWidth, height: Self.cardHeight)
-        .shellShine(isActive: isFocused, cornerRadius: Self.corner, period: 3.0, intensity: 0.32)
         .overlay(alignment: .topLeading) { categoryGlyph }
         // Small fixed-size icon badges pinned to a corner, entirely
         // independent of the text layout.
@@ -593,20 +619,40 @@ private struct TVGameCard: View {
         }
     }
 
-    private var cardContent: some View {
+    /// The icon, title and player count. Laid out identically in the card and
+    /// in `floatingIcon` (which hides the text but keeps its space), so the
+    /// floating icon sits exactly where it would inside the card.
+    private func cardContent(showsText: Bool, showsIcon: Bool) -> some View {
         VStack(spacing: 12) {
-            ShellIconOrb(symbol: game.sfSymbol,
-                         top: style.bottom,
-                         bottom: style.top,
-                         accent: style.accent,
-                         size: 112,
-                         isLit: isFocused)
-                .shellHop(trigger: hopTrigger, height: 26)
-                // Parallax: the icon drifts against the card's sway, so it
-                // reads as floating above the face.
-                .offset(x: isFocused ? (sway ? -7 : 7) : 0)
-                .frame(height: 124)
+            Group {
+                if showsIcon {
+                    ShellIconOrb(symbol: game.sfSymbol,
+                                 top: style.bottom,
+                                 bottom: style.top,
+                                 accent: style.accent,
+                                 size: 112,
+                                 isLit: isFocused)
+                        .shellHop(trigger: hopTrigger, height: 26)
+                        // Parallax: the icon drifts against the card's sway,
+                        // so it reads as floating above the face.
+                        .offset(x: isFocused ? (sway ? -7 : 7) : 0)
+                } else {
+                    // Same footprint, nothing animating inside the card.
+                    Color.clear.frame(width: 112, height: 112)
+                }
+            }
+            .frame(height: 124)
 
+            textBlock
+                .opacity(showsText ? 1 : 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 14)
+        .padding(.bottom, 16)
+    }
+
+    private var textBlock: some View {
+        VStack(spacing: 12) {
             Text(game.displayName)
                 .font(.system(size: 26, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
@@ -621,9 +667,38 @@ private struct TVGameCard: View {
                 .lineLimit(1)
                 .shadow(color: .black.opacity(0.6), radius: 3, y: 1)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 14)
-        .padding(.bottom, 16)
+    }
+
+    // MARK: Moving layers (focused card only)
+
+    /// The category glow, breathing. Drawn once (a blurred shape flattened to
+    /// a GPU texture) and then only faded and scaled -- it used to be a
+    /// shadow whose blur radius itself animated, recomputed every frame.
+    private var haloGlow: some View {
+        shape
+            .fill(style.accent)
+            .frame(width: Self.cardWidth, height: Self.cardHeight)
+            .padding(70)
+            .blur(radius: 30)
+            .drawingGroup()          // shapes only, no Text
+            .opacity(halo ? 0.75 : 0.35)
+            .scaleEffect(halo ? 1.05 : 0.97)
+            .allowsHitTesting(false)
+    }
+
+    /// The holographic sweep, over the finished card instead of inside it.
+    private var shineLayer: some View {
+        Color.clear
+            .frame(width: Self.cardWidth, height: Self.cardHeight)
+            .shellShine(isActive: true, cornerRadius: Self.corner, period: 3.0, intensity: 0.32)
+    }
+
+    /// The focused card's icon, hopping and drifting above the card.
+    private var floatingIcon: some View {
+        cardContent(showsText: false, showsIcon: true)
+            .frame(width: Self.cardWidth, height: Self.cardHeight)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     private var categoryGlyph: some View {
@@ -744,7 +819,12 @@ private struct TVGameHero: View {
         .padding(.vertical, 26)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            ShellGlassSurface(cornerRadius: ShellTheme.cardRadius, tint: style.accent)
+            // The game's colour washing in from the top-left over the shared
+            // glass panel (see heroBanner): a plain gradient, no shadow, so
+            // swapping games costs nothing.
+            RoundedRectangle(cornerRadius: ShellTheme.cardRadius, style: .continuous)
+                .fill(RadialGradient(colors: [style.accent.opacity(0.24), Color.clear],
+                                     center: .topLeading, startRadius: 0, endRadius: 560))
         }
         .accessibilityElement(children: .combine)
     }

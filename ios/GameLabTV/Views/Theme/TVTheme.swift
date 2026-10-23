@@ -205,10 +205,10 @@ struct TVGlassCard<Content: View>: View {
 
     private var cardFill: some View {
         ZStack {
-            // Forced dark so a light-mode Apple TV never turns the frosted
-            // layer white under white text.
-            shape.fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .dark)
+            // A dark translucent fill rather than a system Material: a
+            // Material re-blurs the animated background behind it every
+            // frame (and turns white on a light-mode Apple TV).
+            shape.fill(ShellTheme.panel.opacity(0.62))
             shape.fill(LinearGradient(colors: [tint.opacity(0.18), tint.opacity(0.04)],
                                       startPoint: .topLeading, endPoint: .bottomTrailing))
         }
