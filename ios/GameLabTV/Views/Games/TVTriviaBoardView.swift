@@ -515,12 +515,18 @@ struct TVTriviaBoardView: View {
 struct TShowStageBackground: View {
     let accent: Color
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+        // GPU-rendered at 20 fps: a full-screen 4K Canvas repainted on the
+        // CPU 30 times a second sat behind the whole quiz. Shapes only, no
+        // Text, so the drawingGroup pass is safe.
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { timeline in
             Canvas { context, size in
                 let t: Double = timeline.date.timeIntervalSinceReferenceDate
                 TShowStagePainter.paint(&context, size: size, time: t, accent: accent)
             }
+            .drawingGroup()
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)

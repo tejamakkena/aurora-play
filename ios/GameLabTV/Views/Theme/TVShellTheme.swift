@@ -169,12 +169,13 @@ enum ShellTheme {
 struct ShellAmbientBackground: View {
     var isAnimated: Bool = true
     var showsFloor: Bool = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // The blobs drift slowly, so 20 fps looks the same as 30. The Canvas
         // is rendered on the GPU (drawingGroup): drawn on the CPU it repainted
         // a full-screen 4K gradient every frame and stole time from scrolling.
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: !isAnimated)) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: !isAnimated || reduceMotion)) { context in
             let time = context.date.timeIntervalSinceReferenceDate
             if #available(tvOS 18.0, *) {
                 // tvOS 18+: the colour field is a GPU MeshGradient whose

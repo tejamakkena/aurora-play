@@ -482,7 +482,7 @@ final class ControllerRootViewModel: ObservableObject {
             guard r.playerID == self.playerID else { return }
             switch self.screen {
             case .waiting(let room), .playing(let room, _), .results(let room):
-                self.screen = .playing(room, r.privateData.mapValues(\.value))
+                self.screen = .playing(room, self.withPendingEcho(r.privateData.mapValues(\.value)))
             default:
                 break
             }
@@ -587,13 +587,44 @@ final class ControllerRootViewModel: ObservableObject {
     }
 
     func sendAction(action: String, data: [String: Any]) {
-        guard case .playing(let room, _) = screen else { return }
+        guard case .playing(let room, var current) = screen else { return }
         socket.emit(.gameAction, payload: GameActionPayload(
             roomCode: room.code,
             playerID: playerID,
             action: action,
             data: data.mapValues { AnyCodable($0) }
         ))
+        // Show the tap's result now instead of after the round trip.
+        if let patch = OptimisticEcho.patch(game: room.gameID, action: action, data: data) {
+            pendingEcho = PendingEcho(patch: patch,
+                                      round: current["round"] as? Int,
+                                      phase: current["phase"] as? String,
+                                      until: Date().addingTimeInterval(OptimisticEcho.holdSeconds))
+            current.merge(patch) { _, predicted in predicted }
+            screen = .playing(room, current)
+        }
+    }
+
+    /// A tap's predicted result (OptimisticEcho), laid over private states
+    /// that arrive in the same round and phase until `until`.
+    private struct PendingEcho {
+        let patch: [String: Any]
+        let round: Int?
+        let phase: String?
+        let until: Date
+    }
+    private var pendingEcho: PendingEcho?
+
+    /// The server's private state with any still-pending prediction on top.
+    private func withPendingEcho(_ incoming: [String: Any]) -> [String: Any] {
+        guard let echo = pendingEcho else { return incoming }
+        guard Date() < echo.until,
+              incoming["round"] as? Int == echo.round,
+              incoming["phase"] as? String == echo.phase else {
+            pendingEcho = nil
+            return incoming
+        }
+        return incoming.merging(echo.patch) { _, predicted in predicted }
     }
 
     /// Back to the home screen from anywhere: leaves the TV room (if

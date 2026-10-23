@@ -47,6 +47,14 @@ final class GameSocketManager: ObservableObject {
     /// every action rejected as "Not in this room".
     private var connectHooks: [String: () -> Void] = [:]
 
+    /// Emits made while the socket was not connected yet (the free server
+    /// can take a while to wake up). Socket.IO drops those, so a Start or
+    /// Join pressed too early used to vanish; they are sent on connect
+    /// instead, if still fresh. Main thread only.
+    private var queuedEmits: [(event: String, items: [String: Any], at: Date)] = []
+    private static let queuedEmitMaxAge: TimeInterval = 20
+    private static let queuedEmitLimit = 8
+
     func onConnected(_ key: String, _ hook: @escaping () -> Void) {
         connectHooks[key] = hook
     }
@@ -87,6 +95,7 @@ final class GameSocketManager: ObservableObject {
                 guard let self else { return }
                 self.isConnected = true
                 for hook in self.connectHooks.values { hook() }
+                self.flushQueuedEmits()
             }
         }
         socket?.on(clientEvent: .disconnect) { [weak self] _, _ in
@@ -117,7 +126,26 @@ final class GameSocketManager: ObservableObject {
         guard let socket, let data = try? JSONEncoder().encode(payload),
               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return }
+        guard socket.status == .connected else {
+            // Emitting now would only drop it (and raise Socket.IO's own
+            // "error" client event). Hold it until the connection is up.
+            queuedEmits.append((event.rawValue, dict, Date()))
+            if queuedEmits.count > Self.queuedEmitLimit {
+                queuedEmits.removeFirst(queuedEmits.count - Self.queuedEmitLimit)
+            }
+            nudge()
+            return
+        }
         socket.emit(event.rawValue, dict)
+    }
+
+    private func flushQueuedEmits() {
+        guard let socket, socket.status == .connected, !queuedEmits.isEmpty else { return }
+        let fresh = queuedEmits.filter { Date().timeIntervalSince($0.at) < Self.queuedEmitMaxAge }
+        queuedEmits.removeAll()
+        for item in fresh {
+            socket.emit(item.event, item.items)
+        }
     }
 
     // MARK: - Listen
@@ -127,10 +155,29 @@ final class GameSocketManager: ObservableObject {
     /// before `connect(to:)` has ever run -- see `handlers`' own doc comment.
     func on<T: Decodable>(_ event: ServerEvent, handler: @escaping (T) -> Void) {
         let key = event.rawValue
+        // The server re-sends a board once a second even when nothing on it
+        // changed (a game with no clock), and every copy made the TV redraw
+        // the whole board. A board update identical to the last one this
+        // handler saw is dropped. The memory is per registration, so a board
+        // that has just subscribed always gets the next copy.
+        let skipRepeats: Bool = event == .gameState
+        var lastPayload: Data? = nil
         handlers[key] = { data in
+            // Socket.IO raises its own client events under the same names --
+            // an "error" carrying a plain string when something is emitted
+            // while disconnected -- and JSONSerialization throws an
+            // Objective-C exception (an uncatchable crash, not a Swift error)
+            // for anything that is not an array or dictionary. That was the
+            // crash on pressing a game card before the server had connected.
             guard let raw = data.first,
-                  let jsonData = try? JSONSerialization.data(withJSONObject: raw)
+                  JSONSerialization.isValidJSONObject(raw),
+                  let jsonData = try? JSONSerialization.data(withJSONObject: raw,
+                                                             options: skipRepeats ? [.sortedKeys] : [])
             else { return }
+            if skipRepeats {
+                if jsonData == lastPayload { return }
+                lastPayload = jsonData
+            }
             do {
                 let decoded = try JSONDecoder().decode(T.self, from: jsonData)
                 DispatchQueue.main.async { handler(decoded) }

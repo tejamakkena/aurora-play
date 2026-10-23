@@ -141,6 +141,12 @@
     AP.net.emit('game_action', {
       roomCode: S.room.code, playerID: S.playerID, action: action, data: data || {}
     });
+    // Show the tap's result now instead of after the round trip.
+    var predicted = AP.optimistic ? AP.optimistic.sent(S.room.gameID, action, data, S.privateData) : null;
+    if (predicted) {
+      S.privateData = predicted;
+      changed();
+    }
   };
 
   A.leaveRoom = function () {
@@ -291,7 +297,7 @@
       AP.net.on('private_state', function (r) {
         if (!r || r.playerID !== S.playerID) { return; }
         if (S.screen === 'waiting' || S.screen === 'playing' || S.screen === 'results') {
-          S.privateData = r.privateData || {};
+          S.privateData = AP.optimistic ? AP.optimistic.received(r.privateData) : (r.privateData || {});
           setScreen('playing');
           if (AP.onPrivateState) { AP.onPrivateState(); }
           changed();

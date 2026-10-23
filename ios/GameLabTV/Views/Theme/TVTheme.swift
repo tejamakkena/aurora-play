@@ -110,19 +110,27 @@ enum TVTheme {
 // MARK: - Animated background
 
 /// A deep gradient with soft glow blobs drifting slowly behind a board. The
-/// blobs are radial gradients (no blur pass), painted in a single Canvas at
-/// 30 fps, so this is cheap enough to sit behind a 60 fps game.
+/// blobs are radial gradients (no blur pass), painted in a single Canvas.
+///
+/// Rendered on the GPU (`drawingGroup`) at 20 fps: painted on the CPU at
+/// 30 fps it re-rasterised a full-screen 4K gradient every frame behind the
+/// board, the same cost ShellAmbientBackground was already fixed for. The
+/// blobs drift slowly enough that 20 fps looks identical. Paused entirely
+/// when Reduce Motion is on. Shapes only -- no Text -- so the offscreen
+/// Metal pass is safe (see RouletteWheelFace for the Text caveat).
 struct TVAnimatedBackground: View {
     var palette: TVPalette = TVTheme.aurora
     var intensity: Double = 1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { timeline in
             Canvas { ctx, size in
                 TVAnimatedBackground.paint(&ctx, size: size,
                                            time: timeline.date.timeIntervalSinceReferenceDate,
                                            palette: palette, intensity: intensity)
             }
+            .drawingGroup()
         }
         .ignoresSafeArea()
         .allowsHitTesting(false)
