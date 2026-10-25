@@ -111,10 +111,12 @@ struct TVNightGameTile: View {
                 .shadow(color: Color.black.opacity(0.3), radius: 2, x: 0, y: 2)
         }
         .frame(width: size, height: size)
-        .shellShine(isActive: isCurrent, cornerRadius: size * 0.26, period: 2.6, intensity: 0.4)
         .compositingGroup()
         .shadow(color: style.accent.opacity(isCurrent ? 0.8 : 0), radius: 16)
         .shadow(color: Color.black.opacity(0.35), radius: 6, x: 0, y: 6)
+        // Shine over the finished, shadowed tile, so the moving band doesn't
+        // force both shadows to be re-blurred every frame.
+        .shellShine(isActive: isCurrent, cornerRadius: size * 0.26, period: 2.6, intensity: 0.4)
     }
 }
 
@@ -369,10 +371,12 @@ private struct TVGameNightCardBody: View {
                     .strokeBorder(Color.white.opacity(isFocused ? 0.9 : 0.35), lineWidth: isFocused ? 2.5 : 1.2)
             }
         }
-        .shellShine(isActive: isFocused, cornerRadius: ShellTheme.cardRadius, period: 2.6, intensity: 0.45)
         .compositingGroup()
         .shadow(color: ShellTheme.pink.opacity(isFocused ? 0.7 : 0.3), radius: isFocused ? 28 : 12)
         .shadow(color: Color.black.opacity(0.4), radius: 10, x: 0, y: 10)
+        // Shine over the finished, shadowed card, so the moving band doesn't
+        // force both shadows to be re-blurred every frame.
+        .shellShine(isActive: isFocused, cornerRadius: ShellTheme.cardRadius, period: 2.6, intensity: 0.45)
         .rotation3DEffect(.degrees(isFocused ? 6 : 0), axis: (x: 1, y: 0, z: 0), perspective: 0.5)
         .scaleEffect(configuration.isPressed ? 0.97 : (isFocused ? 1.06 : 1.0))
         .animation(.spring(response: 0.3, dampingFraction: 0.66), value: isFocused)

@@ -143,17 +143,23 @@ enum MafiaLines {
     static let mafiaWins = "The Mafia have taken over the town. The Mafia win!"
     static let saved = "Everyone, open your eyes. The Mafia struck last night, but the doctor got there first. Nobody was eliminated."
 
+    // A name can't be pre-rendered in the natural voice (tools/render_voice_pack.py
+    // only holds fixed sentences), so the name is its own short sentence at the
+    // end and everything before it comes from the voice pack.
+    static let victimIntro = "Everyone, open your eyes. Sadly, the Mafia struck last night. Their victim was..."
+    static let eliminatedIntro = "The town has spoken. They voted out..."
+
     static func victim(_ name: String) -> String {
-        "Everyone, open your eyes. Sadly, last night \(name) was eliminated by the Mafia."
+        "\(victimIntro) \(name)."
     }
 
     static func eliminated(_ name: String) -> String {
-        "The town has spoken. \(name) is eliminated."
+        "\(eliminatedIntro) \(name)."
     }
 
     static let fixed: [String] = [
         sleep, mafiaWake, mafiaSleep, doctorWake, doctorSleep, detectiveWake, detectiveSleep,
-        day, noElimination, townWins, mafiaWins, saved,
+        day, noElimination, townWins, mafiaWins, saved, victimIntro, eliminatedIntro,
     ]
 }
 

@@ -1,0 +1,29 @@
+# Extra fixed lines for the offline voice pack (tools/render_voice_pack.py).
+# One line per row; each sentence becomes its own clip. Lines starting with #
+# are ignored.
+
+# Poker dealer (PokerCallouts in ios/GameLabTV/Views/Games/TVPokerBoardView.swift).
+# tests/test_voice_pack.py checks every callout there is listed here.
+New hand. Shuffle up and deal.
+Last hand of the game. Shuffle up and deal.
+We have a winner!
+Split pot!
+Fold.
+Check.
+Call.
+Bet.
+Raise!
+All in!
+Here comes the flop.
+The turn.
+The river.
+Royal flush!
+Straight flush!
+Four of a kind!
+Full house!
+Flush!
+Straight!
+Three of a kind!
+Two pair!
+A pair!
+High card.

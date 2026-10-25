@@ -407,19 +407,15 @@ struct ShellGlassCard<Content: View>: View {
     }
 
     var body: some View {
-        if #available(tvOS 26.0, *) {
-            // tvOS 26: Apple's Liquid Glass material, lightly tinted.
-            content
-                .padding(padding)
-                .glassEffect(.regular.tint(tint.opacity(0.16)),
-                             in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        } else {
-            content
-                .padding(padding)
-                .background {
-                    ShellGlassSurface(cornerRadius: cornerRadius, tint: tint)
-                }
-        }
+        // Always the painted glass, on every tvOS. Liquid Glass (tvOS 26+)
+        // samples and refracts whatever is behind it, and behind these panels
+        // is an animated background: the TV re-blurred every panel's backdrop
+        // continuously, at 4K. The painted surface is drawn once.
+        content
+            .padding(padding)
+            .background {
+                ShellGlassSurface(cornerRadius: cornerRadius, tint: tint)
+            }
     }
 }
 
@@ -710,7 +706,9 @@ private struct ShellShineBand: View {
 
     var body: some View {
         GeometryReader { proxy in
-            TimelineView(.animation) { context in
+            // 30 fps is plenty for a soft band; uncapped it redrew at the
+            // display's full rate even while resting offscreen.
+            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
                 ShellShineStripe(intensity: intensity)
                     .frame(width: proxy.size.width * 0.5, height: proxy.size.height * 1.8)
                     .rotationEffect(.degrees(18))
@@ -879,13 +877,15 @@ private struct ShellPrimaryButtonBody: View {
             .padding(.vertical, 24)
             .frame(minWidth: 380)
             .background { surface }
-            .shellShine(isActive: isFocused && isEnabled, cornerRadius: ShellTheme.buttonRadius,
-                        period: 2.4, intensity: 0.5)
             .compositingGroup()
             .shadow(color: tint.opacity(isEnabled ? (isFocused ? 0.7 : 0.3) : 0),
                     radius: isFocused ? 34 : 14, x: 0, y: 0)
             .shadow(color: Color.black.opacity(0.45),
                     radius: isFocused ? 22 : 10, x: 0, y: isFocused ? 18 : 8)
+            // Shine over the finished, shadowed button: inside it, the moving
+            // band forced both shadows to be re-blurred every frame.
+            .shellShine(isActive: isFocused && isEnabled, cornerRadius: ShellTheme.buttonRadius,
+                        period: 2.4, intensity: 0.5)
             .scaleEffect(configuration.isPressed ? 0.96 : (isFocused ? 1.08 : 1.0))
             .offset(y: isFocused ? -4 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isFocused)

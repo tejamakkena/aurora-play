@@ -396,10 +396,6 @@ enum PokerReveal {
         if let action, isNewAction {
             announce(action, recordOnSeat: !streetChanged)
             speakAction(action, next: next, streetChanged: streetChanged)
-        } else if !streetChanged, !next.isShowdown, Self.turnPlayerID(next) != Self.turnPlayerID(old),
-                  Self.turnPlayerID(next) != nil {
-            // The turn passed without a new action (a seat was skipped).
-            speak(Self.turnLine(next))
         }
 
         if next.isShowdown && !old.isShowdown {
@@ -529,62 +525,34 @@ enum PokerReveal {
         voice.speak(text)
     }
 
-    private static func turnPlayerID(_ s: PokerBoardState) -> String? {
-        s.playerSeats.first(where: { $0.isCurrentTurn })?.id
-    }
-
-    /// "Meera, it is 60 to you." / "Meera, your action."
-    private static func turnLine(_ s: PokerBoardState) -> String {
-        guard let seat = s.playerSeats.first(where: { $0.isCurrentTurn }) else { return "" }
-        let toCall: Int = max(0, s.currentBet - seat.currentBet)
-        if toCall > 0 { return "\(seat.name), it is \(toCall) to you." }
-        return "\(seat.name), your action."
-    }
+    // The dealer only ever says fixed lines (PokerCallouts): those are in
+    // the offline voice pack (tools/voice_lines.txt), so they play in the
+    // natural recorded voice. Names and chip amounts change every hand, so a
+    // line built from them could only ever be read by the TV's robotic
+    // built-in voice -- and the dealer used to say one after every action.
+    // Who did what, and for how much, is on the screen.
 
     private func speakNewHand(_ next: PokerBoardState) {
-        var line = next.maxHands > 0 ? "Hand \(next.handNumber) of \(next.maxHands)."
-            : (next.unlimited ? "Hand \(next.handNumber)." : "New hand.")
-        if let dealer = next.playerSeats.first(where: { $0.id == next.dealerID }) {
-            line += " \(dealer.name) deals."
+        if next.maxHands > 0 && next.handNumber == next.maxHands {
+            speak(PokerCallouts.lastHand)
+        } else {
+            speak(PokerCallouts.newHand)
         }
-        let turn: String = Self.turnLine(next)
-        if !turn.isEmpty { line += " " + turn }
-        speak(line)
     }
 
     private func speakAction(_ action: PokerLastAction, next: PokerBoardState, streetChanged: Bool) {
-        let name: String = action.name.isEmpty ? "Player" : action.name
-        var line: String
-        switch action.action {
-        case "fold":  line = "\(name) folds."
-        case "check": line = "\(name) checks."
-        case "call":  line = "\(name) calls \(action.amount)."
-        case "bet":   line = "\(name) bets \(action.amount)."
-        case "raise": line = "\(name) raises to \(action.amount)."
-        case "allIn": line = "\(name) is all in!"
-        default:      line = ""
-        }
-        if streetChanged {
-            switch next.phase {
-            case "flop":  line += " Here comes the flop."
-            case "turn":  line += " The turn."
-            case "river": line += " The river."
-            default: break
-            }
-        }
-        if !next.isShowdown {
-            let turn: String = Self.turnLine(next)
-            if !turn.isEmpty { line += " " + turn }
-        }
-        speak(line)
+        var parts: [String] = []
+        if let callout = PokerCallouts.action(action.action) { parts.append(callout) }
+        if streetChanged, let street = PokerCallouts.street(next.phase) { parts.append(street) }
+        guard !parts.isEmpty else { return }
+        speak(parts.joined(separator: " "))
     }
 
     private func speakWinner() {
         guard let result = state.lastHand, !result.winnerNames.isEmpty else { return }
-        let who: String = result.winnerNames.joined(separator: " and ")
-        var line = "\(who) wins \(result.amount)"
-        if !result.handName.isEmpty { line += " with \(result.handName.lowercased())" }
-        speak(line + ".")
+        var line: String = result.winnerNames.count > 1 ? PokerCallouts.splitPot : PokerCallouts.winner
+        if let hand = PokerCallouts.hand(result.handName) { line += " " + hand }
+        speak(line)
     }
 
     // MARK: Helpers
@@ -1762,11 +1730,16 @@ private struct PKTCountdownRing: View {
             ZStack {
                 Circle()
                     .stroke(Color.black.opacity(0.45), lineWidth: 8)
+                // Glow as a wider, faint stroke under the arc: a blurred
+                // shadow on an arc that shrinks every frame was a blur per frame.
+                Circle()
+                    .trim(from: 0, to: CGFloat(fraction))
+                    .stroke(tint.opacity(0.35), style: StrokeStyle(lineWidth: 16, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
                 Circle()
                     .trim(from: 0, to: CGFloat(fraction))
                     .stroke(tint, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .shadow(color: tint.opacity(0.8), radius: 8)
             }
             .frame(width: 112, height: 112)
         }
@@ -2069,5 +2042,55 @@ private struct PKTScoreboard: View {
             RoundedRectangle(cornerRadius: ShellTheme.buttonRadius, style: .continuous)
                 .fill(isWinner ? PKTColors.gold.opacity(0.14) : Color.white.opacity(0.04))
         )
+    }
+}
+
+
+// MARK: - Dealer callouts
+
+/// Everything the poker dealer says. Fixed sentences only, so each one is in
+/// the offline voice pack (listed in tools/voice_lines.txt; a test keeps the
+/// two in step) and plays in the natural voice.
+enum PokerCallouts {
+    static let newHand = "New hand. Shuffle up and deal."
+    static let lastHand = "Last hand of the game. Shuffle up and deal."
+    static let winner = "We have a winner!"
+    static let splitPot = "Split pot!"
+
+    static func action(_ action: String) -> String? {
+        switch action {
+        case "fold":  return "Fold."
+        case "check": return "Check."
+        case "call":  return "Call."
+        case "bet":   return "Bet."
+        case "raise": return "Raise!"
+        case "allIn": return "All in!"
+        default:      return nil
+        }
+    }
+
+    static func street(_ phase: String) -> String? {
+        switch phase {
+        case "flop":  return "Here comes the flop."
+        case "turn":  return "The turn."
+        case "river": return "The river."
+        default:      return nil
+        }
+    }
+
+    /// The winning hand's category ("Full house, Kings over 7s" -> "Full house!").
+    static func hand(_ name: String) -> String? {
+        let n: String = name.lowercased()
+        if n.isEmpty { return nil }
+        if n.hasPrefix("royal flush") { return "Royal flush!" }
+        if n.hasPrefix("straight flush") { return "Straight flush!" }
+        if n.hasPrefix("four of a kind") { return "Four of a kind!" }
+        if n.hasPrefix("full house") { return "Full house!" }
+        if n.hasPrefix("flush") { return "Flush!" }
+        if n.hasPrefix("straight") { return "Straight!" }
+        if n.hasPrefix("three of a kind") { return "Three of a kind!" }
+        if n.hasPrefix("two pair") { return "Two pair!" }
+        if n.hasPrefix("pair") { return "A pair!" }
+        return "High card."
     }
 }

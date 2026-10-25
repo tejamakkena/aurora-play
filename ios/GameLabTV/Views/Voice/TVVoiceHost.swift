@@ -49,11 +49,21 @@ final class TVVoiceHost: NSObject, ObservableObject {
     // sleeping server) fell back to the device voice for that one line.
     // Now the first line decides: if the cloud voice answers, the whole
     // session uses it; if not, the whole session uses one fixed device
-    // voice. At most one switch (cloud -> device, if the cloud dies
-    // mid-session), never alternating. Every async callback carries a
-    // token, so a stale line can never speak or fire a completion.
+    // voice. Every async callback carries a token, so a stale line can
+    // never speak or fire a completion.
+    //
+    // Once the cloud voice is chosen, one slow or failed line no longer
+    // drops it for good (that left poker on the robotic voice after its
+    // first few hands): the line is read on the device voice and the next
+    // line tries the cloud again. Only `cloudGiveUpAfter` failures in a row
+    // switch the session to the device voice, and even then the cloud is
+    // tried again after `cloudRetryAfter`.
     private enum SessionVoice { case undecided, cloud, device }
     private static var sessionVoice: SessionVoice = .undecided
+    private static var cloudFailuresInARow = 0
+    private static var deviceSince: Date?
+    private static let cloudGiveUpAfter = 3
+    private static let cloudRetryAfter: TimeInterval = 120
     private var speechToken = 0
     private var audioPlayer: AVAudioPlayer?
     private var currentUtteranceID: ObjectIdentifier?
@@ -222,6 +232,10 @@ final class TVVoiceHost: NSObject, ObservableObject {
                       }) {
             return
         }
+        if Self.sessionVoice == .device, let since = Self.deviceSince,
+           Date().timeIntervalSince(since) > Self.cloudRetryAfter {
+            Self.sessionVoice = .undecided
+        }
         if Self.sessionVoice == .device || !VoiceSettings.cloudAllowed {
             speakOnDevice(trimmed, rate: rate, preDelay: preDelay)
             return
@@ -235,6 +249,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
             guard let self, token == self.speechToken else { return }
             if let data, let player = try? AVAudioPlayer(data: data) {
                 Self.sessionVoice = .cloud
+                Self.cloudFailuresInARow = 0
                 player.delegate = self
                 // A faster or slower read of the same clip; pitch moves a
                 // little with it, which only helps a "nervous" delivery.
@@ -248,9 +263,15 @@ final class TVVoiceHost: NSObject, ObservableObject {
                 if started { return }
                 self.audioPlayer = nil
             }
-            // The cloud voice is unavailable: use the device voice for the
-            // rest of the session, never alternating.
-            Self.sessionVoice = .device
+            // The cloud voice missed this line: read it on the device voice.
+            // Undecided (the first line) or several misses in a row: the
+            // session stays on the device voice until the retry window.
+            Self.cloudFailuresInARow += 1
+            if Self.sessionVoice == .undecided || Self.cloudFailuresInARow >= Self.cloudGiveUpAfter {
+                Self.sessionVoice = .device
+                Self.deviceSince = Date()
+                Self.cloudFailuresInARow = 0
+            }
             self.speakOnDevice(trimmed, rate: rate, preDelay: preDelay)
         }
     }
