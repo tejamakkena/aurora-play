@@ -88,3 +88,28 @@ def test_the_shipped_pack_never_contains_test_tones():
     index = ROOT / "ios" / "Shared" / "Voice" / "Pack" / "voicepack.json"
     import json
     assert json.loads(index.read_text())["engine"] != "tone"
+
+
+def test_every_poker_callout_is_in_the_voice_pack_lines():
+    """The poker dealer only says fixed callouts so they can be pre-rendered
+    in the natural voice; each must be listed in tools/voice_lines.txt."""
+    source = (ROOT / "ios/GameLabTV/Views/Games/TVPokerBoardView.swift").read_text(encoding="utf-8")
+    block = source[source.index("enum PokerCallouts"):]
+    callouts = [c for c in re.findall(r'"((?:[^"\\]|\\.)*)"', block)
+                if c and c[0].isupper() and c[-1] in ".!?"]
+    assert len(callouts) >= 20
+    listed = {rvp.key(p) for line in rvp.extra_lines() for p in rvp.pieces(line)}
+    for line in callouts:
+        for piece in rvp.pieces(line):
+            assert rvp.key(piece) in listed, f"{piece!r} is not in tools/voice_lines.txt"
+
+
+def test_poker_hand_names_all_map_to_a_callout():
+    """Every hand name the server can send starts with a category the TV
+    turns into a fixed callout (see PokerCallouts.hand)."""
+    from games.native_hub.engines.legacy_cards import _hand_name
+    prefixes = ("royal flush", "straight flush", "four of a kind", "full house", "flush",
+                "straight", "three of a kind", "two pair", "pair")
+    for category in range(9):
+        name = _hand_name((category, 13, 7, 5, 3, 2)).lower()
+        assert name.startswith(prefixes) or name.endswith(" high"), name
