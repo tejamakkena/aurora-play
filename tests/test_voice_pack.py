@@ -113,3 +113,29 @@ def test_poker_hand_names_all_map_to_a_callout():
     for category in range(9):
         name = _hand_name((category, 13, 7, 5, 3, 2)).lower()
         assert name.startswith(prefixes) or name.endswith(" high"), name
+
+
+def test_game_narration_renders_before_the_question_banks():
+    """A run with --limit renders in this order, so Mafia, poker and Travel
+    Mode narration must come before the thousands of bank questions."""
+    order = list(rvp.collect(list(rvp.SOURCES), swift=True).values())
+    narration = rvp.collect([], swift=True)
+    assert order[:len(narration)] == list(narration.values())
+    for line in ("Mafia, open your eyes.", "Their victim was...", "They voted out...",
+                 "Here comes the flop."):
+        assert line in narration.values(), line
+
+
+def test_mafia_speaks_a_name_only_as_its_own_sentence():
+    """Everything the Mafia narrator says except a player's name is a fixed
+    sentence the voice pack can carry."""
+    source = (ROOT / "ios/GameLabController/Views/PhonePlay/Mafia/MafiaViewModel.swift").read_text(
+        encoding="utf-8")
+    block = source[source.index("enum MafiaLines"):source.index("static let fixed")]
+    narration = set(rvp.collect([], swift=True).values())
+    for raw in re.findall(r'"((?:[^"\\\n]|\\.)*)"', block):
+        if "\\(" in raw:
+            assert re.fullmatch(r"\\\(\w+\) \\\(name\)\.", raw), raw
+            continue
+        for piece in rvp.pieces(raw):
+            assert piece in narration, piece

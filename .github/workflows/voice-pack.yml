@@ -20,7 +20,7 @@ on:
         description: "Piper voice id (piper engine only), e.g. en_US-ljspeech-high"
         default: en_US-ljspeech-high
       limit:
-        description: "Render at most this many NEW clips (0 = all). Try 40 first."
+        description: "Render at most this many NEW clips (0 = all). Game narration (Mafia, poker, about 120 lines) renders first."
         default: "40"
       max_mb:
         description: "Stop when the pack reaches this size in MB (0 = no limit)"

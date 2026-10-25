@@ -187,12 +187,15 @@ def extra_lines() -> list[str]:
 
 def collect(sources: list[str], swift: bool) -> dict[str, str]:
     """key -> sentence, for every sentence of every line (deduplicated)."""
+    # Game narration first (Mafia, poker, Travel Mode...): a few hundred short
+    # lines heard in every game. The question banks after it run to thousands,
+    # so a run with --limit or --max-mb covers the narration before them.
     lines: list[str] = []
-    for name in sources:
-        lines.extend(SOURCES[name]())
     if swift:
         lines.extend(scan_swift())
     lines.extend(extra_lines())
+    for name in sources:
+        lines.extend(SOURCES[name]())
     clips: dict[str, str] = {}
     for line in lines:
         for piece in pieces(str(line)):
