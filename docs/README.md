@@ -5,6 +5,7 @@
 - [Docker Deployment](DOCKER_DEPLOYMENT.md)
 - [Security Policy](../SECURITY.md)
 - [Rate Limiting](RATE_LIMITING.md)
+- [Game Night and Never Have I Ever](GAME_NIGHT.md)
 
 ## Plans and Status
 

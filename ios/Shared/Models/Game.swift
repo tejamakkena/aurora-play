@@ -50,6 +50,7 @@ enum GameID: String, Codable, CaseIterable {
     case emojiMovie    = "emoji_movie"
     case npat          = "npat"
     case antakshari    = "antakshari"
+    case neverHaveIEver = "never_have_i_ever"
 
     // MARK: Mid group — roles, deduction and negotiation
     case cipherGrid        = "cipher_grid"
@@ -77,6 +78,9 @@ enum GameID: String, Codable, CaseIterable {
 
     // MARK: Co-op arcade
     case blastRunners = "blast_runners"
+
+    // MARK: Game Night -- hosts a whole evening of the games above
+    case gameNight = "game_night"
 
     var meta: GameMeta {
         switch self {
@@ -176,6 +180,12 @@ enum GameID: String, Codable, CaseIterable {
             return .init(displayName: "Antakshari", emoji: "🎵", category: .party,
                          minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
+        case .neverHaveIEver:
+            // Answers are private until the reveal -- the whole game is
+            // finding out who has, so the phone shows what only you chose.
+            return .init(displayName: "Never Have I Ever", emoji: "🙋", category: .party,
+                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 
         // ---- Mid group -------------------------------------------------
         case .cipherGrid:
@@ -282,6 +292,16 @@ enum GameID: String, Codable, CaseIterable {
             return .init(displayName: "Blast Runners", emoji: "⛏️", category: .coop,
                          minPlayers: 1, maxPlayers: 4, hasPrivateInfo: false,
                          phoneInputStyle: .dpadPlusAction, supportsRemote: false, soloPlayable: false)
+
+        // ---- Game Night ------------------------------------------------
+        case .gameNight:
+            // Not a game on the grid: the TV offers it as its own button
+            // (see TVGameSelectionView.nightBanner). It starts with a single
+            // phone -- the iPad that hosts -- and guests keep joining all
+            // evening, so min is 1 and the lobby is skipped.
+            return .init(displayName: "Game Night", emoji: "🎉", category: .party,
+                         minPlayers: 1, maxPlayers: 20, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         }
     }
 

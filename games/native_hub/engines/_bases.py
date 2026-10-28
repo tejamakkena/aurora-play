@@ -89,7 +89,11 @@ class RoundBasedEngine(NativeGameEngine):
     # ---- helpers -----------------------------------------------------------
 
     def active_players(self) -> list[Player]:
-        return self.room.connected_players()
+        # Only players dealt in at the start. A guest who joins a Game Night
+        # while this game is running is a spectator, and must not hold up a
+        # round that everyone actually playing has already finished.
+        return [p for p in self.room.connected_players()
+                if not self.scores or p.id in self.scores]
 
     def everyone_submitted(self) -> bool:
         active = self.active_players()

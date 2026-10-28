@@ -32,6 +32,11 @@ EMPTY_GRACE_SECONDS = 120       # room with nobody in it survives this long
 ROOM_TTL_SECONDS = 3600         # hard ceiling regardless of activity
 RECONNECT_GRACE_SECONDS = 60    # a disconnected player keeps their seat this long
 
+# A Game Night is a whole evening of games in one room, so the one-hour ceiling
+# that suits a single game would reap the room mid-party.
+NIGHT_ROOM_TTL_SECONDS = 6 * 3600
+ROOM_TTL_BY_GAME = {"game_night": NIGHT_ROOM_TTL_SECONDS}
+
 
 class RoomState(str, Enum):
     LOBBY = "lobby"
@@ -95,6 +100,11 @@ class Room:
     # spawned with and exits as soon as it no longer matches, so a pump from a
     # previous round can never double-broadcast into the next one.
     generation: int = 0
+    # The Game Night host's setup (occasion, honoree, voice pack, playlist).
+    # Kept on the room rather than the engine so "Play Again" -- which builds a
+    # fresh engine -- comes back with the same details filled in.
+    night_config: dict | None = None
+    ttl_seconds: float = ROOM_TTL_SECONDS
     created_at: float = field(default_factory=time.time)
     last_activity: float = field(default_factory=time.time)
     empty_since: float | None = None
@@ -253,7 +263,8 @@ class RoomRegistry:
 
     def create(self, game_id: str, *, solo: bool = False) -> Room:
         with self._lock:
-            room = Room(code=self.new_code(), game_id=game_id, solo=solo)
+            room = Room(code=self.new_code(), game_id=game_id, solo=solo,
+                        ttl_seconds=ROOM_TTL_BY_GAME.get(game_id, ROOM_TTL_SECONDS))
             self._rooms[room.code] = room
             return room
 
@@ -294,7 +305,7 @@ class RoomRegistry:
                 r for r in self._rooms.values()
                 if (r.empty_since is not None
                     and now - r.empty_since > EMPTY_GRACE_SECONDS)
-                or now - r.created_at > ROOM_TTL_SECONDS
+                or now - r.created_at > r.ttl_seconds
             ]
 
     def clear(self) -> None:

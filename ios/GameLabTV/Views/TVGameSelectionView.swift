@@ -70,11 +70,27 @@ struct TVGameSelectionView: View {
     // when the connection drops.
     @ObservedObject private var socket = GameSocketManager.shared
 
+    /// Game Night is not a card in the grid: it is the banner in the sidebar
+    /// (`nightBanner`), so it never also shows up as a tile.
     private var displayedGames: [GameID] {
+        let games = GameID.allCases.filter { $0 != .gameNight }
         if let cat = selectedCategory {
-            return GameID.allCases.filter { $0.category == cat }
+            return games.filter { $0.category == cat }
         }
-        return GameID.allCases
+        return games
+    }
+
+    /// Hosts a whole evening: welcome screen, a voice announcing the games,
+    /// then each game in turn. The iPad sets it up and runs it.
+    private var nightBanner: some View {
+        Button {
+            onSelect(.gameNight)
+        } label: {
+            NightBanner(isFocused: focusedGame == .gameNight)
+        }
+        .buttonStyle(NoChromeButtonStyle())
+        .focused($focusedGame, equals: .gameNight)
+        .accessibilityIdentifier("gameNightButton")
     }
 
     var body: some View {
@@ -90,6 +106,8 @@ struct TVGameSelectionView: View {
                 Text("Pick a game")
                     .font(.title3)
                     .foregroundColor(.white.opacity(0.6))
+
+                nightBanner
 
                 Divider().background(Color.white.opacity(0.2))
 
@@ -571,6 +589,46 @@ private struct TVGameCard: View {
 private struct NoChromeButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+    }
+}
+
+/// The sidebar's Game Night button. Styled to stand apart from the category
+/// pills below it, since it starts a whole evening rather than filtering a list.
+private struct NightBanner: View {
+    let isFocused: Bool
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("🎉").font(.system(size: 34))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Game Night")
+                    .font(.system(size: 26, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                Text("Host a party night")
+                    .font(.system(size: 16))
+                    .foregroundColor(.white.opacity(0.8))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            shape.fill(
+                LinearGradient(colors: [Color(hex: "FF3CAC"), Color(hex: "784BA0")],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            .opacity(isFocused ? 1.0 : 0.7)
+        )
+        .overlay(
+            shape.strokeBorder(Color.white.opacity(isFocused ? 0.9 : 0.25),
+                               lineWidth: isFocused ? 3 : 1)
+        )
+        .scaleEffect(isFocused ? 1.06 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isFocused)
     }
 }
 

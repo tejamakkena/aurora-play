@@ -109,6 +109,15 @@ final class TVRootViewModel: ObservableObject {
             guard let self else { return }
             switch response.state {
             case .lobby:
+                // A Game Night has no lobby of its own: its welcome screen
+                // (room code, guests, "Welcome to ...") is part of the night,
+                // and guests keep arriving all evening. So the night starts
+                // itself the moment the first phone -- the host's iPad --
+                // joins; until then the plain lobby just shows the code.
+                if response.gameID == .gameNight, !response.players.isEmpty {
+                    self.socket.emit(.startGame, payload: ["roomCode": response.code])
+                    return
+                }
                 // Used to auto-emit startGame instantly here for a solo
                 // room, skipping the lobby (and its room code) entirely.
                 // Reported directly: that left Atlas -- whose only input is

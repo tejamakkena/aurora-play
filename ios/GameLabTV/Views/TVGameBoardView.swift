@@ -42,6 +42,7 @@ struct TVGameBoardView: View {
         case .emojiMovie:    TVEmojiMovieBoardView(room: room)
         case .npat:          TVNPATBoardView(room: room)
         case .antakshari:    TVAntakshariBoardView(room: room)
+        case .neverHaveIEver: TVNeverHaveIEverBoardView(room: room)
 
         // Mid group
         case .cipherGrid:    TVCipherGridBoardView(room: room)
@@ -69,6 +70,9 @@ struct TVGameBoardView: View {
 
         // Co-op arcade
         case .blastRunners:  TVBlastRunnersBoardView(room: room)
+
+        // Game Night -- hosts the games above one after another.
+        case .gameNight:     TVGameNightBoardView(room: room)
         }
     }
 }

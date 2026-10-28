@@ -22,6 +22,9 @@ enum ServerEvent: String {
     case gameState      = "game_state"     // board update for TV
     case privateState   = "private_state"  // private data for phone only
     case gameEnded      = "game_ended"
+    /// Game Night's own TV-only channel. The hosted game's board owns
+    /// `game_state`, so the night's welcome / lineup / tally travel separately.
+    case nightState     = "night_state"
     case error          = "error"
 }
 
@@ -55,6 +58,11 @@ struct RoomJoinedResponse: Decodable {
 struct GameStateResponse: Decodable {
     let roomCode: String
     let boardState: [String: AnyCodable]   // TV renders this
+}
+
+struct NightStateResponse: Decodable {
+    let roomCode: String
+    let night: [String: AnyCodable]
 }
 
 struct PrivateStateResponse: Decodable {

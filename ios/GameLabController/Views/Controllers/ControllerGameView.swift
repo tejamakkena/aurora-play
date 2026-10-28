@@ -44,6 +44,8 @@ struct ControllerGameView: View {
         case .emojiMovie:    EmojiMovieControllerView(privateData: privateData, onAction: onAction)
         case .npat:          NPATControllerView(privateData: privateData, onAction: onAction)
         case .antakshari:    AntakshariControllerView(privateData: privateData, onAction: onAction)
+        case .neverHaveIEver:
+            NeverHaveIEverControllerView(privateData: privateData, onAction: onAction)
 
         // Mid group
         case .cipherGrid:    CipherGridControllerView(privateData: privateData, onAction: onAction)
@@ -77,6 +79,11 @@ struct ControllerGameView: View {
         // Co-op arcade
         case .blastRunners:
             BlastRunnersControllerView(privateData: privateData, onAction: onAction)
+
+        // Game Night -- the host's main controller, which hands the screen to
+        // whichever hosted game is on.
+        case .gameNight:
+            GameNightControllerView(room: room, privateData: privateData, onAction: onAction)
         }
     }
 }

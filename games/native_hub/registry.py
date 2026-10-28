@@ -27,12 +27,12 @@ def _load_engines() -> None:
     from games.native_hub.engines import (
         party, midgroup, duel, solo,
         legacy_boards, legacy_cards, legacy_social, legacy_new,
-        blast_runners,
+        blast_runners, never_have_i_ever, game_night,
     )
 
     for module in (party, midgroup, duel, solo,
                    legacy_boards, legacy_cards, legacy_social, legacy_new,
-                   blast_runners):
+                   blast_runners, never_have_i_ever, game_night):
         for gid, cls in module.ENGINES.items():
             register(gid, cls)
 

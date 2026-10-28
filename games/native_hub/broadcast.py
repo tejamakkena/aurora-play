@@ -77,6 +77,8 @@ def broadcast_state(socketio, room) -> None:
             ]
             heavy = engine.heavy_state
             tv_sids = list(room.tv_sids)
+            side_fn = getattr(engine, "night_state", None)
+            night = side_fn() if callable(side_fn) else None
     except Exception:
         logger.exception("state build failed room=%s", room.code)
         return
@@ -86,6 +88,11 @@ def broadcast_state(socketio, room) -> None:
             socketio.emit("game_state", public, to=sid, namespace=NAMESPACE)
     else:
         socketio.emit("game_state", public, to=room.code, namespace=NAMESPACE)
+
+    if night is not None:
+        side = {"roomCode": room.code, "night": night}
+        for sid in tv_sids:
+            socketio.emit("night_state", side, to=sid, namespace=NAMESPACE)
 
     for sid, payload in privates:
         socketio.emit("private_state", payload, to=sid, namespace=NAMESPACE)
@@ -132,7 +139,7 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
     reports ``secondsLeft`` from ``public_state()``, so this single loop is what
     makes every clock in the app move.
     """
-    interval = 1.0 / max(BASE_PUMP_HZ, tick_hz)
+    hz = tick_hz
     socketio.sleep(PUMP_LEAD_IN_SECONDS)
     last = time.time()
 
@@ -149,13 +156,14 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
         try:
             with room.lock:
                 if room.engine is not None:
-                    if tick_hz:
-                        room.engine.tick(dt)
-                    else:
-                        # Even without simulation, time-driven engines need a
-                        # nudge to roll phases over when a deadline passes.
-                        room.engine.tick(dt)
+                    # Even without simulation, time-driven engines need a
+                    # nudge to roll phases over when a deadline passes.
+                    room.engine.tick(dt)
                     over = room.engine.is_over()
+                    # Read off the live engine rather than the class: a Game
+                    # Night hosts a different game each round, and a real-time
+                    # one needs the fast loop only while it is on screen.
+                    hz = float(getattr(room.engine, "tick_hz", hz) or 0.0)
                 else:
                     over = False
 
@@ -167,7 +175,7 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
         except Exception:
             logger.exception("pump error room=%s", code)
 
-        socketio.sleep(interval)
+        socketio.sleep(1.0 / max(BASE_PUMP_HZ, hz))
 
 
 def start_reaper(socketio) -> None:

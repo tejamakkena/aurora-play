@@ -30,6 +30,11 @@ class NativeGameEngine(ABC):
     #: room. Use for high-frequency or large payloads the phones do not need.
     heavy_state: ClassVar[bool] = False
 
+    #: True lets new phones take a seat while the game is already running.
+    #: Only a Game Night wants this -- guests arrive all evening -- and the
+    #: engine's own ``private_state`` must cope with a player it never dealt in.
+    late_join: ClassVar[bool] = False
+
     def __init__(self, room: Room, broadcaster) -> None:
         self.room = room
         self.bc = broadcaster
@@ -81,6 +86,19 @@ class NativeGameEngine(ABC):
 
     def stop(self) -> None:
         """Release anything held. Called when the room finishes or is reaped."""
+
+    def night_state(self) -> dict | None:
+        """A second, TV-only payload published as ``night_state``.
+
+        ``None`` (the default) publishes nothing. Game Night uses it to talk to
+        its own TV screen on a channel the hosted game's board does not listen
+        to, because each board owns the single ``game_state`` handler.
+        """
+        return None
+
+    def apply_night_config(self, config: dict) -> None:
+        """Called before ``start`` when this game runs inside a Game Night, so
+        it can honour the host's choices (a content pack, a round count)."""
 
     # ---- helpers for subclasses -------------------------------------------
 

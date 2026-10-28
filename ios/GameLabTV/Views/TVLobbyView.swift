@@ -16,6 +16,13 @@ struct TVLobbyView: View {
     let isSolo: Bool
     let onStart: () -> Void
 
+    /// Placeholder rows under the player list. A night seats twenty, and a wall
+    /// of empty rows says nothing, so it shows just a few.
+    private var emptySlots: Int {
+        let shown = room.gameID == .gameNight ? min(room.gameID.maxPlayers, 3) : room.gameID.maxPlayers
+        return max(0, shown - room.players.count)
+    }
+
     var body: some View {
         HStack(spacing: 80) {
             // Left — room code + QR
@@ -64,7 +71,11 @@ struct TVLobbyView: View {
                 // until Start is pressed (see TVRootViewModel's own comment
                 // on why) -- "0 / 4 players" read as broken rather than
                 // optional, so solo gets its own, clearer line instead.
-                if isSolo && room.players.isEmpty {
+                if room.gameID == .gameNight {
+                    Text("Open Aurora Play on your iPad and enter the code. Whoever joins first hosts the night.")
+                        .font(.title3)
+                        .foregroundColor(.white.opacity(0.5))
+                } else if isSolo && room.players.isEmpty {
                     Text("Playing solo — invite friends with the code, or just press Start")
                         .font(.title3)
                         .foregroundColor(.white.opacity(0.5))
@@ -82,7 +93,7 @@ struct TVLobbyView: View {
                         // Empty slots. Clamped because a range whose lower bound
                         // exceeds its upper bound traps at runtime, and the player
                         // count is server-supplied.
-                        ForEach(0..<max(0, room.gameID.maxPlayers - room.players.count), id: \.self) { _ in
+                        ForEach(0..<emptySlots, id: \.self) { _ in
                             EmptySlotRow()
                         }
                     }

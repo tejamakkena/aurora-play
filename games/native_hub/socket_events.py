@@ -127,6 +127,7 @@ def register_native_events(socketio):
 
         engine_cls = engine_for(room.game_id)
         resumed = False
+        late = False
 
         with room.lock:
             existing = room.player(pid)
@@ -139,7 +140,11 @@ def register_native_events(socketio):
                 room.touch()
                 resumed = True
             else:
-                if room.state is not RoomState.LOBBY:
+                # A Game Night keeps its door open all evening: guests arrive
+                # between games and sit out whatever is already running.
+                late = (room.state is RoomState.PLAYING and engine_cls.late_join
+                        and room.engine is not None)
+                if room.state is not RoomState.LOBBY and not late:
                     push_error(socketio, sid, "Game already in progress",
                                "GAME_IN_PROGRESS")
                     return
@@ -148,7 +153,12 @@ def register_native_events(socketio):
                 if len(room.players) >= engine_cls.max_players:
                     push_error(socketio, sid, "Room is full", "ROOM_FULL")
                     return
-                room.add_player(pid, sanitize_name(data.get("playerName")), sid)
+                newcomer = room.add_player(pid, sanitize_name(data.get("playerName")), sid)
+                if late:
+                    try:
+                        room.engine.on_player_join(newcomer)
+                    except Exception:
+                        logger.exception("on_player_join failed room=%s", code)
 
         socket_join_room(code, namespace=NAMESPACE)
         rooms.bind_sid(sid, code)
@@ -157,8 +167,8 @@ def register_native_events(socketio):
                       to=sid, namespace=NAMESPACE)
         push_room(socketio, room)
 
-        if resumed and room.state is RoomState.PLAYING and room.engine is not None:
-            # Get this phone back onto the game screen immediately rather than
+        if (resumed or late) and room.state is RoomState.PLAYING and room.engine is not None:
+            # Get this phone onto the game screen immediately rather than
             # making it wait up to a second for the next pump cycle.
             with room.lock:
                 payload = {"roomCode": code, "playerID": pid,
