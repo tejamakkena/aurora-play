@@ -77,14 +77,22 @@ def _limits(game_id: str) -> tuple[int, int]:
     return (getattr(cls, "min_players", 1), getattr(cls, "max_players", 1))
 
 
+#: Games a party night leads with (games/night_party.py): the two made for
+#: it first, then the room-wide talking, singing and acting games.
+PARTY_HEADLINERS = ("never_have_i_ever", "guess_the_song")
+PARTY_TAGS = {"social", "music", "acting"}
+
+
 def pick_games(players: int, kids: bool = False, minutes: int | None = None,
-               rng: random.Random | None = None) -> list[dict]:
+               rng: random.Random | None = None, party: bool = False) -> list[dict]:
     """Every game that fits the group, best first.
 
     Fits = registered engine, player count within its limits, kid-safe
     when kids are present. Ranked by how well the group size suits the game
     (party games love big groups; duels are best at their exact size), then
-    shuffled a little so the list isn't identical every night.
+    shuffled a little so the list isn't identical every night. A party
+    night ranks Never Have I Ever and Guess the Song first, then the other
+    social, music and acting games, ahead of board games and duels.
     """
     rng = rng or random.Random()
     out = []
@@ -99,6 +107,11 @@ def pick_games(players: int, kids: bool = False, minutes: int | None = None,
         # 1.0 when the group fills the game well, lower at the edges.
         fill = players / hi if hi < 50 else 1.0
         score = 0.6 + 0.4 * min(1.0, fill) + rng.uniform(0, 0.25)
+        if party:
+            if gid in PARTY_HEADLINERS:
+                score += 2.0
+            elif PARTY_TAGS & set(info["tags"]):
+                score += 1.0
         out.append({"id": gid, "minutes": info["minutes"], "kids": info["kids"],
                     "tags": info["tags"], "minPlayers": lo, "maxPlayers": hi,
                     "score": round(score, 3)})
@@ -107,10 +120,10 @@ def pick_games(players: int, kids: bool = False, minutes: int | None = None,
 
 
 def build_playlist(players: int, kids: bool = False, total_minutes: int = 45,
-                   rng: random.Random | None = None) -> list[str]:
+                   rng: random.Random | None = None, party: bool = False) -> list[str]:
     """A balanced playlist: varied tags, about ``total_minutes`` long."""
     rng = rng or random.Random()
-    candidates = pick_games(players, kids, rng=rng)
+    candidates = pick_games(players, kids, rng=rng, party=party)
     playlist, used_tags, spent = [], set(), 0
     for g in candidates:
         if spent >= total_minutes or len(playlist) >= 8:
@@ -279,5 +292,6 @@ def picker():
         minutes = int(request.args["minutes"]) if request.args.get("minutes") else None
     except ValueError:
         minutes = None
+    party = (request.args.get("party") or "").lower() in ("1", "true", "yes")
     return jsonify({"success": True, "players": players,
-                    "games": pick_games(players, kids, minutes)})
+                    "games": pick_games(players, kids, minutes, party=party)})

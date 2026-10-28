@@ -27,7 +27,7 @@ struct GameNightPlannerCard: View {
 
     private var playerCount: Int { max(1, room.players.count) }
     private var totalMinutes: Int { playlist.reduce(0) { $0 + (gameMinutes[$1] ?? 0) } }
-    private var loadKey: String { "\(expanded)-\(kids)-\(minutes)-\(playerCount)-\(reloadToken)" }
+    private var loadKey: String { "\(expanded)-\(kids)-\(minutes)-\(playerCount)-\(reloadToken)-\(partyOn)" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -205,7 +205,7 @@ struct GameNightPlannerCard: View {
     private func loadPlaylist() async {
         guard expanded else { loading = false; return }
         loading = true
-        let picks = await OneStopAPI.pick(players: playerCount, kids: kids, minutes: nil)
+        let picks = await OneStopAPI.pick(players: playerCount, kids: kids, minutes: nil, party: partyOn)
         guard !Task.isCancelled else { return }
         var out: [GameID] = []
         var lengths: [GameID: Int] = [:]

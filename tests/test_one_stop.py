@@ -32,6 +32,26 @@ def test_picker_respects_minutes():
     assert all(g["minutes"] <= 8 for g in game_night.pick_games(4, minutes=8))
 
 
+@pytest.mark.parametrize("players", [2, 4, 8])
+def test_a_party_night_leads_with_the_party_games(players):
+    """Reported: turning party mode on changed nothing about the lineup, so
+    Never Have I Ever and Guess the Song never showed up in a Game Night."""
+    import random
+    for seed in range(5):
+        top = [g["id"] for g in game_night.pick_games(players, rng=random.Random(seed), party=True)]
+        assert set(top[:2]) == set(game_night.PARTY_HEADLINERS)
+        plain = [g["id"] for g in game_night.pick_games(players, rng=random.Random(seed))]
+        assert set(plain) == set(top)              # same games, different order
+    playlist = game_night.build_playlist(players, total_minutes=45, party=True,
+                                         rng=random.Random(3))
+    assert set(game_night.PARTY_HEADLINERS) <= set(playlist)
+
+
+def test_party_lineup_never_overrides_kids_mode():
+    ids = {g["id"] for g in game_night.pick_games(6, kids=True, party=True)}
+    assert not ids & set(game_night.PARTY_HEADLINERS)
+
+
 def test_playlist_is_varied_and_fits():
     import random
     playlist = game_night.build_playlist(5, kids=True, total_minutes=45,
@@ -278,6 +298,8 @@ def test_picker_http(server):
     app, _ = server
     body = app.test_client().get("/api/picker?players=6&kids=1&minutes=10").get_json()
     assert body["games"] and all(g["kids"] for g in body["games"])
+    party = app.test_client().get("/api/picker?players=4&party=1").get_json()["games"]
+    assert {g["id"] for g in party[:2]} == set(game_night.PARTY_HEADLINERS)
 
 
 # --------------------------------------------------------------------------
