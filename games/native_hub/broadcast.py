@@ -48,9 +48,24 @@ class Broadcaster:
         push_error(self.socketio, sid, message, code)
 
 
+def flush_host_lines(socketio, room) -> None:
+    """Send the show host's new lines (games/show_host.py), each exactly once."""
+    try:
+        with room.lock:
+            from games import show_host
+            lines = show_host.pending(room)
+    except Exception:
+        logger.exception("host lines failed room=%s", room.code)
+        return
+    for line in lines:
+        socketio.emit("host_line", {"roomCode": room.code, **line},
+                      to=room.code, namespace=NAMESPACE)
+
+
 def push_room(socketio, room) -> None:
     """Send the bare Room object. This is what drives every TV screen change."""
     socketio.emit("room_updated", room.to_json(), to=room.code, namespace=NAMESPACE)
+    flush_host_lines(socketio, room)
 
 
 def push_error(socketio, sid: str, message: str, code: str | None = None) -> None:
@@ -100,6 +115,7 @@ def broadcast_state(socketio, room) -> None:
 
     for sid, payload in privates:
         socketio.emit("private_state", payload, to=sid, namespace=NAMESPACE)
+    flush_host_lines(socketio, room)
 
 
 def final_results(room, results, forfeit: bool = False) -> list[dict]:
@@ -197,8 +213,10 @@ def finish_game(socketio, room, forfeit: bool = False) -> None:
         # Game Night totals and player profiles (best-effort: neither may
         # ever break the end of a game).
         try:
-            from games import game_night
+            from games import game_night, show_host
+            before = game_night.standings(room)
             game_night.record_game(room, results)
+            show_host.game_finished(room, results, before)
         except Exception:
             logger.exception("game night record failed room=%s", room.code)
         try:

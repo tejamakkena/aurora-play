@@ -72,6 +72,23 @@ I Ever pack. Then start the night.
   (`tools/render_voice_pack.py`, source `nhie_songs` for the games' jokes).
 - Code: `games/night_party.py`, `begin_party` in `socket_events.py`, `Room.night.party`.
 
+## The show host
+
+Every Game Night has a talk-show host. It opens the night, teases each game
+("Quiz time! This is where we find out who actually paid attention in school."),
+reacts when a quiz question is revealed ("Nobody got that? I expected a third
+grader to know this one."), cheers each winner, reads the standings (new leader,
+close race, runaway lead, last place) and closes the night for the champion.
+
+- The TV shows each line as a lower third with a headline ("Asha takes the
+  lead!") and speaks it between the game's own lines; the game always speaks
+  first.
+- Kids mode uses gentle, encouraging lines only.
+- Spoken lines never contain names, so the whole script is in the offline voice
+  pack (`tools/render_voice_pack.py` renders it with the game narration, first).
+- Code: `games/show_host.py` (script and moments), `host_line` socket event
+  (`broadcast.flush_host_lines`), `TVShowHostOverlay.swift`.
+
 ## No internet? Host on a laptop (LAN)
 
 1. On a laptop on the party Wi-Fi:
