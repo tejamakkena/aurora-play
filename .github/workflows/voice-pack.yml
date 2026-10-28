@@ -20,8 +20,12 @@ on:
         description: "Piper voice id (piper engine only), e.g. en_US-ljspeech-high"
         default: en_US-ljspeech-high
       limit:
-        description: "Render at most this many NEW clips (0 = all). Game narration (Mafia, poker, about 120 lines) renders first."
+        description: "Render at most this many NEW clips (0 = all). Game narration and the Game Night host render first."
         default: "40"
+      redo:
+        description: "Re-render clips that already exist (use with limit 0 when switching engine or voice, so the pack is one voice)"
+        type: boolean
+        default: false
       max_mb:
         description: "Stop when the pack reaches this size in MB (0 = no limit)"
         default: "0"
@@ -67,6 +71,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           args="--engine ${{ inputs.engine }} --max-mb ${{ inputs.max_mb }}"
+          if [ "${{ inputs.redo }}" = "true" ]; then args="$args --force"; fi
           if [ "${{ inputs.limit }}" != "0" ]; then args="$args --limit ${{ inputs.limit }}"; fi
           if [ "${{ inputs.engine }}" = "piper" ]; then
             args="$args --piper-model voices/${{ inputs.piper_voice }}.onnx"
