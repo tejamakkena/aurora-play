@@ -531,6 +531,12 @@ class TriviaEngine(NativeGameEngine):
                          "choice": choice, "correct": ok, "points": pts})
         self.last_results = rows
         self._enter("reveal", self.REVEAL_SECONDS)
+        # Game Night's show host reacts (a no-op outside a Game Night).
+        from games import show_host
+        active = set(self.active_ids())
+        show_host.answers_revealed(
+            self.room, [pid for pid in self.answered if pid in active],
+            [r["playerID"] for r in rows if r["correct"]], len(active))
 
     def _after_reveal(self) -> None:
         # Powers only last for the question they were thrown at.

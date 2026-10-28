@@ -131,6 +131,10 @@ struct RootTVView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: vm.notice)
+        // Game Night's show host: banter between and inside the games.
+        .overlay(alignment: .bottom) {
+            TVShowHostOverlay(vm: vm)
+        }
         .onChange(of: keepsScreenAwake, initial: true) { _, _ in applyIdleTimer() }
         .onChange(of: scenePhase) { _, phase in
             applyIdleTimer()
@@ -201,6 +205,8 @@ final class TVRootViewModel: ObservableObject {
     /// The party welcome has been spoken (or skipped), so the lobby can show.
     /// Reset whenever a party night is waiting to begin.
     @Published var partyWelcomeDone = false
+    /// Show host lines waiting to be shown and spoken (TVShowHostOverlay).
+    @Published private(set) var hostLines: [HostLine] = []
 
     private let socket = GameSocketManager.shared
 
@@ -230,6 +236,14 @@ final class TVRootViewModel: ObservableObject {
         socket.on(.error) { [weak self] (r: ErrorResponse) in
             guard let self, r.fatal == true else { return }
             self.roomIsGone(r.message)
+        }
+
+        // Game Night's show host (games/show_host.py). Only this room's lines,
+        // and only a few: a backlog would be stale by the time it is spoken.
+        socket.on(.hostLine) { [weak self] (line: HostLine) in
+            guard let self, line.roomCode == self.currentRoomCode else { return }
+            self.hostLines.append(line)
+            if self.hostLines.count > 3 { self.hostLines.removeFirst(self.hostLines.count - 3) }
         }
 
         socket.on(.roomUpdated) { [weak self] (response: Room) in
@@ -535,8 +549,14 @@ final class TVRootViewModel: ObservableObject {
         return totals
     }
 
+    /// The show host's next line, taken off the queue.
+    func takeHostLine() -> HostLine? {
+        hostLines.isEmpty ? nil : hostLines.removeFirst()
+    }
+
     func returnToSelection() {
         Self.forgetRoom()
+        hostLines = []
         isSolo = false
         isNightSetup = false
         nightTotalsBeforeGame = [:]

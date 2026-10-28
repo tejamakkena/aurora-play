@@ -275,6 +275,10 @@ class BrainBattleEngine(RoundBasedEngine):
             "fastestSeconds": round(fastest_time, 1) if fastest_time is not None else None,
             "answers": rows,
         }
+        # Game Night's show host reacts (a no-op outside a Game Night).
+        from games import show_host
+        show_host.answers_revealed(self.room, [pid for pid in self.submissions if pid in counted],
+                                   correct_ids, len(counted))
 
     # ---- end of game -------------------------------------------------------
 

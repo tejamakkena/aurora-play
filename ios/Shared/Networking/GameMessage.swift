@@ -47,6 +47,7 @@ enum ServerEvent: String {
     case gameEnded      = "game_ended"
     case error          = "error"
     case roomClosed     = "room_closed"
+    case hostLine       = "host_line"      // Game Night show host banter (TV speaks it)
     // Voice quizmaster
     case micReassigned  = "mic_reassigned"
     case voiceState      = "voice_state"
@@ -92,6 +93,18 @@ struct RoomJoinedResponse: Decodable {
 struct GameStateResponse: Decodable {
     let roomCode: String
     let boardState: [String: AnyCodable]   // TV renders this
+}
+
+/// One line of the Game Night show host (games/show_host.py). `text` is the
+/// spoken line (fixed wording, in the voice pack); `headline` is shown above it
+/// and may carry a name ("Asha takes the lead!"). `seq` only grows.
+struct HostLine: Decodable, Equatable, Identifiable {
+    let roomCode: String
+    let seq: Int
+    let moment: String
+    let text: String
+    let headline: String
+    var id: Int { seq }
 }
 
 struct PrivateStateResponse: Decodable {

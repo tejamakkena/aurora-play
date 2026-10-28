@@ -136,6 +136,25 @@ final class TVVoiceHost: NSObject, ObservableObject {
         super.init()
         synthesizer.delegate = self
         configureAudioSession()
+        Self.hosts.add(self)
+    }
+
+    // MARK: Interludes (the Game Night show host)
+    //
+    // Every board owns its own TVVoiceHost, and the show host's banter
+    // (TVShowHostOverlay) has one more. They must never talk over each other:
+    // an interlude waits while a board is talking, and a board that starts
+    // talking cuts the interlude off. The game always comes first.
+
+    /// True for the show host's voice.
+    var isInterlude = false
+    /// Between `speak` and the end (or cut-off) of that line.
+    private(set) var isTalking = false
+    private static let hosts = NSHashTable<TVVoiceHost>.weakObjects()
+
+    /// A board (not an interlude) is speaking right now.
+    static var boardIsTalking: Bool {
+        hosts.allObjects.contains { !$0.isInterlude && $0.isTalking }
     }
 
     private func configureAudioSession() {
@@ -216,8 +235,14 @@ final class TVVoiceHost: NSObject, ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { completion?(); return }
         stopSpeaking()
+        if !isInterlude {
+            for host in Self.hosts.allObjects where host.isInterlude && host.isTalking {
+                host.stopSpeaking()
+            }
+        }
         speechToken += 1
         let token = speechToken
+        isTalking = true
         pendingSpeechCompletion = completion
         // Fixed lines come from the bundled pack (offline, free, natural);
         // only the sentences it lacks (a player's name) are spoken live.
@@ -337,6 +362,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
     }
 
     private func finishSpeechCompletion() {
+        isTalking = false
         let completion = pendingSpeechCompletion
         pendingSpeechCompletion = nil
         completion?()

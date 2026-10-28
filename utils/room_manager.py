@@ -172,6 +172,11 @@ class Room:
     #: The last finished game's ranking (broadcast.final_results): what every
     #: results screen shows, in order. Sent only while state is RESULTS.
     results: list = field(default_factory=list)
+    #: The Game Night show host's lines (games/show_host.py): queued here,
+    #: sent once each as a ``host_line`` event (broadcast.flush_host_lines).
+    host_queue: list = field(default_factory=list)
+    host_seq: int = 0
+    host_sent: int = 0
     # Bumped on start and on finish. A background pump captures the value it was
     # spawned with and exits as soon as it no longer matches, so a pump from a
     # previous round can never double-broadcast into the next one.

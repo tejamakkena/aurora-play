@@ -186,6 +186,8 @@ def start(room, playlist: list[str], kids: bool = False, party: dict | None = No
         room.night["party"] = cleaned
     room.game_id = playlist[0]
     _apply_kids_topic(room)
+    from games import show_host
+    show_host.night_opened(room)
     return room.night
 
 
@@ -223,9 +225,13 @@ def advance(room) -> str | None:
             winner = top[0]["name"] if top and top[0]["points"] > 0 else None
             party["finaleLines"] = night_party.finale_lines(
                 party, winner, top[0]["points"] if top else 0)
+        from games import show_host
+        show_host.night_closed(room)
         return None
     room.game_id = night["playlist"][night["index"]]
     _apply_kids_topic(room)
+    from games import show_host
+    show_host.game_up_next(room)
     return room.game_id
 
 

@@ -192,6 +192,12 @@ def scan_swift(files: list[str] | None = None) -> list[str]:
     return out
 
 
+def show_host_lines() -> list[str]:
+    """The Game Night show host's script (games/show_host.py): heard every night."""
+    from games import show_host
+    return show_host.all_lines()
+
+
 def extra_lines() -> list[str]:
     path = Path(__file__).with_name("voice_lines.txt")
     if not path.is_file():
@@ -208,6 +214,7 @@ def collect(sources: list[str], swift: bool) -> dict[str, str]:
     lines: list[str] = []
     if swift:
         lines.extend(scan_swift())
+        lines.extend(show_host_lines())
     lines.extend(extra_lines())
     for name in sources:
         lines.extend(SOURCES[name]())
