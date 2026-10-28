@@ -137,7 +137,22 @@ def _bluff_and_prompts() -> list[str]:
     return out
 
 
+def _nhie_and_songs() -> list[str]:
+    """Never Have I Ever statements and Guess the Song humor, as the TV reads them."""
+    from games import content_service as cs
+    from games.native_hub.engines import _humor as H
+    out = []
+    for kind in cs.KINDS:
+        if kind.startswith("nhie_"):
+            out.extend(f"Never have I ever {t}." for t in cs.all_items(kind))
+    for pack in H.PACKS.values():
+        for key in ("guessed", "missed", "filler"):
+            out.extend(pack[key])
+    return out
+
+
 SOURCES = {
+    "nhie_songs": _nhie_and_songs,
     "wyr": _wyr,
     "trivia": _trivia,
     "hot_takes": _hot_takes,

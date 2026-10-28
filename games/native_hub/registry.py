@@ -28,11 +28,13 @@ def _load_engines() -> None:
         party, midgroup, duel, solo,
         legacy_boards, legacy_cards, legacy_social, legacy_new,
         blast_runners, travel, talk, brain_battle, spoken, truth_dare, would_rather, host_lies,
+        never_have_i_ever, guess_the_song,
     )
 
     for module in (party, midgroup, duel, solo,
                    legacy_boards, legacy_cards, legacy_social, legacy_new,
-                   blast_runners, travel, talk, brain_battle, spoken, truth_dare, would_rather, host_lies):
+                   blast_runners, travel, talk, brain_battle, spoken, truth_dare, would_rather, host_lies,
+                   never_have_i_ever, guess_the_song):
         for gid, cls in module.ENGINES.items():
             register(gid, cls)
 

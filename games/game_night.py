@@ -34,6 +34,8 @@ CATALOG: dict[str, dict] = {
     "would_rather":       {"minutes": 8,  "kids": False, "tags": ["social"]},
     "host_lies":          {"minutes": 10, "kids": False, "tags": ["quiz", "social"]},
     "herd":               {"minutes": 8,  "kids": False, "tags": ["social"]},
+    "never_have_i_ever":  {"minutes": 10, "kids": False, "tags": ["social"]},
+    "guess_the_song":     {"minutes": 12, "kids": False, "tags": ["music"]},
     "bluff_it":           {"minutes": 10, "kids": False, "tags": ["social", "words"]},
     "emoji_movie":        {"minutes": 10, "kids": False, "tags": ["creative"]},
     "npat":               {"minutes": 10, "kids": True,  "tags": ["words"]},

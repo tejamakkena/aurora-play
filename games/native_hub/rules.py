@@ -315,6 +315,30 @@ RULES: dict[str, dict] = {
         ],
         "controls": "Tap A or B on your phone.",
     },
+    "never_have_i_ever": {
+        "title": "Never Have I Ever",
+        "objective": "Own up to the things you have done. The most confessions wins, tongue in cheek.",
+        "rules": [
+            "The host picks a pack first: a family-safe mix, themed packs, or an 18+ pack.",
+            "The TV reads a statement: Never have I ever...",
+            "Everyone secretly taps I have or Never on their phone.",
+            "The reveal shows who has. One confessor is picked to tell the story.",
+            "Each confession scores 1 point.",
+        ],
+        "controls": "Tap I have or Never on your phone.",
+    },
+    "guess_the_song": {
+        "title": "Guess the Song",
+        "objective": "Name a song that fits the word before the clock runs out.",
+        "rules": [
+            "A word shows on the TV and every phone, such as Train.",
+            "The team shouts a song with that word, its Hindi meaning, or the word in the scene.",
+            "A judge from the other team sees example answers and taps Guessed or Not guessed.",
+            "A guess scores 10 for the team, or 7 if the judge gave the Hindi hint.",
+            "A miss reveals the answers on the TV, with a joke.",
+        ],
+        "controls": "Shout your answers. The judge taps Guessed or Not guessed.",
+    },
     "truth_or_dare": {
         "title": "Truth or Dare",
         "objective": "Tell the truth or take the dare. Lie and the punishment is worse.",

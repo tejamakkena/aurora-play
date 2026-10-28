@@ -387,6 +387,44 @@ for _type, _attr, _what, _eg in (
             f"{_what}; tone: {_tone}", _eg)
 
 
+# Never Have I Ever: one kind per pack, so a table never hears a statement twice
+# (the "mix" draws from the non-adult packs). Only the family-safe packs let the
+# model grow them; the two adult packs stay hand-written.
+_NHIE = "games.native_hub.engines._nhie_packs"
+_NHIE_ASK = {
+    "classic": "everyday, harmless things most people have done once",
+    "funny": "funny, awkward everyday moments that make people laugh at themselves",
+    "desi": "relatable Indian family and culture moments (weddings, WhatsApp groups, "
+            "festivals, aunties, cricket, chai), never mocking any community",
+    "work": "office, school and college moments (meetings, exams, deadlines)",
+    "foodtravel": "cooking disasters, food habits and travel mishaps",
+}
+for _pack in ("classic", "funny", "desi", "work", "foodtravel", "party", "afterdark"):
+    _name = f"nhie_{_pack}"
+    KINDS[_name] = _text_kind(
+        _name, (lambda p=_pack: importlib.import_module(_NHIE).statements_for(p)), 110,
+        (f'statements that finish the sentence "Never have I ever ...": {_NHIE_ASK[_pack]}; '
+         "lower case, no full stop, never mean, explicit or dangerous")
+        if _pack in _NHIE_ASK else None,
+        '"eaten a whole pizza by myself"')
+
+
+def _parse_song_word(raw):
+    """A Guess the Song word: {"word", "hindi", "songs"[2-3]}."""
+    if not isinstance(raw, dict):
+        return None
+    word, hindi = _clean(raw.get("word"), 24), _clean(raw.get("hindi"), 40)
+    songs = [s for s in (_clean(x, 90) for x in raw.get("songs") or []) if s]
+    if not word or not hindi or not 2 <= len(songs) <= 3:
+        return None
+    return {"word": word, "hindi": hindi, "songs": songs}
+
+
+KINDS["song_word"] = Kind(
+    "song_word", _bundled("games.native_hub.engines._song_words", "WORDS"),
+    _parse_song_word, lambda i: dict(i), lambda i: norm_key(i["word"]), None)
+
+
 # ---------------------------------------------------------------------------
 # library + runtime pool
 # ---------------------------------------------------------------------------

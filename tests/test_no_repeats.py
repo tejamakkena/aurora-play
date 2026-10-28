@@ -40,7 +40,8 @@ def room_with(ids=("p0", "p1", "p2", "p3"), game_id="herd"):
 #: game night does not wrap round.
 LETTER_KINDS = {"npat_letter", "antakshari_letter", "atlas_letter"}
 #: Forfeits only come up when someone is caught lying, so a smaller deck is fine.
-MIN_POOL = {"antakshari_hint": 12, "td_punish_family": 20, "td_punish_teens": 20,
+MIN_POOL = {"nhie_foodtravel": 20, "nhie_work": 20, "nhie_desi": 20, "nhie_classic": 20,
+            "nhie_funny": 20, "nhie_party": 20, "nhie_afterdark": 20, "antakshari_hint": 12, "td_punish_family": 20, "td_punish_teens": 20,
             "td_punish_adults": 20}
 DEFAULT_MIN_POOL = 40
 
