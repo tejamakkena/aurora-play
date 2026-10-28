@@ -56,6 +56,8 @@ enum GameID: String, Codable, CaseIterable {
     case truthOrDare   = "truth_or_dare"
     case wouldRather   = "would_rather"
     case hostLies      = "host_lies"
+    case neverHaveIEver = "never_have_i_ever"
+    case guessTheSong   = "guess_the_song"
 
     // MARK: Mid group — roles, deduction and negotiation
     case cipherGrid        = "cipher_grid"
@@ -218,6 +220,17 @@ enum GameID: String, Codable, CaseIterable {
         case .wouldRather:
             return .init(displayName: "Would You Rather", sfSymbol: "arrow.left.arrow.right",
                          category: .party, minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .neverHaveIEver:
+            // Answers are private until the reveal: finding out who has is the game.
+            return .init(displayName: "Never Have I Ever", sfSymbol: "hand.raised.fill",
+                         category: .party, minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+        case .guessTheSong:
+            // The judge's phone shows the answers, so there is private info. The
+            // word itself is on every screen, so a round also works on phones alone.
+            return .init(displayName: "Guess the Song", sfSymbol: "music.mic",
+                         category: .party, minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .truthOrDare:
             // One phone runs the whole table (it types the names and judges),

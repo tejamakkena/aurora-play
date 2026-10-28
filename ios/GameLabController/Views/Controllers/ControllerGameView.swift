@@ -54,6 +54,8 @@ struct ControllerGameView: View {
         case .truthOrDare:   TruthDareControllerView(privateData: privateData, onAction: onAction)
         case .wouldRather:   WouldRatherControllerView(privateData: privateData, onAction: onAction)
         case .hostLies:      HostLiesControllerView(privateData: privateData, onAction: onAction)
+        case .neverHaveIEver: NeverHaveIEverControllerView(privateData: privateData, onAction: onAction)
+        case .guessTheSong:  GuessTheSongControllerView(privateData: privateData, onAction: onAction)
 
         // Mid group
         case .cipherGrid:    CipherGridControllerView(privateData: privateData, onAction: onAction)

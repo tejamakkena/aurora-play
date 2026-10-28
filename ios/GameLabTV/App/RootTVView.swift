@@ -70,7 +70,13 @@ struct RootTVView: View {
                                     onGameNight: vm.createNightRoom)
 
             case .lobby(let room):
-                TVLobbyView(room: room, isSolo: vm.isSolo, onStart: vm.startGame)
+                // A party night holds its welcome screen until the host begins
+                // and the voice has finished the welcome and the lineup.
+                if let party = room.night?.party, !(party.welcomed && vm.partyWelcomeDone) {
+                    TVPartyWelcomeView(room: room, party: party)
+                } else {
+                    TVLobbyView(room: room, isSolo: vm.isSolo, onStart: vm.startGame)
+                }
 
             case .playing(let room):
                 ZStack {
@@ -98,12 +104,18 @@ struct RootTVView: View {
                 }
 
             case .results(let room):
-                TVResultsView(room: room,
-                              onPlayAgain: vm.playAgain,
-                              onBackToGames: vm.quitToSelection,
-                              nightTotalsBefore: vm.nightTotalsBeforeGame,
-                              onNextGame: vm.nextGame,
-                              onEndNight: vm.endNight)
+                ZStack {
+                    TVResultsView(room: room,
+                                  onPlayAgain: vm.playAgain,
+                                  onBackToGames: vm.quitToSelection,
+                                  nightTotalsBefore: vm.nightTotalsBeforeGame,
+                                  onNextGame: vm.nextGame,
+                                  onEndNight: vm.endNight)
+                    if let night = room.night, night.finished,
+                       let lines = night.party?.finaleLines, !lines.isEmpty {
+                        TVPartyFinaleSpeaker(lines: lines)
+                    }
+                }
             }
         }
         .environmentObject(vm)
@@ -186,6 +198,9 @@ final class TVRootViewModel: ObservableObject {
     /// started, so the results screen can animate the points just earned.
     /// (The server's night JSON carries totals only, not per-game history.)
     @Published private(set) var nightTotalsBeforeGame: [String: Int] = [:]
+    /// The party welcome has been spoken (or skipped), so the lobby can show.
+    /// Reset whenever a party night is waiting to begin.
+    @Published var partyWelcomeDone = false
 
     private let socket = GameSocketManager.shared
 
@@ -220,6 +235,7 @@ final class TVRootViewModel: ObservableObject {
         socket.on(.roomUpdated) { [weak self] (response: Room) in
             guard let self else { return }
             Self.rememberRoom(response.code)
+            if response.night?.party?.welcomed != true { self.partyWelcomeDone = false }
             switch response.state {
             case .lobby:
                 // Used to auto-emit startGame instantly here for a solo
@@ -462,6 +478,12 @@ final class TVRootViewModel: ObservableObject {
             minutes: minutes,
             kids: kids
         ))
+    }
+
+    /// Lifts the party welcome screen (the host's phone normally does this).
+    func beginParty() {
+        guard case .lobby(let room) = screen else { return }
+        socket.emit(.beginParty, payload: RoomCodePayload(roomCode: room.code))
     }
 
     /// After a night game's results: on to the next game's lobby, or (after

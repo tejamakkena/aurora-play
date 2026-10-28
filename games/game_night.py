@@ -150,12 +150,27 @@ def _apply_kids_topic(room) -> None:
     night["kidsTopic"] = topic
 
 
-def start(room, playlist: list[str], kids: bool = False) -> dict:
+def start(room, playlist: list[str], kids: bool = False, party: dict | None = None) -> dict:
     room.night = {
         "playlist": list(playlist), "index": 0, "totals": {}, "names": {},
         "history": [], "finished": False, "startedAt": time.time(),
         "kids": bool(kids), "kidsSeed": random.randrange(len(KIDS_TOPICS)),
     }
+    if party is not None:
+        # A party (games/night_party.py): the TV holds a welcome screen until
+        # the host begins. The spoken lines are fixed here so every push of the
+        # room says the same thing.
+        from games import night_party
+        cleaned = night_party.clean_party(party)
+        cleaned.update({
+            "welcomed": False,
+            "title": night_party.title_for(cleaned),
+            "cheer": night_party.cheer_for(cleaned),
+            "welcomeLines": night_party.welcome_lines(cleaned),
+            "lineupLines": night_party.lineup_lines(cleaned, playlist),
+            "finaleLines": [],
+        })
+        room.night["party"] = cleaned
     room.game_id = playlist[0]
     _apply_kids_topic(room)
     return room.night
@@ -188,10 +203,26 @@ def advance(room) -> str | None:
     night["index"] += 1
     if night["index"] >= len(night["playlist"]):
         night["finished"] = True
+        party = night.get("party")
+        if party:
+            from games import night_party
+            top = standings(room)[:1]
+            winner = top[0]["name"] if top and top[0]["points"] > 0 else None
+            party["finaleLines"] = night_party.finale_lines(
+                party, winner, top[0]["points"] if top else 0)
         return None
     room.game_id = night["playlist"][night["index"]]
     _apply_kids_topic(room)
     return room.game_id
+
+
+def begin_party(room) -> bool:
+    """The host starts the show: the TV stops holding the welcome screen."""
+    party = (getattr(room, "night", None) or {}).get("party")
+    if not party or party.get("welcomed"):
+        return False
+    party["welcomed"] = True
+    return True
 
 
 def standings(room) -> list[dict]:
@@ -218,7 +249,16 @@ def to_json(room) -> dict | None:
         "standings": standings(room),
         "gamesPlayed": len(night["history"]),
         "kids": bool(night.get("kids")),
+        "party": _party_json(night.get("party")),
     }
+
+
+def _party_json(party: dict | None) -> dict | None:
+    if not party:
+        return None
+    return {k: party.get(k) for k in (
+        "occasion", "honoree", "title", "cheer", "welcomed",
+        "welcomeLines", "lineupLines", "finaleLines")}
 
 
 # ---------------------------------------------------------------------------

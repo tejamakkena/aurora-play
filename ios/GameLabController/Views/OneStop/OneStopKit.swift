@@ -149,6 +149,10 @@ enum OneStopEvents {
         GameSocketManager.shared.emit(.nextGame, payload: RoomCodePayload(roomCode: roomCode))
     }
 
+    static func beginParty(roomCode: String) {
+        GameSocketManager.shared.emit(.beginParty, payload: RoomCodePayload(roomCode: roomCode))
+    }
+
     static func endNight(roomCode: String) {
         GameSocketManager.shared.emit(.endNight, payload: RoomCodePayload(roomCode: roomCode))
     }

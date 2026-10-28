@@ -51,6 +51,26 @@ from each game.
 | Ludo | 2-4 | Single-choice moves play themselves. |
 | Chess | 2 | Board on the TV, moves on the phone; pawns auto-queen; capture the king to win. |
 | Speed Sculptor | 3-8 | Draw on the phone, then vote for the best drawing on the phone. |
+| Never Have I Ever | 2-20 | Everyone taps I have or Never in secret; the TV reveals who has and picks someone to tell the story. Packs: Surprise Mix, Classic, Funny, Desi, Work, Food and Travel, and two 18+ packs. |
+| Guess the Song | 2-20 | A word shows on every screen; the team names a song with that word, its Hindi meaning, or in the scene. A judge from the other team taps Guessed or Not guessed. Humor packs add the jokes. |
+
+## Party mode (Game Night as an occasion)
+
+On the host's phone, open **Game Night**, turn on **Make it a party** and pick the
+occasion (birthday, anniversary, housewarming, festival, New Year's Eve or
+get-together), the guest of honour's name, a host style (Party Host, Game Show,
+Desi Dost, Chill) and, if they are in the lineup, the humor style and the Never Have
+I Ever pack. Then start the night.
+
+- The TV holds a welcome screen ("Welcome to Venkat's Birthday Party", the room
+  code, who has joined) until the host taps **Begin the party** on the phone. The
+  remote has a Begin button too.
+- The TV's voice then speaks the welcome and announces the lineup, and the normal
+  first-game lobby follows. At the end it announces the champion.
+- Styles change the wording, not the voice: the TV keeps one consistent voice.
+  Lines without a name are part of the offline voice pack
+  (`tools/render_voice_pack.py`, source `nhie_songs` for the games' jokes).
+- Code: `games/night_party.py`, `begin_party` in `socket_events.py`, `Room.night.party`.
 
 ## No internet? Host on a laptop (LAN)
 
