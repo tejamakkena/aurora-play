@@ -7,13 +7,6 @@ import SwiftUI
 // The TV then holds a welcome screen ("Welcome to Venkat's Birthday Party") until
 // the host taps Begin, and a voice welcomes everyone and announces the games.
 
-/// One choice in the party form. `id` is the value the server stores.
-struct NightPartyChoice: Identifiable, Equatable {
-    let id: String
-    let title: String
-    let symbol: String
-}
-
 /// What the host picks. Sent with start_night (`NightPartyPayload`). The ids are
 /// the server's (night_party.py, _humor.py, _nhie_packs.py); it validates them.
 struct NightPartySettings: Equatable {
@@ -24,20 +17,8 @@ struct NightPartySettings: Equatable {
     var nhiePack = "mix"
     var nhieRounds = 10
 
-    static let occasions: [NightPartyChoice] = [
-        NightPartyChoice(id: "birthday", title: "Birthday", symbol: "gift.fill"),
-        NightPartyChoice(id: "anniversary", title: "Anniversary", symbol: "heart.fill"),
-        NightPartyChoice(id: "housewarming", title: "Housewarming", symbol: "house.fill"),
-        NightPartyChoice(id: "festival", title: "Festival", symbol: "sparkles"),
-        NightPartyChoice(id: "newyear", title: "New Year's Eve", symbol: "moon.stars.fill"),
-        NightPartyChoice(id: "gathering", title: "Get-together", symbol: "person.3.fill"),
-    ]
-    static let styles: [NightPartyChoice] = [
-        NightPartyChoice(id: "party_host", title: "Party Host", symbol: "party.popper.fill"),
-        NightPartyChoice(id: "game_show", title: "Game Show", symbol: "mic.fill"),
-        NightPartyChoice(id: "desi_dost", title: "Desi Dost", symbol: "hands.sparkles.fill"),
-        NightPartyChoice(id: "chill", title: "Chill", symbol: "cup.and.saucer.fill"),
-    ]
+    static let occasions = NightPartyOptions.occasions
+    static let styles = NightPartyOptions.styles
     static let humors: [NightPartyChoice] = [
         NightPartyChoice(id: "mix", title: "Surprise Mix", symbol: "shuffle"),
         NightPartyChoice(id: "desi", title: "Desi Masala", symbol: "flame.fill"),

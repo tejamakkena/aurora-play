@@ -393,9 +393,12 @@ private struct TVGameNightCardBody: View {
 struct TVNightSetupPanel: View {
     let playerCount: Int
     let focusNamespace: Namespace.ID
-    let onStart: (_ minutes: Int, _ kids: Bool, _ playlist: [String]) -> Void
+    let onStart: (_ minutes: Int, _ kids: Bool, _ playlist: [String], _ party: NightPartyPayload?) -> Void
 
     @State private var kids: Bool = false
+    /// nil = a plain night; otherwise index into NightPartyOptions.occasions.
+    @State private var occasionIndex: Int? = nil
+    @State private var styleIndex: Int = 0
     @State private var minutes: Int = 45
     @State private var preview: [PickedGame] = []
     @State private var isLoading: Bool = false
@@ -448,11 +451,13 @@ struct TVNightSetupPanel: View {
                     .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.mint, isSelected: kids))
                 }
 
+                partyRow
+
                 previewSection
                     .frame(height: 96, alignment: .topLeading)
 
                 Button {
-                    onStart(minutes, kids, preview.map { $0.id })
+                    onStart(minutes, kids, preview.map { $0.id }, partyPayload)
                 } label: {
                     Label("Start the night", systemImage: "sparkles")
                 }
@@ -463,6 +468,55 @@ struct TVNightSetupPanel: View {
         }
         .task(id: previewKey) {
             await loadPreview()
+        }
+    }
+
+    private var occasion: NightPartyChoice? {
+        occasionIndex.map { NightPartyOptions.occasions[$0] }
+    }
+
+    private var style: NightPartyChoice { NightPartyOptions.styles[styleIndex] }
+
+    /// The TV has no keyboard, so the guest of honour's name is left blank here
+    /// (the title reads "Birthday Party"); start from the host's phone to add it.
+    private var partyPayload: NightPartyPayload? {
+        guard let occasion else { return nil }
+        return NightPartyPayload(occasion: occasion.id, honoree: "", style: style.id,
+                                 humor: "mix", nhiePack: "mix", nhieRounds: 10)
+    }
+
+    /// Make the night a party: cycle the occasion, then the host style.
+    private var partyRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Button {
+                    if let index = occasionIndex {
+                        occasionIndex = index + 1 < NightPartyOptions.occasions.count ? index + 1 : nil
+                    } else {
+                        occasionIndex = 0
+                    }
+                } label: {
+                    Label(occasion.map { "Party: \($0.title)" } ?? "Party: Off",
+                          systemImage: occasion?.symbol ?? "party.popper")
+                }
+                .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.pink, isSelected: occasion != nil))
+
+                if occasion != nil {
+                    Button {
+                        styleIndex = (styleIndex + 1) % NightPartyOptions.styles.count
+                    } label: {
+                        Label("Host: \(style.title)", systemImage: style.symbol)
+                    }
+                    .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.gold, isSelected: false))
+                }
+            }
+            if occasion != nil {
+                Text("A welcome screen and a spoken lineup. Start from the host's phone to add a name.")
+                    .font(.system(size: 18, weight: .medium, design: .rounded))
+                    .foregroundColor(ShellTheme.textTertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
         }
     }
 
