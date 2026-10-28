@@ -32,6 +32,8 @@
     brain_battle:      ['Brain Battle', 'brain', 2, 12, false],
     host_lies:         ['The Host Is Lying', 'mic.fill', 2, 20, false],
     would_rather:      ['Would You Rather', 'arrow.left.arrow.right', 2, 20, false],
+    never_have_i_ever: ['Never Have I Ever', 'hand.raised.fill', 2, 20, true],
+    guess_the_song:    ['Guess the Song', 'music.mic', 2, 20, true],
     truth_or_dare:     ['Truth or Dare', 'bubble.left.and.bubble.right.fill', 1, 20, false],
     cipher_grid:       ['Cipher Grid', 'key.fill', 4, 12, true],
     odd_one_out:       ['Odd One Out', 'eyeglasses', 4, 10, true],

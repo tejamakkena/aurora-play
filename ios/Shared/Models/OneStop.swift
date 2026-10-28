@@ -16,11 +16,39 @@ struct GameNight: Codable, Equatable {
     var finished: Bool
     var standings: [NightStanding]
     var gamesPlayed: Int
+    /// The occasion, guest of honour and spoken script, when the host set up a
+    /// party (games/night_party.py). nil for a plain Game Night. Optional so
+    /// older servers still decode.
+    var party: NightParty? = nil
 
     /// The playlist as known games (unknown ids from a newer server are skipped).
     var games: [GameID] { playlist.compactMap { GameID(rawValue: $0) } }
     var nextGame: GameID? { next.flatMap { GameID(rawValue: $0) } }
     var champion: NightStanding? { finished ? standings.first : nil }
+}
+
+/// A Game Night dressed as an occasion. The TV holds a welcome screen until the
+/// host begins, then speaks `welcomeLines` and `lineupLines`; at the end it speaks
+/// `finaleLines`. The server fixes the wording, so every device agrees.
+struct NightParty: Codable, Equatable {
+    var occasion: String
+    var honoree: String
+    var title: String
+    var cheer: String
+    var welcomed: Bool
+    var welcomeLines: [String]
+    var lineupLines: [String]
+    var finaleLines: [String]
+}
+
+/// The host's party choices, sent with start_night (server: night_party.clean_party).
+struct NightPartyPayload: Encodable {
+    var occasion: String
+    var honoree: String
+    var style: String
+    var humor: String
+    var nhiePack: String
+    var nhieRounds: Int
 }
 
 struct NightStanding: Codable, Equatable, Identifiable {
@@ -37,6 +65,7 @@ struct StartNightPayload: Encodable {
     var playlist: [String]? = nil
     var minutes: Int? = nil
     var kids: Bool? = nil
+    var party: NightPartyPayload? = nil
 }
 
 struct RoomCodePayload: Encodable {

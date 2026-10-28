@@ -511,7 +511,9 @@ def register_native_events(socketio):
             if not playlist:
                 push_error(socketio, sid, "No games fit this group", "NO_GAMES")
                 return
-            game_night.start(room, playlist, kids=bool(data.get("kids")))
+            party = data.get("party")
+            game_night.start(room, playlist, kids=bool(data.get("kids")),
+                             party=party if isinstance(party, dict) else None)
             room.state = RoomState.LOBBY
             room.engine = None
             room.phase = "play"
@@ -549,6 +551,25 @@ def register_native_events(socketio):
                 profiles.record_night(finished)
             except Exception:
                 logger.exception("night profile record failed room=%s", code)
+        push_room(socketio, room)
+
+    @socketio.on("begin_party", namespace=NAMESPACE)
+    def handle_begin_party(data):
+        from games import game_night
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "begin the party"):
+                return
+            if not game_night.begin_party(room):
+                return
+            room.touch()
         push_room(socketio, room)
 
     @socketio.on("end_night", namespace=NAMESPACE)

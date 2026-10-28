@@ -20,6 +20,8 @@ struct GameNightPlannerCard: View {
     @State private var loading = false
     @State private var reloadToken = 0
     @State private var starting = false
+    @State private var partyOn = false
+    @State private var party = NightPartySettings()
 
     private static let minuteOptions = [30, 45, 60]
 
@@ -55,6 +57,24 @@ struct GameNightPlannerCard: View {
                     }
 
                     playlistPreview
+
+                    Toggle(isOn: $partyOn) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Label("Make it a party", systemImage: "party.popper.fill")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(.white.opacity(0.85))
+                            Text("A welcome screen on the TV, a spoken welcome and a lineup announcement")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundColor(.white.opacity(0.55))
+                        }
+                    }
+                    .tint(PhonePlayDesign.pink)
+
+                    if partyOn {
+                        NightPartyForm(settings: $party,
+                                       hasNeverHaveIEver: playlist.contains(.neverHaveIEver),
+                                       hasGuessTheSong: playlist.contains(.guessTheSong))
+                    }
 
                     OneStopPrimaryButton(title: starting ? "Starting..." : "Start Game Night",
                                          systemImage: "sparkles",
@@ -210,7 +230,8 @@ struct GameNightPlannerCard: View {
         OneStopEvents.startNight(StartNightPayload(roomCode: room.code,
                                                    playlist: ids.isEmpty ? nil : ids,
                                                    minutes: minutes,
-                                                   kids: kids))
+                                                   kids: kids,
+                                                   party: partyOn ? party.payload : nil))
         // room_updated swaps this card for the running scoreboard; re-enable
         // the button in case the server refused (e.g. no games fit).
         Task {
@@ -250,6 +271,10 @@ struct GameNightStatusCard: View {
                         .foregroundColor(.white.opacity(0.55))
                 }
                 Spacer()
+            }
+
+            if let party = night.party, !party.welcomed, !night.finished {
+                NightBeginPartyRow(room: room, party: party, isHost: isHost)
             }
 
             if night.finished {
