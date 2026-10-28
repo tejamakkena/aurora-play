@@ -23,6 +23,16 @@ MENUS: dict[str, list[dict]] = {
 }
 
 
+def _song_decks() -> list[dict]:
+    """Guess the Song's themes, from the word file: adding a deck there adds it here."""
+    from games.native_hub.engines._song_words import DECKS, MIX
+    choices = [[MIX, "Mixed"]] + [[deck_id, deck["title"]] for deck_id, deck in DECKS.items()]
+    return [{"key": "deck", "label": "Songs", "default": MIX, "choices": choices}]
+
+
+MENUS["guess_the_song"] = _song_decks()
+
+
 def menu(game_id: str) -> list[dict]:
     return MENUS.get(game_id, [])
 

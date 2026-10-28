@@ -27,14 +27,16 @@ def test_phone_song_deck_is_the_server_word_list():
         "run: python3 tools/gen_song_deck_swift.py"
 
 
-def test_song_words_are_unique_and_have_songs():
-    from games.native_hub.engines._song_words import WORDS
-    words = [w["word"].lower() for w in WORDS]
-    assert len(words) == len(set(words)) and len(words) >= 80
-    for entry in WORDS:
-        assert entry["hindi"] and 2 <= len(entry["songs"]) <= 3, entry["word"]
-        for song in entry["songs"]:
-            assert re.fullmatch(r".+ \(.+\)", song), song
+def test_song_decks_are_themed_like_charades():
+    """Each theme has its own words, a menu title and an SF Symbol; the hint
+    language is set per theme (none for English)."""
+    from games.native_hub.engines._song_words import DECKS
+    assert {"bollywood", "tollywood", "english"} <= set(DECKS)
+    for deck_id, deck in DECKS.items():
+        assert deck["title"] and deck["symbol"] and len(deck["words"]) >= 40, deck_id
+        for entry in deck["words"]:
+            for song in entry["songs"]:
+                assert re.fullmatch(r".+ \(.+\)", song), song
 
 
 # ---- Secret Story -----------------------------------------------------------------

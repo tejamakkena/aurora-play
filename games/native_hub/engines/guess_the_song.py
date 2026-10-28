@@ -16,6 +16,8 @@ Everything a phone needs is on the phone (the word, the clock, the verdict, the
 reveal), so a TV is a bonus rather than a requirement for playing the round.
 """
 
+import random
+
 from games import content_service as cs
 from games.native_hub.engines import _humor as H
 from games.native_hub.engines._bases import RoundBasedEngine
@@ -52,7 +54,9 @@ class GuessTheSongEngine(RoundBasedEngine):
         self.team_of: dict[str, int] = {}
         self.team_scores: list[int] = [0]
         self.used: set[str] = set()
-        self.entry: dict = {"word": "", "hindi": "", "songs": []}
+        self.entry: dict = {"word": "", "hint": "", "songs": []}
+        #: The deck this round's word came from (games/native_hub/engines/_song_words.py).
+        self.deck = "bollywood"
         self.active_team = 0
         self.judge_id: str | None = None
         self.hint_used = False
@@ -96,9 +100,12 @@ class GuessTheSongEngine(RoundBasedEngine):
     def begin_phase(self, phase: str) -> None:
         if phase != "guess":
             return
-        # A word this table has not been given before, from the content service.
-        self.entry = (cs.pick_one(self.room, "song_word", avoid=self.used)
-                      or {"word": "Train", "hindi": "Rail", "songs": ["Chaiyya Chaiyya (Dil Se)"]})
+        # A word this table has not been given before, from the content service,
+        # from the deck the lobby picked (or any deck, by size, for Mixed).
+        self.deck = self._pick_deck()
+        self.entry = (cs.pick_one(self.room, cs.song_kind(self.deck), avoid=self.used)
+                      or {"word": "Train", "hint": "Rail", "songs": ["Chaiyya Chaiyya (Dil Se)"]})
+        self.entry.setdefault("hint", self.entry.get("hindi", ""))
         self.used.add(cs.norm_key(self.entry["word"]))
         self.hint_used = False
         self.outcome = None
@@ -106,6 +113,20 @@ class GuessTheSongEngine(RoundBasedEngine):
         self.filler_line = ""
         self.active_team = (self.round - 1) % len(self.team_members)
         self.judge_id = self._pick_judge()
+
+    def _pick_deck(self) -> str:
+        from games.native_hub import options
+        from games.native_hub.engines._song_words import DECKS
+        picked = options.get(self.room, "deck")
+        if picked in DECKS:
+            return picked
+        ids = list(DECKS)
+        return random.choices(ids, weights=[len(DECKS[d]["words"]) for d in ids])[0]
+
+    @property
+    def hint_label(self) -> str:
+        from games.native_hub.engines._song_words import DECKS
+        return (DECKS.get(self.deck) or {}).get("hintLabel", "")
 
     def _pick_judge(self) -> str | None:
         connected = {p.id for p in self.room.connected_players()}
@@ -160,7 +181,7 @@ class GuessTheSongEngine(RoundBasedEngine):
                 self._settle(result)
                 self.enter_phase("reveal")
         elif action == "hint":
-            if self.phase == "guess" and self._can_judge(player_id):
+            if self.phase == "guess" and self._can_judge(player_id) and self.entry.get("hint"):
                 self.hint_used = True
 
     # ---- state -------------------------------------------------------------------
@@ -183,7 +204,9 @@ class GuessTheSongEngine(RoundBasedEngine):
         reveal = self.phase == "reveal"
         state.update({
             "word": self.entry["word"],
-            "hint": self.entry["hindi"] if self.hint_used else None,
+            "hint": self.entry["hint"] if self.hint_used else None,
+            "hintLabel": self.hint_label,
+            "deck": self.deck,
             "mode": "teams" if len(self.team_members) > 1 else "together",
             "activeTeam": self._team_info(self.active_team),
             "teams": self._teams_view(),
@@ -204,7 +227,9 @@ class GuessTheSongEngine(RoundBasedEngine):
         my_team = self.team_of.get(player_id)
         state.update({
             "word": self.entry["word"],
-            "hint": self.entry["hindi"] if self.hint_used else None,
+            "hint": self.entry["hint"] if self.hint_used else None,
+            "hintLabel": self.hint_label,
+            "deck": self.deck,
             "mode": "teams" if len(self.team_members) > 1 else "together",
             "activeTeam": self._team_info(self.active_team),
             "teams": self._teams_view(),
@@ -214,8 +239,9 @@ class GuessTheSongEngine(RoundBasedEngine):
             "judgeName": self.player_name(self.judge_id) if self.judge_id else None,
             "answers": (list(self.entry["songs"])
                         if self._answers_visible_to(player_id) else []),
-            # What the judge may read out as a hint.
-            "hindi": self.entry["hindi"] if can_judge else None,
+            # What the judge may read out as a hint ("hindi" is its older name;
+            # empty for a deck without hints).
+            "hindi": (self.entry["hint"] or None) if can_judge else None,
             "outcome": self.outcome if reveal else None,
             "humor": self.humor_line if reveal else "",
             "filler": self.filler_line if reveal else "",

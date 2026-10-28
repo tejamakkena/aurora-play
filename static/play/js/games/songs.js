@@ -65,7 +65,8 @@
       var isGuesser = pd.bool(d, 'isGuesser');
       var answers = pd.strings(d, 'answers');
       var hint = typeof d.hint === 'string' ? d.hint : null;
-      var hindi = typeof d.hindi === 'string' ? d.hindi : null;
+      var hindi = typeof d.hindi === 'string' ? d.hindi : null;      // the judge's hint
+      var hintLabel = typeof d.hintLabel === 'string' ? d.hintLabel : 'Hindi';
       var judgeName = pd.str(d, 'judgeName', 'The judge');
       var team = d.activeTeam && typeof d.activeTeam === 'object' ? d.activeTeam : {};
       var teamName = typeof team.name === 'string' ? team.name : 'Everyone';
@@ -85,8 +86,9 @@
       } else {
         var kids = [promptCard(word, 'Name a song with...', C.pink),
           h('div', { class: 'txt-center c-text2', style: { fontSize: '13px', padding: '0 24px' } },
-            'its Hindi meaning, the word in the title, or in the scene')];
-        if (hint) { kids.push(h('div', { class: 'txt-center', style: { fontWeight: 800, color: C.yellow, fontSize: '20px' } }, 'Hindi: ' + hint)); }
+            hintLabel ? 'its ' + hintLabel + ' meaning, the word in the title, or in the scene'
+                      : 'the word in the title, or in the scene')];
+        if (hint) { kids.push(h('div', { class: 'txt-center', style: { fontWeight: 800, color: C.yellow, fontSize: '20px' } }, (hintLabel || 'Hint') + ': ' + hint)); }
         if (phase === 'verdict') {
           kids.push(h('div', { class: 'txt-center', style: { fontWeight: 800, color: C.orange } },
             'Time is up! ' + (isJudge ? 'Your call.' : 'Waiting for ' + judgeName + '...')));
@@ -97,7 +99,7 @@
             answers.map(function (s) { return h('div', { style: { fontWeight: 700 } }, s); }),
             h('div', { class: 'c-text2', style: { fontSize: '12px' } }, 'Other songs that fit are fair game too.')));
           if (!hint && hindi && phase === 'guess') {
-            kids.push(ui.ctlButton({ title: 'Give the Hindi hint (' + hindi + ')', icon: 'lightbulb.fill', tint: C.yellow,
+            kids.push(ui.ctlButton({ title: 'Give the ' + (hintLabel ? hintLabel + ' ' : '') + 'hint (' + hindi + ')', icon: 'lightbulb.fill', tint: C.yellow,
               onClick: function () { ctx.send('hint', {}); } }));
           }
           kids.push(ui.ctlButton({ title: 'Guessed!', icon: 'checkmark.circle.fill', tint: C.green,

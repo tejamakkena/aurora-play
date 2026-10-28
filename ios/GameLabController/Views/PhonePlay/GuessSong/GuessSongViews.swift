@@ -62,12 +62,14 @@ private struct GuessSongSetupView: View {
                         Text("Guess the Song")
                             .font(.system(size: 32, weight: .black, design: .rounded))
                             .foregroundColor(.white)
-                        Text("A word comes up. Sing any song that fits it: the word in the title, its Hindi meaning, or the word in the scene. Rain? Tip Tip Barsa Paani!")
+                        Text("A word comes up. Sing any song that fits it: the word in the title, its meaning in the song's language, or the word in the scene. Rain? Tip Tip Barsa Paani!")
                             .font(.system(size: 15, weight: .semibold, design: .rounded))
                             .foregroundColor(PhonePlayDesign.text2)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 6)
+
+                    GuessSongThemePicker(game: game)
 
                     VStack(spacing: 10) {
                         PhonePlaySectionLabel(text: "Who plays")
@@ -119,7 +121,7 @@ private struct GuessSongSetupView: View {
                     PhonePlayHowToCard(steps: [
                         "The other team holds the phone and shows the word to the singers.",
                         "Sing a song that fits. The judge taps Sung it for 2 points, or Pass.",
-                        "Stuck? Hint shows the Hindi word, for 1 point.",
+                        "Stuck? Hint shows the word in Hindi or Telugu, for 1 point.",
                         "When time runs out, swap. Most points wins.",
                     ], accent: PhonePlayDesign.pink)
 
@@ -133,9 +135,6 @@ private struct GuessSongSetupView: View {
                     .background(RoundedRectangle(cornerRadius: PhonePlayDesign.buttonRadius, style: .continuous)
                         .fill(PhonePlayDesign.surface))
 
-                    Text("\(GuessSongDeck.words.count) words, Bollywood and English songs")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                        .foregroundColor(PhonePlayDesign.text3)
 
                     PhonePlayBigButton(title: "Start", symbol: "music.note", colors: GuessSongStyle.colors) {
                         game.start()
@@ -145,6 +144,38 @@ private struct GuessSongSetupView: View {
                 .padding(.bottom, 30)
             }
             .scrollDismissesKeyboard(.interactively)
+        }
+    }
+}
+
+// MARK: - Theme picker
+
+/// The song themes, like Forehead Charades' decks: Mixed or one theme. Themes
+/// come from the server's word file (tools/gen_song_deck_swift.py), so adding
+/// one there adds a chip here.
+private struct GuessSongThemePicker: View {
+    @ObservedObject var game: GuessSongViewModel
+
+    private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+
+    var body: some View {
+        VStack(spacing: 10) {
+            PhonePlaySectionLabel(text: "Songs")
+            LazyVGrid(columns: columns, spacing: 10) {
+                PhonePlayChip(title: "Mixed",
+                              subtitle: "\(GuessSongDeck.themes.reduce(0) { $0 + $1.words.count }) words",
+                              selected: game.themeID == GuessSongViewModel.mixed,
+                              colors: GuessSongStyle.colors) {
+                    game.themeID = GuessSongViewModel.mixed
+                }
+                ForEach(GuessSongDeck.themes) { theme in
+                    PhonePlayChip(title: theme.title, subtitle: "\(theme.words.count) words",
+                                  selected: game.themeID == theme.id,
+                                  colors: GuessSongStyle.colors) {
+                        game.themeID = theme.id
+                    }
+                }
+            }
         }
     }
 }
@@ -233,7 +264,7 @@ private struct GuessSongSingingView: View {
                         .id(word.word)
                         .transition(.scale(scale: 0.7).combined(with: .opacity))
                     if game.hintShown {
-                        Text("Hindi: \(word.hindi)")
+                        Text("\(game.hintLabel): \(word.hint)")
                             .font(.system(size: 26, weight: .heavy, design: .rounded))
                             .foregroundColor(PhonePlayDesign.yellow)
                             .transition(.opacity)
@@ -267,8 +298,10 @@ private struct GuessSongSingingView: View {
                     game.sung()
                 }
                 HStack(spacing: 12) {
-                    PhonePlayGhostButton(title: "Hint", symbol: "lightbulb.fill") { game.showHint() }
-                        .opacity(game.hintShown ? 0.4 : 1)
+                    if game.canHint {
+                        PhonePlayGhostButton(title: "\(game.hintLabel) hint", symbol: "lightbulb.fill") { game.showHint() }
+                            .opacity(game.hintShown ? 0.4 : 1)
+                    }
                     PhonePlayGhostButton(title: "Pass", symbol: "forward.fill") { game.pass() }
                 }
             }

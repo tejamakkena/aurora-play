@@ -410,19 +410,31 @@ for _pack in ("classic", "funny", "desi", "work", "foodtravel", "party", "afterd
 
 
 def _parse_song_word(raw):
-    """A Guess the Song word: {"word", "hindi", "songs"[2-3]}."""
+    """A Guess the Song word: {"word", "hint", "songs"[1-3]}. The hint is the
+    word in the deck's language, empty for a deck without hints (English);
+    "hindi" is the older name for it."""
     if not isinstance(raw, dict):
         return None
-    word, hindi = _clean(raw.get("word"), 24), _clean(raw.get("hindi"), 40)
+    word = _clean(raw.get("word"), 24)
+    hint = _clean(raw.get("hint") if "hint" in raw else raw.get("hindi"), 40)
     songs = [s for s in (_clean(x, 90) for x in raw.get("songs") or []) if s]
-    if not word or not hindi or not 2 <= len(songs) <= 3:
+    if not word or not 1 <= len(songs) <= 3:
         return None
-    return {"word": word, "hindi": hindi, "songs": songs}
+    return {"word": word, "hint": hint, "songs": songs}
 
 
-KINDS["song_word"] = Kind(
-    "song_word", _bundled("games.native_hub.engines._song_words", "WORDS"),
-    _parse_song_word, lambda i: dict(i), lambda i: norm_key(i["word"]), None)
+def song_kind(deck: str) -> str:
+    """The content kind for one Guess the Song deck ("song_word" is Bollywood,
+    the original deck, so a table's no-repeat history carries over)."""
+    return "song_word" if deck == "bollywood" else f"song_word_{deck}"
+
+
+_SONGS = "games.native_hub.engines._song_words"
+for _deck in importlib.import_module(_SONGS).DECKS:
+    KINDS[song_kind(_deck)] = Kind(
+        song_kind(_deck),
+        (lambda d=_deck: list(importlib.import_module(_SONGS).DECKS[d]["words"])),
+        _parse_song_word, lambda i: dict(i), lambda i: norm_key(i["word"]), None)
 
 
 # ---------------------------------------------------------------------------

@@ -6,9 +6,11 @@ import SwiftUI
 // The TV game (games/native_hub/engines/guess_the_song.py) on one phone, no TV
 // needed. Two teams take turns. On a team's turn the phone shows a word
 // ("Rain") and the team sings any song that fits it: the word in the title or
-// lyrics, its Hindi meaning (baarish), or the word in the scene (a train ->
+// lyrics, its meaning in the song's language (baarish), or the word in the scene (a train ->
 // "Chaiyya Chaiyya"). The other team holds the phone and judges: Sung it, or
-// Pass. A hint shows the Hindi word for half the points. When the clock runs
+// Pass. A hint shows the word in Hindi or Telugu for half the points. Like
+// Forehead Charades, the words come in themes (Bollywood, Tollywood, English,
+// or Mixed). When the clock runs
 // out the other team's turn begins. Each word shows a few songs that fit
 // afterwards, so everyone learns a few more for next time.
 //
@@ -36,6 +38,10 @@ final class GuessSongViewModel: ObservableObject {
     @Published var oneTeam: Bool = false
     @Published var turnSeconds: Int = 60
     @Published var roundsEach: Int = 3
+    /// A theme id (GuessSongDeck.themes) or `GuessSongViewModel.mixed` for all of them.
+    @Published var themeID: String {
+        didSet { UserDefaults.standard.set(themeID, forKey: GuessSongViewModel.themeKey) }
+    }
     @Published var soundOn: Bool {
         didSet { UserDefaults.standard.set(soundOn, forKey: GuessSongViewModel.soundKey) }
     }
@@ -45,12 +51,24 @@ final class GuessSongViewModel: ObservableObject {
     @Published private(set) var team: Int = 0
     @Published private(set) var turn: Int = 0
     @Published private(set) var current: GuessSongWord? = nil
+    /// The current word's hint language ("Hindi", "Telugu"; empty: no hint).
+    @Published private(set) var hintLabel: String = ""
     @Published private(set) var hintShown: Bool = false
     @Published private(set) var secondsLeft: Int = 60
     /// This turn's words, in order.
     @Published private(set) var outcomes: [Outcome] = []
     /// The word just played, shown with its songs for a moment.
     @Published private(set) var lastOutcome: Outcome? = nil
+
+    static let mixed = "mix"
+
+    /// The themes in play: the picked one, or every theme for Mixed.
+    var themes: [GuessSongTheme] {
+        let picked = GuessSongDeck.themes.filter { $0.id == themeID }
+        return picked.isEmpty ? GuessSongDeck.themes : picked
+    }
+    var wordCount: Int { themes.reduce(0) { $0 + $1.words.count } }
+    var canHint: Bool { !(current?.hint.isEmpty ?? true) }
 
     var teamCount: Int { oneTeam ? 1 : 2 }
     var totalTurns: Int { roundsEach * teamCount }
@@ -68,11 +86,14 @@ final class GuessSongViewModel: ObservableObject {
     private var token: Int = 0
     private var isActive: Bool = true
     private static let soundKey = "phoneplay_guesssong_sound"
+    private static let themeKey = "phoneplay_guesssong_theme"
     private static let tickSound: SystemSoundID = 1104
     private static let endSound: SystemSoundID = 1005
 
     init() {
         let defaults = UserDefaults.standard
+        let savedTheme = defaults.string(forKey: GuessSongViewModel.themeKey) ?? GuessSongViewModel.mixed
+        themeID = GuessSongDeck.themes.contains { $0.id == savedTheme } ? savedTheme : GuessSongViewModel.mixed
         soundOn = defaults.object(forKey: GuessSongViewModel.soundKey) == nil
             ? true : defaults.bool(forKey: GuessSongViewModel.soundKey)
     }
@@ -109,7 +130,7 @@ final class GuessSongViewModel: ObservableObject {
     }
 
     func showHint() {
-        guard stage == .singing, !hintShown else { return }
+        guard stage == .singing, !hintShown, canHint else { return }
         hintShown = true
         PhonePlayHaptics.tap()
     }
@@ -152,10 +173,17 @@ final class GuessSongViewModel: ObservableObject {
         deal()
     }
 
+    /// A word from the themes in play, never one this phone showed recently.
+    /// The dealer's key carries the theme, so "Rain" in Bollywood and "Rain" in
+    /// English are different cards.
     private func deal() {
-        let pool = GuessSongDeck.words.map(\.word)
-        let pick = dealer.draw(from: pool)
-        current = GuessSongDeck.words.first { $0.word == pick } ?? GuessSongDeck.words.randomElement()
+        var byKey: [String: (GuessSongWord, String)] = [:]
+        for theme in themes {
+            for word in theme.words { byKey["\(theme.id)|\(word.word)"] = (word, theme.hintLabel) }
+        }
+        guard let key = dealer.draw(from: Array(byKey.keys)), let picked = byKey[key] else { return }
+        current = picked.0
+        hintLabel = picked.1
         hintShown = false
     }
 
