@@ -101,6 +101,9 @@ final class PocketArcadeViewModel: ObservableObject {
     enum Stage { case menu, countdown, playing, finished }
 
     @Published private(set) var game: PocketArcadeGame = .lights
+    /// Opened from its own home tile: leaving the game goes home, not to the
+    /// arcade menu (PocketArcadeRootView).
+    var isDirect: Bool = false
     @Published private(set) var stage: Stage = .menu
     @Published private(set) var countdown: Int = 3
 

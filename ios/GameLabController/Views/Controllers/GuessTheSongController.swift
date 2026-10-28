@@ -15,7 +15,10 @@ struct GuessTheSongControllerView: View {
     private var isGuesser: Bool { privateData.bool("isGuesser") }
     private var answers: [String] { privateData.strings("answers") }
     private var hint: String? { privateData["hint"] as? String }
+    /// The judge's hint (the word in the deck's language; "hindi" is its older name).
     private var hindi: String? { privateData["hindi"] as? String }
+    /// "Hindi", "Telugu"... or empty for a deck without hints.
+    private var hintLabel: String { privateData["hintLabel"] as? String ?? "Hindi" }
     private var guessed: Bool { privateData.str("outcome") == "guessed" }
     private var humor: String { privateData.str("humor") }
     private var filler: String { privateData.str("filler") }
@@ -53,14 +56,15 @@ struct GuessTheSongControllerView: View {
                     .foregroundColor(.white)
                     .minimumScaleFactor(0.5).lineLimit(1)
                     .padding(.horizontal, 20)
-                Text("its Hindi meaning, the word in the title, or in the scene")
+                Text(hintLabel.isEmpty ? "the word in the title, or in the scene"
+                     : "its \(hintLabel) meaning, the word in the title, or in the scene")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundColor(PhonePlayDesign.text2)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 30)
 
                 if let hint {
-                    Text("Hindi: \(hint)")
+                    Text("\(hintLabel.isEmpty ? "Hint" : hintLabel): \(hint)")
                         .font(.system(size: 20, weight: .heavy, design: .rounded))
                         .foregroundColor(PhonePlayDesign.yellow)
                 }
@@ -115,7 +119,7 @@ struct GuessTheSongControllerView: View {
                     PhonePlayHaptics.tap()
                     onAction("hint", [:])
                 } label: {
-                    Label("Give the Hindi hint (\(hindi))", systemImage: "lightbulb.fill")
+                    Label("Give the \(hintLabel.isEmpty ? "" : hintLabel + " ")hint (\(hindi))", systemImage: "lightbulb.fill")
                         .font(.system(size: 15, weight: .heavy, design: .rounded))
                         .foregroundColor(PhonePlayDesign.yellow)
                         .padding(.horizontal, 16).padding(.vertical, 10)

@@ -26,6 +26,8 @@ final class TruthDareViewModel: ObservableObject {
         didSet { PhonePlayRoster.save(names) }
     }
     @Published private(set) var level: TruthDareLevel
+    /// Mixed (every card the level allows) or one theme (TruthDareTopics.swift).
+    @Published private(set) var topic: TruthDareTopic
 
     @Published private(set) var stage: Stage = .setup
     @Published private(set) var phase: Phase = .ready
@@ -52,6 +54,9 @@ final class TruthDareViewModel: ObservableObject {
 
     private var extraTruths: [TruthDareLevel: [String]] = [:]
     private var extraDares: [TruthDareLevel: [String]] = [:]
+    /// AI cards fetched while a topic was picked: they stay with that topic.
+    private var topicTruths: [TruthDareTopic: [String]] = [:]
+    private var topicDares: [TruthDareTopic: [String]] = [:]
     private var truthDealer = PhonePlayDealer(deck: "truth")
     private var dareDealer = PhonePlayDealer(deck: "dare")
     private var promptCounter: Int = 0
@@ -61,27 +66,44 @@ final class TruthDareViewModel: ObservableObject {
     private var isActive: Bool = true
 
     private static let levelKey = "phoneplay_truthdare_level"
+    private static let topicKey = "phoneplay_truthdare_topic"
 
     init() {
         names = Array(PhonePlayRoster.load().prefix(16))
         let saved = UserDefaults.standard.integer(forKey: TruthDareViewModel.levelKey)
         level = TruthDareLevel(rawValue: saved) ?? .family
+        let savedTopic = UserDefaults.standard.string(forKey: TruthDareViewModel.topicKey) ?? ""
+        topic = TruthDareTopic(rawValue: savedTopic) ?? .mixed
+        if topic.minLevel.rawValue > level.rawValue { topic = .mixed }
+    }
+
+    /// Topics this level allows (Couples needs Teens or above).
+    var topics: [TruthDareTopic] {
+        TruthDareTopic.allCases.filter { $0.minLevel.rawValue <= level.rawValue }
     }
 
     // MARK: - Pools
 
     private var truthPool: [String] {
+        if topic != .mixed { return topic.truths + (topicTruths[topic] ?? []) }
         var pool = TruthDareDeck.truths(upTo: level)
         for extraLevel in TruthDareLevel.allCases where extraLevel.rawValue <= level.rawValue {
             pool.append(contentsOf: extraTruths[extraLevel] ?? [])
+        }
+        for each in topics where each != .mixed {
+            pool.append(contentsOf: each.truths + (topicTruths[each] ?? []))
         }
         return pool
     }
 
     private var darePool: [String] {
+        if topic != .mixed { return topic.dares + (topicDares[topic] ?? []) }
         var pool = TruthDareDeck.dares(upTo: level)
         for extraLevel in TruthDareLevel.allCases where extraLevel.rawValue <= level.rawValue {
             pool.append(contentsOf: extraDares[extraLevel] ?? [])
+        }
+        for each in topics where each != .mixed {
+            pool.append(contentsOf: each.dares + (topicDares[each] ?? []))
         }
         return pool
     }
@@ -92,6 +114,14 @@ final class TruthDareViewModel: ObservableObject {
         guard newLevel != level else { return }
         level = newLevel
         UserDefaults.standard.set(newLevel.rawValue, forKey: TruthDareViewModel.levelKey)
+        if topic.minLevel.rawValue > newLevel.rawValue { setTopic(.mixed) }
+        if aiState != .loading { aiState = .idle }
+    }
+
+    func setTopic(_ newTopic: TruthDareTopic) {
+        guard newTopic != topic, newTopic.minLevel.rawValue <= level.rawValue else { return }
+        topic = newTopic
+        UserDefaults.standard.set(newTopic.rawValue, forKey: TruthDareViewModel.topicKey)
         if aiState != .loading { aiState = .idle }
     }
 
@@ -219,37 +249,54 @@ final class TruthDareViewModel: ObservableObject {
         guard aiState != .loading else { return }
         aiState = .loading
         let forLevel = level
+        let forTopic = topic
+        let aiTopic = forTopic == .mixed ? forLevel.aiTopic : "\(forTopic.aiTopic), for \(forLevel.aiTopic)"
         aiTask?.cancel()
         aiTask = Task { [weak self] in
-            async let truths: [String] = OneStopAPI.deck(kind: "truth", topic: forLevel.aiTopic, count: 20,
+            async let truths: [String] = OneStopAPI.deck(kind: "truth", topic: aiTopic, count: 20,
                                                          familySafe: forLevel.familySafe, language: "en")
-            async let dares: [String] = OneStopAPI.deck(kind: "dare", topic: forLevel.aiTopic, count: 20,
+            async let dares: [String] = OneStopAPI.deck(kind: "dare", topic: aiTopic, count: 20,
                                                         familySafe: forLevel.familySafe, language: "en")
             let newTruths: [String] = await truths
             let newDares: [String] = await dares
             guard let self, self.isActive else { return }
-            let added = self.mergeFresh(truths: newTruths, dares: newDares, level: forLevel)
+            let added = self.mergeFresh(truths: newTruths, dares: newDares, level: forLevel, topic: forTopic)
             self.aiState = added > 0 ? .added(added) : .idle
             if added > 0 { PhonePlayHaptics.success() }
         }
     }
 
-    private func mergeFresh(truths: [String], dares: [String], level forLevel: TruthDareLevel) -> Int {
+    private func mergeFresh(truths: [String], dares: [String], level forLevel: TruthDareLevel,
+                            topic forTopic: TruthDareTopic) -> Int {
         var knownTruths = TruthDareDeck.truths(upTo: .adults)
         var knownDares = TruthDareDeck.dares(upTo: .adults)
         for each in TruthDareLevel.allCases {
             knownTruths.append(contentsOf: extraTruths[each] ?? [])
             knownDares.append(contentsOf: extraDares[each] ?? [])
         }
+        for each in TruthDareTopic.allCases {
+            knownTruths.append(contentsOf: each.truths + (topicTruths[each] ?? []))
+            knownDares.append(contentsOf: each.dares + (topicDares[each] ?? []))
+        }
         let truthStart = knownTruths.count
         let dareStart = knownDares.count
         let addedTruths = PhonePlayAIDecks.merge(truths, into: &knownTruths)
         let addedDares = PhonePlayAIDecks.merge(dares, into: &knownDares)
         if addedTruths > 0 {
-            extraTruths[forLevel, default: []].append(contentsOf: knownTruths[truthStart...])
+            let fresh = Array(knownTruths[truthStart...])
+            if forTopic == .mixed {
+                extraTruths[forLevel, default: []].append(contentsOf: fresh)
+            } else {
+                topicTruths[forTopic, default: []].append(contentsOf: fresh)
+            }
         }
         if addedDares > 0 {
-            extraDares[forLevel, default: []].append(contentsOf: knownDares[dareStart...])
+            let fresh = Array(knownDares[dareStart...])
+            if forTopic == .mixed {
+                extraDares[forLevel, default: []].append(contentsOf: fresh)
+            } else {
+                topicDares[forTopic, default: []].append(contentsOf: fresh)
+            }
         }
         return addedTruths + addedDares
     }

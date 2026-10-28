@@ -7,7 +7,7 @@ import time
 import pytest
 
 from games.native_hub.engines import _humor as H
-from games.native_hub.engines._song_words import WORDS
+from games.native_hub.engines._song_words import DECKS, WORDS
 from games.native_hub.engines.guess_the_song import (
     GUESS_POINTS, HINT_POINTS, GuessTheSongEngine,
 )
@@ -23,9 +23,10 @@ class _NullBroadcaster:
     def error(self, *args, **kwargs): pass
 
 
-def make(players=4, config=None, seed=5):
+def make(players=4, config=None, seed=5, deck="bollywood"):
     random.seed(seed)
     room = RoomRegistry().create("guess_the_song")
+    room.options = {"deck": deck}
     roster = [room.add_player(f"p{i}", f"P{i}", f"s{i}") for i in range(players)]
     if config:
         room.night = {"party": config}      # what a Game Night's setup stores
@@ -42,25 +43,63 @@ def expire(engine):
 
 
 class TestWordBank:
-    def test_each_word_has_two_or_three_songs(self):
-        for entry in WORDS:
-            assert 2 <= len(entry["songs"]) <= 3, entry["word"]
+    @pytest.mark.parametrize("deck", sorted(DECKS))
+    def test_each_word_has_one_to_three_songs(self, deck):
+        for entry in DECKS[deck]["words"]:
+            assert 1 <= len(entry["songs"]) <= 3, entry["word"]
 
-    def test_words_are_unique_and_complete(self):
-        words = [e["word"].lower() for e in WORDS]
+    @pytest.mark.parametrize("deck", sorted(DECKS))
+    def test_words_are_unique_and_complete(self, deck):
+        words = [e["word"].lower() for e in DECKS[deck]["words"]]
         assert len(set(words)) == len(words)
-        for entry in WORDS:
-            assert entry["word"].strip() and entry["hindi"].strip()
+        needs_hint = bool(DECKS[deck]["hintLabel"])
+        for entry in DECKS[deck]["words"]:
+            assert entry["word"].strip()
+            assert bool(entry["hint"].strip()) == needs_hint, entry["word"]
             assert len(set(entry["songs"])) == len(entry["songs"]), entry["word"]
             for song in entry["songs"]:
                 assert song.strip() and "(" in song, song     # "Title (Film or Artist)"
 
-    def test_there_are_enough_words_for_a_long_game(self):
-        assert len(WORDS) >= 40
+    @pytest.mark.parametrize("deck", sorted(DECKS))
+    def test_there_are_enough_words_for_a_long_game(self, deck):
+        assert len(DECKS[deck]["words"]) >= 40
 
     def test_the_train_example_is_there(self):
         train = next(e for e in WORDS if e["word"] == "Train")
         assert any("Chaiyya Chaiyya" in s for s in train["songs"])
+
+    def test_the_lobby_offers_every_deck_and_mixed(self):
+        from games.native_hub import options
+        choices = [c[0] for c in options.menu("guess_the_song")[0]["choices"]]
+        assert choices == ["mix"] + list(DECKS)
+
+
+class TestDecks:
+    @pytest.mark.parametrize("deck", sorted(DECKS))
+    def test_a_picked_deck_only_deals_its_own_words(self, deck):
+        engine, _ = make(players=4, deck=deck)
+        words = {e["word"] for e in DECKS[deck]["words"]}
+        for _ in range(6):
+            assert engine.deck == deck and engine.entry["word"] in words
+            assert engine.public_state()["hintLabel"] == DECKS[deck]["hintLabel"]
+            engine.handle_action(engine.judge_id, "judge", {"result": "missed"})
+            expire(engine)
+
+    def test_mixed_deals_from_every_deck(self):
+        seen = set()
+        for seed in range(30):
+            engine, _ = make(players=4, deck="mix", seed=seed)
+            seen.add(engine.deck)
+        assert seen == set(DECKS)
+
+    def test_english_has_no_hint_to_give(self):
+        engine, _ = make(players=6, deck="english")
+        assert engine.private_state(engine.judge_id)["hindi"] is None
+        engine.handle_action(engine.judge_id, "hint", {})
+        assert engine.public_state()["hint"] is None
+        engine.handle_action(engine.judge_id, "judge", {"result": "guessed"})
+        member = engine.team_members[engine.active_team][0]
+        assert engine.scores[member] == GUESS_POINTS
 
 
 class TestHumor:
@@ -169,9 +208,9 @@ class TestRound:
     def test_the_hint_reveals_the_hindi_word_and_costs_points(self):
         engine, _ = make(players=6)
         assert engine.public_state()["hint"] is None
-        assert engine.private_state(engine.judge_id)["hindi"] == engine.entry["hindi"]
+        assert engine.private_state(engine.judge_id)["hindi"] == engine.entry["hint"]
         engine.handle_action(engine.judge_id, "hint", {})
-        assert engine.public_state()["hint"] == engine.entry["hindi"]
+        assert engine.public_state()["hint"] == engine.entry["hint"]
         engine.handle_action(engine.judge_id, "judge", {"result": "guessed"})
         member = engine.team_members[engine.active_team][0]
         assert engine.scores[member] == HINT_POINTS

@@ -21,7 +21,7 @@ struct HeadsUpDeck: Identifiable, Equatable {
 enum HeadsUpDecks {
 
     static let all: [HeadsUpDeck] = [
-        tollywoodMovies, bollywoodMovies, tollywoodActors, bollywoodActors, hollywoodMovies,
+        tollywoodMovies, bollywoodMovies, southMovies, tollywoodActors, bollywoodActors, hollywoodMovies,
         animals, cricket, food, jobs, home, places,
     ]
 
@@ -35,6 +35,12 @@ enum HeadsUpDecks {
         id: "bollywood_movies", title: "Bollywood Movies", symbol: "popcorn.fill",
         colorHex: ["FF512F", "DD2476"],
         words: HeadsUpData.bollywoodMovies
+    )
+
+    static let southMovies = HeadsUpDeck(
+        id: "south_movies", title: "South Indian Hits", symbol: "film.circle.fill",
+        colorHex: ["11998E", "38EF7D"],
+        words: HeadsUpData.southMovies
     )
 
     static let tollywoodActors = HeadsUpDeck(

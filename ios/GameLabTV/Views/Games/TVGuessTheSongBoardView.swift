@@ -27,6 +27,9 @@ struct GuessSongBoardState {
     var base = RoundBoardState()
     var word = ""
     var hint: String? = nil
+    /// The deck's language for the hint ("Hindi", "Telugu"); empty for a deck
+    /// without hints. Older servers send none: Hindi.
+    var hintLabel = "Hindi"
     var isTeamMode = false
     var activeTeam: GTSTeam? = nil
     var teams: [GTSTeam] = []
@@ -40,6 +43,7 @@ struct GuessSongBoardState {
         base.updateBase(from: d)
         word = d["word"]?.value as? String ?? ""
         hint = d["hint"]?.value as? String
+        hintLabel = d["hintLabel"]?.value as? String ?? "Hindi"
         isTeamMode = (d["mode"]?.value as? String) == "teams"
         activeTeam = GTSTeam(d["activeTeam"]?.value)
         teams = (d["teams"]?.value as? [Any] ?? []).compactMap { GTSTeam($0) }
@@ -104,11 +108,12 @@ struct TVGuessTheSongBoardView: View {
                                                 startPoint: .leading, endPoint: .trailing))
                 .lineLimit(1).minimumScaleFactor(0.4)
                 .padding(.horizontal, 100)
-            Text("its Hindi meaning, the word in the title, or in the scene")
+            Text(state.hintLabel.isEmpty ? "the word in the title, or in the scene"
+                 : "its \(state.hintLabel) meaning, the word in the title, or in the scene")
                 .font(.system(size: 26, weight: .medium, design: .rounded))
                 .foregroundColor(.white.opacity(0.55))
             if let hint = state.hint {
-                Text("Hindi: \(hint)")
+                Text("\(state.hintLabel.isEmpty ? "Hint" : state.hintLabel): \(hint)")
                     .font(.system(size: 40, weight: .heavy, design: .rounded))
                     .foregroundColor(ShellTheme.gold)
             }
