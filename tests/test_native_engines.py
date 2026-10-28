@@ -81,6 +81,8 @@ ACTIONS = {
     "raja_mantri": [("accuse", {"targetID": "p1"})],
     "trivia": [("answer", {"choiceIndex": 0, "questionID": "q1"})],
     "heist": [("set_cameras", {"cameras": ["cam_tl"]}), ("move", {"direction": "right"})],
+    "guess_the_song": [("hint", {}), ("judge", {"result": "guessed"}),
+                       ("judge", {"result": "missed"})],
     "never_have_i_ever": [("choose_pack", {"pack": "classic"}),
                           ("answer", {"choice": "have"})],
     "game_night": [("night_start", {"config": {"games": ["herd", "never_have_i_ever"]}}),

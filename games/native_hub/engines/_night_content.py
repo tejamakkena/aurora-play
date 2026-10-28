@@ -13,6 +13,7 @@ Swapping in recorded clips later only changes what the TV does with a line.
 import random
 from typing import Any
 
+from games.native_hub.engines import _humor as H
 from games.native_hub.engines import _nhie_packs as P
 
 # ---- Occasions -----------------------------------------------------------------
@@ -56,6 +57,8 @@ MAX_HONOREE_LEN = 30
 CATALOG = [
     {"id": "never_have_i_ever", "name": "Never Have I Ever", "emoji": "🙋",
      "blurb": "Confess to the things you've done. Packs from family-safe to spicy."},
+    {"id": "guess_the_song", "name": "Guess the Song", "emoji": "🎧",
+     "blurb": "A word appears. Name a song with that word, its Hindi meaning, or in the scene."},
     {"id": "herd", "name": "Herd", "emoji": "🐑",
      "blurb": "Think like the crowd. Match the majority to score."},
     {"id": "bluff_it", "name": "Bluff It", "emoji": "🎭",
@@ -217,6 +220,7 @@ def default_config() -> dict:
         "games": list(DEFAULT_GAMES),
         "nhiePack": P.DEFAULT_PACK,
         "nhieRounds": DEFAULT_NHIE_ROUNDS,
+        "humor": H.DEFAULT_PACK,
     }
 
 
@@ -261,6 +265,10 @@ def clean_config(raw: Any, base: dict | None = None) -> dict:
     pack = raw.get("nhiePack")
     if isinstance(pack, str) and pack in P.PACK_IDS:
         cfg["nhiePack"] = pack
+
+    humor = raw.get("humor")
+    if isinstance(humor, str) and humor in H.PACK_IDS:
+        cfg["humor"] = humor
 
     rounds = raw.get("nhieRounds")
     # bool is an int subclass; True must not become "1 round".
@@ -355,6 +363,8 @@ def interlude_lines(cfg: dict, game: dict, winner: str | None,
              if winner else say(cfg, "interlude_none", game=game["name"])]
     if leader:
         lines.append(say(cfg, "interlude_leader", leader=leader, points=points))
+    # A little banter between games, in the host's chosen humor style.
+    lines.append(H.filler(cfg.get("humor", H.DEFAULT_PACK)))
     return lines
 
 

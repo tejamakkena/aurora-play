@@ -51,6 +51,7 @@ enum GameID: String, Codable, CaseIterable {
     case npat          = "npat"
     case antakshari    = "antakshari"
     case neverHaveIEver = "never_have_i_ever"
+    case guessTheSong   = "guess_the_song"
 
     // MARK: Mid group — roles, deduction and negotiation
     case cipherGrid        = "cipher_grid"
@@ -184,6 +185,14 @@ enum GameID: String, Codable, CaseIterable {
             // Answers are private until the reveal -- the whole game is
             // finding out who has, so the phone shows what only you chose.
             return .init(displayName: "Never Have I Ever", emoji: "🙋", category: .party,
+                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
+                         phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
+
+        case .guessTheSong:
+            // The judge's phone shows the answers, so there is private info;
+            // the word itself is on every screen, which is why it also plays
+            // fine with phones alone.
+            return .init(displayName: "Guess the Song", emoji: "🎧", category: .party,
                          minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 

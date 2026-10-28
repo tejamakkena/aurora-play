@@ -72,6 +72,37 @@ night the pack is chosen during setup.
 To add statements, append to a list in `_nhie_packs.py`. Each completes the sentence
 "Never have I ever ..." and must not end in a full stop.
 
+## Guess the Song
+
+A word appears on the TV and on every phone. The team has to name a song that fits:
+the word's **Hindi meaning**, the word **in the title**, or the word **as a prop in
+the scene** (train: *Chaiyya Chaiyya*, shot on a train). They shout it out; a
+**judge**, the only person who can see the 2-3 example answers, taps **Guessed** or
+**Not guessed** on their phone.
+
+- **Guessed**: the team scores (10, or 7 if the judge gave the Hindi hint), and the
+  TV and phones say "Good job!" with a joke.
+- **Not guessed**: the TV and phones reveal the example songs, with a roast.
+- Four or more players split into two teams that alternate; the judge is from the
+  other team and rotates. With fewer, everyone is one team and the host judges.
+- Everything a phone needs is on the phone, so the round plays on phones alone; the
+  TV is a bonus. (Rooms are still created from the TV, like every game.)
+- In a Game Night it is just another game in the lineup; the judge's phone supplies
+  the guessed / not guessed points.
+
+Words live in `games/native_hub/engines/_song_words.py` (about 50, each with 2-3
+songs, mostly Bollywood with some English). They were assembled from published
+Bollywood song lists and spot-checked against the web; they are a static list for
+now, not fetched live. A song that is only loosely connected (a song *about* trains
+rather than shot on one) is still accepted by the judge. To add a word, append a dict.
+
+### Humor packs
+
+`games/native_hub/engines/_humor.py`: **Desi Masala**, **Dad Jokes**, **Savage Roast**
+and **Surprise Mix** (default). Each has praise (for a guess), reactions (for a
+miss) and between-round quips. The host picks the style in the Game Night setup; it
+is used in Guess the Song and for a joke at the end of every between-games recap.
+
 ## How it is built
 
 `GameNightEngine` (`games/native_hub/engines/game_night.py`) is an ordinary hub

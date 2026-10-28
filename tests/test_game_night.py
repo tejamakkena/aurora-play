@@ -62,6 +62,11 @@ class TestConfig:
         base = N.default_config()
         assert N.clean_config(junk, base) == base
 
+    def test_humor_pack_is_validated(self):
+        assert N.clean_config({"humor": "dad"})["humor"] == "dad"
+        assert N.clean_config({"humor": "nope"})["humor"] == N.default_config()["humor"]
+        assert N.clean_config({"humor": 4})["humor"] == N.default_config()["humor"]
+
     def test_bool_is_not_accepted_as_a_round_count(self):
         assert N.clean_config({"nhieRounds": True})["nhieRounds"] == N.DEFAULT_NHIE_ROUNDS
 
@@ -315,6 +320,33 @@ class TestShow:
         assert recap["winner"] == "P0" and recap["skipped"] is False
         assert [p.score for p in roster] == [10, 7]
         assert any("P0" in line for line in engine.announce["lines"])
+
+    def test_the_interlude_ends_with_a_joke_in_the_chosen_humor_style(self):
+        from games.native_hub.engines import _humor as H
+        engine, _, _ = make(players=2)
+        start_night(engine, games=["never_have_i_ever"], nhiePack="classic", humor="dad")
+        skip_ahead(engine, 3)
+        engine.inner.total_rounds = 1
+        engine.handle_action("p0", "answer", {"choice": "have"})
+        engine.handle_action("p1", "answer", {"choice": "never"})
+        engine.tick(0.1)
+        engine.inner.deadline = time.time() - 1
+        engine.tick(0.1)
+        assert engine.phase == "interlude"
+        assert engine.announce["lines"][-1] in H.PACKS["dad"]["filler"]
+
+    def test_guess_the_song_can_be_queued_and_gets_the_humor_pack(self):
+        engine, _, _ = make(players=4)
+        start_night(engine, games=["guess_the_song"], humor="savage")
+        skip_ahead(engine, 3)
+        assert engine.inner.game_id == "guess_the_song"
+        assert engine.inner.humor_pack == "savage"
+        assert "word" in engine.private_state("p1")
+
+    def test_the_host_is_offered_the_humor_packs(self):
+        engine, _, _ = make()
+        packs = engine.private_state("p0")["night"]["humorPacks"]
+        assert packs[0]["id"] == "mix" and len(packs) >= 4
 
     def test_the_tick_rate_follows_the_hosted_game(self):
         engine, _, _ = make()

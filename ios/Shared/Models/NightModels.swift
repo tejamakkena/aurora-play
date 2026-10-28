@@ -148,6 +148,8 @@ struct NightConfig: Equatable {
     var games: [String] = []
     var nhiePack = "mix"
     var nhieRounds = 10
+    /// Banter style for Guess the Song and the gaps between games.
+    var humor = "mix"
 
     init() {}
 
@@ -158,6 +160,7 @@ struct NightConfig: Equatable {
         games = JSON.strings(d, "games")
         nhiePack = JSON.string(d, "nhiePack", nhiePack)
         nhieRounds = JSON.int(d, "nhieRounds", nhieRounds)
+        humor = JSON.string(d, "humor", humor)
     }
 
     var payload: [String: Any] {
@@ -168,6 +171,7 @@ struct NightConfig: Equatable {
             "games": games,
             "nhiePack": nhiePack,
             "nhieRounds": nhieRounds,
+            "humor": humor,
         ]
     }
 }
@@ -180,6 +184,7 @@ struct NightSetup: Equatable {
     var occasions: [NightOption] = []
     var voicePacks: [NightOption] = []
     var nhiePacks: [NightOption] = []
+    var humorPacks: [NightOption] = []
     var roundChoices: [Int] = [10]
     var guestCount = 0
 
@@ -207,6 +212,11 @@ struct NightSetup: Equatable {
             NightOption(id: JSON.string($0, "id"), title: JSON.string($0, "name"),
                         emoji: JSON.string($0, "emoji"), detail: JSON.string($0, "blurb"),
                         flag: JSON.bool($0, "adult"))
+        }
+        humorPacks = JSON.dicts(d, "humorPacks").map {
+            NightOption(id: JSON.string($0, "id"), title: JSON.string($0, "name"),
+                        emoji: JSON.string($0, "emoji"), detail: JSON.string($0, "blurb"),
+                        flag: false)
         }
         let rounds = (d["nhieRoundChoices"] as? [Any] ?? []).compactMap { $0 as? Int }
         roundChoices = rounds.isEmpty ? [10] : rounds

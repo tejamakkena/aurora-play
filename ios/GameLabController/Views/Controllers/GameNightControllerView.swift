@@ -312,6 +312,7 @@ private struct NightSetupForm: View {
                         VStack(spacing: 22) {
                             gamesSection
                             nhieSection
+                            humorSection
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -320,6 +321,7 @@ private struct NightSetupForm: View {
                     voiceSection
                     gamesSection
                     nhieSection
+                    humorSection
                 }
                 BigButton(title: "Start the Night", systemImage: "play.fill",
                           enabled: !config.games.isEmpty) {
@@ -466,6 +468,20 @@ private struct NightSetupForm: View {
                         .buttonStyle(.plain)
                     }
                     Spacer(minLength: 0)
+                }
+            }
+        }
+    }
+
+    /// The jokes between rounds and between games.
+    private var humorSection: some View {
+        SetupSection(title: "😄 Humor style") {
+            LazyVGrid(columns: chipColumns, spacing: 10) {
+                ForEach(setup.humorPacks) { option in
+                    ChoiceChip(emoji: option.emoji, title: option.title, detail: option.detail,
+                               selected: option.id == config.humor) {
+                        config.humor = option.id
+                    }
                 }
             }
         }

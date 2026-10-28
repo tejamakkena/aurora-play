@@ -43,6 +43,7 @@ struct TVGameBoardView: View {
         case .npat:          TVNPATBoardView(room: room)
         case .antakshari:    TVAntakshariBoardView(room: room)
         case .neverHaveIEver: TVNeverHaveIEverBoardView(room: room)
+        case .guessTheSong:  TVGuessTheSongBoardView(room: room)
 
         // Mid group
         case .cipherGrid:    TVCipherGridBoardView(room: room)

@@ -30,6 +30,7 @@ import logging
 import time
 
 from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engines import _humor as H
 from games.native_hub.engines import _nhie_packs as P
 from games.native_hub.engines import _night_content as N
 from utils.room_manager import Player
@@ -513,6 +514,7 @@ class GameNightEngine(NativeGameEngine):
             night["voicePacks"] = N.voice_pack_options()
             night["nhiePacks"] = P.pack_options()
             night["nhieRoundChoices"] = list(N.NHIE_ROUND_CHOICES)
+            night["humorPacks"] = H.pack_options()
             night["guestCount"] = len(self.room.connected_players())
 
         if night["playing"] and player_id in self.inner_roster:
