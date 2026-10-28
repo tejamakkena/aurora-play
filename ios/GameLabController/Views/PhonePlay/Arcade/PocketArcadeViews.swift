@@ -26,6 +26,9 @@ struct PocketArcadeRootView: View {
             }
         }
         .animation(PhonePlayDesign.smooth, value: game.stage)
+        .onChange(of: game.stage) { _, stage in
+            if stage == .menu && game.isDirect { onExit() }
+        }
     }
 }
 

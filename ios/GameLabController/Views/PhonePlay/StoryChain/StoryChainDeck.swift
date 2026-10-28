@@ -1,115 +1,136 @@
 import Foundation
 
-// MARK: - Story Chain cards
+// MARK: - Secret Story templates
 //
-// Bundled and offline. Openers are the first line of a silly story, read
-// out by the phone's holder; every player then adds one sentence out loud.
-// Twists turn up every few turns and bend the next sentence. Everything
-// here is family friendly.
+// Bundled and offline. Each story has blanks; each player fills one in on the
+// phone without seeing anyone else's, then the phone puts them together and
+// reads the result aloud. `story` refers to blanks by number: {0}, {1}...
+// Prompts say what kind of answer fits, and each has an example (shown
+// greyed out in the box, and used if a player taps "Surprise me").
+// Everything here is family friendly and gender-neutral.
+
+struct SecretStoryBlank: Equatable {
+    let prompt: String
+    let example: String
+}
+
+struct SecretStoryTemplate: Equatable, Identifiable {
+    let id: String
+    let title: String
+    let symbol: String
+    let blanks: [SecretStoryBlank]
+    let story: String
+}
 
 enum StoryChainDeck {
 
-    static let openers: [String] = [
-        "The talking fridge had one final request...",
-        "Grandma's goldfish had been planning the bank robbery for years...",
-        "Nobody expected the school bus to start flying on a Tuesday...",
-        "The moment the pizza delivery driver whispered the password, everything changed...",
-        "Deep in the sock drawer, a tiny kingdom was preparing for war...",
-        "The dog finally learned to talk, and the first thing he said was...",
-        "On the night of the big talent show, the toaster went missing...",
-        "The wizard woke up to find his magic wand had been swapped for a carrot...",
-        "Every time Uncle Kevin sneezed, it started raining spaghetti...",
-        "The pirate ship was lost, mostly because the captain refused to ask for directions...",
-        "Aliens landed in the back garden, but they only wanted to borrow a ladder...",
-        "The haunted house was for sale, and the ghost was very fussy about buyers...",
-        "My left shoe woke up this morning with a terrible secret...",
-        "The museum's dinosaur skeleton was caught dancing after closing time...",
-        "The world's worst superhero had exactly one power: perfectly toasting bread...",
-        "A penguin walked into the library and asked for a book about deserts...",
-        "Somewhere under the city, the pigeons were holding an emergency meeting...",
-        "The robot butler had started taking very long lunch breaks...",
-        "When the clock struck thirteen, the cat put on a tiny hat...",
-        "The dragon was terrified of exactly one thing: birthday candles...",
-        "Halfway up the mountain, the hikers met a goat selling sunglasses...",
-        "The new teacher was definitely a vampire, and also very good at maths...",
-        "The vending machine only gave out advice, and today's advice was very strange...",
-        "Our neighbour built a rocket out of shopping trolleys...",
-        "The snowman refused to melt until he got his revenge...",
-        "The queen dropped the royal crown into a bowl of soup...",
-        "At exactly noon, every mirror in town started telling bad jokes...",
-        "The detective's only clue was a single soggy chip...",
-        "The family car had developed strong opinions about music...",
-        "The first cafe on the moon had just opened, and the coffee kept floating away...",
-        "The garden gnomes had finally had enough...",
-        "A mysterious parcel arrived, addressed to Whoever Is Brave Enough...",
-        "The world's slowest snail had somehow entered the Olympics...",
-        "The lighthouse keeper heard a knock on the door, in the middle of the sea, at midnight...",
-        "The baby elephant escaped from the zoo and went straight to the hairdresser...",
-        "Auntie Pam swore the cupcakes were not glowing on purpose...",
-        "The submarine crew had only one rule: never wake the octopus...",
-        "The time machine worked perfectly, except it only went back five minutes...",
-        "The scarecrow was elected mayor by accident...",
-        "Deep in the jungle, a parrot started repeating everyone's secrets...",
-        "The knight's armour was three sizes too big, and the dragon had noticed...",
-        "The school's lost property box had come to life...",
-        "A sandwich fell out of the sky and landed on the mayor's head...",
-        "The tooth fairy was running seriously low on coins...",
-        "When the power went out, the house plants started whispering...",
-        "The hotel lift had a button that nobody had ever dared to press...",
-        "The cowboy's horse was much better at cards than the cowboy...",
-        "The world's most famous chef had lost her sense of taste, and her favourite spoon...",
-        "At the bottom of the swimming pool, someone had painted a door...",
-        "Dad's new invention was supposed to fold the laundry...",
-        "The ghost had been haunting the wrong house for three hundred years...",
-        "Nobody knew why the bakery only opened at three in the morning...",
-        "The astronaut's cat had secretly been flying the spaceship all along...",
-        "Every sock in the house vanished on the same night...",
-        "The village's giant vegetable contest was going well, until the pumpkin moved...",
-        "The postman delivered a letter from the future...",
-        "The traffic lights had started playing rock, paper, scissors...",
-        "The prince was turned into a frog, and honestly, he preferred it...",
-        "At the stroke of midnight, the board game started playing itself...",
-        "The weather forecast said cloudy, with a chance of llamas...",
-        "The world's grumpiest unicorn had a dentist appointment...",
-        "Just as the wedding cake was cut, a trumpet sounded from inside it...",
+    static let templates: [SecretStoryTemplate] = [
+        SecretStoryTemplate(
+            id: "classic", title: "The Classic", symbol: "person.2.fill",
+            blanks: [
+                .init(prompt: "Name a person. Anyone: someone here, a film star, your aunt.", example: "Shah Rukh Khan"),
+                .init(prompt: "Name another person.", example: "the milkman"),
+                .init(prompt: "Where did they meet?", example: "on the roof of a moving bus"),
+                .init(prompt: "What did the first one say?", example: "Is this seat taken?"),
+                .init(prompt: "What did the other one say back?", example: "Only on Tuesdays"),
+                .init(prompt: "What happened next?", example: "they opened a samosa shop"),
+                .init(prompt: "What did the neighbours say about it?", example: "We always knew"),
+            ],
+            story: "{0} met {1} {2}. {0} said: \"{3}.\" {1} replied: \"{4}.\" And then {5}. The neighbours said: \"{6}.\""),
+        SecretStoryTemplate(
+            id: "bollywood", title: "Bollywood Blockbuster", symbol: "film.fill",
+            blanks: [
+                .init(prompt: "Our hero's name", example: "Raju"),
+                .init(prompt: "The other lead's name", example: "Simran"),
+                .init(prompt: "Where do they first meet?", example: "at a mango festival in Switzerland"),
+                .init(prompt: "What is the villain's evil plan?", example: "to cancel every wedding in India"),
+                .init(prompt: "Where do they suddenly break into a song?", example: "on a hilltop, in the rain"),
+                .init(prompt: "The shocking twist", example: "the villain is the hero's long-lost twin"),
+                .init(prompt: "How does the film end?", example: "everyone dances at a wedding"),
+            ],
+            story: "In this summer's biggest blockbuster, {0} meets {1} {2}. But the villain has a plan: {3}. Suddenly, they break into a song {4}. Then the twist: {5}! And in the end, {6}. Five stars."),
+        SecretStoryTemplate(
+            id: "news", title: "Breaking News", symbol: "newspaper.fill",
+            blanks: [
+                .init(prompt: "Somebody: a person or an animal", example: "a very confident goat"),
+                .init(prompt: "What did they do?", example: "stole the mayor's bicycle"),
+                .init(prompt: "Where?", example: "in the middle of a cricket match"),
+                .init(prompt: "Why? Their excuse", example: "I was late for yoga"),
+                .init(prompt: "What did an eyewitness say?", example: "I have seen things today"),
+                .init(prompt: "What do the police tell everyone to do?", example: "lock up their bicycles"),
+            ],
+            story: "Breaking news! Earlier today, {0} {1} {2}. When asked why, they said: \"{3}.\" One eyewitness told us: \"{4}.\" Police are asking everyone to {5}. Back to you in the studio."),
+        SecretStoryTemplate(
+            id: "wedding", title: "The Wedding Speech", symbol: "heart.fill",
+            blanks: [
+                .init(prompt: "One half of the happy couple", example: "Rohit"),
+                .init(prompt: "The other half", example: "Pooja"),
+                .init(prompt: "How did they meet?", example: "fighting over the last samosa"),
+                .init(prompt: "A secret talent", example: "crying at cooking shows"),
+                .init(prompt: "A terrible habit", example: "replying 'k' to every message"),
+                .init(prompt: "Advice for married life", example: "never share the remote"),
+                .init(prompt: "Raise your glasses to...", example: "free food"),
+            ],
+            story: "Friends and family, thank you for coming. {0} and {1} met {2}, and it was love at first sight. Not many people know that {0} has a secret talent: {3}. And {1}'s terrible habit? {4}. My advice for married life: {5}. So please, raise your glasses to {6}!"),
+        SecretStoryTemplate(
+            id: "interview", title: "The Job Interview", symbol: "briefcase.fill",
+            blanks: [
+                .init(prompt: "The candidate", example: "Uncle Mehta"),
+                .init(prompt: "The job they want", example: "astronaut"),
+                .init(prompt: "Their greatest strength", example: "eating very fast"),
+                .init(prompt: "Their greatest weakness", example: "scared of pigeons"),
+                .init(prompt: "Why did they leave their last job?", example: "the boss saw their dance videos"),
+                .init(prompt: "The boss's final decision", example: "hired, but only on weekends"),
+            ],
+            story: "Today, {0} came in for an interview for the job of {1}. Greatest strength? {2}. Greatest weakness? {3}. Why did they leave their last job? {4}. The final decision: {5}."),
+        SecretStoryTemplate(
+            id: "fairy", title: "A Fairy Tale", symbol: "sparkles",
+            blanks: [
+                .init(prompt: "Once upon a time there lived a...", example: "grumpy princess"),
+                .init(prompt: "Where did they live?", example: "a castle made of cheese"),
+                .init(prompt: "One day, the hero found...", example: "a talking spoon"),
+                .init(prompt: "It said...", example: "Do not open the fridge"),
+                .init(prompt: "So what did the hero do?", example: "opened the fridge"),
+                .init(prompt: "What was inside?", example: "a dragon eating ice cream"),
+                .init(prompt: "The moral of the story", example: "always read the label"),
+            ],
+            story: "Once upon a time, there lived a {0} in {1}. One day, they found {2}, and it said: \"{3}.\" So, naturally, they {4}. Inside was {5}! And the moral of the story: {6}."),
+        SecretStoryTemplate(
+            id: "postcard", title: "Holiday Postcard", symbol: "airplane",
+            blanks: [
+                .init(prompt: "Where did you go on holiday?", example: "Goa"),
+                .init(prompt: "Who did you go with?", example: "my dentist"),
+                .init(prompt: "What did you eat every single day?", example: "cold noodles"),
+                .init(prompt: "The worst thing that happened", example: "a monkey stole my passport"),
+                .init(prompt: "The best thing that happened", example: "I won a dance contest"),
+                .init(prompt: "Something you are bringing home", example: "a coconut named Steve"),
+            ],
+            story: "Greetings from {0}! I came here with {1}. Every day we ate {2}. The worst moment: {3}. The best moment: {4}. I am bringing home {5}. Wish you were here!"),
+        SecretStoryTemplate(
+            id: "superhero", title: "Superhero Origin", symbol: "bolt.fill",
+            blanks: [
+                .init(prompt: "A superhero name", example: "Captain Chutney"),
+                .init(prompt: "Their boring day job", example: "a sleepy bank clerk"),
+                .init(prompt: "How did they get their powers?", example: "bitten by a radioactive mosquito"),
+                .init(prompt: "Their superpower", example: "turning anything into pakoras"),
+                .init(prompt: "Their one weakness", example: "loud aunties"),
+                .init(prompt: "Their catchphrase", example: "Not today, traffic"),
+            ],
+            story: "By day, {1}. By night, {0}! It all began when they were {2}. Now they have the power of {3}. Their only weakness: {4}. And when danger strikes, they shout: \"{5}!\""),
     ]
 
-    static let twists: [String] = [
-        "Someone must sneeze",
-        "Add a villain",
-        "Rhyme your line",
-        "Bring in a talking animal",
-        "Something goes BOOM",
-        "Say your line in a whisper",
-        "Say your line like a robot",
-        "Use the word banana",
-        "Somebody falls in love",
-        "Add a twist nobody saw coming",
-        "It starts raining something strange",
-        "Somebody loses their trousers",
-        "Say it like a pirate",
-        "Somebody has to sing",
-        "Introduce a long-lost twin",
-        "Move the story to outer space",
-        "It was all a dream... or was it?",
-        "Somebody gets a superpower",
-        "Use three words that start with S",
-        "End with: and then it got worse",
-        "Add a secret door",
-        "Your line must be a question",
-        "Somebody gets stuck",
-        "Bring back the very first character",
-        "Add a very dramatic pause",
-        "Say it in your poshest voice",
-        "Someone cries happy tears",
-        "Introduce a magical object",
-        "The villain turns out to be nice",
-        "Jump forward one hundred years",
-        "Somebody has to dance",
-        "Mention a sandwich",
-        "Describe a terrible smell",
-        "Start a chase scene",
-        "Say your line in slow motion",
-        "Somebody's phone rings at the worst moment",
-    ]
+    /// The story with every blank filled. Trailing full stops, exclamation
+    /// and question marks are dropped from answers, since the story
+    /// supplies its own punctuation.
+    static func fill(_ template: SecretStoryTemplate, answers: [String]) -> String {
+        var text = template.story
+        for index in template.blanks.indices {
+            let raw = answers.indices.contains(index) ? answers[index] : ""
+            var answer = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            while let last = answer.last, ".!?".contains(last) { answer.removeLast() }
+            if answer.isEmpty { answer = template.blanks[index].example }
+            text = text.replacingOccurrences(of: "{\(index)}", with: answer)
+        }
+        return text
+    }
 }

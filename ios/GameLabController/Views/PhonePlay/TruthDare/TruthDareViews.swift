@@ -83,6 +83,19 @@ private struct TruthDareSetupView: View {
                                 }
                             }
                         }
+                        PhonePlaySectionLabel(text: "Topic")
+                            .padding(.top, 6)
+                        LazyVGrid(columns: [GridItem(.flexible(), spacing: 8),
+                                            GridItem(.flexible(), spacing: 8),
+                                            GridItem(.flexible(), spacing: 8)], spacing: 8) {
+                            ForEach(game.topics) { topic in
+                                PhonePlayChip(title: topic.title,
+                                              selected: game.topic == topic,
+                                              colors: TruthDareStyle.colors) {
+                                    game.setTopic(topic)
+                                }
+                            }
+                        }
                         Text("\(game.truthCount) truths and \(game.dareCount) dares ready")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                             .foregroundColor(PhonePlayDesign.text3)

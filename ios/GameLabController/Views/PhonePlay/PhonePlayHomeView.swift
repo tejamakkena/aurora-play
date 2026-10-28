@@ -3,8 +3,9 @@ import SwiftUI
 // MARK: - Phone Play root and home grid
 //
 // This is the app's home screen (ControllerScreen.join): a "Play on TV"
-// hero that opens the join sheet, then the Phone Play games, with Road
-// Trip Quiz (Travel Mode) among the party games.
+// hero that opens the join sheet, then the party games (with Road Trip Quiz,
+// Travel Mode, as a wide card), then "Brain and solo": the Mind Gym card and
+// every solo game as its own tile.
 
 struct PhonePlayRootView: View {
     @EnvironmentObject var vm: ControllerRootViewModel
@@ -24,6 +25,8 @@ struct PhonePlayRootView: View {
     private var content: some View {
         if play.active == .headsUp, let game = play.headsUp {
             HeadsUpRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .guessSong, let game = play.guessSong {
+            GuessSongRootView(game: game, onExit: play.closeGame)
         } else if play.active == .spy, let game = play.spy {
             SpyRootView(game: game, onExit: play.closeGame)
         } else if play.active == .mafia, let game = play.mafia {
@@ -94,16 +97,6 @@ struct PhonePlayHomeView: View {
 
                     PhoneHomeTVEntry(appeared: appeared, action: onPlayOnTV)
 
-                    PhonePlaySectionLabel(text: "Mind Gym")
-                        .padding(.top, 4)
-
-                    NeuroHomeCard(state: mindGym,
-                                  appeared: appeared,
-                                  onPlay: { play.open(.mindGym) },
-                                  onProgress: play.openMindScore,
-                                  quickDone: dailyDone,
-                                  onQuick: { play.open(.daily) })
-
                     PhonePlaySectionLabel(text: "Party games")
                         .padding(.top, 4)
 
@@ -127,8 +120,18 @@ struct PhonePlayHomeView: View {
                                       wide: true,
                                       action: onRoadTrip)
 
-                    PhonePlaySectionLabel(text: "Solo")
+                    // Everything played alone: the daily brain workout first,
+                    // then every solo game as its own tile (the arcade games
+                    // used to hide behind one "Puzzles & Arcade" tile).
+                    PhonePlaySectionLabel(text: "Brain and solo")
                         .padding(.top, 6)
+
+                    NeuroHomeCard(state: mindGym,
+                                  appeared: appeared,
+                                  onPlay: { play.open(.mindGym) },
+                                  onProgress: play.openMindScore,
+                                  quickDone: dailyDone,
+                                  onQuick: { play.open(.daily) })
 
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(Array(soloGames.enumerated()), id: \.element.id) { pair in
@@ -137,6 +140,14 @@ struct PhonePlayHomeView: View {
                                               index: partyGames.count + 1 + pair.offset,
                                               appeared: appeared) {
                                 play.open(pair.element)
+                            }
+                        }
+                        ForEach(Array(PocketArcadeGame.allCases.enumerated()), id: \.element.id) { pair in
+                            PhonePlayGameCard(info: PhonePlayCardInfo(arcade: pair.element),
+                                              badge: arcadeBadge(for: pair.element),
+                                              index: partyGames.count + 1 + soloGames.count + pair.offset,
+                                              appeared: appeared) {
+                                play.openArcade(pair.element)
                             }
                         }
                     }
@@ -170,6 +181,21 @@ struct PhonePlayHomeView: View {
         }
     }
 
+    /// The best score so far, once there is one.
+    private func arcadeBadge(for game: PocketArcadeGame) -> String? {
+        switch game {
+        case .lights:
+            let best = PocketArcadeStore.bestLights
+            return best > 0 ? "Best \(best)" : nil
+        case .rush:
+            let best = PocketArcadeStore.bestRush
+            return best > 0 ? "Best " + PocketArcadeStore.rushText(best) : nil
+        case .twenty48:
+            let best = PocketArcadeStore.bestTiles
+            return best > 0 ? "Best \(best)" : nil
+        }
+    }
+
     private func badge(for game: PhonePlayGame) -> String? {
         switch game {
         case .daily:
@@ -178,6 +204,8 @@ struct PhonePlayHomeView: View {
             return "New today"
         case .wordOfDay:
             return wordSeen ? nil : "New word"
+        case .guessSong:
+            return "New"
         case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
              .storyChain, .arcade, .mindGym:
             return nil
@@ -217,6 +245,11 @@ struct PhonePlayCardInfo {
     init(game: PhonePlayGame) {
         self.init(title: game.title, blurb: game.blurb, symbol: game.symbol,
                   colors: game.colors, players: game.players)
+    }
+
+    init(arcade game: PocketArcadeGame) {
+        self.init(title: game.title, blurb: game.blurb, symbol: game.symbol,
+                  colors: game.colors, players: "Solo")
     }
 
     static let roadTrip = PhonePlayCardInfo(

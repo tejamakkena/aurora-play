@@ -75,12 +75,15 @@ enum PhonePlayHaptics {
 
 // MARK: - Games
 
+/// The order here is the order of the home grid: the games groups reach
+/// for most come first.
 enum PhonePlayGame: String, CaseIterable, Identifiable {
     case headsUp
-    case spy
-    case mafia
+    case guessSong
     case truthOrDare
     case wouldYouRather
+    case spy
+    case mafia
     case hotPotato
     case storyChain
     case daily
@@ -95,20 +98,21 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         switch self {
         case .daily, .wordOfDay, .arcade, .mindGym:
             return true
-        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .storyChain:
+        case .headsUp, .guessSong, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .storyChain:
             return false
         }
     }
 
-    /// Mind Gym has its own hero card above the party games
-    /// (NeuroHomeCard), so it is not one of the grid cards. Daily Brain is
-    /// reached from that card too.
+    /// Mind Gym has its own hero card at the top of the solo games
+    /// (NeuroHomeCard), so it is not one of the grid cards; Daily Brain is
+    /// reached from that card too. The arcade's games each get their own
+    /// tile (PocketArcadeGame) instead of one "Arcade" tile hiding them.
     var isGridCard: Bool {
         switch self {
-        case .mindGym:
+        case .mindGym, .arcade:
             return false
-        case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
-             .storyChain, .wordOfDay, .arcade:
+        case .headsUp, .guessSong, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
+             .storyChain, .wordOfDay:
             return true
         case .daily:
             // Daily Brain lives on the Mind Gym card now ("Quick 5"): it was a
@@ -120,12 +124,13 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .headsUp:        return "Forehead Charades"
+        case .guessSong:      return "Guess the Song"
         case .spy:            return "Spy"
         case .mafia:          return "Mafia"
         case .truthOrDare:    return "Truth or Dare"
         case .wouldYouRather: return "Would You Rather"
         case .hotPotato:      return "Hot Potato"
-        case .storyChain:     return "Story Chain"
+        case .storyChain:     return "Secret Story"
         case .daily:          return "Daily Brain"
         case .wordOfDay:      return "Word of the Day"
         case .arcade:         return "Puzzles & Arcade"
@@ -136,12 +141,13 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     var blurb: String {
         switch self {
         case .headsUp:        return "Phone on your forehead. Tilt down if you got it."
+        case .guessSong:      return "A word pops up. Sing a song that fits before time runs out."
         case .spy:            return "Everyone knows the place except the spy."
         case .mafia:          return "A narrated night of secrets and a day of votes."
         case .truthOrDare:    return "Spin to pick a player, then truth or dare."
         case .wouldYouRather: return "Two choices, one phone. Pick a side."
         case .hotPotato:      return "Name one and pass before it blows."
-        case .storyChain:     return "One silly story, one line each, out loud."
+        case .storyChain:     return "Everyone secretly writes a bit. The phone reads the whole mess aloud."
         case .daily:          return "Five fresh puzzles a day. Keep your streak."
         case .wordOfDay:      return "One new word a day. Hear it, then use it."
         case .arcade:         return "2048, reflex games and puzzles. Beat your best."
@@ -152,6 +158,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .headsUp:        return "person.fill.questionmark"
+        case .guessSong:      return "music.mic"
         case .spy:            return "binoculars.fill"
         case .mafia:          return "theatermasks.fill"
         case .truthOrDare:    return "flame.fill"
@@ -168,6 +175,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     var colors: [Color] {
         switch self {
         case .headsUp:        return [PhonePlayDesign.orange, PhonePlayDesign.pink]
+        case .guessSong:      return [PhonePlayDesign.pink, PhonePlayDesign.orange]
         case .spy:            return [PhonePlayDesign.indigo, PhonePlayDesign.cyan]
         case .mafia:          return [PhonePlayDesign.red, PhonePlayDesign.purple]
         case .truthOrDare:    return [PhonePlayDesign.pink, PhonePlayDesign.purple]
@@ -184,6 +192,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     var players: String {
         switch self {
         case .headsUp:        return "2+ players"
+        case .guessSong:      return "2 teams or everyone"
         case .spy:            return "2-12 players"
         case .mafia:          return "5-15 players"
         case .truthOrDare:    return "2-16 players"
@@ -400,6 +409,7 @@ final class PhonePlayViewModel: ObservableObject {
     @Published private(set) var active: PhonePlayGame? = nil
 
     @Published private(set) var headsUp: HeadsUpViewModel? = nil
+    @Published private(set) var guessSong: GuessSongViewModel? = nil
     @Published private(set) var spy: SpyViewModel? = nil
     @Published private(set) var mafia: MafiaViewModel? = nil
     @Published private(set) var daily: DailyViewModel? = nil
@@ -419,19 +429,31 @@ final class PhonePlayViewModel: ObservableObject {
         closeGame()
         switch game {
         case .headsUp: headsUp = HeadsUpViewModel()
+        case .guessSong: guessSong = GuessSongViewModel()
         case .spy:     spy = SpyViewModel()
         case .mafia:   mafia = MafiaViewModel(speech: speech)
         case .daily:   daily = DailyViewModel()
         case .truthOrDare:    truthOrDare = TruthDareViewModel()
         case .wouldYouRather: wouldYouRather = WouldRatherViewModel()
         case .hotPotato:      hotPotato = HotPotatoViewModel()
-        case .storyChain:     storyChain = StoryChainViewModel()
+        case .storyChain:     storyChain = StoryChainViewModel(speech: speech)
         case .wordOfDay:      wordOfDay = WordDayViewModel()
         case .arcade:         arcade = PocketArcadeViewModel()
         case .mindGym:        mindGym = NeuroPulseViewModel()
         }
         PhonePlayHaptics.tap()
         active = game
+    }
+
+    /// An arcade tile on the home grid: straight into that game, and back
+    /// home (not to the arcade menu) when it is left.
+    func openArcade(_ choice: PocketArcadeGame) {
+        closeGame()
+        let model = PocketArcadeViewModel()
+        model.isDirect = true
+        model.play(choice)
+        arcade = model
+        active = .arcade
     }
 
     /// The home card's Progress link: the Mind Gym, opened straight onto
@@ -446,6 +468,7 @@ final class PhonePlayViewModel: ObservableObject {
     /// Back to the Phone Play grid.
     func closeGame() {
         headsUp?.shutdown()
+        guessSong?.shutdown()
         spy?.shutdown()
         mafia?.shutdown()
         daily?.shutdown()
@@ -457,6 +480,7 @@ final class PhonePlayViewModel: ObservableObject {
         arcade?.shutdown()
         mindGym?.shutdown()
         headsUp = nil
+        guessSong = nil
         spy = nil
         mafia = nil
         daily = nil

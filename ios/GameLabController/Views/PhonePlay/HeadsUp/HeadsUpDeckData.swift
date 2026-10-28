@@ -63,6 +63,16 @@ enum HeadsUpData {
         "Rebel", "Agnyaathavaasi", "Katamarayudu", "Sardaar Gabbar Singh",
         "Aadavari Matalaku Arthale Verule", "Anukokunda Oka Roju", "Mathu Vadalara", "Ooru Peru Bhairavakona",
         "Nenu Sailaja", "Sri Rama Rajyam", "Shankar Dada MBBS", "Nuvvu Leka Nenu Lenu",
+        "Mayabazar", "Missamma", "Gundamma Katha", "Lava Kusa", "Pathala Bhairavi", "Devadasu", "Mutyala Muggu",
+        "Geethanjali", "Chantabbai", "Rakshasudu", "Stalin", "Shankar Dada Zindabad", "Varsham", "Pournami",
+        "Kalisundam Raa", "Nuvvu Vasthavani", "Manasantha Nuvve", "Aanandam", "Okariki Okaru", "Bunny",
+        "Happy", "Kick 2", "Spyder", "Sarkaru Vaari Paata", "Evaru", "Mahanubhavudu", "Ek Niranjan",
+        "Billa", "Saaho", "Radhe Shyam", "Bujjigadu", "Chakram", "Eeswar", "Chandamama", "Maryada Ramanna",
+        "Aadi", "Allari Ramudu", "Rakhi", "Ramayya Vasthavayya", "Rabhasa", "Jai Lava Kusa", "Taxiwaala",
+        "Liger", "Family Star", "MCA Middle Class Abbayi", "Krishnagaadi Veera Prema Gaadha", "Gentleman",
+        "Shyam Singha Roy", "Saripodhaa Sanivaaram", "Ashta Chamma", "Pilla Zamindar", "Yevade Subramanyam",
+        "Love Story", "Premam", "Savyasachi", "Bangarraju", "Soggade Chinni Nayana", "Mass", "Sri Ramadasu",
+        "Ninne Premistha", "Hello", "Lucky Bhaskar", "Ka", "Court",
     ]
 
     static let bollywoodMovies: [String] = [
@@ -121,6 +131,20 @@ enum HeadsUpData {
         "Ghulam", "Golmaal Again", "Pyaar Ka Punchnama", "Sonu Ke Titu Ki Sweety",
         "Luka Chuppi", "Bhediya", "Kalank", "Veere Di Wedding",
         "Ludo", "Mimi", "Delhi Belly", "Sanam Teri Kasam",
+        "Mughal-e-Azam", "Mother India", "Pyaasa", "Kaagaz Ke Phool", "Guide", "Shree 420", "Awaara",
+        "Madhumati", "Padosan", "Chalti Ka Naam Gaadi", "Teesri Manzil", "Kati Patang", "Amar Prem",
+        "Seeta Aur Geeta", "Namak Halaal", "Shakti", "Shaan", "Trishul", "Kaalia", "Mard", "Naam", "Masoom",
+        "Jaane Bhi Do Yaaro", "Chashme Buddoor", "Angoor", "Judwaa", "Coolie No. 1", "Hero No. 1", "Biwi No. 1",
+        "Dulhe Raja", "Raja Babu", "Ishq", "Pardes", "Soldier", "Baadshah", "Dil", "Beta", "Main Khiladi Tu Anari",
+        "Yes Boss", "Dhadkan", "Ghajini", "Wanted", "Bodyguard", "Kick", "Singham", "Simmba", "All the Best",
+        "De Dana Dan", "Garam Masala", "Hulchul", "Malamaal Weekly", "Fukrey", "Go Goa Gone", "Hindi Medium",
+        "Vicky Donor", "Shubh Mangal Saavdhan", "Drishyam", "Drishyam 2", "Bhool Bhulaiyaa 2", "Housefull 4",
+        "Total Dhamaal", "Welcome Back", "Golmaal Returns", "Paheli", "Rock On!!", "Jaane Tu Ya Jaane Na",
+        "Udaan", "Band Baaja Baaraat", "Bachna Ae Haseeno", "Ajab Prem Ki Ghazab Kahani", "Badrinath Ki Dulhania",
+        "Humpty Sharma Ki Dulhania", "Kabir Singh", "Good Newwz", "Pad Man", "Tanhaji", "Super 30", "Gangubai Kathiawadi",
+        "Sardar Udham", "Tu Jhoothi Main Makkaar", "Teri Baaton Mein Aisa Uljha Jiya", "Crew", "Zara Hatke Zara Bachke",
+        "Satyaprem Ki Katha", "Dil Bechara", "Bang Bang", "Boss", "Ready", "Sui Dhaaga", "Dream Girl 2",
+        "Munna Michael", "Jagga Jasoos",
     ]
 
     static let tollywoodActors: [String] = [
@@ -265,6 +289,16 @@ enum HeadsUpData {
         "Hocus Pocus", "Beetlejuice", "Edward Scissorhands", "The Day After Tomorrow",
         "Rain Man", "Dead Poets Society", "Good Will Hunting", "A Beautiful Mind",
         "The Truman Show", "Groundhog Day", "Sister Act", "Space Jam",
+        "The Empire Strikes Back", "Jerry Maguire", "Sleepless in Seattle", "You've Got Mail", "When Harry Met Sally",
+        "Crazy Rich Asians", "The Devil Wears Prada", "13 Going on 30", "Paddington 2", "Elemental",
+        "Luca", "Turning Red", "Onward", "Raya and the Last Dragon", "Frozen 2", "Shrek 2", "Toy Story 3",
+        "The Boss Baby", "Megamind", "Rango", "The Croods", "Spider-Man Into the Spider-Verse", "Spider-Man No Way Home",
+        "Man of Steel", "Batman Begins", "The Batman", "Avatar The Way of Water", "Home Alone 2", "The Pursuit of Happyness",
+        "The Social Network", "The Prestige", "Tenet", "Dunkirk", "Ford v Ferrari", "Creed", "Furious 7",
+        "No Time to Die", "Kung Fu Hustle", "Shang-Chi", "Eternals", "Free Guy", "The Lion King 2019",
+        "Jungle Cruise", "Lightyear", "Migration", "Kung Fu Panda 4", "Despicable Me 4", "Puss in Boots The Last Wish",
+        "The Wild Robot", "Elio", "Lilo and Stitch 2025", "Jurassic World Rebirth", "Superman 2025",
+        "F1", "Night at the Museum 2", "Spider-Man 2", "Hook",
     ]
 
     static let animals: [String] = [
@@ -435,4 +469,18 @@ enum HeadsUpData {
         "Srisailam", "Ellora Caves", "Humayun's Tomb", "Akshardham",
     ]
 
+    /// Tamil, Malayalam and Kannada hits everyone knows, dubbed or not.
+    static let southMovies: [String] = [
+        "Baasha", "Muthu", "Padayappa", "Sivaji", "Enthiran", "2.0", "Kabali", "Jailer", "Petta", "Vikram",
+        "Leo", "Master", "Kaithi", "Mersal", "Bigil", "Thuppakki", "Ghilli", "Theri", "Asuran", "Vada Chennai",
+        "Anniyan", "Indian", "Mudhalvan", "Roja", "Bombay", "Alaipayuthey", "Nayakan", "Thalapathi",
+        "Anbe Sivam", "Michael Madana Kama Rajan", "Avvai Shanmugi", "Dasavathaaram", "Vettaiyaadu Vilaiyaadu",
+        "Kaakha Kaakha", "Vaaranam Aayiram", "Minnale", "Boys", "Sivakasi", "Pokkiri", "Vikram Vedha",
+        "Soorarai Pottru", "Jai Bhim", "Ponniyin Selvan", "Viswasam", "Mankatha", "Amaran", "Doctor",
+        "Maanaadu", "Kanchana", "Chandramukhi", "Thunivu", "Varisu", "Beast", "Remo", "Maari", "Velaiilla Pattadhari",
+        "96", "Kaththi", "Sarkar", "Visaranai", "Manichitrathazhu", "Kumbalangi Nights", "Bangalore Days",
+        "Lucifer", "Pulimurugan", "Minnal Murali", "2018", "Manjummel Boys", "Aavesham", "Premalu", "Bramayugam",
+        "Kilukkam", "Ustad Hotel", "Charlie", "Drishyam", "Premam", "Home", "KGF Chapter 1", "KGF Chapter 2",
+        "Kantara", "Kirik Party", "777 Charlie", "Mungaru Male", "Lucia", "Kantara Chapter 1",
+    ]
 }
