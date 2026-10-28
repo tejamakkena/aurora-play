@@ -402,6 +402,8 @@ struct TVNightSetupPanel: View {
     @State private var minutes: Int = 45
     @State private var preview: [PickedGame] = []
     @State private var isLoading: Bool = false
+    @State private var choosingOccasion: Bool = false
+    @State private var choosingStyle: Bool = false
 
     private static let lengths: [Int] = [30, 45, 60]
     private static let maxGames: Int = 8
@@ -409,7 +411,7 @@ struct TVNightSetupPanel: View {
     /// Picker suggestions need at least a duel's worth of players.
     private var pickerPlayers: Int { max(2, playerCount) }
 
-    private var previewKey: String { "\(pickerPlayers)-\(kids)-\(minutes)" }
+    private var previewKey: String { "\(pickerPlayers)-\(kids)-\(minutes)-\(occasion != nil)" }
 
     private var previewSlots: [TVNightSlot] {
         TVNightSlot.slots(from: preview.map { $0.id })
@@ -469,6 +471,23 @@ struct TVNightSetupPanel: View {
         .task(id: previewKey) {
             await loadPreview()
         }
+        .confirmationDialog("What's the occasion?", isPresented: $choosingOccasion,
+                            titleVisibility: .visible) {
+            ForEach(NightPartyOptions.occasions.indices, id: \.self) { index in
+                Button(NightPartyOptions.occasions[index].title) { occasionIndex = index }
+            }
+            Button("No party, just games") { occasionIndex = nil }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("A party night opens with a welcome screen and a spoken lineup, and puts Never Have I Ever and Guess the Song first.")
+        }
+        .confirmationDialog("How should the host talk?", isPresented: $choosingStyle,
+                            titleVisibility: .visible) {
+            ForEach(NightPartyOptions.styles.indices, id: \.self) { index in
+                Button(NightPartyOptions.styles[index].title) { styleIndex = index }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 
     private var occasion: NightPartyChoice? {
@@ -485,25 +504,21 @@ struct TVNightSetupPanel: View {
                                  humor: "mix", nhiePack: "mix", nhieRounds: 10)
     }
 
-    /// Make the night a party: cycle the occasion, then the host style.
+    /// Make the night a party: pick the occasion, then the host style, from a list.
     private var partyRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Button {
-                    if let index = occasionIndex {
-                        occasionIndex = index + 1 < NightPartyOptions.occasions.count ? index + 1 : nil
-                    } else {
-                        occasionIndex = 0
-                    }
+                    choosingOccasion = true
                 } label: {
-                    Label(occasion.map { "Party: \($0.title)" } ?? "Party: Off",
+                    Label(occasion.map { "Party: \($0.title)" } ?? "Make it a party",
                           systemImage: occasion?.symbol ?? "party.popper")
                 }
                 .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.pink, isSelected: occasion != nil))
 
                 if occasion != nil {
                     Button {
-                        styleIndex = (styleIndex + 1) % NightPartyOptions.styles.count
+                        choosingStyle = true
                     } label: {
                         Label("Host: \(style.title)", systemImage: style.symbol)
                     }
@@ -511,7 +526,7 @@ struct TVNightSetupPanel: View {
                 }
             }
             if occasion != nil {
-                Text("A welcome screen and a spoken lineup. Start from the host's phone to add a name.")
+                Text("Party games first, a welcome screen and a spoken lineup. Add a name from the host's phone.")
                     .font(.system(size: 18, weight: .medium, design: .rounded))
                     .foregroundColor(ShellTheme.textTertiary)
                     .lineLimit(1)
@@ -542,7 +557,8 @@ struct TVNightSetupPanel: View {
 
     private func loadPreview() async {
         isLoading = true
-        let picked: [PickedGame] = await OneStopAPI.pick(players: pickerPlayers, kids: kids, minutes: minutes)
+        let picked: [PickedGame] = await OneStopAPI.pick(players: pickerPlayers, kids: kids, minutes: minutes,
+                                                          party: occasion != nil)
         if Task.isCancelled { return }
         withAnimation(.easeInOut(duration: 0.3)) {
             preview = Self.lineup(from: picked, totalMinutes: minutes)

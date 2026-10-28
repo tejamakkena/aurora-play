@@ -500,6 +500,7 @@ def register_native_events(socketio):
             raw = data.get("playlist")
             playlist = [g for g in raw if isinstance(g, str) and g in ENGINES][:10] \
                 if isinstance(raw, list) else []
+            party = data.get("party")
             if not playlist:
                 try:
                     minutes = int(data.get("minutes") or 45)
@@ -507,11 +508,10 @@ def register_native_events(socketio):
                     minutes = 45
                 playlist = game_night.build_playlist(
                     max(1, len(room.connected_players())), bool(data.get("kids")),
-                    max(10, min(minutes, 180)))
+                    max(10, min(minutes, 180)), party=isinstance(party, dict))
             if not playlist:
                 push_error(socketio, sid, "No games fit this group", "NO_GAMES")
                 return
-            party = data.get("party")
             game_night.start(room, playlist, kids=bool(data.get("kids")),
                              party=party if isinstance(party, dict) else None)
             room.state = RoomState.LOBBY

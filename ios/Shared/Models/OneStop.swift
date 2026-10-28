@@ -166,10 +166,13 @@ enum OneStopAPI {
         return await send(r, as: ProfileEnvelope.self)?.profile
     }
 
-    static func pick(players: Int, kids: Bool, minutes: Int?) async -> [PickedGame] {
+    /// `party`: a party night, so Never Have I Ever, Guess the Song and the
+    /// other room-wide games come first (games/game_night.py pick_games).
+    static func pick(players: Int, kids: Bool, minutes: Int?, party: Bool = false) async -> [PickedGame] {
         var q = [URLQueryItem(name: "players", value: String(players)),
                  URLQueryItem(name: "kids", value: kids ? "1" : "0")]
         if let minutes { q.append(URLQueryItem(name: "minutes", value: String(minutes))) }
+        if party { q.append(URLQueryItem(name: "party", value: "1")) }
         guard let u = url("api/picker", q) else { return [] }
         var r = URLRequest(url: u)
         r.timeoutInterval = 20
