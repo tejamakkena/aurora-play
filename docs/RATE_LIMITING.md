@@ -89,7 +89,7 @@ venv/bin/python app.py
 
 # Run tests in another terminal
 cd /home/jarvis/.openclaw/workspace/gamelab2/gamelab2
-venv/bin/python test_rate_limiting.py
+venv/bin/python tools/rate_limit_check.py
 ```
 
 The test suite verifies:
