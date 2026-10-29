@@ -3,8 +3,8 @@
 Both endpoints keep third-party API keys server-side -- the iOS/tvOS apps
 never see them.
 
-    GET  /api/voice/tts?text=<urlencoded>&voice=<name>   -> audio/mpeg
-    POST /api/voice/tts  {"text": "...", "voice": "..."} -> audio/mpeg
+    GET  /api/voice/tts?text=<urlencoded>&voice=<name>&style=<style>   -> audio/mpeg
+    POST /api/voice/tts  {"text": "...", "voice": "...", "style": "..."} -> audio/mpeg
     POST /api/voice/grade {"question","options","correct_answer",
                           "transcript"}                 -> {"correct","method"}
 
@@ -15,6 +15,7 @@ long immutable Cache-Control. The POST form is for texts too long for a URL.
 Setup -- the PR description has the full checklist; the short version:
     OPENAI_API_KEY must be set for TTS (https://platform.openai.com/api-keys).
     TTS_MODEL / TTS_VOICE are optional (defaults: gpt-4o-mini-tts / marin).
+    TTS_PROVIDER=elevenlabs switches the voice to ElevenLabs (docs/VOICE.md).
     Grading reuses GEMINI_API_KEY via games.topic_gen, but the fuzzy matcher
     runs first, so the large majority of grades never touch the network.
 
@@ -32,6 +33,8 @@ import urllib.request
 from pathlib import Path
 
 from flask import Blueprint, Response, jsonify, request
+
+from games import voice_styles
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +65,21 @@ def _cache_dir() -> Path:
     return repo_root / "data" / "tts_cache"
 
 
-def _cache_key(model: str, voice: str, text: str) -> str:
-    return hashlib.sha256(f"{model}\x00{voice}\x00{text}".encode("utf-8")).hexdigest()
+def _cache_key(model: str, voice: str, text: str, instructions: str = "") -> str:
+    # No instructions: the same key as before, so audio cached earlier still hits.
+    extra = f"\x00{instructions}" if instructions else ""
+    return hashlib.sha256(f"{model}\x00{voice}\x00{text}{extra}".encode("utf-8")).hexdigest()
+
+
+def _instructions_for(model: str, style: str | None) -> str:
+    """The acting direction for this line, or "" for a model that takes none.
+
+    Only the gpt-4o voices follow ``instructions``; tts-1 would reject the field.
+    ``TTS_STYLES=0`` switches it off (flat voice, the old behaviour).
+    """
+    if not str(model).startswith("gpt-4o") or os.environ.get("TTS_STYLES", "1") == "0":
+        return ""
+    return voice_styles.resolve(style) or voice_styles.STYLES[voice_styles.DEFAULT]
 
 
 # --- daily cost cap ---------------------------------------------------------
@@ -100,8 +116,79 @@ def _tts_clean_for_speech(text: str) -> str:
     return text[:_TTS_MAX_CHARS]
 
 
-def synthesize_speech(text: str, voice: str | None = None) -> tuple[bytes, str]:
+_ELEVEN_API = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+
+
+def _eleven_config(style: str | None) -> dict:
+    """ElevenLabs settings from the environment. ``ELEVENLABS_VOICE_ID_INDIAN``
+    voices the "indian" style (Hindi and Telugu words); ``ELEVENLABS_VOICE_ID``
+    is every other line."""
+    voice_id = os.environ.get("ELEVENLABS_VOICE_ID", "")
+    if style == "indian" and os.environ.get("ELEVENLABS_VOICE_ID_INDIAN"):
+        voice_id = os.environ["ELEVENLABS_VOICE_ID_INDIAN"]
+    return {
+        "api_key": os.environ.get("ELEVENLABS_API_KEY"),
+        "voice_id": voice_id,
+        "model": os.environ.get("ELEVENLABS_MODEL", "eleven_v4"),
+    }
+
+
+def _synthesize_elevenlabs(text: str, style: str | None) -> tuple[bytes, str]:
+    """The same contract as ``synthesize_speech``, with the ElevenLabs voice.
+
+    Eleven v4 and v3 act a line from audio tags ("[excited]", "[giggles]"),
+    which ``voice_styles.tagged`` puts in front; other models would say the
+    brackets aloud, so they read the text as it is.
+    """
+    cfg = _eleven_config(style)
+    if not cfg["api_key"] or not cfg["voice_id"]:
+        raise VoiceError("ELEVENLABS_API_KEY or ELEVENLABS_VOICE_ID is not set")
+    takes_tags = cfg["model"] in ("eleven_v4", "eleven_v3")
+    spoken = voice_styles.tagged(text, style) if takes_tags else text
+
+    key = _cache_key(f"eleven:{cfg['model']}", cfg["voice_id"], spoken)
+    path = _cache_dir() / f"{key}.mp3"
+    try:
+        if path.is_file():
+            return path.read_bytes(), "cache"
+    except OSError:
+        pass
+
+    _check_cap(len(text))
+    body = {"text": spoken, "model_id": cfg["model"]}
+    if cfg["model"] == "eleven_v3":
+        body["voice_settings"] = {"stability": 0.5}      # v3: 0 creative, 0.5 natural, 1 robust
+    req = urllib.request.Request(
+        _ELEVEN_API.format(voice_id=urllib.parse.quote(cfg["voice_id"], safe="")) + "?output_format=mp3_44100_64",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"xi-api-key": cfg["api_key"], "Content-Type": "application/json",
+                 "Accept": "audio/mpeg", "User-Agent": "AuroraPlay/1.0 (quizmaster)"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=_TTS_TIMEOUT) as resp:
+            if resp.status != 200:
+                raise VoiceError(f"ElevenLabs HTTP {resp.status}")
+            audio = resp.read()
+    except VoiceError:
+        raise
+    except Exception as exc:
+        raise VoiceError(f"ElevenLabs request failed: {exc}")
+    if not audio:
+        raise VoiceError("ElevenLabs returned no audio")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(audio)
+    except OSError:
+        pass
+    return audio, "elevenlabs"
+
+
+def synthesize_speech(text: str, voice: str | None = None,
+                      style: str | None = None) -> tuple[bytes, str]:
     """Return (mp3_bytes, source). Source is 'cache' or 'openai'.
+
+    ``style`` names how it is said (games/voice_styles.py: "welcome", "roast",
+    or a Game Night host moment); no style is the warm host voice.
 
     Raises VoiceError when TTS is unavailable -- callers fall back to the
     on-device voice instead of failing the game.
@@ -110,10 +197,13 @@ def synthesize_speech(text: str, voice: str | None = None) -> tuple[bytes, str]:
     text = _tts_clean_for_speech(text)
     if not text:
         raise VoiceError("empty text")
+    if os.environ.get("TTS_PROVIDER", "openai") == "elevenlabs":
+        return _synthesize_elevenlabs(text, style)
     voice = (voice or cfg["voice"]).strip() or cfg["voice"]
     model = cfg["model"]
 
-    key = _cache_key(model, voice, text)
+    instructions = _instructions_for(model, style)
+    key = _cache_key(model, voice, text, instructions)
     path = _cache_dir() / f"{key}.mp3"
     try:
         if path.is_file():
@@ -126,12 +216,15 @@ def synthesize_speech(text: str, voice: str | None = None) -> tuple[bytes, str]:
 
     _check_cap(len(text))
 
-    payload = json.dumps({
+    body = {
         "model": model,
         "input": text,
         "voice": voice,
         "response_format": "mp3",
-    }).encode("utf-8")
+    }
+    if instructions:
+        body["instructions"] = instructions
+    payload = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(
         _TTS_API, data=payload,
         headers={
@@ -160,9 +253,9 @@ def synthesize_speech(text: str, voice: str | None = None) -> tuple[bytes, str]:
     return audio, "openai"
 
 
-def _tts_response(text: str, voice: str | None):
+def _tts_response(text: str, voice: str | None, style: str | None = None):
     try:
-        audio, source = synthesize_speech(text, voice)
+        audio, source = synthesize_speech(text, voice, style)
     except VoiceError as exc:
         return jsonify({"success": False, "error": str(exc)}), 502
     return Response(
@@ -181,10 +274,11 @@ def tts_get():
     """GET /api/voice/tts?text=...&voice=... -> audio/mpeg (cacheable)."""
     text = request.args.get("text", "")
     voice = request.args.get("voice") or None
+    style = request.args.get("style") or None
     if len(text) > 2000:
         return jsonify({"success": False,
                         "error": "text too long for GET; use POST"}), 413
-    return _tts_response(text, voice)
+    return _tts_response(text, voice, style)
 
 
 @voice_bp.route("/tts", methods=["POST"])
@@ -192,7 +286,7 @@ def tts_post():
     """POST /api/voice/tts {"text": ..., "voice": ...} -> audio/mpeg."""
     data = request.get_json(force=True, silent=True) or {}
     return _tts_response(str(data.get("text") or ""),
-                        data.get("voice") or None)
+                        data.get("voice") or None, data.get("style") or None)
 
 
 # ---------------------------------------------------------------------------

@@ -1,8 +1,9 @@
 """Guess the Song.
 
 A word goes up on the TV and on every phone. The team in play has to name a song
-that fits: the word's Hindi meaning, the word in the title, or the word as a prop
-in the scene (train -> "Chaiyya Chaiyya"). They shout it out loud; a judge, who is
+that fits: the word in the title, its meaning in the song, or the word as a prop
+in the scene (Rail -> "Chaiyya Chaiyya"). Hindi and Telugu decks show the word in
+that language; the hint is its English meaning. They shout it out loud; a judge, who is
 the only one who can see the answers, taps **Guessed** or **Not guessed**.
 
 * Four or more players split into two teams that take turns, and the judge is
@@ -10,7 +11,7 @@ the only one who can see the answers, taps **Guessed** or **Not guessed**.
   team and the host judges.
 * Guessed: the team scores, with praise and a joke. Not guessed: the TV reveals
   the answers, with a roast. A humor pack supplies the lines (see ``_humor``).
-* The judge can reveal the Hindi word as a hint for a reduced score.
+* The judge can reveal the English meaning as a hint for a reduced score.
 
 Everything a phone needs is on the phone (the word, the clock, the verdict, the
 reveal), so a TV is a bonus rather than a requirement for playing the round.
@@ -104,7 +105,7 @@ class GuessTheSongEngine(RoundBasedEngine):
         # from the deck the lobby picked (or any deck, by size, for Mixed).
         self.deck = self._pick_deck()
         self.entry = (cs.pick_one(self.room, cs.song_kind(self.deck), avoid=self.used)
-                      or {"word": "Train", "hint": "Rail", "songs": ["Chaiyya Chaiyya (Dil Se)"]})
+                      or {"word": "Rail", "hint": "Train", "songs": ["Chaiyya Chaiyya (Dil Se)"]})
         self.entry.setdefault("hint", self.entry.get("hindi", ""))
         self.used.add(cs.norm_key(self.entry["word"]))
         self.hint_used = False

@@ -129,7 +129,7 @@ struct TVPartyWelcomeView: View {
             return
         }
         caption = lines[index]
-        voice.speak(lines[index]) {
+        voice.speak(lines[index], style: index < party.welcomeLines.count ? "welcome" : "playful") {
             speak(lines, index: index + 1)
         }
     }
@@ -156,6 +156,6 @@ struct TVPartyFinaleSpeaker: View {
 
     private func speak(_ index: Int) {
         guard index < lines.count else { return }
-        voice.speak(lines[index]) { speak(index + 1) }
+        voice.speak(lines[index], style: "finale") { speak(index + 1) }
     }
 }

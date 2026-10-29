@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// TV board for Guess the Song. A word goes up; the team shouts a song that fits
-/// it (the Hindi meaning, the word in the title, or the word as a prop in the
+/// it (the word in the title, its meaning, or the word as a prop in the
 /// scene). A judge on a phone taps Guessed or Not guessed. The answers stay off
 /// this screen until the judge says the team missed. Then they appear here with a
 /// joke, and a guess gets praise and a joke.
@@ -27,9 +27,9 @@ struct GuessSongBoardState {
     var base = RoundBoardState()
     var word = ""
     var hint: String? = nil
-    /// The deck's language for the hint ("Hindi", "Telugu"); empty for a deck
-    /// without hints. Older servers send none: Hindi.
-    var hintLabel = "Hindi"
+    /// What the hint is ("English", the word's meaning); empty for a deck
+    /// without hints. Older servers send none: English.
+    var hintLabel = "English"
     var isTeamMode = false
     var activeTeam: GTSTeam? = nil
     var teams: [GTSTeam] = []
@@ -43,7 +43,7 @@ struct GuessSongBoardState {
         base.updateBase(from: d)
         word = d["word"]?.value as? String ?? ""
         hint = d["hint"]?.value as? String
-        hintLabel = d["hintLabel"]?.value as? String ?? "Hindi"
+        hintLabel = d["hintLabel"]?.value as? String ?? "English"
         isTeamMode = (d["mode"]?.value as? String) == "teams"
         activeTeam = GTSTeam(d["activeTeam"]?.value)
         teams = (d["teams"]?.value as? [Any] ?? []).compactMap { GTSTeam($0) }
@@ -89,11 +89,13 @@ struct TVGuessTheSongBoardView: View {
         .onAppear { vm.bind(roomCode: room.code) }
         .onChange(of: state.word) { _, word in
             guard !word.isEmpty, phase == "guess" else { return }
-            voice.speak("Your word is \(word).")
+            // A Hindi or Telugu word is said the way a native speaker would.
+            voice.speak("Your word is \(word).", style: state.hintLabel.isEmpty ? "quiz" : "indian")
         }
         .onChange(of: state.verdictKey) { _, key in
             guard !key.isEmpty, !state.humor.isEmpty else { return }
-            voice.speak((guessed ? "Good job! " : "Not guessed. ") + state.humor)
+            voice.speak((guessed ? "Good job! " : "Not guessed. ") + state.humor,
+                        style: guessed ? "playful" : "roast")
         }
     }
 
@@ -109,7 +111,7 @@ struct TVGuessTheSongBoardView: View {
                 .lineLimit(1).minimumScaleFactor(0.4)
                 .padding(.horizontal, 100)
             Text(state.hintLabel.isEmpty ? "the word in the title, or in the scene"
-                 : "its \(state.hintLabel) meaning, the word in the title, or in the scene")
+                 : "a song with the word, its meaning, or the word in the scene")
                 .font(.system(size: 26, weight: .medium, design: .rounded))
                 .foregroundColor(.white.opacity(0.55))
             if let hint = state.hint {

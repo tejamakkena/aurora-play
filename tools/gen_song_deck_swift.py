@@ -38,7 +38,7 @@ def render() -> str:
         "    let id: String",
         "    let title: String",
         "    let symbol: String",
-        "    /// \"Hindi\", \"Telugu\"... empty when the deck has no hints.",
+        "    /// \"English\" (the word's meaning); empty when the deck has no hints.",
         "    let hintLabel: String",
         "    let words: [GuessSongWord]",
         "}",

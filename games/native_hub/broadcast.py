@@ -17,6 +17,7 @@ import time
 
 from games.native_hub import NAMESPACE
 from games.native_hub import bots
+from games.native_hub import scoring
 from games.native_hub.registry import engine_for
 from utils.room_manager import RoomState, rooms
 
@@ -185,6 +186,8 @@ def final_results(room, results, forfeit: bool = False) -> list[dict]:
         player = room.player(row["playerID"])
         if player is not None:
             player.score = row["score"]
+        # What the score means for this game ("12 pts", "Winner", "" for none).
+        row["scoreLabel"] = scoring.label(room.game_id, row["score"])
     return rows
 
 

@@ -110,11 +110,15 @@ final class TVVoiceHost: NSObject, ObservableObject {
 
     /// The cloud voice's audio for `text`, or nil (offline, no API key,
     /// slow). Cached on disk, so repeated lines are instant.
-    nonisolated private static func fetchTTS(_ text: String, timeout: TimeInterval) async -> Data? {
+    nonisolated private static func fetchTTS(_ text: String, style: String?,
+                                              timeout: TimeInterval) async -> Data? {
         var components = URLComponents(
             url: AppConstants.serverURL.appendingPathComponent("api/voice/tts"),
             resolvingAgainstBaseURL: false)
-        components?.queryItems = [URLQueryItem(name: "text", value: text)]
+        var items = [URLQueryItem(name: "text", value: text)]
+        // How it is said (games/voice_styles.py); none = the warm host voice.
+        if let style, !style.isEmpty { items.append(URLQueryItem(name: "style", value: style)) }
+        components?.queryItems = items
         guard let url = components?.url else { return nil }
         var request = URLRequest(url: url)
         request.timeoutInterval = timeout
@@ -230,8 +234,12 @@ final class TVVoiceHost: NSObject, ObservableObject {
     /// the delivery. The Host Is Lying uses them for its tells: a rushed line,
     /// a long stall. Both default to "no change", so every other caller is
     /// untouched.
+    ///
+    /// `style` is how the cloud voice acts the line ("welcome", "roast", a Game
+    /// Night host moment, "indian" for Hindi and Telugu words); it does not
+    /// change the bundled clips, which were rendered in their own style.
     func speak(_ text: String, rate: Float = 1.0, preDelay: TimeInterval = 0,
-               completion: (() -> Void)? = nil) {
+               style: String? = nil, completion: (() -> Void)? = nil) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { completion?(); return }
         stopSpeaking()
@@ -270,7 +278,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
         // switching voices mid-game.
         let timeout: TimeInterval = Self.sessionVoice == .cloud ? 20 : 8
         Task { [weak self] in
-            let data = await Self.fetchTTS(trimmed, timeout: timeout)
+            let data = await Self.fetchTTS(trimmed, style: style, timeout: timeout)
             guard let self, token == self.speechToken else { return }
             if let data, let player = try? AVAudioPlayer(data: data) {
                 Self.sessionVoice = .cloud

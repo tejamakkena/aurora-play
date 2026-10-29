@@ -4,11 +4,11 @@ import SwiftUI
 // MARK: - Guess the Song (phone)
 //
 // The TV game (games/native_hub/engines/guess_the_song.py) on one phone, no TV
-// needed. Two teams take turns. On a team's turn the phone shows a word
-// ("Rain") and the team sings any song that fits it: the word in the title or
-// lyrics, its meaning in the song's language (baarish), or the word in the scene (a train ->
+// needed. Two teams take turns. On a team's turn the phone shows a word in the
+// deck's language ("Baarish") and the team sings any song that fits it: the word
+// in the title or lyrics, its meaning (rain), or the word in the scene (Rail ->
 // "Chaiyya Chaiyya"). The other team holds the phone and judges: Sung it, or
-// Pass. A hint shows the word in Hindi or Telugu for half the points. Like
+// Pass. A hint shows the word in English for half the points. Like
 // Forehead Charades, the words come in themes (Bollywood, Tollywood, English,
 // or Mixed). When the clock runs
 // out the other team's turn begins. Each word shows a few songs that fit
@@ -51,7 +51,7 @@ final class GuessSongViewModel: ObservableObject {
     @Published private(set) var team: Int = 0
     @Published private(set) var turn: Int = 0
     @Published private(set) var current: GuessSongWord? = nil
-    /// The current word's hint language ("Hindi", "Telugu"; empty: no hint).
+    /// What the current word's hint is ("English"; empty: no hint).
     @Published private(set) var hintLabel: String = ""
     @Published private(set) var hintShown: Bool = false
     @Published private(set) var secondsLeft: Int = 60

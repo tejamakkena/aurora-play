@@ -14,6 +14,8 @@ sentence with no clip (a player's name) is spoken live by the device voice.
 Engines
     openai  the same cloud voice the app uses today (games/voice.py), once per
             sentence; costs credits one time.
+    elevenlabs  the ElevenLabs voice (Eleven v4 acts from audio tags such as
+            [laughs]); needs ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID.
     piper   free, fully offline (https://github.com/rhasspy/piper, MIT; pin
             piper-tts==1.2.0). Check the licence of the voice model you pick.
     tone    a quiet beep, for testing the pipeline without any voice.
@@ -206,38 +208,77 @@ def extra_lines() -> list[str]:
             if ln.strip() and not ln.startswith("#")]
 
 
-def collect(sources: list[str], swift: bool) -> dict[str, str]:
-    """key -> sentence, for every sentence of every line (deduplicated)."""
+#: How each question source is read (games/voice_styles.py).
+SOURCE_STYLES = {
+    "nhie_songs": "playful",
+    "wyr": "quiz",
+    "trivia": "quiz",
+    "hot_takes": "host",
+    "truth_dare": "host",
+    "host_lies": "roast",
+    "prompts": "host",
+}
+
+
+def show_host_groups() -> list[tuple[str, list[str]]]:
+    """The Game Night host's lines, each moment in its own style."""
+    from games import show_host, voice_styles
+    return [(voice_styles.for_moment(moment), list(lines))
+            for moment, lines in show_host.LINES.items()]
+
+
+def collect_styled(sources: list[str], swift: bool) -> tuple[dict[str, str], dict[str, str]]:
+    """(key -> sentence, key -> style name), every sentence of every line once."""
     # Game narration first (Mafia, poker, Travel Mode...): a few hundred short
     # lines heard in every game. The question banks after it run to thousands,
     # so a run with --limit or --max-mb covers the narration before them.
-    lines: list[str] = []
+    groups: list[tuple[str, list[str]]] = []
     if swift:
-        lines.extend(scan_swift())
-        lines.extend(show_host_lines())
-    lines.extend(extra_lines())
+        groups.append(("narrator", scan_swift()))
+        groups.extend(show_host_groups())
+    groups.append(("host", extra_lines()))
     for name in sources:
-        lines.extend(SOURCES[name]())
+        groups.append((SOURCE_STYLES.get(name, "host"), SOURCES[name]()))
     clips: dict[str, str] = {}
-    for line in lines:
-        for piece in pieces(str(line)):
-            if len(piece) < 3 or not any(c.isalpha() for c in piece):
-                continue
-            clips.setdefault(key(piece), piece)
-    return clips
+    styles: dict[str, str] = {}
+    for style, lines in groups:
+        for line in lines:
+            for piece in pieces(str(line)):
+                if len(piece) < 3 or not any(c.isalpha() for c in piece):
+                    continue
+                k = key(piece)
+                if k not in clips:
+                    clips[k] = piece
+                    styles[k] = style
+    return clips, styles
+
+
+def collect(sources: list[str], swift: bool) -> dict[str, str]:
+    """key -> sentence, for every sentence of every line (deduplicated)."""
+    return collect_styled(sources, swift)[0]
 
 
 # ---------------------------------------------------------------------------
 # engines
 # ---------------------------------------------------------------------------
 
+#: Cut the silence a voice leaves before and after a sentence, then add back a
+#: short, even tail. Clips play one after another, so untrimmed silence stacked
+#: into odd pauses between sentences; this leaves one natural beat.
+TRIM = ("silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.02,"
+        "areverse,"
+        "silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.02,"
+        "areverse,"
+        "apad=pad_dur=0.14")
+
+
 def _ffmpeg(src: Path, dest: Path, extra: list[str] | None = None) -> None:
     cmd = ["ffmpeg", "-y", "-loglevel", "error", *(extra or []), "-i", str(src),
-           "-ac", "1", "-ar", "24000", "-c:a", "aac", "-b:a", "32k", str(dest)]
+           "-af", TRIM, "-ac", "1", "-ar", "24000", "-c:a", "aac", "-b:a", "32k", str(dest)]
     subprocess.run(cmd, check=True)
 
 
-def render_tone(text: str, dest: Path) -> None:
+def render_tone(text: str, dest: Path, style: str | None = None) -> None:
     # Length roughly follows the text so timing in the app feels real.
     seconds = max(0.4, min(8.0, len(text) / 15.0))
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i",
@@ -246,11 +287,26 @@ def render_tone(text: str, dest: Path) -> None:
     subprocess.run(cmd, check=True)
 
 
-def render_openai(text: str, dest: Path) -> None:
+def render_openai(text: str, dest: Path, style: str | None = None) -> None:
     os.environ.setdefault("TTS_DAILY_CHAR_CAP", "50000000")
     os.environ.setdefault("TTS_CACHE_PATH", str(Path(tempfile.gettempdir()) / "voice_pack_tts_cache"))
     from games.voice import synthesize_speech
-    audio, _source = synthesize_speech(text)
+    audio, _source = synthesize_speech(text, style=style)
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+        tmp.write(audio)
+    try:
+        _ffmpeg(Path(tmp.name), dest)
+    finally:
+        os.unlink(tmp.name)
+
+
+def render_elevenlabs(text: str, dest: Path, style: str | None = None) -> None:
+    """The ElevenLabs voice (games/voice.py), once per sentence."""
+    os.environ["TTS_PROVIDER"] = "elevenlabs"
+    os.environ.setdefault("TTS_DAILY_CHAR_CAP", "50000000")
+    os.environ.setdefault("TTS_CACHE_PATH", str(Path(tempfile.gettempdir()) / "voice_pack_tts_cache"))
+    from games.voice import synthesize_speech
+    audio, _source = synthesize_speech(text, style=style)
     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
         tmp.write(audio)
     try:
@@ -264,7 +320,7 @@ def make_piper_renderer(model: str):
     if not piper:
         sys.exit("piper not found on PATH (pip install piper-tts==1.2.0)")
 
-    def render(text: str, dest: Path) -> None:
+    def render(text: str, dest: Path, style: str | None = None) -> None:
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             wav = Path(tmp.name)
         try:
@@ -279,9 +335,38 @@ def make_piper_renderer(model: str):
 
 # ---------------------------------------------------------------------------
 
+#: A few lines in every style, to hear before paying for the whole pack.
+AUDITION = [
+    ("welcome", "Welcome, everyone, to Aanya's birthday night! Tonight, you are all on the show."),
+    ("hype", "Oh, it is neck and neck! One game left, and anyone can win it."),
+    ("roast", "Nobody got that one. Not one of you. I am not angry, just disappointed."),
+    ("playful", "And the crowd goes wild! That is a win for the red team."),
+    ("finale", "And tonight's champion is... Kavya! Give her a round of applause."),
+    ("narrator", "Everyone, close your eyes. The Mafia is waking up."),
+    ("quiz", "Which planet is known as the Red Planet? A: Mars. B: Venus. C: Jupiter. D: Saturn."),
+    ("indian", "Your word is Baarish. Sing a song with the word, or its meaning."),
+    ("indian", "Your word is Vaana. Think of a Telugu song with rain in it."),
+    ("kids", "Great job! You got three right. Ready for the next one?"),
+]
+
+
+def audition(out_dir: Path, engine: str = "openai") -> int:
+    """Render AUDITION with the OpenAI or ElevenLabs voice into ``out_dir`` and stop."""
+    render = render_elevenlabs if engine == "elevenlabs" else render_openai
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if not shutil.which("ffmpeg"):
+        sys.exit("ffmpeg not found on PATH")
+    for i, (style, text) in enumerate(AUDITION, 1):
+        dest = out_dir / f"{i:02d}-{style}.m4a"
+        render(text, dest, style)
+        print(f"  {dest.name}: {text[:60]}")
+    print(f"wrote {len(AUDITION)} clips to {out_dir}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--engine", choices=["openai", "piper", "tone"], default="openai")
+    ap.add_argument("--engine", choices=["openai", "elevenlabs", "piper", "tone"], default="openai")
     ap.add_argument("--piper-model", help="path to a Piper .onnx voice (with its .json beside it)")
     ap.add_argument("--sources", default=",".join(SOURCES), help=f"comma list of: {', '.join(SOURCES)}")
     ap.add_argument("--no-swift", action="store_true", help="skip string literals scanned from the Swift files")
@@ -290,7 +375,11 @@ def main() -> int:
     ap.add_argument("--max-mb", type=float, default=0, help="stop when the pack reaches this size")
     ap.add_argument("--out", help="write clips here instead of ios/Shared/Voice/Pack (for tests)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--audition", metavar="DIR",
+                    help="render a few lines in every style with the OpenAI voice into DIR, then stop")
     args = ap.parse_args()
+    if args.audition:
+        return audition(Path(args.audition), args.engine)
 
     names = [s for s in args.sources.split(",") if s]
     unknown = [s for s in names if s not in SOURCES]
@@ -299,11 +388,15 @@ def main() -> int:
     global PACK_DIR
     if args.out:
         PACK_DIR = Path(args.out)
-    clips = collect(names, swift=not args.no_swift)
+    clips, styles = collect_styled(names, swift=not args.no_swift)
     PACK_DIR.mkdir(parents=True, exist_ok=True)
     have = {p.stem for p in PACK_DIR.glob("*.m4a")}
     todo = [k for k in clips if args.force or k not in have]
     chars = sum(len(clips[k]) for k in todo)
+    by_style: dict[str, int] = {}
+    for k in todo:
+        by_style[styles.get(k, "host")] = by_style.get(styles.get(k, "host"), 0) + 1
+    print("by style: " + ", ".join(f"{s} {n}" for s, n in sorted(by_style.items())))
     print(f"{len(clips)} sentences, {len(have & set(clips))} already rendered, {len(todo)} to render "
           f"({chars:,} characters; about {len(todo) * 9 / 1024:.0f} MB at ~9 KB each)")
     if args.dry_run or not todo:
@@ -313,6 +406,8 @@ def main() -> int:
 
     if args.engine == "openai":
         render = render_openai
+    elif args.engine == "elevenlabs":
+        render = render_elevenlabs
     elif args.engine == "piper":
         if not args.piper_model:
             sys.exit("--piper-model is required for the piper engine")
@@ -329,7 +424,7 @@ def main() -> int:
             break
         dest = PACK_DIR / f"{k}.m4a"
         try:
-            render(clips[k], dest)
+            render(clips[k], dest, styles.get(k))
         except Exception as exc:   # one bad line must not lose the rest
             print(f"  skipped {k} ({clips[k][:50]!r}): {exc}")
             dest.unlink(missing_ok=True)

@@ -20,6 +20,8 @@ import time
 
 from flask import Blueprint, jsonify, request
 
+from games.native_hub import scoring
+
 #: Per-game facts the picker needs beyond min/max players (which come from
 #: the engine classes). minutes = a typical round; kids = part of Kids
 #: mode, which is LEARNING mode: only games that build knowledge or brain
@@ -197,12 +199,19 @@ def record_game(room, results: list) -> None:
     if not night or night.get("finished") or not isinstance(results, list):
         return
     gained = {}
+    # A game with no winner (Truth or Dare) or one the team lost (Defuse)
+    # gives everyone the same small point; placings only count when someone won.
+    no_winner = scoring.is_social(room.game_id) or (
+        scoring.is_coop(room.game_id)
+        and not any(isinstance(r, dict) and (r.get("score") or 0) > 0 for r in results))
     for r in results:
         if not isinstance(r, dict) or not r.get("playerID"):
             continue
         rank = r.get("rank")
         pts = NIGHT_POINTS[rank - 1] if isinstance(rank, int) and 1 <= rank <= len(NIGHT_POINTS) \
             else PARTICIPATION_POINTS
+        if no_winner:
+            pts = PARTICIPATION_POINTS
         pid = r["playerID"]
         gained[pid] = pts
         night["totals"][pid] = night["totals"].get(pid, 0) + pts
