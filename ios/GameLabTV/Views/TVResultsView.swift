@@ -15,6 +15,8 @@ struct TVResultsEntry: Identifiable, Equatable {
     var rank: Int
     /// A short note under the score ("Winner", "Out in round 3").
     var detail: String? = nil
+    /// What the score reads as ("12 pts", "Winner"); empty hides it.
+    var scoreText: String
 
     init(result: RoomResult, isBot: Bool) {
         id = result.playerID
@@ -23,6 +25,7 @@ struct TVResultsEntry: Identifiable, Equatable {
         self.isBot = isBot
         rank = result.rank
         detail = result.detail
+        scoreText = result.scoreLabel ?? "\(result.score) pts"
     }
 
     init(standing: NightStanding, rank: Int) {
@@ -31,6 +34,7 @@ struct TVResultsEntry: Identifiable, Equatable {
         score = standing.points
         isBot = standing.isBot ?? false
         self.rank = rank
+        scoreText = "\(standing.points) pts"
     }
 }
 
@@ -459,9 +463,11 @@ private struct PodiumColumn: View {
                     .foregroundColor(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                Text("\(player.score) pts")
-                    .font(ShellTheme.display(rank == 1 ? 28 : 24, weight: .heavy))
-                    .foregroundColor(rank == 1 ? ShellTheme.gold : ShellTheme.cyan)
+                if !player.scoreText.isEmpty {
+                    Text(player.scoreText)
+                        .font(ShellTheme.display(rank == 1 ? 28 : 24, weight: .heavy))
+                        .foregroundColor(rank == 1 ? ShellTheme.gold : ShellTheme.cyan)
+                }
                 if let detail = player.detail {
                     Text(detail)
                         .font(.system(size: 20, weight: .semibold, design: .rounded))
@@ -571,10 +577,12 @@ private struct RankingCard: View {
 
             Spacer(minLength: 8)
 
-            Text("\(player.score) pts")
-                .font(ShellTheme.display(isCompact ? 21 : 26, weight: .bold))
-                .foregroundColor(ShellTheme.cyan)
-                .lineLimit(1)
+            if !player.scoreText.isEmpty {
+                Text(player.scoreText)
+                    .font(ShellTheme.display(isCompact ? 21 : 26, weight: .bold))
+                    .foregroundColor(ShellTheme.cyan)
+                    .lineLimit(1)
+            }
         }
         .padding(.horizontal, isCompact ? 14 : 22)
         .padding(.vertical, isCompact ? 8 : 12)

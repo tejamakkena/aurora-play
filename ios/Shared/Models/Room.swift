@@ -56,6 +56,9 @@ struct RoomResult: Codable, Equatable, Identifiable {
     let rank: Int
     /// A short note shown with the score ("Winner", "Out in round 3").
     var detail: String? = nil
+    /// What the score means in this game ("12 pts", "Winner", "42 chips"); empty
+    /// when the game has no score to show. Older servers send none: "N pts".
+    var scoreLabel: String? = nil
 
     var id: String { playerID }
 }

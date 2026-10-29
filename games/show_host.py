@@ -401,7 +401,10 @@ def game_finished(room, results: list, before: list[dict],
     from games import game_night
     title = _game_title(room.game_id)
     top = [r for r in results if isinstance(r, dict) and r.get("rank") == 1]
-    if len(top) == 1:
+    from games.native_hub import scoring
+    if scoring.is_social(room.game_id) or scoring.is_coop(room.game_id):
+        pass                      # no winner to announce: everyone played, or won together
+    elif len(top) == 1:
         say(room, "game_won", f"{top[0].get('name') or 'Player'} wins {title}!", rng=rng)
     elif len(top) > 1:
         say(room, "game_tied", f"A tie in {title}!", rng=rng)
