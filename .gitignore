@@ -46,3 +46,9 @@ ios/Shared/Resources/BuildStamp.json
 # Server runtime state (content histories / pools, question caches,
 # served histories, TTS audio).
 data/
+
+# Local run output: logs, coverage and tool results.
+gamelab.log*
+.coverage
+htmlcov/
+performance_audit_results.json
