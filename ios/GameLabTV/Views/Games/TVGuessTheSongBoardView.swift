@@ -89,11 +89,13 @@ struct TVGuessTheSongBoardView: View {
         .onAppear { vm.bind(roomCode: room.code) }
         .onChange(of: state.word) { _, word in
             guard !word.isEmpty, phase == "guess" else { return }
-            voice.speak("Your word is \(word).")
+            // A Hindi or Telugu word is said the way a native speaker would.
+            voice.speak("Your word is \(word).", style: state.hintLabel.isEmpty ? "quiz" : "indian")
         }
         .onChange(of: state.verdictKey) { _, key in
             guard !key.isEmpty, !state.humor.isEmpty else { return }
-            voice.speak((guessed ? "Good job! " : "Not guessed. ") + state.humor)
+            voice.speak((guessed ? "Good job! " : "Not guessed. ") + state.humor,
+                        style: guessed ? "playful" : "roast")
         }
     }
 

@@ -29,6 +29,10 @@ on:
       max_mb:
         description: "Stop when the pack reaches this size in MB (0 = no limit)"
         default: "0"
+      audition:
+        description: "Listen first: render ten sample lines in every style (OpenAI only, about a cent) and attach them to the run. Nothing is pushed."
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -66,7 +70,21 @@ jobs:
           curl -fL -o "voices/${voice}.onnx.json" "${base}.onnx.json"
           ls -la voices
 
+      - name: Audition (ten sample lines, nothing pushed)
+        if: ${{ inputs.audition }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python3 tools/render_voice_pack.py --audition audition
+
+      - name: Attach the audition clips to this run
+        if: ${{ inputs.audition }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: voice-audition
+          path: audition/
+
       - name: Render clips
+        if: ${{ !inputs.audition }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -80,6 +98,7 @@ jobs:
           python3 tools/render_voice_pack.py $args
 
       - name: Push the clips to a branch
+        if: ${{ !inputs.audition }}
         run: |
           branch="voice-pack/${{ github.run_id }}"
           git config user.name "github-actions"

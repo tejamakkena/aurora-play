@@ -69,7 +69,7 @@ struct TVShowHostOverlay: View {
             }
             return
         }
-        voice.speak(line.text) {
+        voice.speak(line.text, style: line.moment) {
             hold(line, shownAt: shownAt)
         }
     }

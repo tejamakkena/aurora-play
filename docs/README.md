@@ -3,6 +3,7 @@
 ## Guides
 
 - [Game Night Guide](GAME_NIGHT.md) -- running a party, joining, LAN hosting, the show host
+- [The voice](VOICE.md) -- how lines are spoken, acting styles, rendering the voice pack
 - [Content](CONTENT.md) -- question banks, decks and how fresh content is made
 - [Web controller](WEB_CONTROLLER.md) -- playing from a browser at `/play`
 - [Travel Mode](TRAVEL_MODE.md)
