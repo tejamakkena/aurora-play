@@ -54,6 +54,23 @@ from each game.
 | Never Have I Ever | 2-20 | Everyone taps I have or Never in secret; the TV reveals who has and picks someone to tell the story. Packs: Surprise Mix, Classic, Funny, Desi, Work, Food and Travel, and two 18+ packs. |
 | Guess the Song | 2-20 | A word shows on every screen; the team names a song with that word, its Hindi meaning, or in the scene. A judge from the other team taps Guessed or Not guessed. Humor packs add the jokes. |
 
+## What the score means
+
+Results show what each game's score actually is, not "pts" everywhere
+(`games/native_hub/scoring.py`):
+
+- **Points** (trivia, most games): "30 pts".
+- **Counts**: "450 chips" (Poker, Teen Patti), "square 87" (Snakes and Ladders),
+  "6 pairs" (Memory), "52 steps" (Ludo), "9 hits" (Battleship).
+- **One winner** (Chess, Connect 4): the winner shows "Winner"; the rest show no score.
+- **Sides and teams** (Mafia, Heist, Defuse, Heist Escape): "Won" or "Lost".
+- **No winner** (Truth or Dare, Would You Rather, Most Likely To, Never Have I
+  Ever): no score is shown, and on a Game Night everyone gets the same 1 point
+  for playing instead of 10, 7, 5, 3 by placing. The host does not announce a winner.
+
+A lost co-op game (Defuse, Heist Escape) also gives everyone 1 point.
+To change a game, edit `SCORING` in that file.
+
 ## Party mode (Game Night as an occasion)
 
 On the host's phone, open **Game Night**, turn on **Make it a party** and pick the
