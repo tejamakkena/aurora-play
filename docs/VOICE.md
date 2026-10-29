@@ -45,3 +45,35 @@ You need an OpenAI account with a few dollars of credit.
 
 Lines the pack does not have (a player's name, a fresh AI question) use the
 cloud voice, now in the host style.
+
+## Using ElevenLabs instead
+
+ElevenLabs' Eleven v3 voice acts from **audio tags** in the text, such as
+`[excited]`, `[giggles]` and `[sarcastic]`, so it can give real laughs and a
+real roast tone where OpenAI only changes the delivery. It costs more (about
+$10 to $20 for the whole pack) and needs a paid plan for commercial use; the
+free credits are for auditioning only.
+
+Set up (nothing here has been run against the live ElevenLabs API yet, so the
+audition below is also the first test):
+
+1. In ElevenLabs, create an API key (Developers, API keys) and choose voices
+   from the Voice Library. Copy each voice's id. Pick one warm host voice, and
+   if you want Hindi and Telugu words said properly, a second voice with an
+   Indian accent.
+2. In GitHub, **Settings, Secrets and variables, Actions**: add the secret
+   `ELEVENLABS_API_KEY`, and the variables (not secrets) `ELEVENLABS_VOICE_ID`
+   and, optionally, `ELEVENLABS_VOICE_ID_INDIAN`.
+3. Run "Render voice pack" with engine `elevenlabs` and **audition** ticked, and
+   listen. Then run it for real: engine `elevenlabs`, limit `0`, **redo** ticked.
+   The host lines and game narration render first, so a plan's monthly
+   credits spent on that part are the ones that matter most.
+
+The tag each style uses is in `ELEVEN_TAGS` in `games/voice_styles.py`; the
+tags are only sent in the request, never stored in the pack or shown on screen.
+
+To use ElevenLabs for the live voice too (names, fresh AI questions), set
+`TTS_PROVIDER=elevenlabs` plus the same three values on the Render server, so
+the live voice matches the pack. Leave it off to keep the live voice on OpenAI.
+`ELEVENLABS_MODEL` (default `eleven_v3`) picks another model; tags are only
+added for `eleven_v3`.

@@ -7,6 +7,8 @@ name: Render voice pack
 #   piper   free, runs here with no account (check the voice's licence).
 #   openai  the same cloud voice the app uses today; needs the OPENAI_API_KEY
 #           repository secret and spends credits ONCE for the whole pack.
+#   elevenlabs  needs the ELEVENLABS_API_KEY secret and the ELEVENLABS_VOICE_ID
+#           variable (and optionally ELEVENLABS_VOICE_ID_INDIAN); see docs/VOICE.md.
 
 on:
   workflow_dispatch:
@@ -14,7 +16,7 @@ on:
       engine:
         description: "Voice engine"
         type: choice
-        options: [piper, openai]
+        options: [piper, openai, elevenlabs]
         default: piper
       piper_voice:
         description: "Piper voice id (piper engine only), e.g. en_US-ljspeech-high"
@@ -30,7 +32,7 @@ on:
         description: "Stop when the pack reaches this size in MB (0 = no limit)"
         default: "0"
       audition:
-        description: "Listen first: render ten sample lines in every style (OpenAI only, about a cent) and attach them to the run. Nothing is pushed."
+        description: "Listen first: render ten sample lines in every style (OpenAI or ElevenLabs, about a cent) and attach them to the run. Nothing is pushed."
         type: boolean
         default: false
 
@@ -74,7 +76,10 @@ jobs:
         if: ${{ inputs.audition }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: python3 tools/render_voice_pack.py --audition audition
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_VOICE_ID_INDIAN: ${{ vars.ELEVENLABS_VOICE_ID_INDIAN }}
+        run: python3 tools/render_voice_pack.py --engine ${{ inputs.engine }} --audition audition
 
       - name: Attach the audition clips to this run
         if: ${{ inputs.audition }}
@@ -87,6 +92,9 @@ jobs:
         if: ${{ !inputs.audition }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_VOICE_ID_INDIAN: ${{ vars.ELEVENLABS_VOICE_ID_INDIAN }}
         run: |
           args="--engine ${{ inputs.engine }} --max-mb ${{ inputs.max_mb }}"
           if [ "${{ inputs.redo }}" = "true" ]; then args="$args --force"; fi

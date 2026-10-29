@@ -15,6 +15,7 @@ long immutable Cache-Control. The POST form is for texts too long for a URL.
 Setup -- the PR description has the full checklist; the short version:
     OPENAI_API_KEY must be set for TTS (https://platform.openai.com/api-keys).
     TTS_MODEL / TTS_VOICE are optional (defaults: gpt-4o-mini-tts / marin).
+    TTS_PROVIDER=elevenlabs switches the voice to ElevenLabs (docs/VOICE.md).
     Grading reuses GEMINI_API_KEY via games.topic_gen, but the fuzzy matcher
     runs first, so the large majority of grades never touch the network.
 
@@ -115,6 +116,71 @@ def _tts_clean_for_speech(text: str) -> str:
     return text[:_TTS_MAX_CHARS]
 
 
+_ELEVEN_API = "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+
+
+def _eleven_config(style: str | None) -> dict:
+    """ElevenLabs settings from the environment. ``ELEVENLABS_VOICE_ID_INDIAN``
+    voices the "indian" style (Hindi and Telugu words); ``ELEVENLABS_VOICE_ID``
+    is every other line."""
+    voice_id = os.environ.get("ELEVENLABS_VOICE_ID", "")
+    if style == "indian" and os.environ.get("ELEVENLABS_VOICE_ID_INDIAN"):
+        voice_id = os.environ["ELEVENLABS_VOICE_ID_INDIAN"]
+    return {
+        "api_key": os.environ.get("ELEVENLABS_API_KEY"),
+        "voice_id": voice_id,
+        "model": os.environ.get("ELEVENLABS_MODEL", "eleven_v3"),
+    }
+
+
+def _synthesize_elevenlabs(text: str, style: str | None) -> tuple[bytes, str]:
+    """The same contract as ``synthesize_speech``, with the ElevenLabs voice.
+
+    Eleven v3 acts a line from audio tags ("[excited]", "[giggles]"), which
+    ``voice_styles.tagged`` puts in front; other models read the text as it is.
+    """
+    cfg = _eleven_config(style)
+    if not cfg["api_key"] or not cfg["voice_id"]:
+        raise VoiceError("ELEVENLABS_API_KEY or ELEVENLABS_VOICE_ID is not set")
+    spoken = voice_styles.tagged(text, style) if cfg["model"] == "eleven_v3" else text
+
+    key = _cache_key(f"eleven:{cfg['model']}", cfg["voice_id"], spoken)
+    path = _cache_dir() / f"{key}.mp3"
+    try:
+        if path.is_file():
+            return path.read_bytes(), "cache"
+    except OSError:
+        pass
+
+    _check_cap(len(text))
+    body = {"text": spoken, "model_id": cfg["model"]}
+    if cfg["model"] == "eleven_v3":
+        body["voice_settings"] = {"stability": 0.5}      # v3: 0 creative, 0.5 natural, 1 robust
+    req = urllib.request.Request(
+        _ELEVEN_API.format(voice_id=urllib.parse.quote(cfg["voice_id"], safe="")) + "?output_format=mp3_44100_64",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"xi-api-key": cfg["api_key"], "Content-Type": "application/json",
+                 "Accept": "audio/mpeg", "User-Agent": "AuroraPlay/1.0 (quizmaster)"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=_TTS_TIMEOUT) as resp:
+            if resp.status != 200:
+                raise VoiceError(f"ElevenLabs HTTP {resp.status}")
+            audio = resp.read()
+    except VoiceError:
+        raise
+    except Exception as exc:
+        raise VoiceError(f"ElevenLabs request failed: {exc}")
+    if not audio:
+        raise VoiceError("ElevenLabs returned no audio")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(audio)
+    except OSError:
+        pass
+    return audio, "elevenlabs"
+
+
 def synthesize_speech(text: str, voice: str | None = None,
                       style: str | None = None) -> tuple[bytes, str]:
     """Return (mp3_bytes, source). Source is 'cache' or 'openai'.
@@ -129,6 +195,8 @@ def synthesize_speech(text: str, voice: str | None = None,
     text = _tts_clean_for_speech(text)
     if not text:
         raise VoiceError("empty text")
+    if os.environ.get("TTS_PROVIDER", "openai") == "elevenlabs":
+        return _synthesize_elevenlabs(text, style)
     voice = (voice or cfg["voice"]).strip() or cfg["voice"]
     model = cfg["model"]
 

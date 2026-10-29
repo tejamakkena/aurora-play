@@ -137,3 +137,75 @@ def test_clips_lose_their_leading_and_trailing_silence(tmp_path):
         capture_output=True, text=True, check=True).stdout)
     # 0.5 s of sound plus a short even tail, not the 1.9 s the padded file had.
     assert 0.55 < seconds < 0.95, seconds
+
+
+# ---- ElevenLabs ---------------------------------------------------------------------
+
+@pytest.fixture
+def eleven(monkeypatch, tmp_path):
+    monkeypatch.setenv("TTS_PROVIDER", "elevenlabs")
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "key-123")
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID", "voiceHOST")
+    monkeypatch.delenv("ELEVENLABS_VOICE_ID_INDIAN", raising=False)
+    monkeypatch.delenv("ELEVENLABS_MODEL", raising=False)
+    monkeypatch.setenv("TTS_CACHE_PATH", str(tmp_path))
+    monkeypatch.setenv("TTS_DAILY_CHAR_CAP", "1000000")
+    calls = []
+
+    def fake(req, timeout=0):
+        calls.append((req.full_url, dict(req.header_items()), json.loads(req.data)))
+        return FakeResponse()
+
+    monkeypatch.setattr(voice.urllib.request, "urlopen", fake)
+    return calls
+
+
+def test_audio_tags_open_the_styled_lines():
+    assert voice_styles.tagged("Nobody got that.", "roast") == "[sarcastic] Nobody got that."
+    assert voice_styles.tagged("Hello.", "narrator") == "Hello."
+    assert voice_styles.tagged("Hello.", None) == "Hello."
+    for tag in voice_styles.ELEVEN_TAGS.values():
+        assert tag.startswith("[") and tag.endswith("]")
+
+
+def test_elevenlabs_request_shape(eleven):
+    audio, source = voice.synthesize_speech("Welcome, everyone!", style="welcome")
+    url, headers, body = eleven[0]
+    assert source == "elevenlabs" and len(audio) == 2000
+    assert url.startswith("https://api.elevenlabs.io/v1/text-to-speech/voiceHOST?")
+    assert headers["Xi-api-key"] == "key-123"
+    assert body["model_id"] == "eleven_v3"
+    assert body["text"] == "[excited] Welcome, everyone!"
+    assert body["voice_settings"]["stability"] == 0.5
+
+
+def test_indian_style_uses_its_own_voice(eleven, monkeypatch):
+    monkeypatch.setenv("ELEVENLABS_VOICE_ID_INDIAN", "voiceINDIA")
+    voice.synthesize_speech("Your word is Baarish.", style="indian")
+    voice.synthesize_speech("Hello there.", style="quiz")
+    assert "voiceINDIA" in eleven[0][0] and "voiceHOST" in eleven[1][0]
+
+
+def test_other_models_get_plain_text(eleven, monkeypatch):
+    monkeypatch.setenv("ELEVENLABS_MODEL", "eleven_multilingual_v2")
+    voice.synthesize_speech("Nobody got that.", style="roast")
+    body = eleven[0][2]
+    assert body["text"] == "Nobody got that." and "voice_settings" not in body
+
+
+def test_elevenlabs_audio_is_cached(eleven):
+    voice.synthesize_speech("Same line.", style="roast")
+    voice.synthesize_speech("Same line.", style="roast")
+    assert len(eleven) == 1
+
+
+def test_elevenlabs_needs_a_key_and_a_voice(eleven, monkeypatch):
+    monkeypatch.delenv("ELEVENLABS_VOICE_ID")
+    with pytest.raises(voice.VoiceError):
+        voice.synthesize_speech("Hello.")
+
+
+def test_the_pack_can_render_with_elevenlabs():
+    assert callable(rvp.render_elevenlabs)
+    src = (ROOT / "tools" / "render_voice_pack.py").read_text()
+    assert '"elevenlabs"' in src

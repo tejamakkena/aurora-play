@@ -14,6 +14,8 @@ sentence with no clip (a player's name) is spoken live by the device voice.
 Engines
     openai  the same cloud voice the app uses today (games/voice.py), once per
             sentence; costs credits one time.
+    elevenlabs  the ElevenLabs voice (Eleven v3 acts from audio tags such as
+            [laughs]); needs ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID.
     piper   free, fully offline (https://github.com/rhasspy/piper, MIT; pin
             piper-tts==1.2.0). Check the licence of the voice model you pick.
     tone    a quiet beep, for testing the pipeline without any voice.
@@ -298,6 +300,21 @@ def render_openai(text: str, dest: Path, style: str | None = None) -> None:
         os.unlink(tmp.name)
 
 
+def render_elevenlabs(text: str, dest: Path, style: str | None = None) -> None:
+    """The ElevenLabs voice (games/voice.py), once per sentence."""
+    os.environ["TTS_PROVIDER"] = "elevenlabs"
+    os.environ.setdefault("TTS_DAILY_CHAR_CAP", "50000000")
+    os.environ.setdefault("TTS_CACHE_PATH", str(Path(tempfile.gettempdir()) / "voice_pack_tts_cache"))
+    from games.voice import synthesize_speech
+    audio, _source = synthesize_speech(text, style=style)
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+        tmp.write(audio)
+    try:
+        _ffmpeg(Path(tmp.name), dest)
+    finally:
+        os.unlink(tmp.name)
+
+
 def make_piper_renderer(model: str):
     piper = shutil.which("piper")
     if not piper:
@@ -333,14 +350,15 @@ AUDITION = [
 ]
 
 
-def audition(out_dir: Path) -> int:
-    """Render AUDITION with the OpenAI voice into ``out_dir`` and stop."""
+def audition(out_dir: Path, engine: str = "openai") -> int:
+    """Render AUDITION with the OpenAI or ElevenLabs voice into ``out_dir`` and stop."""
+    render = render_elevenlabs if engine == "elevenlabs" else render_openai
     out_dir.mkdir(parents=True, exist_ok=True)
     if not shutil.which("ffmpeg"):
         sys.exit("ffmpeg not found on PATH")
     for i, (style, text) in enumerate(AUDITION, 1):
         dest = out_dir / f"{i:02d}-{style}.m4a"
-        render_openai(text, dest, style)
+        render(text, dest, style)
         print(f"  {dest.name}: {text[:60]}")
     print(f"wrote {len(AUDITION)} clips to {out_dir}")
     return 0
@@ -348,7 +366,7 @@ def audition(out_dir: Path) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--engine", choices=["openai", "piper", "tone"], default="openai")
+    ap.add_argument("--engine", choices=["openai", "elevenlabs", "piper", "tone"], default="openai")
     ap.add_argument("--piper-model", help="path to a Piper .onnx voice (with its .json beside it)")
     ap.add_argument("--sources", default=",".join(SOURCES), help=f"comma list of: {', '.join(SOURCES)}")
     ap.add_argument("--no-swift", action="store_true", help="skip string literals scanned from the Swift files")
@@ -361,7 +379,7 @@ def main() -> int:
                     help="render a few lines in every style with the OpenAI voice into DIR, then stop")
     args = ap.parse_args()
     if args.audition:
-        return audition(Path(args.audition))
+        return audition(Path(args.audition), args.engine)
 
     names = [s for s in args.sources.split(",") if s]
     unknown = [s for s in names if s not in SOURCES]
@@ -388,6 +406,8 @@ def main() -> int:
 
     if args.engine == "openai":
         render = render_openai
+    elif args.engine == "elevenlabs":
+        render = render_elevenlabs
     elif args.engine == "piper":
         if not args.piper_model:
             sys.exit("--piper-model is required for the piper engine")
