@@ -129,20 +129,22 @@ def _eleven_config(style: str | None) -> dict:
     return {
         "api_key": os.environ.get("ELEVENLABS_API_KEY"),
         "voice_id": voice_id,
-        "model": os.environ.get("ELEVENLABS_MODEL", "eleven_v3"),
+        "model": os.environ.get("ELEVENLABS_MODEL", "eleven_v4"),
     }
 
 
 def _synthesize_elevenlabs(text: str, style: str | None) -> tuple[bytes, str]:
     """The same contract as ``synthesize_speech``, with the ElevenLabs voice.
 
-    Eleven v3 acts a line from audio tags ("[excited]", "[giggles]"), which
-    ``voice_styles.tagged`` puts in front; other models read the text as it is.
+    Eleven v4 and v3 act a line from audio tags ("[excited]", "[giggles]"),
+    which ``voice_styles.tagged`` puts in front; other models would say the
+    brackets aloud, so they read the text as it is.
     """
     cfg = _eleven_config(style)
     if not cfg["api_key"] or not cfg["voice_id"]:
         raise VoiceError("ELEVENLABS_API_KEY or ELEVENLABS_VOICE_ID is not set")
-    spoken = voice_styles.tagged(text, style) if cfg["model"] == "eleven_v3" else text
+    takes_tags = cfg["model"] in ("eleven_v4", "eleven_v3")
+    spoken = voice_styles.tagged(text, style) if takes_tags else text
 
     key = _cache_key(f"eleven:{cfg['model']}", cfg["voice_id"], spoken)
     path = _cache_dir() / f"{key}.mp3"

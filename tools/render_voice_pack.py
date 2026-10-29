@@ -14,7 +14,7 @@ sentence with no clip (a player's name) is spoken live by the device voice.
 Engines
     openai  the same cloud voice the app uses today (games/voice.py), once per
             sentence; costs credits one time.
-    elevenlabs  the ElevenLabs voice (Eleven v3 acts from audio tags such as
+    elevenlabs  the ElevenLabs voice (Eleven v4 acts from audio tags such as
             [laughs]); needs ELEVENLABS_API_KEY and ELEVENLABS_VOICE_ID.
     piper   free, fully offline (https://github.com/rhasspy/piper, MIT; pin
             piper-tts==1.2.0). Check the licence of the voice model you pick.

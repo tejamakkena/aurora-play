@@ -66,7 +66,7 @@ STYLES: dict[str, str] = {
     ),
 }
 
-#: Eleven v3 reads square-bracket audio tags as acting ("[laughs]", "[excited]")
+#: Eleven v4 and v3 read square-bracket audio tags as acting ("[laughs]", "[excited]")
 #: and does not say them aloud. One short tag opens a line in these styles; the
 #: rest rely on the voice itself. Kept to tags the model is known to follow.
 ELEVEN_TAGS: dict[str, str] = {
@@ -80,7 +80,7 @@ ELEVEN_TAGS: dict[str, str] = {
 
 
 def tagged(text: str, style: str | None) -> str:
-    """``text`` with the style's audio tag in front (Eleven v3 only)."""
+    """``text`` with the style's audio tag in front (Eleven v4 and v3)."""
     tag = ELEVEN_TAGS.get(style or "", "")
     return f"{tag} {text}" if tag else text
 

@@ -174,9 +174,9 @@ def test_elevenlabs_request_shape(eleven):
     assert source == "elevenlabs" and len(audio) == 2000
     assert url.startswith("https://api.elevenlabs.io/v1/text-to-speech/voiceHOST?")
     assert headers["Xi-api-key"] == "key-123"
-    assert body["model_id"] == "eleven_v3"
+    assert body["model_id"] == "eleven_v4"
     assert body["text"] == "[excited] Welcome, everyone!"
-    assert body["voice_settings"]["stability"] == 0.5
+    assert "voice_settings" not in body          # v4 is directed by its tags alone
 
 
 def test_indian_style_uses_its_own_voice(eleven, monkeypatch):
@@ -184,6 +184,13 @@ def test_indian_style_uses_its_own_voice(eleven, monkeypatch):
     voice.synthesize_speech("Your word is Baarish.", style="indian")
     voice.synthesize_speech("Hello there.", style="quiz")
     assert "voiceINDIA" in eleven[0][0] and "voiceHOST" in eleven[1][0]
+
+
+def test_eleven_v3_still_works_with_its_stability_setting(eleven, monkeypatch):
+    monkeypatch.setenv("ELEVENLABS_MODEL", "eleven_v3")
+    voice.synthesize_speech("Nobody got that.", style="roast")
+    body = eleven[0][2]
+    assert body["text"] == "[sarcastic] Nobody got that." and body["voice_settings"]["stability"] == 0.5
 
 
 def test_other_models_get_plain_text(eleven, monkeypatch):

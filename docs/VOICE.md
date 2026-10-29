@@ -54,8 +54,13 @@ real roast tone where OpenAI only changes the delivery. It costs more (about
 $10 to $20 for the whole pack) and needs a paid plan for commercial use; the
 free credits are for auditioning only.
 
-Set up (nothing here has been run against the live ElevenLabs API yet, so the
-audition below is also the first test):
+Voices tried in an audition (Eleven v4): **Odom - Upbeat, Energetic, Playful**
+(`7zoixx2reelPHqsL6WsW`, a game-show host) for the host voice, and **Neeraj - Warm
+& Friendly Hindi** (`H9oourY5nVeVuzarh4D5`) for Hindi and Telugu words. Pick your
+own from the Voice Library if you prefer. The tool code has not been run against the live
+ElevenLabs REST API yet (only mocked), so the audition run is also its first test.
+
+Set up:
 
 1. In ElevenLabs, create an API key (Developers, API keys) and choose voices
    from the Voice Library. Copy each voice's id. Pick one warm host voice, and
@@ -75,5 +80,5 @@ tags are only sent in the request, never stored in the pack or shown on screen.
 To use ElevenLabs for the live voice too (names, fresh AI questions), set
 `TTS_PROVIDER=elevenlabs` plus the same three values on the Render server, so
 the live voice matches the pack. Leave it off to keep the live voice on OpenAI.
-`ELEVENLABS_MODEL` (default `eleven_v3`) picks another model; tags are only
-added for `eleven_v3`.
+`ELEVENLABS_MODEL` (default `eleven_v4`) picks another model; tags are only
+added for `eleven_v4` and `eleven_v3`.
