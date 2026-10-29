@@ -65,8 +65,17 @@ class TestWordBank:
         assert len(DECKS[deck]["words"]) >= 40
 
     def test_the_train_example_is_there(self):
-        train = next(e for e in WORDS if e["word"] == "Train")
+        train = next(e for e in WORDS if e["hint"] == "Train")
         assert any("Chaiyya Chaiyya" in s for s in train["songs"])
+
+    @pytest.mark.parametrize("deck", ["bollywood", "tollywood"])
+    def test_native_decks_show_the_native_word_and_hint_the_english(self, deck):
+        """The word on screen is Hindi/Telugu (Latin letters); the hint is English."""
+        assert DECKS[deck]["hintLabel"] == "English"
+        words = DECKS[deck]["words"]
+        rain = next(e for e in words if e["hint"] == "Rain")
+        assert rain["word"] != "Rain"
+        assert not any(e["word"] == "Rain" for e in words)
 
     def test_the_lobby_offers_every_deck_and_mixed(self):
         from games.native_hub import options
@@ -205,7 +214,7 @@ class TestRound:
         guesser = engine.team_members[engine.active_team][0]
         assert engine.private_state(guesser)["answers"] == engine.entry["songs"]
 
-    def test_the_hint_reveals_the_hindi_word_and_costs_points(self):
+    def test_the_hint_reveals_the_english_meaning_and_costs_points(self):
         engine, _ = make(players=6)
         assert engine.public_state()["hint"] is None
         assert engine.private_state(engine.judge_id)["hindi"] == engine.entry["hint"]

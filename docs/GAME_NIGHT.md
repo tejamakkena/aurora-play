@@ -52,7 +52,7 @@ from each game.
 | Chess | 2 | Board on the TV, moves on the phone; pawns auto-queen; capture the king to win. |
 | Speed Sculptor | 3-8 | Draw on the phone, then vote for the best drawing on the phone. |
 | Never Have I Ever | 2-20 | Everyone taps I have or Never in secret; the TV reveals who has and picks someone to tell the story. Packs: Surprise Mix, Classic, Funny, Desi, Work, Food and Travel, and two 18+ packs. |
-| Guess the Song | 2-20 | A word shows on every screen; the team names a song with that word, its Hindi meaning, or in the scene. A judge from the other team taps Guessed or Not guessed. Humor packs add the jokes. |
+| Guess the Song | 2-20 | A word shows on every screen; the team names a song with that word (Hindi, Telugu or English, by deck), its meaning, or in the scene; the English meaning is the hint. A judge from the other team taps Guessed or Not guessed. Humor packs add the jokes. |
 
 ## Party mode (Game Night as an occasion)
 

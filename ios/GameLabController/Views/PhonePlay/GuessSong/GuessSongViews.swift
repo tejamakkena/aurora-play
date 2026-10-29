@@ -121,7 +121,7 @@ private struct GuessSongSetupView: View {
                     PhonePlayHowToCard(steps: [
                         "The other team holds the phone and shows the word to the singers.",
                         "Sing a song that fits. The judge taps Sung it for 2 points, or Pass.",
-                        "Stuck? Hint shows the word in Hindi or Telugu, for 1 point.",
+                        "Stuck? Hint shows the word in English, for 1 point.",
                         "When time runs out, swap. Most points wins.",
                     ], accent: PhonePlayDesign.pink)
 

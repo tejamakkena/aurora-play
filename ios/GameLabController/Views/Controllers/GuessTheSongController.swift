@@ -15,10 +15,10 @@ struct GuessTheSongControllerView: View {
     private var isGuesser: Bool { privateData.bool("isGuesser") }
     private var answers: [String] { privateData.strings("answers") }
     private var hint: String? { privateData["hint"] as? String }
-    /// The judge's hint (the word in the deck's language; "hindi" is its older name).
+    /// The judge's hint (the word's English meaning; "hindi" is its older name).
     private var hindi: String? { privateData["hindi"] as? String }
-    /// "Hindi", "Telugu"... or empty for a deck without hints.
-    private var hintLabel: String { privateData["hintLabel"] as? String ?? "Hindi" }
+    /// "English" (the hint is the word's meaning), or empty for a deck without hints.
+    private var hintLabel: String { privateData["hintLabel"] as? String ?? "English" }
     private var guessed: Bool { privateData.str("outcome") == "guessed" }
     private var humor: String { privateData.str("humor") }
     private var filler: String { privateData.str("filler") }
@@ -57,7 +57,7 @@ struct GuessTheSongControllerView: View {
                     .minimumScaleFactor(0.5).lineLimit(1)
                     .padding(.horizontal, 20)
                 Text(hintLabel.isEmpty ? "the word in the title, or in the scene"
-                     : "its \(hintLabel) meaning, the word in the title, or in the scene")
+                     : "a song with the word, its meaning, or the word in the scene")
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundColor(PhonePlayDesign.text2)
                     .multilineTextAlignment(.center)
