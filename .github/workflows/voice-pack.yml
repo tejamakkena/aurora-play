@@ -8,7 +8,8 @@ name: Render voice pack
 #   openai  the same cloud voice the app uses today; needs the OPENAI_API_KEY
 #           repository secret and spends credits ONCE for the whole pack.
 #   elevenlabs  needs the ELEVENLABS_API_KEY secret and the ELEVENLABS_VOICE_ID
-#           variable (and optionally ELEVENLABS_VOICE_ID_INDIAN); see docs/VOICE.md.
+#           (and optionally ELEVENLABS_VOICE_ID_INDIAN), saved as either secrets or
+#           variables; see docs/VOICE.md.
 
 on:
   workflow_dispatch:
@@ -77,8 +78,8 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
-          ELEVENLABS_VOICE_ID_INDIAN: ${{ vars.ELEVENLABS_VOICE_ID_INDIAN }}
+          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID || secrets.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_VOICE_ID_INDIAN: ${{ vars.ELEVENLABS_VOICE_ID_INDIAN || secrets.ELEVENLABS_VOICE_ID_INDIAN }}
         run: python3 tools/render_voice_pack.py --engine ${{ inputs.engine }} --audition audition
 
       - name: Attach the audition clips to this run
@@ -93,8 +94,8 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID }}
-          ELEVENLABS_VOICE_ID_INDIAN: ${{ vars.ELEVENLABS_VOICE_ID_INDIAN }}
+          ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID || secrets.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_VOICE_ID_INDIAN: ${{ vars.ELEVENLABS_VOICE_ID_INDIAN || secrets.ELEVENLABS_VOICE_ID_INDIAN }}
         run: |
           args="--engine ${{ inputs.engine }} --max-mb ${{ inputs.max_mb }}"
           if [ "${{ inputs.redo }}" = "true" ]; then args="$args --force"; fi

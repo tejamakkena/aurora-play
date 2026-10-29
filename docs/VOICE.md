@@ -67,8 +67,9 @@ Set up:
    if you want Hindi and Telugu words said properly, a second voice with an
    Indian accent.
 2. In GitHub, **Settings, Secrets and variables, Actions**: add the secret
-   `ELEVENLABS_API_KEY`, and the variables (not secrets) `ELEVENLABS_VOICE_ID`
-   and, optionally, `ELEVENLABS_VOICE_ID_INDIAN`.
+   `ELEVENLABS_API_KEY`, and `ELEVENLABS_VOICE_ID` and, optionally,
+   `ELEVENLABS_VOICE_ID_INDIAN`. The voice ids may be saved as secrets or as
+   variables; the workflow reads either.
 3. Run "Render voice pack" with engine `elevenlabs` and **audition** ticked, and
    listen. Then run it for real: engine `elevenlabs`, limit `0`, **redo** ticked.
    The host lines and game narration render first, so a plan's monthly
