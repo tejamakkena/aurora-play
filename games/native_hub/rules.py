@@ -331,10 +331,10 @@ RULES: dict[str, dict] = {
         "title": "Guess the Song",
         "objective": "Name a song that fits the word before the clock runs out.",
         "rules": [
-            "A word shows on the TV and every phone, such as Train.",
-            "The team shouts a song with that word, its Hindi meaning, or the word in the scene.",
+            "A word shows on the TV and every phone, such as Baarish (rain).",
+            "The team shouts a song with that word, its meaning, or the word in the scene.",
             "A judge from the other team sees example answers and taps Guessed or Not guessed.",
-            "A guess scores 10 for the team, or 7 if the judge gave the Hindi hint.",
+            "A guess scores 10 for the team, or 7 if the judge gave the English hint.",
             "A miss reveals the answers on the TV, with a joke.",
         ],
         "controls": "Shout your answers. The judge taps Guessed or Not guessed.",

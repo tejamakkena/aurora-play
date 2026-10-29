@@ -66,7 +66,7 @@
       var answers = pd.strings(d, 'answers');
       var hint = typeof d.hint === 'string' ? d.hint : null;
       var hindi = typeof d.hindi === 'string' ? d.hindi : null;      // the judge's hint
-      var hintLabel = typeof d.hintLabel === 'string' ? d.hintLabel : 'Hindi';
+      var hintLabel = typeof d.hintLabel === 'string' ? d.hintLabel : 'English';
       var judgeName = pd.str(d, 'judgeName', 'The judge');
       var team = d.activeTeam && typeof d.activeTeam === 'object' ? d.activeTeam : {};
       var teamName = typeof team.name === 'string' ? team.name : 'Everyone';
@@ -86,7 +86,7 @@
       } else {
         var kids = [promptCard(word, 'Name a song with...', C.pink),
           h('div', { class: 'txt-center c-text2', style: { fontSize: '13px', padding: '0 24px' } },
-            hintLabel ? 'its ' + hintLabel + ' meaning, the word in the title, or in the scene'
+            hintLabel ? 'a song with the word, its meaning, or the word in the scene'
                       : 'the word in the title, or in the scene')];
         if (hint) { kids.push(h('div', { class: 'txt-center', style: { fontWeight: 800, color: C.yellow, fontSize: '20px' } }, (hintLabel || 'Hint') + ': ' + hint)); }
         if (phase === 'verdict') {
