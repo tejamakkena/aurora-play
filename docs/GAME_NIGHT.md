@@ -71,6 +71,37 @@ Results show what each game's score actually is, not "pts" everywhere
 A lost co-op game (Defuse, Heist Escape) also gives everyone 1 point.
 To change a game, edit `SCORING` in that file.
 
+## Build your own night
+
+On the TV home screen (Game Night panel) or the host's phone (Game Night card) the
+suggested lineup is only a starting point:
+
+- **Any game.** Remove games, move them up or down, or add any other game, even one
+  that suits a different number of players. Up to 10 games.
+- **Any length.** Every round-based game (Trivia, Brain Battle, Herd, Never Have I
+  Ever, Guess the Song, Would You Rather, Host Lies, ...) has a **Rounds** pick of about
+  half, as it is, one and a half times or double its normal length. Games that
+  give everybody a turn (Hot Takes, Twenty Questions, Bollywood Charades) or that are
+  not played in rounds (chess, poker, Ludo) keep their own length. The same pick also
+  shows in a game's lobby when you play it outside a Game Night.
+- **Any scoring.** See below.
+
+Each game gets only its own picks, so "12 rounds" for one game never carries into the next.
+
+## How a night scores
+
+Every game's placings turn into night points. The host picks the rule:
+
+| Rule | 1st | 2nd | 3rd | 4th | Rest | Good for |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Classic** | 10 | 7 | 5 | 3 | 1 | Small groups; the original scoring |
+| **Fair share** | 10 | spread evenly down to 1 for last | | | | Big groups: every place counts and a 2-player duel is worth as much as a 12-player party game |
+| **Big finish** | Classic, but the **last game pays double** | | | | | Keeps the night open until the end |
+
+Ties share a place. Games with no winner (Truth or Dare, Would You Rather, ...) and lost
+co-op games give everyone 1 point (2 on a double-point finale). The TV and the phones
+say "double points" while the last game of a Big finish night is up.
+
 ## Party mode (Game Night as an occasion)
 
 On the host's phone, open **Game Night**, turn on **Make it a party** and pick the

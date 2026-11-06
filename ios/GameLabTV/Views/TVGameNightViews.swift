@@ -393,17 +393,22 @@ private struct TVGameNightCardBody: View {
 struct TVNightSetupPanel: View {
     let playerCount: Int
     let focusNamespace: Namespace.ID
-    let onStart: (_ minutes: Int, _ kids: Bool, _ playlist: [String], _ party: NightPartyPayload?) -> Void
+    let onStart: (_ minutes: Int, _ kids: Bool, _ playlist: [String], _ party: NightPartyPayload?,
+                  _ settings: [String: [String: String]]?, _ points: String) -> Void
 
     @State private var kids: Bool = false
     /// nil = a plain night; otherwise index into NightPartyOptions.occasions.
     @State private var occasionIndex: Int? = nil
     @State private var styleIndex: Int = 0
     @State private var minutes: Int = 45
-    @State private var preview: [PickedGame] = []
+    /// The lineup the host sees and can change: games, rounds and scoring.
+    @State private var plan = NightPlan()
+    @State private var allGames: [PickedGame] = []
     @State private var isLoading: Bool = false
     @State private var choosingOccasion: Bool = false
     @State private var choosingStyle: Bool = false
+    @State private var choosingPoints: Bool = false
+    @State private var showBuilder: Bool = false
 
     private static let lengths: [Int] = [30, 45, 60]
     private static let maxGames: Int = 8
@@ -414,7 +419,7 @@ struct TVNightSetupPanel: View {
     private var previewKey: String { "\(pickerPlayers)-\(kids)-\(minutes)-\(occasion != nil)" }
 
     private var previewSlots: [TVNightSlot] {
-        TVNightSlot.slots(from: preview.map { $0.id })
+        TVNightSlot.slots(from: plan.playlist)
     }
 
     var body: some View {
@@ -458,8 +463,24 @@ struct TVNightSetupPanel: View {
                 previewSection
                     .frame(height: 96, alignment: .topLeading)
 
+                HStack(spacing: 10) {
+                    Button {
+                        showBuilder = true
+                    } label: {
+                        Label("Pick games and rounds", systemImage: "slider.horizontal.3")
+                    }
+                    .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.cyan, isSelected: plan.settings != nil))
+
+                    Button {
+                        choosingPoints = true
+                    } label: {
+                        Label("Scoring: \(plan.points.title)", systemImage: "trophy")
+                    }
+                    .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.gold, isSelected: plan.points != .classic))
+                }
+
                 Button {
-                    onStart(minutes, kids, preview.map { $0.id }, partyPayload)
+                    onStart(minutes, kids, plan.playlist, partyPayload, plan.settings, plan.points.rawValue)
                 } label: {
                     Label("Start the night", systemImage: "sparkles")
                 }
@@ -470,6 +491,16 @@ struct TVNightSetupPanel: View {
         }
         .task(id: previewKey) {
             await loadPreview()
+        }
+        .fullScreenCover(isPresented: $showBuilder) {
+            TVNightBuilderView(plan: $plan, allGames: allGames) { showBuilder = false }
+        }
+        .confirmationDialog("How should the night score?", isPresented: $choosingPoints,
+                            titleVisibility: .visible) {
+            ForEach(NightPoints.allCases) { mode in
+                Button("\(mode.title): \(mode.hint)") { plan.points = mode }
+            }
+            Button("Cancel", role: .cancel) {}
         }
         .confirmationDialog("What's the occasion?", isPresented: $choosingOccasion,
                             titleVisibility: .visible) {
@@ -537,7 +568,7 @@ struct TVNightSetupPanel: View {
 
     @ViewBuilder
     private var previewSection: some View {
-        if isLoading && preview.isEmpty {
+        if isLoading && plan.games.isEmpty {
             HStack(spacing: 12) {
                 ProgressView()
                     .tint(ShellTheme.cyan)
@@ -557,11 +588,15 @@ struct TVNightSetupPanel: View {
 
     private func loadPreview() async {
         isLoading = true
+        async let everything: [PickedGame] = OneStopAPI.pickAll(players: pickerPlayers, kids: kids)
         let picked: [PickedGame] = await OneStopAPI.pick(players: pickerPlayers, kids: kids, minutes: minutes,
                                                           party: occasion != nil)
+        let all: [PickedGame] = await everything
         if Task.isCancelled { return }
         withAnimation(.easeInOut(duration: 0.3)) {
-            preview = Self.lineup(from: picked, totalMinutes: minutes)
+            plan.games = Self.lineup(from: picked, totalMinutes: minutes)
+            plan.rounds = [:]
+            allGames = all
         }
         isLoading = false
     }
@@ -580,6 +615,132 @@ struct TVNightSetupPanel: View {
     }
 }
 
+// MARK: - Game Night builder (host picks any games and rounds)
+
+/// Full-screen editor for the night's lineup: reorder, remove, change the
+/// rounds of each game, and add any other game. The TV has no keyboard, so
+/// every choice is a button or a list.
+struct TVNightBuilderView: View {
+    @Binding var plan: NightPlan
+    let allGames: [PickedGame]
+    let onDone: () -> Void
+
+    @State private var roundsFor: PickedGame? = nil
+
+    private var addable: [PickedGame] {
+        allGames.filter { $0.game != nil && !plan.contains($0.id) }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                HStack {
+                    Text("YOUR GAME NIGHT")
+                        .font(ShellTheme.eyebrow(26))
+                        .tracking(6)
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text("About \(plan.totalMinutes) minutes")
+                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                        .foregroundColor(ShellTheme.textSecondary)
+                }
+
+                ForEach(Array(plan.games.enumerated()), id: \.element.id) { index, pick in
+                    if let game = pick.game {
+                        row(index: index, pick: pick, game: game)
+                    }
+                }
+
+                if !addable.isEmpty && plan.games.count < NightPlan.maxGames {
+                    Text("ADD A GAME")
+                        .font(ShellTheme.eyebrow(20))
+                        .tracking(5)
+                        .foregroundColor(ShellTheme.textTertiary)
+                        .padding(.top, 8)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14)], alignment: .leading, spacing: 14) {
+                        ForEach(addable) { pick in
+                            if let game = pick.game {
+                                Button {
+                                    _ = plan.add(pick)
+                                } label: {
+                                    Label(pick.fits == false ? "\(game.displayName) (\(pick.minPlayers)+)" : game.displayName,
+                                          systemImage: game.sfSymbol)
+                                }
+                                .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.mint, isSelected: false))
+                            }
+                        }
+                    }
+                }
+
+                Button(action: onDone) {
+                    Label("Done", systemImage: "checkmark")
+                }
+                .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.pink))
+                .padding(.top, 8)
+            }
+            .padding(60)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color.black.opacity(0.92).ignoresSafeArea())
+        .confirmationDialog("How many rounds?", isPresented: roundsDialogShown,
+                            titleVisibility: .visible, presenting: roundsFor) { pick in
+            ForEach(pick.roundsOption?.choices ?? []) { choice in
+                Button(choice.label) { plan.setRounds(choice.value, for: pick) }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+    }
+
+    private var roundsDialogShown: Binding<Bool> {
+        Binding(get: { roundsFor != nil }, set: { if !$0 { roundsFor = nil } })
+    }
+
+    private func row(index: Int, pick: PickedGame, game: GameID) -> some View {
+        HStack(spacing: 14) {
+            Text("\(index + 1)")
+                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .foregroundColor(.black)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(ShellTheme.gold))
+            Label(game.displayName, systemImage: game.sfSymbol)
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(1)
+            Spacer(minLength: 12)
+            if let current = plan.roundsValue(for: pick) {
+                Button {
+                    roundsFor = pick
+                } label: {
+                    Text("\(current) rounds")
+                }
+                .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.cyan, isSelected: plan.rounds[pick.id] != nil))
+            }
+            Button {
+                plan.move(pick.id, by: -1)
+            } label: {
+                Image(systemName: "chevron.up")
+            }
+            .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.textSecondary, isSelected: false))
+            .disabled(index == 0)
+            Button {
+                plan.move(pick.id, by: 1)
+            } label: {
+                Image(systemName: "chevron.down")
+            }
+            .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.textSecondary, isSelected: false))
+            .disabled(index == plan.games.count - 1)
+            if plan.games.count > 1 {
+                Button {
+                    plan.remove(pick.id)
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.pink, isSelected: false))
+            }
+        }
+    }
+}
+
 // MARK: - Lobby: night in progress
 
 /// Shown in the lobby while a night runs: where we are in the playlist and
@@ -592,6 +753,7 @@ struct TVNightLobbyPanel: View {
     private var progressText: String {
         let total: Int = night.playlist.count
         let number: Int = min(total, night.index + 1)
+        if night.multiplier == 2 { return "Game \(number) of \(total), double points" }
         return "Game \(number) of \(total)"
     }
 

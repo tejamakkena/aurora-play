@@ -484,14 +484,17 @@ final class TVRootViewModel: ObservableObject {
     /// `playlist` is the previewed lineup the lobby showed, so the night
     /// plays exactly what was on screen; empty lets the server's picker
     /// build one from `minutes` and `kids`.
-    func startNight(minutes: Int, kids: Bool, playlist: [String], party: NightPartyPayload? = nil) {
+    func startNight(minutes: Int, kids: Bool, playlist: [String], party: NightPartyPayload? = nil,
+                    settings: [String: [String: String]]? = nil, points: String? = nil) {
         guard case .lobby(let room) = screen else { return }
         socket.emit(.startNight, payload: StartNightPayload(
             roomCode: room.code,
             playlist: playlist.isEmpty ? nil : playlist,
             minutes: minutes,
             kids: kids,
-            party: party
+            party: party,
+            settings: settings,
+            points: points
         ))
     }
 

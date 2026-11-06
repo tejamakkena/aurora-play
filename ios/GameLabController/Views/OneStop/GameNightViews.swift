@@ -15,8 +15,10 @@ struct GameNightPlannerCard: View {
     @State private var expanded = false
     @State private var kids = false
     @State private var minutes = 45
-    @State private var playlist: [GameID] = []
-    @State private var gameMinutes: [GameID: Int] = [:]
+    /// The host's plan: games in order, rounds for each, and how it scores.
+    @State private var plan = NightPlan()
+    /// Every game, for the "Add a game" menu.
+    @State private var allGames: [PickedGame] = []
     @State private var loading = false
     @State private var reloadToken = 0
     @State private var starting = false
@@ -26,7 +28,7 @@ struct GameNightPlannerCard: View {
     private static let minuteOptions = [30, 45, 60]
 
     private var playerCount: Int { max(1, room.players.count) }
-    private var totalMinutes: Int { playlist.reduce(0) { $0 + (gameMinutes[$1] ?? 0) } }
+    private var totalMinutes: Int { plan.totalMinutes }
     private var loadKey: String { "\(expanded)-\(kids)-\(minutes)-\(playerCount)-\(reloadToken)-\(partyOn)" }
 
     var body: some View {
@@ -58,6 +60,8 @@ struct GameNightPlannerCard: View {
 
                     playlistPreview
 
+                    scoringPicker
+
                     Toggle(isOn: $partyOn) {
                         VStack(alignment: .leading, spacing: 2) {
                             Label("Make it a party", systemImage: "party.popper.fill")
@@ -72,8 +76,8 @@ struct GameNightPlannerCard: View {
 
                     if partyOn {
                         NightPartyForm(settings: $party,
-                                       hasNeverHaveIEver: playlist.contains(.neverHaveIEver),
-                                       hasGuessTheSong: playlist.contains(.guessTheSong))
+                                       hasNeverHaveIEver: plan.contains(GameID.neverHaveIEver.rawValue),
+                                       hasGuessTheSong: plan.contains(GameID.guessTheSong.rawValue))
                     }
 
                     OneStopPrimaryButton(title: starting ? "Starting..." : "Start Game Night",
@@ -145,57 +149,167 @@ struct GameNightPlannerCard: View {
                 }
             }
 
-            if playlist.isEmpty && !loading {
-                Text("The TV will pick a balanced mix for \(playerCount) player\(playerCount == 1 ? "" : "s") when you start.")
+            if plan.games.isEmpty && !loading {
+                Text("Add the games you want, or tap Shuffle and the TV will pick a balanced mix for \(playerCount) player\(playerCount == 1 ? "" : "s").")
                     .font(.system(.footnote, design: .rounded))
                     .foregroundColor(.white.opacity(0.55))
             } else {
-                ForEach(Array(playlist.enumerated()), id: \.element) { index, game in
-                    HStack(spacing: 12) {
-                        Text("\(index + 1)")
-                            .font(.system(.caption, design: .rounded, weight: .heavy))
-                            .foregroundColor(.black)
-                            .frame(width: 22, height: 22)
-                            .background(Circle().fill(PhonePlayDesign.orange))
-                        Image(systemName: game.sfSymbol)
-                            .foregroundColor(.white.opacity(0.85))
-                            .frame(width: 24)
-                        Text(game.displayName)
-                            .font(.system(size: 15, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                        Spacer()
-                        if let m = gameMinutes[game] {
-                            Text("\(m) min")
-                                .font(.system(.caption, design: .rounded))
-                                .foregroundColor(.white.opacity(0.45))
-                        }
-                        if playlist.count > 1 {
-                            Button {
-                                PhonePlayHaptics.tap()
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    playlist.removeAll { $0 == game }
-                                }
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.white.opacity(0.3))
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Remove \(game.displayName)")
-                        }
+                ForEach(Array(plan.games.enumerated()), id: \.element.id) { index, pick in
+                    if let game = pick.game {
+                        playlistRow(index: index, pick: pick, game: game)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(Color.white.opacity(0.05)))
-                    .transition(.asymmetric(insertion: .scale(scale: 0.9).combined(with: .opacity),
-                                            removal: .opacity))
                 }
                 if totalMinutes > 0 {
-                    Text("About \(totalMinutes) minutes, \(playlist.count) game\(playlist.count == 1 ? "" : "s")")
+                    Text("About \(totalMinutes) minutes, \(plan.games.count) game\(plan.games.count == 1 ? "" : "s")")
                         .font(.system(.caption, design: .rounded))
                         .foregroundColor(.white.opacity(0.45))
                 }
             }
+
+            addGameMenu
+        }
+    }
+
+    private func playlistRow(index: Int, pick: PickedGame, game: GameID) -> some View {
+        HStack(spacing: 10) {
+            Text("\(index + 1)")
+                .font(.system(.caption, design: .rounded, weight: .heavy))
+                .foregroundColor(.black)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(PhonePlayDesign.orange))
+            Image(systemName: game.sfSymbol)
+                .foregroundColor(.white.opacity(0.85))
+                .frame(width: 24)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(game.displayName)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Text("\(plan.minutes(for: pick)) min")
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundColor(.white.opacity(0.45))
+            }
+            Spacer(minLength: 4)
+            roundsMenu(for: pick)
+            Button {
+                PhonePlayHaptics.tap()
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    plan.move(pick.id, by: -1)
+                }
+            } label: {
+                Image(systemName: "chevron.up")
+                    .foregroundColor(.white.opacity(index == 0 ? 0.15 : 0.5))
+            }
+            .buttonStyle(.plain)
+            .disabled(index == 0)
+            .accessibilityLabel("Move \(game.displayName) up")
+            Button {
+                PhonePlayHaptics.tap()
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    plan.move(pick.id, by: 1)
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .foregroundColor(.white.opacity(index == plan.games.count - 1 ? 0.15 : 0.5))
+            }
+            .buttonStyle(.plain)
+            .disabled(index == plan.games.count - 1)
+            .accessibilityLabel("Move \(game.displayName) down")
+            if plan.games.count > 1 {
+                Button {
+                    PhonePlayHaptics.tap()
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        plan.remove(pick.id)
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.white.opacity(0.3))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Remove \(game.displayName)")
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous).fill(Color.white.opacity(0.05)))
+        .transition(.asymmetric(insertion: .scale(scale: 0.9).combined(with: .opacity),
+                                removal: .opacity))
+    }
+
+    /// "6 rounds" chip that opens the game's round counts. Only games whose
+    /// length is counted in rounds have one.
+    @ViewBuilder
+    private func roundsMenu(for pick: PickedGame) -> some View {
+        if let option = pick.roundsOption, let current = plan.roundsValue(for: pick) {
+            Menu {
+                ForEach(option.choices) { choice in
+                    Button {
+                        plan.setRounds(choice.value, for: pick)
+                    } label: {
+                        if choice.value == current {
+                            Label(choice.label, systemImage: "checkmark")
+                        } else {
+                            Text(choice.label)
+                        }
+                    }
+                }
+            } label: {
+                Text("\(current) rounds")
+                    .font(.system(.caption, design: .rounded, weight: .heavy))
+                    .foregroundColor(PhonePlayDesign.cyan)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Capsule().fill(PhonePlayDesign.cyan.opacity(0.15)))
+            }
+            .accessibilityLabel("Rounds, \(current)")
+        }
+    }
+
+    /// Any game can join the night, even one that suits a different group size.
+    @ViewBuilder
+    private var addGameMenu: some View {
+        let addable = allGames.filter { $0.game != nil && !plan.contains($0.id) }
+        if !addable.isEmpty && plan.games.count < NightPlan.maxGames {
+            Menu {
+                ForEach(addable) { pick in
+                    if let game = pick.game {
+                        Button {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                _ = plan.add(pick)
+                            }
+                        } label: {
+                            if pick.fits == false {
+                                Text("\(game.displayName) (\(pick.minPlayers) to \(pick.maxPlayers) players)")
+                            } else {
+                                Label(game.displayName, systemImage: game.sfSymbol)
+                            }
+                        }
+                    }
+                }
+            } label: {
+                Label("Add a game", systemImage: "plus.circle.fill")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(PhonePlayDesign.orange)
+            }
+        }
+    }
+
+    private var scoringPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("SCORING")
+                .font(.system(size: 12, weight: .heavy, design: .rounded))
+                .tracking(2)
+                .foregroundColor(.white.opacity(0.5))
+            HStack(spacing: 8) {
+                ForEach(NightPoints.allCases) { mode in
+                    OneStopChip(title: mode.title, selected: plan.points == mode, tint: PhonePlayDesign.cyan) {
+                        plan.points = mode
+                    }
+                }
+            }
+            Text(plan.points.hint)
+                .font(.system(.caption, design: .rounded))
+                .foregroundColor(.white.opacity(0.55))
         }
     }
 
@@ -205,33 +319,36 @@ struct GameNightPlannerCard: View {
     private func loadPlaylist() async {
         guard expanded else { loading = false; return }
         loading = true
+        async let everything = OneStopAPI.pickAll(players: playerCount, kids: kids)
         let picks = await OneStopAPI.pick(players: playerCount, kids: kids, minutes: nil, party: partyOn)
+        let all = await everything
         guard !Task.isCancelled else { return }
-        var out: [GameID] = []
-        var lengths: [GameID: Int] = [:]
+        var out: [PickedGame] = []
         var spent = 0
         for pick in picks {
             if spent >= minutes || out.count >= 8 { break }
-            guard let game = pick.game, !out.contains(game) else { continue }
-            out.append(game)
-            lengths[game] = pick.minutes
+            guard pick.game != nil, !out.contains(where: { $0.id == pick.id }) else { continue }
+            out.append(pick)
             spent += pick.minutes
         }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            playlist = out
-            gameMinutes = lengths
+            plan.games = out
+            plan.rounds = [:]
+            allGames = all
         }
         loading = false
     }
 
     private func start() {
         starting = true
-        let ids = playlist.map(\.rawValue)
+        let ids = plan.playlist
         OneStopEvents.startNight(StartNightPayload(roomCode: room.code,
                                                    playlist: ids.isEmpty ? nil : ids,
                                                    minutes: minutes,
                                                    kids: kids,
-                                                   party: partyOn ? party.payload : nil))
+                                                   party: partyOn ? party.payload : nil,
+                                                   settings: plan.settings,
+                                                   points: plan.points.rawValue))
         // room_updated swaps this card for the running scoreboard; re-enable
         // the button in case the server refused (e.g. no games fit).
         Task {
@@ -323,7 +440,8 @@ struct GameNightStatusCard: View {
             let n = night.gamesPlayed
             return n == 1 ? "1 game played" : "\(n) games played"
         }
-        return "Game \(min(night.index + 1, night.playlist.count)) of \(night.playlist.count)"
+        let base = "Game \(min(night.index + 1, night.playlist.count)) of \(night.playlist.count)"
+        return night.multiplier == 2 ? base + ", double points" : base
     }
 
     @ViewBuilder

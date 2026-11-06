@@ -123,8 +123,9 @@ struct TVLobbyView: View {
     private var nightPanel: some View {
         if showsNightSetup {
             TVNightSetupPanel(playerCount: room.players.count,
-                              focusNamespace: lobbyFocus) { minutes, kids, playlist, party in
-                vm.startNight(minutes: minutes, kids: kids, playlist: playlist, party: party)
+                              focusNamespace: lobbyFocus) { minutes, kids, playlist, party, settings, points in
+                vm.startNight(minutes: minutes, kids: kids, playlist: playlist, party: party,
+                              settings: settings, points: points)
             }
         } else if let night = room.night {
             TVNightLobbyPanel(night: night)

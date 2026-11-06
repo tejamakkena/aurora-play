@@ -27,6 +27,7 @@ import json
 import logging
 import os
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import time
 import urllib.parse
 import urllib.request
@@ -55,6 +56,23 @@ def _config():
         "model": os.environ.get("TTS_MODEL", "gpt-4o-mini-tts"),
         "voice": os.environ.get("TTS_VOICE", "marin"),
     }
+
+
+# --- one paid call per line ------------------------------------------------
+# A line can be asked for twice at once: prewarmed in the background and then
+# requested by the TV. The second caller waits for the first and reads the
+# cache instead of paying again.
+
+_locks_guard = threading.Lock()
+_locks: dict[str, threading.Lock] = {}
+
+
+def _key_lock(key: str) -> threading.Lock:
+    with _locks_guard:
+        if len(_locks) > 2000:
+            for k in [k for k, lk in _locks.items() if not lk.locked()]:
+                del _locks[k]
+        return _locks.setdefault(key, threading.Lock())
 
 
 def _cache_dir() -> Path:
@@ -144,10 +162,18 @@ def _synthesize_elevenlabs(text: str, style: str | None) -> tuple[bytes, str]:
     if not cfg["api_key"] or not cfg["voice_id"]:
         raise VoiceError("ELEVENLABS_API_KEY or ELEVENLABS_VOICE_ID is not set")
     takes_tags = cfg["model"] in ("eleven_v4", "eleven_v3")
-    spoken = voice_styles.tagged(text, style) if takes_tags else text
+    # A host moment ("answers_none") acts like its style ("roast").
+    spoken = voice_styles.tagged(text, voice_styles.canonical(style)) if takes_tags else text
 
     key = _cache_key(f"eleven:{cfg['model']}", cfg["voice_id"], spoken)
     path = _cache_dir() / f"{key}.mp3"
+    with _key_lock(key):
+        return _eleven_render(cfg, spoken, text, path)
+
+
+def _eleven_render(cfg: dict, spoken: str, text: str, path: Path) -> tuple[bytes, str]:
+    """Cache check, then the paid call. Runs under the line's lock, so a line
+    being prewarmed is not paid for twice when the TV asks for it too."""
     try:
         if path.is_file():
             return path.read_bytes(), "cache"
@@ -205,6 +231,13 @@ def synthesize_speech(text: str, voice: str | None = None,
     instructions = _instructions_for(model, style)
     key = _cache_key(model, voice, text, instructions)
     path = _cache_dir() / f"{key}.mp3"
+    with _key_lock(key):
+        return _openai_render(cfg, model, voice, text, instructions, path)
+
+
+def _openai_render(cfg: dict, model: str, voice: str, text: str, instructions: str,
+                   path: Path) -> tuple[bytes, str]:
+    """Cache check, then the paid call (under the line's lock, see _eleven_render)."""
     try:
         if path.is_file():
             return path.read_bytes(), "cache"
@@ -251,6 +284,64 @@ def synthesize_speech(text: str, voice: str | None = None,
     except OSError:
         pass  # cache is best-effort; the audio itself is fine
     return audio, "openai"
+
+
+# --- prewarm: have the lines ready before the TV asks ------------------------
+# The server already knows what the host will say next (the party welcome and
+# lineup, the Game Night host's quips). Rendering them as soon as they are
+# written takes the wait out of the cloud voice, which otherwise renders each
+# line the moment the TV asks. Best effort: never raises, respects the daily
+# cap, and does nothing when no voice is configured.
+
+_PREWARM_MAX = 12
+_prewarm_pool: ThreadPoolExecutor | None = None
+_prewarm_lock = threading.Lock()
+
+
+def _voice_ready() -> bool:
+    if os.environ.get("TTS_PREWARM", "1") == "0":
+        return False
+    if os.environ.get("TTS_PROVIDER", "openai") == "elevenlabs":
+        return bool(os.environ.get("ELEVENLABS_API_KEY") and os.environ.get("ELEVENLABS_VOICE_ID"))
+    return bool(_config()["api_key"])
+
+
+def _prewarm_one(text: str, style: str | None) -> None:
+    try:
+        synthesize_speech(text, None, style)
+    except VoiceError:
+        pass
+    except Exception:
+        logger.exception("tts prewarm failed")
+
+
+def prewarm(lines) -> int:
+    """Render ``(text, style)`` pairs in the background; returns how many were
+    queued. Style is a style name or a host moment, as for /api/voice/tts."""
+    global _prewarm_pool
+    if not _voice_ready():
+        return 0
+    queued = 0
+    for item in list(lines)[:_PREWARM_MAX]:
+        try:
+            text, style = item
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(text, str) or not text.strip():
+            continue
+        with _prewarm_lock:
+            if _prewarm_pool is None:
+                _prewarm_pool = ThreadPoolExecutor(max_workers=2, thread_name_prefix="tts-prewarm")
+            _prewarm_pool.submit(_prewarm_one, text, style if isinstance(style, str) else None)
+        queued += 1
+    return queued
+
+
+@voice_bp.route("/warm", methods=["GET"])
+def warm():
+    """GET /api/voice/warm -> a few bytes. The apps call it on launch and in the
+    lobby so a sleeping free-tier server is awake by the first spoken line."""
+    return jsonify({"ok": True, "voice": _voice_ready()})
 
 
 def _tts_response(text: str, voice: str | None, style: str | None = None):

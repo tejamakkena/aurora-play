@@ -299,6 +299,11 @@ def say(room, moment: str, headline: str | None = None,
     queue.append({"seq": room.host_seq, "moment": moment, "text": line,
                   "headline": headline or ""})
     del queue[:-MAX_QUEUED]
+    try:
+        from games import voice
+        voice.prewarm([(line, moment)])     # ready before the TV asks for it
+    except Exception:
+        pass
     return line
 
 

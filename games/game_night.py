@@ -264,6 +264,12 @@ def start(room, playlist: list[str], kids: bool = False, party: dict | None = No
             "finaleLines": [],
         })
         room.night["party"] = cleaned
+        try:
+            from games import voice
+            voice.prewarm([(t, "welcome") for t in cleaned["welcomeLines"]]
+                          + [(t, "playful") for t in cleaned["lineupLines"]])
+        except Exception:
+            pass
     room.game_id = playlist[0]
     apply_settings(room)
     _apply_kids_topic(room)

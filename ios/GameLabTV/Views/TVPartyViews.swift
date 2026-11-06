@@ -129,6 +129,9 @@ struct TVPartyWelcomeView: View {
             return
         }
         caption = lines[index]
+        for ahead in (index + 1)..<min(lines.count, index + 3) {
+            voice.prefetch(lines[ahead], style: ahead < party.welcomeLines.count ? "welcome" : "playful")
+        }
         voice.speak(lines[index], style: index < party.welcomeLines.count ? "welcome" : "playful") {
             speak(lines, index: index + 1)
         }
@@ -156,6 +159,7 @@ struct TVPartyFinaleSpeaker: View {
 
     private func speak(_ index: Int) {
         guard index < lines.count else { return }
+        if index + 1 < lines.count { voice.prefetch(lines[index + 1], style: "finale") }
         voice.speak(lines[index], style: "finale") { speak(index + 1) }
     }
 }

@@ -83,3 +83,18 @@ To use ElevenLabs for the live voice too (names, fresh AI questions), set
 the live voice matches the pack. Leave it off to keep the live voice on OpenAI.
 `ELEVENLABS_MODEL` (default `eleven_v4`) picks another model; tags are only
 added for `eleven_v4` and `eleven_v3`.
+
+## Delay and slow voice
+
+What makes the host feel slow, and what is done about each:
+
+| Cause | Fix |
+| --- | --- |
+| The cloud voice renders each line the moment the TV asks for it (1 to 3 s). | The server renders the lines it already knows (party welcome and lineup, the host's quips) in the background as soon as they are written (`games/voice.py` `prewarm`). The TV also fetches the next two lines of a spoken run while the current one plays, so there is no gap between lines. `TTS_PREWARM=0` turns the server side off. |
+| Two requests for one line (prewarm and the TV) each paid for it. | One lock per line: the second waits for the first and reads the cache. |
+| A free-tier server sleeps after 15 idle minutes and takes up to a minute to wake. | The TV pings `/api/voice/warm` when a room opens. For a party, also open the site or use a free uptime monitor (UptimeRobot, 5-minute checks) on `/api/voice/warm` an hour before. |
+| The server's cache is lost when it restarts (free disks are ephemeral). | Fixed lines come from the bundled pack, which needs no server. Only names and questions go to the cloud voice. |
+| A high-quality model is slower. | Keep `eleven_v4` for the bundled pack, but run the live server on `ELEVENLABS_MODEL=eleven_flash_v2_5` (about 0.3 s, half the credits, no audio tags). |
+| The offline clips and device voice read slowly. | **Host pace** on the TV's game list: Relaxed, Normal, Brisk (default), Quick. The style prompts also ask for a brisk read. |
+
+A host moment (`answers_none`) now acts like its style (`roast`) on ElevenLabs too, not only on OpenAI.

@@ -13,6 +13,7 @@ struct TVGameSelectionView: View {
     @State private var hasAppeared = false
     @State private var isPulsing = false
     @State private var studioVoice = VoiceSettings.cloudAllowed
+    @State private var paceIndex = VoiceSettings.paceIndex
 
     // Every soloPlayable game also supports more than one player (Neon
     // Snake, 2048, Simon Says: up to 4; Brick Breaker: up to 2) -- picking
@@ -243,6 +244,16 @@ struct TVGameSelectionView: View {
             }
             .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.violet, fontSize: 20))
             .accessibilityIdentifier("voiceModeButton")
+
+            // How fast the host talks.
+            Button {
+                paceIndex = (paceIndex + 1) % VoiceSettings.paces.count
+                VoiceSettings.paceIndex = paceIndex
+            } label: {
+                Label("Host pace: \(VoiceSettings.paces[paceIndex].name)", systemImage: "gauge.with.dots.needle.67percent")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.violet, fontSize: 20))
+            .accessibilityIdentifier("voicePaceButton")
 
             // Connection status dot -- breathes gently while reconnecting
             // so the state reads as "actively retrying", not stuck.
