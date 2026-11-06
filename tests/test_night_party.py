@@ -65,7 +65,8 @@ class TestParty:
         assert text.index("Herd") < text.index("Trivia") < text.index("Bluff")
 
     def test_a_get_together_does_not_repeat_its_welcome(self):
-        assert len(NP.welcome_lines(NP.clean_party({"occasion": "gathering"}))) == 1
+        lines = NP.welcome_lines(NP.clean_party({"occasion": "gathering"}))
+        assert lines.count("Let the games begin!") <= 1 and len(lines) == len(set(lines))
 
     def test_nothing_the_tv_says_or_shows_has_emoji(self):
         blobs = [str(NP.OCCASIONS), str(NP.STYLES)]
@@ -113,7 +114,7 @@ class TestNightWithAParty:
         game_night.record_game(room, results("p0", "p2", "p1"))
         assert game_night.advance(room) is None
         lines = room.to_json()["night"]["party"]["finaleLines"]
-        assert "P0" in " ".join(lines) and "Venkat's Birthday Party" in " ".join(lines)
+        assert "P0" in " ".join(lines) and "happy birthday, Venkat!" in " ".join(lines)
 
 
 @pytest.fixture

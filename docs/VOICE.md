@@ -83,3 +83,45 @@ To use ElevenLabs for the live voice too (names, fresh AI questions), set
 the live voice matches the pack. Leave it off to keep the live voice on OpenAI.
 `ELEVENLABS_MODEL` (default `eleven_v4`) picks another model; tags are only
 added for `eleven_v4` and `eleven_v3`.
+
+## Delay and slow voice
+
+What makes the host feel slow, and what is done about each:
+
+| Cause | Fix |
+| --- | --- |
+| The cloud voice renders each line the moment the TV asks for it (1 to 3 s). | The server renders the lines it already knows (party welcome and lineup, the host's quips) in the background as soon as they are written (`games/voice.py` `prewarm`). The TV also fetches the next two lines of a spoken run while the current one plays, so there is no gap between lines. `TTS_PREWARM=0` turns the server side off. |
+| Two requests for one line (prewarm and the TV) each paid for it. | One lock per line: the second waits for the first and reads the cache. |
+| A free-tier server sleeps after 15 idle minutes and takes up to a minute to wake. | The TV pings `/api/voice/warm` when a room opens. For a party, also open the site or use a free uptime monitor (UptimeRobot, 5-minute checks) on `/api/voice/warm` an hour before. |
+| The server's cache is lost when it restarts (free disks are ephemeral). | Fixed lines come from the bundled pack, which needs no server. Only names and questions go to the cloud voice. |
+| A high-quality model is slower. | Keep `eleven_v4` for the bundled pack, but run the live server on `ELEVENLABS_MODEL=eleven_flash_v2_5` (about 0.3 s, half the credits, no audio tags). |
+| The offline clips and device voice read slowly. | **Host pace** on the TV's game list: Relaxed, Normal, Brisk (default), Quick. The style prompts also ask for a brisk read. |
+
+A host moment (`answers_none`) now acts like its style (`roast`) on ElevenLabs too, not only on OpenAI.
+
+## Installing the voice once (names and the party show)
+
+The party host's lines are written to be pre-recorded, so the TV needs no internet and
+there is no wait:
+
+- Every fixed sentence (the jokes, the game teasers, the lineup frames, the cheers)
+  is rendered once into the pack.
+- The sentences with a **guest of honour's name** are rendered per name, ahead of the
+  party. List the names in `tools/party_names.txt`, or type them into the **names**
+  box of the "Render voice pack" workflow (for example `Venkat, Asha, Teja`, with
+  **occasions** `birthday`). Each name adds about 40 short clips. Names on the Indian-name
+  list (`games/party_script.py`) are rendered with `ELEVENLABS_VOICE_ID_INDIAN`.
+- A name that is not in the pack is still spoken at the party, live, in the cloud voice.
+  With the cloud voice off it falls back to the device voice, which is why it is worth
+  listing the names you will use.
+
+The steps, once:
+
+1. Add the ElevenLabs key and voice ids (above), or an OpenAI key.
+2. Actions, **Render voice pack**: engine `elevenlabs`, **audition** ticked. Listen.
+3. Run it again: engine `elevenlabs`, limit `0`, **redo** ticked, names filled in.
+4. Open the pull request from the `voice-pack/...` branch it pushes and merge it. The
+   next TestFlight build carries the pack; nothing is downloaded at the party.
+
+Adding a birthday person later means running step 3 again with only the new name and
+**redo** unticked: only the missing clips are rendered.

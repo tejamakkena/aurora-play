@@ -139,6 +139,7 @@ class HotTakesEngine(RoundBasedEngine):
     """
 
     game_id = "hot_takes"
+    rounds_adjustable = False      # rounds follow the player count
     min_players = 3
     max_players = 8
     first_phase = "intro"
@@ -630,6 +631,7 @@ class TwentyQuestionsEngine(RoundBasedEngine):
     """
 
     game_id = "twenty_questions"
+    rounds_adjustable = False      # rounds follow the player count
     min_players = 3
     max_players = 8
     first_phase = "intro"

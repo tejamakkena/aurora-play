@@ -890,6 +890,7 @@ class BollywoodCharadesEngine(RoundBasedEngine):
     """Act out a film; the room types guesses. Faster guesses score more."""
 
     game_id = "bollywood_charades"
+    rounds_adjustable = False      # everyone acts the same number of times
     min_players = 3
     max_players = 16
     total_rounds = 6

@@ -302,6 +302,8 @@ def _pump(socketio, code: str, generation: int, tick_hz: float) -> None:
                                 except Exception:
                                     logger.exception("bot action failed room=%s",
                                                      code)
+                    if room.engine.time_expired() and not room.engine.is_over():
+                        room.engine.time_up()      # the host's time limit: best score wins
                     over = room.engine.is_over()
                 else:
                     over = False

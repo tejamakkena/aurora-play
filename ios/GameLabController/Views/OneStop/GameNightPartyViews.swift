@@ -16,6 +16,13 @@ struct NightPartySettings: Equatable {
     var humor = "mix"
     var nhiePack = "mix"
     var nhieRounds = 10
+    var accent = "auto"
+
+    static let accents: [NightPartyChoice] = [
+        NightPartyChoice(id: "auto", title: "Automatic", symbol: "wand.and.stars"),
+        NightPartyChoice(id: "indian", title: "Indian way", symbol: "person.wave.2.fill"),
+        NightPartyChoice(id: "standard", title: "Standard", symbol: "person.fill"),
+    ]
 
     static let occasions = NightPartyOptions.occasions
     static let styles = NightPartyOptions.styles
@@ -52,7 +59,8 @@ struct NightPartySettings: Equatable {
     var payload: NightPartyPayload {
         NightPartyPayload(occasion: occasion,
                           honoree: honoree.trimmingCharacters(in: .whitespacesAndNewlines),
-                          style: style, humor: humor, nhiePack: nhiePack, nhieRounds: nhieRounds)
+                          style: style, humor: humor, nhiePack: nhiePack, nhieRounds: nhieRounds,
+                          accent: accent)
     }
 }
 
@@ -77,6 +85,14 @@ struct NightPartyForm: View {
                     .padding(12)
                     .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
                         .fill(Color.white.opacity(0.08)))
+            }
+            if settings.nameLabel != nil && !settings.honoree.trimmingCharacters(in: .whitespaces).isEmpty {
+                section("SAY THE NAME") {
+                    chips(NightPartySettings.accents, selected: settings.accent) { settings.accent = $0 }
+                    Text("Automatic says common Indian names, like Venkat or Teja, the Indian way. The TV also does a cheer on request.")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundColor(.white.opacity(0.55))
+                }
             }
             section("HOST STYLE") {
                 chips(NightPartySettings.styles, selected: settings.style) { settings.style = $0 }

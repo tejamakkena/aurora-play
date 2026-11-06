@@ -32,6 +32,12 @@ on:
       max_mb:
         description: "Stop when the pack reaches this size in MB (0 = no limit)"
         default: "0"
+      names:
+        description: "Birthday people (or other guests of honour) to say BY NAME, comma separated, e.g. Venkat, Asha, Teja. Added to tools/party_names.txt."
+        default: ""
+      occasions:
+        description: "Occasions to render those names for, comma separated: birthday, anniversary, housewarming, festival, gathering"
+        default: "birthday"
       audition:
         description: "Listen first: render ten sample lines in every style (OpenAI or ElevenLabs, about a cent) and attach them to the run. Nothing is pushed."
         type: boolean
@@ -96,6 +102,8 @@ jobs:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: ${{ vars.ELEVENLABS_VOICE_ID || secrets.ELEVENLABS_VOICE_ID }}
           ELEVENLABS_VOICE_ID_INDIAN: ${{ vars.ELEVENLABS_VOICE_ID_INDIAN || secrets.ELEVENLABS_VOICE_ID_INDIAN }}
+          PARTY_NAMES: ${{ inputs.names }}
+          PARTY_OCCASIONS: ${{ inputs.occasions }}
         run: |
           args="--engine ${{ inputs.engine }} --max-mb ${{ inputs.max_mb }}"
           if [ "${{ inputs.redo }}" = "true" ]; then args="$args --force"; fi
@@ -103,8 +111,8 @@ jobs:
           if [ "${{ inputs.engine }}" = "piper" ]; then
             args="$args --piper-model voices/${{ inputs.piper_voice }}.onnx"
           fi
-          python3 tools/render_voice_pack.py --dry-run
-          python3 tools/render_voice_pack.py $args
+          python3 tools/render_voice_pack.py --dry-run --names "$PARTY_NAMES" --occasions "$PARTY_OCCASIONS"
+          python3 tools/render_voice_pack.py $args --names "$PARTY_NAMES" --occasions "$PARTY_OCCASIONS"
 
       - name: Push the clips to a branch
         if: ${{ !inputs.audition }}

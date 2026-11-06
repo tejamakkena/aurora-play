@@ -7,10 +7,16 @@ Socket side (games/native_hub/socket_events.py): ``start_night``,
 ``next_game``, ``end_night``. The night lives on the room as
 ``room.night`` and rides along in ``room_updated`` (Room.to_json "night").
 
-Scoring: each game's placings become night points (1st 10, 2nd 7,
-3rd 5, 4th 3, everyone else who played 1), so a party game with 12
-players and a 2-player duel weigh the same. The champion is whoever has
-the most night points when the playlist ends.
+Scoring: each game's placings become night points, so a party game with 12
+players and a 2-player duel weigh the same. The host picks how (``points``):
+
+  classic   1st 10, 2nd 7, 3rd 5, 4th 3, everyone else who played 1.
+  fair      1st 10 down to 1 for last, in even steps across the field, so
+            every placing counts and a small game is worth as much as a big one.
+  comeback  classic, but the last game pays double so the night is never over
+            before it ends.
+
+The champion is whoever has the most night points when the playlist ends.
 """
 
 from __future__ import annotations
@@ -69,6 +75,37 @@ CATALOG: dict[str, dict] = {
 
 NIGHT_POINTS = (10, 7, 5, 3)
 PARTICIPATION_POINTS = 1
+TOP_POINTS = NIGHT_POINTS[0]
+
+#: How a night turns placings into points. Order is the order shown to the host.
+POINT_MODES: dict[str, dict] = {
+    "classic":  {"label": "Classic", "hint": "10, 7, 5, 3 points, 1 for the rest"},
+    "fair":     {"label": "Fair share", "hint": "Every place counts, 10 down to 1"},
+    "comeback": {"label": "Big finish", "hint": "Classic, with the last game worth double"},
+}
+DEFAULT_POINTS = "classic"
+
+
+def game_points(mode: str, rank, field: int) -> int:
+    """Night points for finishing ``rank`` among ``field`` players (before any
+    last-game bonus). ``rank`` is None or out of range for a non-placing finish."""
+    if not isinstance(rank, int) or isinstance(rank, bool) or rank < 1:
+        return PARTICIPATION_POINTS
+    if mode == "fair":
+        if field <= 1:
+            return TOP_POINTS
+        rank = min(rank, field)
+        step = (TOP_POINTS - PARTICIPATION_POINTS) / (field - 1)
+        return max(PARTICIPATION_POINTS, round(TOP_POINTS - (rank - 1) * step))
+    return NIGHT_POINTS[rank - 1] if rank <= len(NIGHT_POINTS) else PARTICIPATION_POINTS
+
+
+def multiplier(room) -> int:
+    """2 on the last game of a "comeback" night, else 1."""
+    night = getattr(room, "night", None) or {}
+    if night.get("points") != "comeback":
+        return 1
+    return 2 if night.get("index", 0) >= len(night.get("playlist", [])) - 1 else 1
 
 
 def _limits(game_id: str) -> tuple[int, int]:
@@ -121,6 +158,18 @@ def pick_games(players: int, kids: bool = False, minutes: int | None = None,
     return out
 
 
+def all_games(kids: bool = False) -> list[dict]:
+    """Every catalog game that has an engine, fit for this group size or not."""
+    out = []
+    for gid, info in CATALOG.items():
+        lo, hi = _limits(gid)
+        if not lo or (kids and not info["kids"]):
+            continue
+        out.append({"id": gid, "minutes": info["minutes"], "kids": info["kids"],
+                    "tags": info["tags"], "minPlayers": lo, "maxPlayers": hi, "score": 0})
+    return out
+
+
 def build_playlist(players: int, kids: bool = False, total_minutes: int = 45,
                    rng: random.Random | None = None, party: bool = False) -> list[str]:
     """A balanced playlist: varied tags, about ``total_minutes`` long."""
@@ -165,11 +214,40 @@ def _apply_kids_topic(room) -> None:
     night["kidsTopic"] = topic
 
 
-def start(room, playlist: list[str], kids: bool = False, party: dict | None = None) -> dict:
+def clean_settings(playlist: list[str], raw) -> dict[str, dict[str, str]]:
+    """The host's per-game picks (rounds, decks, chips...) from a client, kept
+    only where the game offers that option and that choice."""
+    from games.native_hub import options
+    out: dict[str, dict[str, str]] = {}
+    if not isinstance(raw, dict):
+        return out
+    for gid in set(playlist):
+        picks = raw.get(gid)
+        if not isinstance(picks, dict):
+            continue
+        keep = {str(k): str(v) for k, v in picks.items()
+                if isinstance(k, str) and isinstance(v, (str, int))
+                and not isinstance(v, bool) and options.valid(gid, k, str(v))}
+        if keep:
+            out[gid] = keep
+    return out
+
+
+def apply_settings(room) -> None:
+    """Give the room the host's picks for the game that is up, and none of the
+    previous game's: a "6 rounds" for one game must not leak into the next."""
+    night = getattr(room, "night", None) or {}
+    room.options = dict((night.get("settings") or {}).get(room.game_id, {}))
+
+
+def start(room, playlist: list[str], kids: bool = False, party: dict | None = None,
+          settings: dict | None = None, points: str | None = None) -> dict:
     room.night = {
         "playlist": list(playlist), "index": 0, "totals": {}, "names": {},
         "history": [], "finished": False, "startedAt": time.time(),
         "kids": bool(kids), "kidsSeed": random.randrange(len(KIDS_TOPICS)),
+        "settings": clean_settings(playlist, settings),
+        "points": points if points in POINT_MODES else DEFAULT_POINTS,
     }
     if party is not None:
         # A party (games/night_party.py): the TV holds a welcome screen until
@@ -177,16 +255,29 @@ def start(room, playlist: list[str], kids: bool = False, party: dict | None = No
         # room says the same thing.
         from games import night_party
         cleaned = night_party.clean_party(party)
+        welcome = night_party.welcome_script(cleaned)
+        lineup = night_party.lineup_script(cleaned, playlist)
         cleaned.update({
             "welcomed": False,
             "title": night_party.title_for(cleaned),
             "cheer": night_party.cheer_for(cleaned),
-            "welcomeLines": night_party.welcome_lines(cleaned),
-            "lineupLines": night_party.lineup_lines(cleaned, playlist),
+            "welcomeLines": [t for t, _ in welcome],
+            "welcomeCues": [c for _, c in welcome],
+            "lineupLines": [t for t, _ in lineup],
+            "lineupCues": [c for _, c in lineup],
             "finaleLines": [],
+            "finaleCues": [],
+            "indianVoice": night_party.indian_voice(cleaned),
         })
         room.night["party"] = cleaned
+        try:
+            from games import voice
+            voice.prewarm(list(zip(cleaned["welcomeLines"], cleaned["welcomeCues"]))
+                          + list(zip(cleaned["lineupLines"], cleaned["lineupCues"])))
+        except Exception:
+            pass
     room.game_id = playlist[0]
+    apply_settings(room)
     _apply_kids_topic(room)
     from games import show_host
     show_host.night_opened(room)
@@ -204,19 +295,19 @@ def record_game(room, results: list) -> None:
     no_winner = scoring.is_social(room.game_id) or (
         scoring.is_coop(room.game_id)
         and not any(isinstance(r, dict) and (r.get("score") or 0) > 0 for r in results))
+    mode = night.get("points", DEFAULT_POINTS)
+    bonus = multiplier(room)
+    field = sum(1 for r in results if isinstance(r, dict) and r.get("playerID"))
     for r in results:
         if not isinstance(r, dict) or not r.get("playerID"):
             continue
-        rank = r.get("rank")
-        pts = NIGHT_POINTS[rank - 1] if isinstance(rank, int) and 1 <= rank <= len(NIGHT_POINTS) \
-            else PARTICIPATION_POINTS
-        if no_winner:
-            pts = PARTICIPATION_POINTS
+        pts = PARTICIPATION_POINTS if no_winner else game_points(mode, r.get("rank"), field)
+        pts *= bonus
         pid = r["playerID"]
         gained[pid] = pts
         night["totals"][pid] = night["totals"].get(pid, 0) + pts
         night["names"][pid] = r.get("name") or night["names"].get(pid, "Player")
-    night["history"].append({"gameID": room.game_id, "points": gained})
+    night["history"].append({"gameID": room.game_id, "points": gained, "x": bonus})
 
 
 def advance(room) -> str | None:
@@ -232,12 +323,14 @@ def advance(room) -> str | None:
             from games import night_party
             top = standings(room)[:1]
             winner = top[0]["name"] if top and top[0]["points"] > 0 else None
-            party["finaleLines"] = night_party.finale_lines(
-                party, winner, top[0]["points"] if top else 0)
+            finale = night_party.finale_script(party, winner, top[0]["points"] if top else 0)
+            party["finaleLines"] = [t for t, _ in finale]
+            party["finaleCues"] = [c for _, c in finale]
         from games import show_host
         show_host.night_closed(room)
         return None
     room.game_id = night["playlist"][night["index"]]
+    apply_settings(room)
     _apply_kids_topic(room)
     from games import show_host
     show_host.game_up_next(room)
@@ -278,6 +371,11 @@ def to_json(room) -> dict | None:
         "gamesPlayed": len(night["history"]),
         "kids": bool(night.get("kids")),
         "party": _party_json(night.get("party")),
+        "points": night.get("points", DEFAULT_POINTS),
+        "pointsLabel": POINT_MODES[night.get("points", DEFAULT_POINTS)]["label"],
+        "multiplier": multiplier(room),
+        "rounds": {gid: picks["rounds"] for gid, picks in (night.get("settings") or {}).items()
+                   if "rounds" in picks},
     }
 
 
@@ -286,7 +384,8 @@ def _party_json(party: dict | None) -> dict | None:
         return None
     return {k: party.get(k) for k in (
         "occasion", "honoree", "title", "cheer", "welcomed",
-        "welcomeLines", "lineupLines", "finaleLines")}
+        "welcomeLines", "lineupLines", "finaleLines",
+        "welcomeCues", "lineupCues", "finaleCues", "indianVoice")}
 
 
 # ---------------------------------------------------------------------------
@@ -308,5 +407,18 @@ def picker():
     except ValueError:
         minutes = None
     party = (request.args.get("party") or "").lower() in ("1", "true", "yes")
-    return jsonify({"success": True, "players": players,
-                    "games": pick_games(players, kids, minutes, party=party)})
+    games = pick_games(players, kids, minutes, party=party)
+    for g in games:
+        g["fits"] = True
+    if (request.args.get("all") or "").lower() in ("1", "true", "yes"):
+        # The host builder shows every game, with a flag for the ones that do
+        # not fit this group, so the host can still choose them.
+        fits = {g["id"] for g in games}
+        games = games + [dict(g, fits=False) for g in all_games(kids) if g["id"] not in fits]
+    from games.native_hub import options
+    for g in games:
+        g["options"] = [{"key": o["key"], "label": o["label"], "default": o["default"],
+                         "choices": [{"value": c[0], "label": c[1]} for c in o["choices"]]}
+                        for o in options.menu(g["id"])]
+    return jsonify({"success": True, "players": players, "games": games,
+                    "pointModes": [{"id": k, **v} for k, v in POINT_MODES.items()]})

@@ -20,7 +20,7 @@ STYLES: dict[str, str] = {
         "You are the warm, quick-witted host of a family game night, speaking to a room "
         "of friends. Sound like a person, never like text being read: vary your pitch and "
         "pace, smile as you talk, stress the fun words, and pause naturally at commas. "
-        "Keep it clear and easy to follow."
+        "Keep it clear and easy to follow, at a brisk pace that never drags."
     ),
     "welcome": (
         "You are a thrilled game-show host opening the biggest night of the year. Big, "
@@ -39,7 +39,7 @@ STYLES: dict[str, str] = {
     "roast": (
         "Dry, deadpan and affectionate, like a talk-show host gently roasting a friend. "
         "Flat delivery with a tiny pause before the punchline, then a hint of a smirk. "
-        "Never mean."
+        "Brisk, never dragging. Never mean."
     ),
     "finale": (
         "A grand, warm closing. Slow down a touch, proud and celebratory, like announcing "
@@ -56,13 +56,20 @@ STYLES: dict[str, str] = {
     ),
     "quiz": (
         "A confident, friendly quiz-show host reading a question clearly to a room. "
-        "Upbeat and crisp, with a short pause before each answer option, and a small "
-        "lift of curiosity on the question."
+        "Upbeat, crisp and brisk, with a short pause before each answer option, and a "
+        "small lift of curiosity on the question."
     ),
     "indian": (
-        "Speak with a natural Indian English accent, warm and amused. Say any Hindi or "
-        "Telugu word or song title the way a native speaker would, with its own "
-        "rhythm and stress, never anglicised."
+        "Speak with a natural Indian English accent, warm, lively and amused, like a "
+        "favourite uncle hosting a family party. Say every Indian name, and any Hindi "
+        "or Telugu word or song title, exactly the way a native speaker would, with "
+        "its own rhythm and stress, never anglicised and never spelled out. Perform "
+        "it with real feeling and humour, never read it like text on a page."
+    ),
+    "cheer": (
+        "A roaring stadium announcer leading a crowd chant. Huge, joyful and drawn "
+        "out, each word punched and stretched, like the whole room is about to "
+        "cheer along. Names are shouted with love. Loud, but never harsh."
     ),
 }
 
@@ -75,6 +82,7 @@ ELEVEN_TAGS: dict[str, str] = {
     "playful": "[giggles]",
     "roast": "[sarcastic]",
     "finale": "[excited]",
+    "cheer": "[excited]",
     "quiz": "[curious]",
 }
 
@@ -102,7 +110,20 @@ MOMENTS: dict[str, str] = {
     "runaway": "playful",
     "last_place": "roast",
     "night_close": "finale",
+    "cheer": "cheer",
 }
+
+
+def canonical(name: str | None) -> str | None:
+    """The style a name stands for: a style itself ("roast") or the style of a
+    host moment ("answers_none" -> "roast"). None when the name is neither, so
+    a line asking for nothing known is read in the default voice."""
+    key = (name or "").strip().lower()
+    if key in STYLES:
+        return key
+    if key in MOMENTS or key.startswith(("intro_", "teaser_")) or key.endswith("_kids"):
+        return for_moment(key)
+    return None
 
 
 def for_moment(moment: str | None) -> str:
@@ -112,6 +133,8 @@ def for_moment(moment: str | None) -> str:
         return "kids"
     if key.startswith("intro_"):
         return "welcome" if key == "intro_any" else "playful"
+    if key.startswith("teaser_"):
+        return "playful"
     return MOMENTS.get(key, DEFAULT)
 
 
@@ -123,4 +146,4 @@ def resolve(name: str | None) -> str | None:
     if key in STYLES:
         return STYLES[key]
     style = for_moment(key)
-    return STYLES.get(style) if (key in MOMENTS or key.startswith("intro_") or key.endswith("_kids")) else None
+    return STYLES.get(style) if (key in MOMENTS or key.startswith(("intro_", "teaser_")) or key.endswith("_kids")) else None

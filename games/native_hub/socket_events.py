@@ -513,7 +513,8 @@ def register_native_events(socketio):
                 push_error(socketio, sid, "No games fit this group", "NO_GAMES")
                 return
             game_night.start(room, playlist, kids=bool(data.get("kids")),
-                             party=party if isinstance(party, dict) else None)
+                             party=party if isinstance(party, dict) else None,
+                             settings=data.get("settings"), points=data.get("points"))
             room.state = RoomState.LOBBY
             room.engine = None
             room.phase = "play"
@@ -568,6 +569,26 @@ def register_native_events(socketio):
             if not _lobby_controller(room, sid, "begin the party"):
                 return
             if not game_night.begin_party(room):
+                return
+            room.touch()
+        push_room(socketio, room)
+
+    @socketio.on("cheer", namespace=NAMESPACE)
+    def handle_cheer(data):
+        """The host (or the TV) asks the TV to cheer for the guest of honour."""
+        from games import show_host
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "start a cheer"):
+                return
+            if not show_host.shout(room):
                 return
             room.touch()
         push_room(socketio, room)
@@ -792,6 +813,7 @@ def register_native_events(socketio):
             room.touch()
             try:
                 room.engine.start(players)
+                room.engine.began_at = time.time()      # the host's time limit counts from here
             except Exception:
                 logger.exception("engine begin failed room=%s", code)
                 room.engine = None

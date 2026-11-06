@@ -27,6 +27,7 @@ class RoundBasedEngine(NativeGameEngine):
     """
 
     total_rounds: int = 5
+    rounds_adjustable = True
     phase_seconds: dict[str, int] = {}       # phase name -> duration
     first_phase: str = "collect"
     #: Later phases that may also end early once everyone has submitted
@@ -35,6 +36,11 @@ class RoundBasedEngine(NativeGameEngine):
 
     def __init__(self, room, broadcaster) -> None:
         super().__init__(room, broadcaster)
+        # The host's "Rounds" pick (lobby or Game Night setup), else the game's own.
+        from games.native_hub import options
+        picked = options.explicit_rounds(room)
+        if picked is not None:
+            self.total_rounds = picked
         self.round: int = 0
         self.phase: str = self.first_phase
         self.deadline: float = 0.0
@@ -249,6 +255,17 @@ class TurnBasedEngine(NativeGameEngine):
         self._finished = True
         self.deadline = 0.0
 
+    def time_up(self) -> None:
+        """The host's time limit ran out: whoever is furthest ahead on the
+        board wins (a tie at the top is a tie). Used by the board games that
+        offer a Time limit (Snakes and Ladders, Ludo, Battleship)."""
+        if not self.scores:
+            self.finish(None)
+            return
+        best = max(self.scores.values())
+        leaders = [pid for pid, score in self.scores.items() if score == best]
+        self.finish(leaders[0] if len(leaders) == 1 and best > 0 else None)
+
     def scoreboard(self) -> list[dict]:
         return [
             {"id": p.id, "name": p.name,
@@ -260,6 +277,7 @@ class TurnBasedEngine(NativeGameEngine):
         return {
             "currentPlayerID": self.current_player_id(),
             "secondsLeft": self.seconds_left(),
+            "timeLeft": self.time_left(),
             "winner": self.winner,
             "players": self.scoreboard(),
         }

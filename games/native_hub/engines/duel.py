@@ -184,6 +184,7 @@ class BattleshipEngine(TurnBasedEngine):
     """Private fleet on the phone, shared hit/miss grid on the TV."""
 
     game_id = "battleship"
+    timed_adjustable = True
     min_players = 2
     max_players = 2
     turn_seconds = 45
@@ -581,6 +582,7 @@ class LudoEngine(TurnBasedEngine):
     """Four-token Ludo. Shake the phone to roll, tap to choose a token."""
 
     game_id = "ludo"
+    timed_adjustable = True
     min_players = 2
     max_players = 4
     turn_seconds = 40

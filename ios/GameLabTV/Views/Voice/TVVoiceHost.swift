@@ -128,6 +128,38 @@ final class TVVoiceHost: NSObject, ObservableObject {
         return data
     }
 
+    // MARK: Less waiting for the cloud voice
+
+    private static var lastWarm: Date?
+
+    /// Wakes a sleeping server (free hosting sleeps when idle and takes up to a
+    /// minute to wake) so the first cloud line is not the one that waits for it.
+    /// Cheap and safe to call often: at most once every four minutes.
+    static func warmServer() {
+        guard VoiceSettings.cloudAllowed else { return }
+        if let last = lastWarm, Date().timeIntervalSince(last) < 240 { return }
+        lastWarm = Date()
+        let url = AppConstants.serverURL.appendingPathComponent("api/voice/warm")
+        Task.detached(priority: .utility) {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 60
+            _ = try? await URLSession.shared.data(for: request)
+        }
+    }
+
+    /// Fetches a line into the disk cache so `speak` finds it ready. Call it for
+    /// the line AFTER the one being spoken: a run of cloud lines then plays
+    /// without a gap while each is rendered. Lines the bundled pack covers need
+    /// no cloud audio and are skipped.
+    func prefetch(_ text: String, style: String? = nil) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, VoiceSettings.cloudAllowed, Self.sessionVoice != .device,
+              !VoicePack.hasAnyClip(for: trimmed) else { return }
+        Task.detached(priority: .utility) {
+            _ = await Self.fetchTTS(trimmed, style: style, timeout: 30)
+        }
+    }
+
     private let synthesizer = AVSpeechSynthesizer()
     /// Plays the bundled offline clips (Shared/Voice/VoicePack.swift).
     private let clips = VoiceClipSequencer()
@@ -175,6 +207,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
 
     func attach(roomCode: String) {
         self.roomCode = roomCode
+        Self.warmServer()
         socket.on(.micReassigned) { [weak self] (r: MicReassignedResponse) in
             guard r.roomCode == roomCode else { return }
             self?.micPlayerID = r.playerID
@@ -242,6 +275,8 @@ final class TVVoiceHost: NSObject, ObservableObject {
                style: String? = nil, completion: (() -> Void)? = nil) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { completion?(); return }
+        // The host's pace (Relaxed to Quick) on top of the line's own rate.
+        let rate = rate * VoiceSettings.paceRate
         stopSpeaking()
         if !isInterlude {
             for host in Self.hosts.allObjects where host.isInterlude && host.isTalking {
@@ -383,7 +418,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = Self.deviceVoice
         utterance.rate = min(AVSpeechUtteranceMaximumSpeechRate,
-                             AVSpeechUtteranceDefaultSpeechRate * 0.95 * rate)
+                             AVSpeechUtteranceDefaultSpeechRate * rate)
         utterance.preUtteranceDelay = preDelay
         currentUtteranceID = ObjectIdentifier(utterance)
         synthesizer.speak(utterance)

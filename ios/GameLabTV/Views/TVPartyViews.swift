@@ -119,18 +119,23 @@ struct TVPartyWelcomeView: View {
         guard !started else { return }
         started = true
         let lines = party.welcomeLines + party.lineupLines
-        speak(lines, index: 0)
+        let cues = (party.welcomeLines.indices.map { NightParty.cue(party.welcomeCues, $0, fallback: "welcome") })
+            + (party.lineupLines.indices.map { NightParty.cue(party.lineupCues, $0, fallback: "playful") })
+        speak(lines, cues: cues, index: 0)
     }
 
     /// One line after another, so the caption follows the voice.
-    private func speak(_ lines: [String], index: Int) {
+    private func speak(_ lines: [String], cues: [String], index: Int) {
         guard index < lines.count else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { vm.partyWelcomeDone = true }
             return
         }
         caption = lines[index]
-        voice.speak(lines[index], style: index < party.welcomeLines.count ? "welcome" : "playful") {
-            speak(lines, index: index + 1)
+        for ahead in (index + 1)..<min(lines.count, index + 3) {
+            voice.prefetch(lines[ahead], style: cues[ahead])
+        }
+        voice.speak(lines[index], style: cues[index]) {
+            speak(lines, cues: cues, index: index + 1)
         }
     }
 }
@@ -139,6 +144,8 @@ struct TVPartyWelcomeView: View {
 /// screen opens. Draws nothing.
 struct TVPartyFinaleSpeaker: View {
     let lines: [String]
+    /// How each line is said, by index (empty: all in the finale voice).
+    var cues: [String] = []
 
     @StateObject private var voice = TVVoiceHost()
     @State private var spoken = false
@@ -156,6 +163,8 @@ struct TVPartyFinaleSpeaker: View {
 
     private func speak(_ index: Int) {
         guard index < lines.count else { return }
-        voice.speak(lines[index], style: "finale") { speak(index + 1) }
+        let cue = NightParty.cue(cues, index, fallback: "finale")
+        if index + 1 < lines.count { voice.prefetch(lines[index + 1], style: NightParty.cue(cues, index + 1, fallback: "finale")) }
+        voice.speak(lines[index], style: cue) { speak(index + 1) }
     }
 }

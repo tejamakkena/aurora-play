@@ -81,6 +81,10 @@ struct RootTVView: View {
             case .playing(let room):
                 ZStack {
                     TVGameBoardView(room: room)
+                        .overlay(alignment: .topTrailing) {
+                            TVTimeLimitBadge(endsAt: room.timeEndsAt)
+                                .padding(40)
+                        }
                     // How-to-play interstitial: the group has already
                     // committed (Start Game was pressed), but the engine is
                     // still gated server-side -- no clocks, nothing dealt --
@@ -113,7 +117,7 @@ struct RootTVView: View {
                                   onEndNight: vm.endNight)
                     if let night = room.night, night.finished,
                        let lines = night.party?.finaleLines, !lines.isEmpty {
-                        TVPartyFinaleSpeaker(lines: lines)
+                        TVPartyFinaleSpeaker(lines: lines, cues: night.party?.finaleCues ?? [])
                     }
                 }
             }
@@ -484,15 +488,24 @@ final class TVRootViewModel: ObservableObject {
     /// `playlist` is the previewed lineup the lobby showed, so the night
     /// plays exactly what was on screen; empty lets the server's picker
     /// build one from `minutes` and `kids`.
-    func startNight(minutes: Int, kids: Bool, playlist: [String], party: NightPartyPayload? = nil) {
+    func startNight(minutes: Int, kids: Bool, playlist: [String], party: NightPartyPayload? = nil,
+                    settings: [String: [String: String]]? = nil, points: String? = nil) {
         guard case .lobby(let room) = screen else { return }
         socket.emit(.startNight, payload: StartNightPayload(
             roomCode: room.code,
             playlist: playlist.isEmpty ? nil : playlist,
             minutes: minutes,
             kids: kids,
-            party: party
+            party: party,
+            settings: settings,
+            points: points
         ))
+    }
+
+    /// The TV cheers for the guest of honour ("Everybody, on three! ...").
+    func cheer() {
+        guard case .lobby(let room) = screen else { return }
+        socket.emit(.cheer, payload: RoomCodePayload(roomCode: room.code))
     }
 
     /// Lifts the party welcome screen (the host's phone normally does this).

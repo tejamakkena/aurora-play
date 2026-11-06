@@ -20,6 +20,14 @@ struct GameNight: Codable, Equatable {
     /// party (games/night_party.py). nil for a plain Game Night. Optional so
     /// older servers still decode.
     var party: NightParty? = nil
+    /// How the night scores ("classic", "fair" or "comeback") and what the game
+    /// now up is worth (2 on the last game of a "comeback" night). Optional so
+    /// older servers still decode.
+    var points: String? = nil
+    var pointsLabel: String? = nil
+    var multiplier: Int? = nil
+    /// The rounds the host picked, by game id.
+    var rounds: [String: String]? = nil
 
     /// The playlist as known games (unknown ids from a newer server are skipped).
     var games: [GameID] { playlist.compactMap { GameID(rawValue: $0) } }
@@ -39,6 +47,19 @@ struct NightParty: Codable, Equatable {
     var welcomeLines: [String]
     var lineupLines: [String]
     var finaleLines: [String]
+    /// How each line above is said ("welcome", "cheer", "roast", "indian"...), one
+    /// per line, by index. Optional so older servers still decode.
+    var welcomeCues: [String]? = nil
+    var lineupCues: [String]? = nil
+    var finaleCues: [String]? = nil
+    /// True when the guest of honour's name is said in the Indian voice.
+    var indianVoice: Bool? = nil
+
+    /// The cue for line `index` of a list, or `fallback` when the server sent none.
+    static func cue(_ cues: [String]?, _ index: Int, fallback: String) -> String {
+        guard let cues, cues.indices.contains(index) else { return fallback }
+        return cues[index]
+    }
 }
 
 /// The host's party choices, sent with start_night (server: night_party.clean_party).
@@ -49,6 +70,9 @@ struct NightPartyPayload: Encodable {
     var humor: String
     var nhiePack: String
     var nhieRounds: Int
+    /// How the name is said: "auto" (Indian names in the Indian voice),
+    /// "indian" or "standard".
+    var accent: String = "auto"
 }
 
 struct NightStanding: Codable, Equatable, Identifiable {
@@ -66,6 +90,11 @@ struct StartNightPayload: Encodable {
     var minutes: Int? = nil
     var kids: Bool? = nil
     var party: NightPartyPayload? = nil
+    /// The host's per-game picks, by game id then option key (server:
+    /// game_night.clean_settings), e.g. ["trivia": ["rounds": "4"]].
+    var settings: [String: [String: String]]? = nil
+    /// How the night scores (NightPoints.rawValue).
+    var points: String? = nil
 }
 
 struct RoomCodePayload: Encodable {
@@ -121,7 +150,31 @@ struct PickedGame: Codable, Equatable, Identifiable {
     let kids: Bool
     let minPlayers: Int
     let maxPlayers: Int
+    /// The game's lobby picks (rounds, decks...). Sent by a newer server.
+    var options: [PickedOption]? = nil
+    /// false for a game that does not suit this many players, listed only in
+    /// the host's "all games" view.
+    var fits: Bool? = nil
     var game: GameID? { GameID(rawValue: id) }
+}
+
+struct PickedOptionChoice: Codable, Equatable, Identifiable {
+    let value: String
+    let label: String
+    var id: String { value }
+}
+
+struct PickedOption: Codable, Equatable, Identifiable {
+    let key: String
+    let label: String
+    let defaultValue: String
+    let choices: [PickedOptionChoice]
+    var id: String { key }
+
+    private enum CodingKeys: String, CodingKey {
+        case key, label, choices
+        case defaultValue = "default"
+    }
 }
 
 // MARK: - API
@@ -173,6 +226,17 @@ enum OneStopAPI {
                  URLQueryItem(name: "kids", value: kids ? "1" : "0")]
         if let minutes { q.append(URLQueryItem(name: "minutes", value: String(minutes))) }
         if party { q.append(URLQueryItem(name: "party", value: "1")) }
+        guard let u = url("api/picker", q) else { return [] }
+        var r = URLRequest(url: u)
+        r.timeoutInterval = 20
+        return await send(r, as: PickerEnvelope.self)?.games ?? []
+    }
+
+    /// Every game, the ones that suit this group first, for the host's builder.
+    static func pickAll(players: Int, kids: Bool) async -> [PickedGame] {
+        let q = [URLQueryItem(name: "players", value: String(players)),
+                 URLQueryItem(name: "kids", value: kids ? "1" : "0"),
+                 URLQueryItem(name: "all", value: "1")]
         guard let u = url("api/picker", q) else { return [] }
         var r = URLRequest(url: u)
         r.timeoutInterval = 20

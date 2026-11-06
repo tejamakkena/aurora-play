@@ -92,6 +92,28 @@ enum VoiceSettings {
         get { UserDefaults.standard.bool(forKey: cloudKey) }
         set { UserDefaults.standard.set(newValue, forKey: cloudKey) }
     }
+
+    // How fast the host talks. The offline clips and the device voice are read
+    // slowly for a room full of people, so the default is a little brisk;
+    // the TV's game list has a button to change it.
+    private static let paceKey = "aurora_voice_pace"
+
+    /// Name and playback rate for each pace, slowest first.
+    static let paces: [(name: String, rate: Float)] = [
+        ("Relaxed", 0.95), ("Normal", 1.0), ("Brisk", 1.1), ("Quick", 1.2),
+    ]
+    private static let defaultPace = 2
+
+    static var paceIndex: Int {
+        get {
+            let saved = UserDefaults.standard.object(forKey: paceKey) as? Int ?? defaultPace
+            return max(0, min(paces.count - 1, saved))
+        }
+        set { UserDefaults.standard.set(max(0, min(paces.count - 1, newValue)), forKey: paceKey) }
+    }
+
+    /// Multiplies every line's own rate.
+    static var paceRate: Float { paces[paceIndex].rate }
 }
 
 // MARK: - Playing a line from the pack
