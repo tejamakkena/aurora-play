@@ -84,6 +84,11 @@ suggested lineup is only a starting point:
   give everybody a turn (Hot Takes, Twenty Questions, Bollywood Charades) or that are
   not played in rounds (chess, poker, Ludo) keep their own length. The same pick also
   shows in a game's lobby when you play it outside a Game Night.
+- **A clock.** Snakes and Ladders, Ludo and Battleship have a **Time limit** (2, 3, 5 or
+  10 minutes). A countdown shows on the TV; when it hits zero whoever is furthest
+  ahead wins (a tie at the top is a tie) and the night scores the placings as usual.
+  Poker keeps its own Hands pick. Every other option a game has (poker chips, song
+  decks...) is also shown for that game in the builder.
 - **Any scoring.** See below.
 
 Each game gets only its own picks, so "12 rounds" for one game never carries into the next.
@@ -111,14 +116,26 @@ Desi Dost, Chill) and, if they are in the lineup, the humor style and the Never 
 I Ever pack. Then start the night.
 
 - The TV holds a welcome screen ("Welcome to Venkat's Birthday Party", the room
-  code, who has joined) until the host taps **Begin the party** on the phone. The
-  remote has a Begin button too.
-- The TV's voice then speaks the welcome and announces the lineup, and the normal
-  first-game lobby follows. At the end it announces the champion.
-- Styles change the wording, not the voice: the TV keeps one consistent voice.
-  Lines without a name are part of the offline voice pack
-  (`tools/render_voice_pack.py`, source `nhie_songs` for the games' jokes).
-- Code: `games/night_party.py`, `begin_party` in `socket_events.py`, `Room.night.party`.
+  code, who has joined) until the host taps **Begin the party**. The remote has a
+  Begin button too. The name can be typed on the TV (the field appears when you pick
+  an occasion) or on the host's phone.
+- Then the TV performs rather than reads: a welcome, a joke at the room's expense,
+  a line for the guest of honour, and a **shout** ("Everybody, on three! One, two,
+  three! Happy birthday, Venkat!") in a crowd-leading voice. The lineup counts the
+  games and teases the first and last by name; every later game gets its own joke
+  when its lobby comes up ("Ludo. The game that has ended more friendships than any
+  other. Dice ready."). At the end it names the champion, roasts everyone else
+  lovingly, and toasts the guest of honour.
+- **Cheer on demand.** While the party runs, the host's phone has **Cheer for
+  Venkat** and the TV lobby has a Cheer button; either makes the TV shout again.
+- **Indian names.** Common Indian names (Venkat, Teja, Priya, ...) are said in the
+  Indian voice automatically. On the phone, **Say the name** lets you force Indian or
+  Standard. The Indian voice is the one set as `ELEVENLABS_VOICE_ID_INDIAN`; point both
+  voice ids at one Indian-English voice if you want the whole party in it.
+- Styles change the wording (Party Host, Game Show, Desi Dost, Chill), not the voice.
+- Code: `games/party_script.py` (the words and the Indian-name list),
+  `games/night_party.py` (the show), `shout` in `games/show_host.py`, `cheer` and
+  `begin_party` in `socket_events.py`, `Room.night.party`.
 
 ## The show host
 

@@ -128,7 +128,8 @@ struct TVLobbyView: View {
                               settings: settings, points: points)
             }
         } else if let night = room.night {
-            TVNightLobbyPanel(night: night)
+            TVNightLobbyPanel(night: night,
+                              onCheer: (night.party?.welcomed == true && !night.finished) ? { vm.cheer() } : nil)
         }
     }
 

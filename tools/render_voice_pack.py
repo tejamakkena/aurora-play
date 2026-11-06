@@ -227,7 +227,27 @@ def show_host_groups() -> list[tuple[str, list[str]]]:
             for moment, lines in show_host.LINES.items()]
 
 
-def collect_styled(sources: list[str], swift: bool) -> tuple[dict[str, str], dict[str, str]]:
+def party_names() -> list[str]:
+    """Guests of honour to render by name: tools/party_names.txt, one per line."""
+    path = Path(__file__).with_name("party_names.txt")
+    if not path.is_file():
+        return []
+    return [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.startswith("#")]
+
+
+def party_groups(names: list[str], occasions: list[str]) -> list[tuple[str, list[str]]]:
+    """The party host's script (games/night_party.py): the fixed sentences, and
+    the ones with a name in them for each name. Grouped by how each is said."""
+    from games import night_party
+    by_cue: dict[str, list[str]] = {}
+    for text, cue in night_party.pack_lines(names, occasions):
+        by_cue.setdefault(cue, []).append(text)
+    return list(by_cue.items())
+
+
+def collect_styled(sources: list[str], swift: bool, names: list[str] | None = None,
+                   occasions: list[str] | None = None) -> tuple[dict[str, str], dict[str, str]]:
     """(key -> sentence, key -> style name), every sentence of every line once."""
     # Game narration first (Mafia, poker, Travel Mode...): a few hundred short
     # lines heard in every game. The question banks after it run to thousands,
@@ -236,6 +256,8 @@ def collect_styled(sources: list[str], swift: bool) -> tuple[dict[str, str], dic
     if swift:
         groups.append(("narrator", scan_swift()))
         groups.extend(show_host_groups())
+        groups.extend(party_groups(names if names is not None else party_names(),
+                                   occasions or ["birthday"]))
     groups.append(("host", extra_lines()))
     for name in sources:
         groups.append((SOURCE_STYLES.get(name, "host"), SOURCES[name]()))
@@ -375,6 +397,10 @@ def main() -> int:
     ap.add_argument("--max-mb", type=float, default=0, help="stop when the pack reaches this size")
     ap.add_argument("--out", help="write clips here instead of ios/Shared/Voice/Pack (for tests)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--names", default="",
+                    help="comma list of guests of honour to render by name, on top of tools/party_names.txt")
+    ap.add_argument("--occasions", default="birthday",
+                    help="comma list of occasions to render the names for (birthday, anniversary, ...)")
     ap.add_argument("--audition", metavar="DIR",
                     help="render a few lines in every style with the OpenAI voice into DIR, then stop")
     args = ap.parse_args()
@@ -388,7 +414,9 @@ def main() -> int:
     global PACK_DIR
     if args.out:
         PACK_DIR = Path(args.out)
-    clips, styles = collect_styled(names, swift=not args.no_swift)
+    guests = party_names() + [n.strip() for n in args.names.split(",") if n.strip()]
+    occasions = [o.strip() for o in args.occasions.split(",") if o.strip()]
+    clips, styles = collect_styled(names, swift=not args.no_swift, names=guests, occasions=occasions)
     PACK_DIR.mkdir(parents=True, exist_ok=True)
     have = {p.stem for p in PACK_DIR.glob("*.m4a")}
     todo = [k for k in clips if args.force or k not in have]

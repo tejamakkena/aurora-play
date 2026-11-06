@@ -1,0 +1,7 @@
+# Guests of honour whose names the party host should say in the pack's own voice.
+# One name per line (first names are enough). Each name adds about 40 short clips
+# (a few cents of voice credit). Names on the Indian-name list in
+# games/party_script.py are rendered in the Indian voice. Names not listed here
+# are still spoken at the party, live, in the cloud or device voice.
+Venkat
+Teja

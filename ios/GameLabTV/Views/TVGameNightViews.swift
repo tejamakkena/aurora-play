@@ -401,6 +401,8 @@ struct TVNightSetupPanel: View {
     @State private var occasionIndex: Int? = nil
     @State private var styleIndex: Int = 0
     @State private var minutes: Int = 45
+    /// The guest of honour, typed on the TV's on-screen keyboard.
+    @State private var honoree: String = ""
     /// The lineup the host sees and can change: games, rounds and scoring.
     @State private var plan = NightPlan()
     @State private var allGames: [PickedGame] = []
@@ -527,12 +529,13 @@ struct TVNightSetupPanel: View {
 
     private var style: NightPartyChoice { NightPartyOptions.styles[styleIndex] }
 
-    /// The TV has no keyboard, so the guest of honour's name is left blank here
-    /// (the title reads "Birthday Party"); start from the host's phone to add it.
+    /// The guest of honour's name is typed here (tvOS opens its keyboard), or on the
+    /// host's phone; left blank the title just reads "Birthday Party".
     private var partyPayload: NightPartyPayload? {
         guard let occasion else { return nil }
-        return NightPartyPayload(occasion: occasion.id, honoree: "", style: style.id,
-                                 humor: "mix", nhiePack: "mix", nhieRounds: 10)
+        return NightPartyPayload(occasion: occasion.id,
+                                 honoree: honoree.trimmingCharacters(in: .whitespacesAndNewlines),
+                                 style: style.id, humor: "mix", nhiePack: "mix", nhieRounds: 10)
     }
 
     /// Make the night a party: pick the occasion, then the host style, from a list.
@@ -557,7 +560,10 @@ struct TVNightSetupPanel: View {
                 }
             }
             if occasion != nil {
-                Text("Party games first, a welcome screen and a spoken lineup. Add a name from the host's phone.")
+                TextField("Name of the birthday person or guest of honour", text: $honoree)
+                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                    .accessibilityIdentifier("honoreeField")
+                Text("Party games first, a welcome screen, jokes about every game, and a cheer for the name above.")
                     .font(.system(size: 18, weight: .medium, design: .rounded))
                     .foregroundColor(ShellTheme.textTertiary)
                     .lineLimit(1)
@@ -759,8 +765,15 @@ struct TVNightBuilderView: View {
 /// the scoreboard so far.
 struct TVNightLobbyPanel: View {
     let night: GameNight
+    /// Set once the party has begun: a button that makes the TV cheer for the guest of honour.
+    var onCheer: (() -> Void)? = nil
 
     private var slots: [TVNightSlot] { TVNightSlot.slots(from: night.playlist) }
+
+    private var cheerTitle: String {
+        let name = night.party?.honoree.trimmingCharacters(in: .whitespaces) ?? ""
+        return name.isEmpty ? "Cheer!" : "Cheer for \(name)"
+    }
 
     private var progressText: String {
         let total: Int = night.playlist.count
@@ -790,6 +803,14 @@ struct TVNightLobbyPanel: View {
                     .frame(height: 96, alignment: .topLeading)
 
                 TVNightStandingsMini(standings: night.standings, maxRows: 4)
+
+                if let onCheer {
+                    Button(action: onCheer) {
+                        Label(cheerTitle, systemImage: "megaphone.fill")
+                    }
+                    .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.pink, isSelected: false))
+                    .accessibilityIdentifier("cheerButton")
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

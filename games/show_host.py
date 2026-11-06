@@ -235,6 +235,11 @@ LINES: dict[str, list[str]] = {
     ],
 }
 
+# ---- a party night teases each game by name (games/party_script.py) ----
+from games import party_script as _party_script          # noqa: E402
+
+LINES.update({f"teaser_{gid}": [text] for gid, text in _party_script.TEASERS.items()})
+
 #: games/game_night.CATALOG tags -> the teaser moment, first match wins.
 INTRO_FOR_TAG = [
     ("quiz", "intro_quiz"), ("brain", "intro_quiz"), ("music", "intro_music"),
@@ -355,6 +360,9 @@ def game_up_next(room, rng: random.Random | None = None) -> None:
     game = room.game_id
     headline = f"Up next: {_game_title(game)}"
     last = night.get("index", 0) == len(night.get("playlist", [])) - 1 and night.get("index", 0) > 0
+    if night.get("party") and not night.get("kids") and not last and f"teaser_{game}" in LINES:
+        say(room, f"teaser_{game}", headline, rng=rng)        # a joke about this very game
+        return
     say(room, "last_game" if last else
         ("intro_kids" if night.get("kids") else intro_moment(game)), headline, rng=rng)
 
@@ -444,3 +452,31 @@ def night_closed(room, rng: random.Random | None = None) -> None:
     top = game_night.standings(room)[:1]
     headline = f"{top[0]['name']} is tonight's champion!" if top and top[0]["points"] > 0 else ""
     say(room, "night_close", headline, rng=rng)
+
+
+def shout(room, rng: random.Random | None = None) -> str | None:
+    """A cheer for the guest of honour, on demand ("Everybody, on three! One,
+    two, three! Happy birthday, Venkat!"). Queued as one line so the TV says it
+    in one breath, in the shouting voice (the Indian voice for an Indian name).
+    Only during a party night; returns the spoken text."""
+    night = _night(room)
+    party = (night or {}).get("party")
+    if night is None or night.get("finished") or not party:
+        return None
+    from games import night_party
+    parts = night_party.shout_script(party)
+    text = " ".join(t for t, _ in parts)
+    room.host_seq = getattr(room, "host_seq", 0) + 1
+    queue = getattr(room, "host_queue", None)
+    if queue is None:
+        queue = room.host_queue = []
+    cue = parts[-1][1] if parts else "cheer"
+    queue.append({"seq": room.host_seq, "moment": cue, "text": text,
+                  "headline": night_party.cheer_for(party)})
+    del queue[:-MAX_QUEUED]
+    try:
+        from games import voice
+        voice.prewarm([(text, cue)])
+    except Exception:
+        pass
+    return text

@@ -255,19 +255,25 @@ def start(room, playlist: list[str], kids: bool = False, party: dict | None = No
         # room says the same thing.
         from games import night_party
         cleaned = night_party.clean_party(party)
+        welcome = night_party.welcome_script(cleaned)
+        lineup = night_party.lineup_script(cleaned, playlist)
         cleaned.update({
             "welcomed": False,
             "title": night_party.title_for(cleaned),
             "cheer": night_party.cheer_for(cleaned),
-            "welcomeLines": night_party.welcome_lines(cleaned),
-            "lineupLines": night_party.lineup_lines(cleaned, playlist),
+            "welcomeLines": [t for t, _ in welcome],
+            "welcomeCues": [c for _, c in welcome],
+            "lineupLines": [t for t, _ in lineup],
+            "lineupCues": [c for _, c in lineup],
             "finaleLines": [],
+            "finaleCues": [],
+            "indianVoice": night_party.indian_voice(cleaned),
         })
         room.night["party"] = cleaned
         try:
             from games import voice
-            voice.prewarm([(t, "welcome") for t in cleaned["welcomeLines"]]
-                          + [(t, "playful") for t in cleaned["lineupLines"]])
+            voice.prewarm(list(zip(cleaned["welcomeLines"], cleaned["welcomeCues"]))
+                          + list(zip(cleaned["lineupLines"], cleaned["lineupCues"])))
         except Exception:
             pass
     room.game_id = playlist[0]
@@ -317,8 +323,9 @@ def advance(room) -> str | None:
             from games import night_party
             top = standings(room)[:1]
             winner = top[0]["name"] if top and top[0]["points"] > 0 else None
-            party["finaleLines"] = night_party.finale_lines(
-                party, winner, top[0]["points"] if top else 0)
+            finale = night_party.finale_script(party, winner, top[0]["points"] if top else 0)
+            party["finaleLines"] = [t for t, _ in finale]
+            party["finaleCues"] = [c for _, c in finale]
         from games import show_host
         show_host.night_closed(room)
         return None
@@ -377,7 +384,8 @@ def _party_json(party: dict | None) -> dict | None:
         return None
     return {k: party.get(k) for k in (
         "occasion", "honoree", "title", "cheer", "welcomed",
-        "welcomeLines", "lineupLines", "finaleLines")}
+        "welcomeLines", "lineupLines", "finaleLines",
+        "welcomeCues", "lineupCues", "finaleCues", "indianVoice")}
 
 
 # ---------------------------------------------------------------------------

@@ -415,6 +415,13 @@ struct GameNightStatusCard: View {
                                    limit: night.finished ? 8 : 5, myID: myID)
             }
 
+            if isHost, let party = night.party, party.welcomed, !night.finished {
+                OneStopSecondaryButton(title: cheerTitle(party), systemImage: "megaphone.fill",
+                                       tint: PhonePlayDesign.pink) {
+                    OneStopEvents.cheer(roomCode: room.code)
+                }
+            }
+
             if isHost {
                 if night.finished {
                     OneStopSecondaryButton(title: "Close Game Night", systemImage: "xmark.circle", tint: PhonePlayDesign.pink) {
@@ -440,6 +447,12 @@ struct GameNightStatusCard: View {
         } message: {
             Text("The scoreboard is cleared for everyone.")
         }
+    }
+
+    /// "Cheer for Venkat" (the guest of honour), or just "Cheer!".
+    private func cheerTitle(_ party: NightParty) -> String {
+        let name = party.honoree.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? "Cheer!" : "Cheer for \(name)"
     }
 
     private var subtitle: String {

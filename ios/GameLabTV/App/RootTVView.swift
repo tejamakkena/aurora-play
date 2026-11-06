@@ -117,7 +117,7 @@ struct RootTVView: View {
                                   onEndNight: vm.endNight)
                     if let night = room.night, night.finished,
                        let lines = night.party?.finaleLines, !lines.isEmpty {
-                        TVPartyFinaleSpeaker(lines: lines)
+                        TVPartyFinaleSpeaker(lines: lines, cues: night.party?.finaleCues ?? [])
                     }
                 }
             }
@@ -500,6 +500,12 @@ final class TVRootViewModel: ObservableObject {
             settings: settings,
             points: points
         ))
+    }
+
+    /// The TV cheers for the guest of honour ("Everybody, on three! ...").
+    func cheer() {
+        guard case .lobby(let room) = screen else { return }
+        socket.emit(.cheer, payload: RoomCodePayload(roomCode: room.code))
     }
 
     /// Lifts the party welcome screen (the host's phone normally does this).

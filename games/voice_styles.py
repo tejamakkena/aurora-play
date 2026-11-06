@@ -60,9 +60,16 @@ STYLES: dict[str, str] = {
         "small lift of curiosity on the question."
     ),
     "indian": (
-        "Speak with a natural Indian English accent, warm and amused. Say any Hindi or "
-        "Telugu word or song title the way a native speaker would, with its own "
-        "rhythm and stress, never anglicised."
+        "Speak with a natural Indian English accent, warm, lively and amused, like a "
+        "favourite uncle hosting a family party. Say every Indian name, and any Hindi "
+        "or Telugu word or song title, exactly the way a native speaker would, with "
+        "its own rhythm and stress, never anglicised and never spelled out. Perform "
+        "it with real feeling and humour, never read it like text on a page."
+    ),
+    "cheer": (
+        "A roaring stadium announcer leading a crowd chant. Huge, joyful and drawn "
+        "out, each word punched and stretched, like the whole room is about to "
+        "cheer along. Names are shouted with love. Loud, but never harsh."
     ),
 }
 
@@ -75,6 +82,7 @@ ELEVEN_TAGS: dict[str, str] = {
     "playful": "[giggles]",
     "roast": "[sarcastic]",
     "finale": "[excited]",
+    "cheer": "[excited]",
     "quiz": "[curious]",
 }
 
@@ -102,6 +110,7 @@ MOMENTS: dict[str, str] = {
     "runaway": "playful",
     "last_place": "roast",
     "night_close": "finale",
+    "cheer": "cheer",
 }
 
 
@@ -112,7 +121,7 @@ def canonical(name: str | None) -> str | None:
     key = (name or "").strip().lower()
     if key in STYLES:
         return key
-    if key in MOMENTS or key.startswith("intro_") or key.endswith("_kids"):
+    if key in MOMENTS or key.startswith(("intro_", "teaser_")) or key.endswith("_kids"):
         return for_moment(key)
     return None
 
@@ -124,6 +133,8 @@ def for_moment(moment: str | None) -> str:
         return "kids"
     if key.startswith("intro_"):
         return "welcome" if key == "intro_any" else "playful"
+    if key.startswith("teaser_"):
+        return "playful"
     return MOMENTS.get(key, DEFAULT)
 
 
@@ -135,4 +146,4 @@ def resolve(name: str | None) -> str | None:
     if key in STYLES:
         return STYLES[key]
     style = for_moment(key)
-    return STYLES.get(style) if (key in MOMENTS or key.startswith("intro_") or key.endswith("_kids")) else None
+    return STYLES.get(style) if (key in MOMENTS or key.startswith(("intro_", "teaser_")) or key.endswith("_kids")) else None

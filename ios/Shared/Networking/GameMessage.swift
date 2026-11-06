@@ -23,6 +23,7 @@ enum ClientEvent: String {
     case startNight     = "start_night"
     case nextGame       = "next_game"
     case endNight       = "end_night"
+    case cheer          = "cheer"            // the TV cheers for the guest of honour
     case beginParty     = "begin_party"     // host (or TV): lift the Game Night welcome screen
     // Teams mode (TV or host; a phone may move itself)
     case setTeams       = "set_teams"

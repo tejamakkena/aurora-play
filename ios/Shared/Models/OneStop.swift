@@ -47,6 +47,19 @@ struct NightParty: Codable, Equatable {
     var welcomeLines: [String]
     var lineupLines: [String]
     var finaleLines: [String]
+    /// How each line above is said ("welcome", "cheer", "roast", "indian"...), one
+    /// per line, by index. Optional so older servers still decode.
+    var welcomeCues: [String]? = nil
+    var lineupCues: [String]? = nil
+    var finaleCues: [String]? = nil
+    /// True when the guest of honour's name is said in the Indian voice.
+    var indianVoice: Bool? = nil
+
+    /// The cue for line `index` of a list, or `fallback` when the server sent none.
+    static func cue(_ cues: [String]?, _ index: Int, fallback: String) -> String {
+        guard let cues, cues.indices.contains(index) else { return fallback }
+        return cues[index]
+    }
 }
 
 /// The host's party choices, sent with start_night (server: night_party.clean_party).
@@ -57,6 +70,9 @@ struct NightPartyPayload: Encodable {
     var humor: String
     var nhiePack: String
     var nhieRounds: Int
+    /// How the name is said: "auto" (Indian names in the Indian voice),
+    /// "indian" or "standard".
+    var accent: String = "auto"
 }
 
 struct NightStanding: Codable, Equatable, Identifiable {

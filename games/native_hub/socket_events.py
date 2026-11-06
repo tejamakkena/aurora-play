@@ -573,6 +573,26 @@ def register_native_events(socketio):
             room.touch()
         push_room(socketio, room)
 
+    @socketio.on("cheer", namespace=NAMESPACE)
+    def handle_cheer(data):
+        """The host (or the TV) asks the TV to cheer for the guest of honour."""
+        from games import show_host
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if not _lobby_controller(room, sid, "start a cheer"):
+                return
+            if not show_host.shout(room):
+                return
+            room.touch()
+        push_room(socketio, room)
+
     @socketio.on("end_night", namespace=NAMESPACE)
     def handle_end_night(data):
         data = v.as_dict(data)
