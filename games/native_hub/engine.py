@@ -26,6 +26,12 @@ class NativeGameEngine(ABC):
     #: the 1 Hz baseline pump for countdowns.
     tick_hz: ClassVar[float] = 0.0
 
+    #: True when the host may change how many rounds the game plays (the
+    #: lobby's "Rounds" pick, games/native_hub/options.py). Round-based party
+    #: games set it; board and solo games, and games whose rounds follow the
+    #: player count so everybody gets a turn, leave it off.
+    rounds_adjustable: ClassVar[bool] = False
+
     #: True routes ``game_state`` to the TV sockets only rather than the whole
     #: room. Use for high-frequency or large payloads the phones do not need.
     heavy_state: ClassVar[bool] = False

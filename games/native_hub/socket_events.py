@@ -513,7 +513,8 @@ def register_native_events(socketio):
                 push_error(socketio, sid, "No games fit this group", "NO_GAMES")
                 return
             game_night.start(room, playlist, kids=bool(data.get("kids")),
-                             party=party if isinstance(party, dict) else None)
+                             party=party if isinstance(party, dict) else None,
+                             settings=data.get("settings"), points=data.get("points"))
             room.state = RoomState.LOBBY
             room.engine = None
             room.phase = "play"

@@ -27,6 +27,7 @@ class RoundBasedEngine(NativeGameEngine):
     """
 
     total_rounds: int = 5
+    rounds_adjustable = True
     phase_seconds: dict[str, int] = {}       # phase name -> duration
     first_phase: str = "collect"
     #: Later phases that may also end early once everyone has submitted
@@ -35,6 +36,11 @@ class RoundBasedEngine(NativeGameEngine):
 
     def __init__(self, room, broadcaster) -> None:
         super().__init__(room, broadcaster)
+        # The host's "Rounds" pick (lobby or Game Night setup), else the game's own.
+        from games.native_hub import options
+        picked = options.explicit_rounds(room)
+        if picked is not None:
+            self.total_rounds = picked
         self.round: int = 0
         self.phase: str = self.first_phase
         self.deadline: float = 0.0

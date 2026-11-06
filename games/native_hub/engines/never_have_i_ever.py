@@ -12,6 +12,7 @@ and this step is skipped.
 import random
 
 from games import content_service as cs
+from games.native_hub import options
 from games.native_hub.engines import _nhie_packs as P
 from games.native_hub.engines._bases import RoundBasedEngine
 
@@ -47,6 +48,8 @@ class NeverHaveIEverEngine(RoundBasedEngine):
             self.pack_id = pack
             self.pack_locked = True
         rounds = party.get("nhieRounds")
+        if options.explicit_rounds(self.room) is not None:
+            rounds = None            # a per-game "Rounds" pick wins
         if isinstance(rounds, int) and not isinstance(rounds, bool) and 1 <= rounds <= 30:
             self.total_rounds = rounds
         super().start(players)

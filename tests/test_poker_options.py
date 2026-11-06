@@ -45,7 +45,7 @@ def test_menu_defaults_and_validation():
     assert options.get(room, "hands") == "20"          # a bad pick falls back
     keys = [o["key"] for o in room.to_json()["options"]]
     assert keys == ["hands", "stack", "rebuys"]
-    assert Room(code="ABCDEF", game_id="herd").to_json()["options"] == []
+    assert Room(code="ABCDEF", game_id="chess").to_json()["options"] == []
 
 
 def test_default_table_plays_twenty_hands():

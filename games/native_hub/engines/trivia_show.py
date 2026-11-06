@@ -95,6 +95,9 @@ class TriviaEngine(NativeGameEngine):
 
     QUESTIONS_PER_ROUND = 3
     MAIN_ROUNDS = 3
+    #: The host's "Rounds" pick is counted in these rounds of three questions.
+    rounds_adjustable = True
+    ROUNDS_BASE = MAIN_ROUNDS
     MAIN_QUESTIONS = QUESTIONS_PER_ROUND * MAIN_ROUNDS
     FINALE_QUESTIONS = 8
     #: Rungs on the finale tower; reaching this rung wins.
@@ -225,7 +228,7 @@ class TriviaEngine(NativeGameEngine):
         self.custom = True
         self.quiz_name = name
         self.pool = list(pool)
-        main = min(self.MAIN_QUESTIONS, len(self.pool))
+        main = min(self._main_questions(), len(self.pool))
         self.plan = self.pool[:main]
         self.finale_pool = self.pool[main:main + self.FINALE_QUESTIONS]
         self.total_rounds = main
@@ -233,6 +236,12 @@ class TriviaEngine(NativeGameEngine):
         self.chosen_category = name
         # The first question is known up front for a custom quiz.
         self.question = self.plan[0]
+
+    def _main_questions(self) -> int:
+        """Main questions this game: the host's Rounds pick, else three rounds."""
+        from games.native_hub import options
+        picked = options.explicit_rounds(self.room)
+        return (picked or self.MAIN_ROUNDS) * self.QUESTIONS_PER_ROUND
 
     def _start_from_pack(self) -> None:
         pack = getattr(self.room, "content_pack", "en") or "en"
@@ -248,7 +257,7 @@ class TriviaEngine(NativeGameEngine):
                 self.pool.append(q)
         self.custom = False
         self.quiz_name = ""
-        self.total_rounds = min(self.MAIN_QUESTIONS, len(self.pool))
+        self.total_rounds = min(self._main_questions(), len(self.pool))
         self.total_round_groups = max(1, -(-self.total_rounds // self.QUESTIONS_PER_ROUND))
 
     # ======================================================================
