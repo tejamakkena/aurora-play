@@ -81,6 +81,10 @@ struct RootTVView: View {
             case .playing(let room):
                 ZStack {
                     TVGameBoardView(room: room)
+                        .overlay(alignment: .topTrailing) {
+                            TVTimeLimitBadge(endsAt: room.timeEndsAt)
+                                .padding(40)
+                        }
                     // How-to-play interstitial: the group has already
                     // committed (Start Game was pressed), but the engine is
                     // still gated server-side -- no clocks, nothing dealt --

@@ -247,3 +247,58 @@ class TestOverSockets:
         app, _ = server
         body = app.test_client().get("/api/picker?players=4").get_json()
         assert body["games"] and all(g["fits"] for g in body["games"])
+
+
+class TestTimeLimit:
+    TIMED = ("snake_ladder", "ludo", "battleship")
+
+    def test_board_games_offer_a_time_limit_and_others_do_not(self):
+        for gid in self.TIMED:
+            menu = options.time_menu(gid)[0]
+            assert [c[0] for c in menu["choices"]] == ["0", "2", "3", "5", "10"]
+            assert menu["default"] == "0"
+        for gid in ("herd", "poker", "chess", "trivia"):
+            assert options.time_menu(gid) == [], gid
+
+    def test_no_pick_means_no_limit(self):
+        engine, _ = build("snake_ladder")
+        assert engine.time_limit == 0 and engine.time_left() is None
+        assert not engine.time_expired()
+
+    @pytest.mark.parametrize("gid", TIMED)
+    def test_the_pick_sets_the_clock(self, gid):
+        engine, _ = build(gid, {"minutes": "5"})
+        assert engine.time_limit == 300
+        assert 298 <= engine.time_left() <= 300
+        assert engine.public_state()["timeLeft"] == engine.time_left()
+
+    def test_a_bad_pick_is_ignored(self):
+        engine, _ = build("snake_ladder", {"minutes": "99"})
+        assert engine.time_limit == 0
+
+    def test_when_time_is_up_whoever_is_furthest_ahead_wins(self):
+        engine, roster = build("snake_ladder", {"minutes": "2"}, players=3)
+        engine.positions[roster[1].id] = 57
+        engine.scores[roster[1].id] = 57
+        engine.positions[roster[0].id] = 40
+        engine.scores[roster[0].id] = 40
+        assert not engine.time_expired()
+        engine.began_at -= 121
+        assert engine.time_expired()
+        engine.time_up()
+        assert engine.is_over()
+        rows = engine.results()
+        assert [r["playerID"] for r in rows][:2] == [roster[1].id, roster[0].id]
+        assert [r["rank"] for r in rows][:2] == [1, 2]
+
+    def test_a_tie_at_the_top_is_a_tie(self):
+        engine, roster = build("snake_ladder", {"minutes": "2"}, players=2)
+        for p in roster:
+            engine.scores[p.id] = 30
+        engine.time_up()
+        assert [r["rank"] for r in engine.results()] == [1, 1]
+
+    def test_nobody_moved_is_a_tie_not_a_win(self):
+        engine, _ = build("ludo", {"minutes": "2"})
+        engine.time_up()
+        assert engine.is_over() and {r["rank"] for r in engine.results()} == {1}

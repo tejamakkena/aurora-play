@@ -255,6 +255,17 @@ class TurnBasedEngine(NativeGameEngine):
         self._finished = True
         self.deadline = 0.0
 
+    def time_up(self) -> None:
+        """The host's time limit ran out: whoever is furthest ahead on the
+        board wins (a tie at the top is a tie). Used by the board games that
+        offer a Time limit (Snakes and Ladders, Ludo, Battleship)."""
+        if not self.scores:
+            self.finish(None)
+            return
+        best = max(self.scores.values())
+        leaders = [pid for pid, score in self.scores.items() if score == best]
+        self.finish(leaders[0] if len(leaders) == 1 and best > 0 else None)
+
     def scoreboard(self) -> list[dict]:
         return [
             {"id": p.id, "name": p.name,
@@ -266,6 +277,7 @@ class TurnBasedEngine(NativeGameEngine):
         return {
             "currentPlayerID": self.current_player_id(),
             "secondsLeft": self.seconds_left(),
+            "timeLeft": self.time_left(),
             "winner": self.winner,
             "players": self.scoreboard(),
         }

@@ -793,6 +793,7 @@ def register_native_events(socketio):
             room.touch()
             try:
                 room.engine.start(players)
+                room.engine.began_at = time.time()      # the host's time limit counts from here
             except Exception:
                 logger.exception("engine begin failed room=%s", code)
                 room.engine = None

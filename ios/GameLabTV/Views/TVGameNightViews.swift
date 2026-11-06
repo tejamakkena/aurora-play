@@ -595,7 +595,7 @@ struct TVNightSetupPanel: View {
         if Task.isCancelled { return }
         withAnimation(.easeInOut(duration: 0.3)) {
             plan.games = Self.lineup(from: picked, totalMinutes: minutes)
-            plan.rounds = [:]
+            plan.picks = [:]
             allGames = all
         }
         isLoading = false
@@ -617,6 +617,13 @@ struct TVNightSetupPanel: View {
 
 // MARK: - Game Night builder (host picks any games and rounds)
 
+/// A game option the host is changing on the TV (the choices show in a dialog).
+struct NightOptionEdit: Identifiable {
+    let pick: PickedGame
+    let option: PickedOption
+    var id: String { pick.id + "." + option.key }
+}
+
 /// Full-screen editor for the night's lineup: reorder, remove, change the
 /// rounds of each game, and add any other game. The TV has no keyboard, so
 /// every choice is a button or a list.
@@ -625,7 +632,7 @@ struct TVNightBuilderView: View {
     let allGames: [PickedGame]
     let onDone: () -> Void
 
-    @State private var roundsFor: PickedGame? = nil
+    @State private var editing: NightOptionEdit? = nil
 
     private var addable: [PickedGame] {
         allGames.filter { $0.game != nil && !plan.contains($0.id) }
@@ -682,17 +689,17 @@ struct TVNightBuilderView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color.black.opacity(0.92).ignoresSafeArea())
-        .confirmationDialog("How many rounds?", isPresented: roundsDialogShown,
-                            titleVisibility: .visible, presenting: roundsFor) { pick in
-            ForEach(pick.roundsOption?.choices ?? []) { choice in
-                Button(choice.label) { plan.setRounds(choice.value, for: pick) }
+        .confirmationDialog(editing?.option.label ?? "", isPresented: editDialogShown,
+                            titleVisibility: .visible, presenting: editing) { edit in
+            ForEach(edit.option.choices) { choice in
+                Button(choice.label) { plan.set(choice.value, for: edit.option, in: edit.pick) }
             }
             Button("Cancel", role: .cancel) {}
         }
     }
 
-    private var roundsDialogShown: Binding<Bool> {
-        Binding(get: { roundsFor != nil }, set: { if !$0 { roundsFor = nil } })
+    private var editDialogShown: Binding<Bool> {
+        Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })
     }
 
     private func row(index: Int, pick: PickedGame, game: GameID) -> some View {
@@ -702,19 +709,24 @@ struct TVNightBuilderView: View {
                 .foregroundColor(.black)
                 .frame(width: 40, height: 40)
                 .background(Circle().fill(ShellTheme.gold))
-            Label(game.displayName, systemImage: game.sfSymbol)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-                .lineLimit(1)
-            Spacer(minLength: 12)
-            if let current = plan.roundsValue(for: pick) {
-                Button {
-                    roundsFor = pick
-                } label: {
-                    Text("\(current) rounds")
+            VStack(alignment: .leading, spacing: 10) {
+                Label(game.displayName, systemImage: game.sfSymbol)
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                HStack(spacing: 10) {
+                    ForEach(pick.options ?? []) { option in
+                        Button {
+                            editing = NightOptionEdit(pick: pick, option: option)
+                        } label: {
+                            Text(plan.caption(of: option, in: pick))
+                        }
+                        .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.cyan,
+                                                          isSelected: plan.isChanged(option, in: pick)))
+                    }
                 }
-                .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.cyan, isSelected: plan.rounds[pick.id] != nil))
             }
+            Spacer(minLength: 12)
             Button {
                 plan.move(pick.id, by: -1)
             } label: {

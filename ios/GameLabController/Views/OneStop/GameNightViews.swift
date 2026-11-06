@@ -180,7 +180,7 @@ struct GameNightPlannerCard: View {
             Image(systemName: game.sfSymbol)
                 .foregroundColor(.white.opacity(0.85))
                 .frame(width: 24)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(game.displayName)
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
@@ -188,9 +188,9 @@ struct GameNightPlannerCard: View {
                 Text("\(plan.minutes(for: pick)) min")
                     .font(.system(.caption2, design: .rounded))
                     .foregroundColor(.white.opacity(0.45))
+                optionMenus(for: pick)
             }
             Spacer(minLength: 4)
-            roundsMenu(for: pick)
             Button {
                 PhonePlayHaptics.tap()
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -236,32 +236,39 @@ struct GameNightPlannerCard: View {
                                 removal: .opacity))
     }
 
-    /// "6 rounds" chip that opens the game's round counts. Only games whose
-    /// length is counted in rounds have one.
+    /// One button per option the game has (rounds, time limit, decks, chips...),
+    /// each opening that option's choices.
     @ViewBuilder
-    private func roundsMenu(for pick: PickedGame) -> some View {
-        if let option = pick.roundsOption, let current = plan.roundsValue(for: pick) {
-            Menu {
-                ForEach(option.choices) { choice in
-                    Button {
-                        plan.setRounds(choice.value, for: pick)
-                    } label: {
-                        if choice.value == current {
-                            Label(choice.label, systemImage: "checkmark")
-                        } else {
-                            Text(choice.label)
+    private func optionMenus(for pick: PickedGame) -> some View {
+        if let options = pick.options, !options.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(options) { option in
+                        Menu {
+                            ForEach(option.choices) { choice in
+                                Button {
+                                    plan.set(choice.value, for: option, in: pick)
+                                } label: {
+                                    if choice.value == plan.value(of: option, in: pick) {
+                                        Label(choice.label, systemImage: "checkmark")
+                                    } else {
+                                        Text(choice.label)
+                                    }
+                                }
+                            }
+                        } label: {
+                            let changed = plan.isChanged(option, in: pick)
+                            Text(plan.caption(of: option, in: pick))
+                                .font(.system(.caption, design: .rounded, weight: .heavy))
+                                .foregroundColor(changed ? PhonePlayDesign.cyan : .white.opacity(0.6))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Capsule().fill((changed ? PhonePlayDesign.cyan : Color.white).opacity(0.14)))
                         }
+                        .accessibilityLabel("\(option.label), \(plan.caption(of: option, in: pick))")
                     }
                 }
-            } label: {
-                Text("\(current) rounds")
-                    .font(.system(.caption, design: .rounded, weight: .heavy))
-                    .foregroundColor(PhonePlayDesign.cyan)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(PhonePlayDesign.cyan.opacity(0.15)))
             }
-            .accessibilityLabel("Rounds, \(current)")
         }
     }
 
@@ -333,7 +340,7 @@ struct GameNightPlannerCard: View {
         }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             plan.games = out
-            plan.rounds = [:]
+            plan.picks = [:]
             allGames = all
         }
         loading = false

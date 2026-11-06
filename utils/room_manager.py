@@ -105,6 +105,14 @@ def _options_json(room):
     return options.to_json(room)
 
 
+def _time_ends_at(room):
+    engine = room.engine
+    if (engine is None or room.state is not RoomState.PLAYING or room.phase != "play"
+            or not getattr(engine, "time_limit", 0)):
+        return None
+    return round(engine.began_at + engine.time_limit, 1)
+
+
 def _night_json(room):
     from games import game_night
     return game_night.to_json(room)
@@ -226,6 +234,9 @@ class Room:
             "usesContentPack": self.game_id in PACK_GAMES,
             "night": _night_json(self),
             "teams": _teams_json(self),
+            # Additive: the host's time limit while a timed game is on (epoch
+            # seconds), so every screen can show the same countdown.
+            "timeEndsAt": _time_ends_at(self),
             # Additive: the final ranking, best first, while on results.
             "results": list(self.results) if self.state is RoomState.RESULTS else None,
         }

@@ -624,6 +624,7 @@ MAX_BONUS_ROLLS = 2
 
 class SnakeLadderEngine(TurnBasedEngine):
     game_id = "snake_ladder"
+    timed_adjustable = True
     min_players = 2
     max_players = 6
     turn_seconds = 30

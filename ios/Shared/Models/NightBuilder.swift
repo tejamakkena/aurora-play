@@ -31,15 +31,16 @@ enum NightPoints: String, CaseIterable, Identifiable {
     }
 }
 
-/// The host's plan for the night: which games, in what order, how many rounds
-/// of each, and how it scores.
+/// The host's plan for the night: which games, in what order, what each game's
+/// options are set to (rounds, time limit, decks, chips...), and how it scores.
 struct NightPlan: Equatable {
     /// The server accepts at most this many games in a night.
     static let maxGames: Int = 10
 
     var games: [PickedGame] = []
-    /// Rounds the host chose, by game id. A game with no entry plays its own length.
-    var rounds: [String: String] = [:]
+    /// What the host changed, by game id then option key. An option left at its
+    /// default has no entry, so the game plays as it normally does.
+    var picks: [String: [String: String]] = [:]
     var points: NightPoints = .classic
 
     var playlist: [String] { games.map { $0.id } }
@@ -48,7 +49,7 @@ struct NightPlan: Equatable {
     var settings: [String: [String: String]]? {
         var out: [String: [String: String]] = [:]
         for game in games {
-            if let pick = rounds[game.id] { out[game.id] = ["rounds": pick] }
+            if let chosen = picks[game.id], !chosen.isEmpty { out[game.id] = chosen }
         }
         return out.isEmpty ? nil : out
     }
@@ -57,16 +58,31 @@ struct NightPlan: Equatable {
         games.contains { $0.id == id }
     }
 
-    /// The rounds this game will play: the host's pick, else the game's own length.
-    func roundsValue(for game: PickedGame) -> String? {
-        guard let option = game.roundsOption else { return nil }
-        return rounds[game.id] ?? option.defaultValue
+    /// The value this option will have: the host's pick, else the game's own.
+    func value(of option: PickedOption, in game: PickedGame) -> String {
+        picks[game.id]?[option.key] ?? option.defaultValue
     }
 
-    /// Rough minutes for a game, scaled by how far the rounds differ from its own.
+    /// What to show on the option's button, e.g. "6 rounds" or "Time limit: 5 minutes".
+    func caption(of option: PickedOption, in game: PickedGame) -> String {
+        let current = value(of: option, in: game)
+        let label = option.choices.first { $0.value == current }?.label ?? current
+        return option.key == "rounds" ? label : "\(option.label): \(label)"
+    }
+
+    func isChanged(_ option: PickedOption, in game: PickedGame) -> Bool {
+        picks[game.id]?[option.key] != nil
+    }
+
+    /// Rough minutes for a game: a time limit is the answer; rounds scale the
+    /// game's usual length.
     func minutes(for game: PickedGame) -> Int {
+        if let option = game.options?.first(where: { $0.key == "minutes" }),
+           let limit = Int(value(of: option, in: game)), limit > 0 {
+            return limit
+        }
         guard let option = game.roundsOption,
-              let picked = rounds[game.id].flatMap({ Int($0) }),
+              let picked = Int(value(of: option, in: game)),
               let base = Int(option.defaultValue), base > 0 else { return game.minutes }
         return max(2, Int((Double(game.minutes) * Double(picked) / Double(base)).rounded()))
     }
@@ -75,14 +91,15 @@ struct NightPlan: Equatable {
         games.reduce(0) { $0 + minutes(for: $1) }
     }
 
-    mutating func setRounds(_ value: String, for game: PickedGame) {
-        guard let option = game.roundsOption,
-              option.choices.contains(where: { $0.value == value }) else { return }
+    mutating func set(_ value: String, for option: PickedOption, in game: PickedGame) {
+        guard option.choices.contains(where: { $0.value == value }) else { return }
+        var chosen = picks[game.id] ?? [:]
         if value == option.defaultValue {
-            rounds[game.id] = nil
+            chosen[option.key] = nil
         } else {
-            rounds[game.id] = value
+            chosen[option.key] = value
         }
+        picks[game.id] = chosen.isEmpty ? nil : chosen
     }
 
     /// Adds a game to the end. False when it is already in or the night is full.
@@ -95,7 +112,7 @@ struct NightPlan: Equatable {
 
     mutating func remove(_ id: String) {
         games.removeAll { $0.id == id }
-        rounds[id] = nil
+        picks[id] = nil
     }
 
     /// Moves a game earlier (-1) or later (+1) in the order.

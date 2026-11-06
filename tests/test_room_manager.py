@@ -57,7 +57,7 @@ class TestJSONShape:
         assert set(payload) == {"code", "gameID", "players", "state", "phase",
                                "contentPack", "topic", "botsAllowed", "usesContentPack",
                                "micPlayerID", "night", "teams", "options", "tvConnected",
-                               "results"}
+                               "results", "timeEndsAt"}
         assert payload["gameID"] == "trivia"
         assert payload["state"] == "lobby"
         assert payload["phase"] == "play"

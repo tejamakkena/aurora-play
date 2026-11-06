@@ -8,6 +8,7 @@ All six required methods are called with ``room.lock`` already held by the
 caller, so implementations must not re-acquire it and must not block.
 """
 
+import time
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
@@ -32,6 +33,10 @@ class NativeGameEngine(ABC):
     #: player count so everybody gets a turn, leave it off.
     rounds_adjustable: ClassVar[bool] = False
 
+    #: True when the host may cut the game off at a time (the "Time limit"
+    #: pick). Real-time score games set it and implement ``time_up``.
+    timed_adjustable: ClassVar[bool] = False
+
     #: True routes ``game_state`` to the TV sockets only rather than the whole
     #: room. Use for high-frequency or large payloads the phones do not need.
     heavy_state: ClassVar[bool] = False
@@ -39,6 +44,10 @@ class NativeGameEngine(ABC):
     def __init__(self, room: Room, broadcaster) -> None:
         self.room = room
         self.bc = broadcaster
+        # The host's time limit, counted from when the game is made.
+        from games.native_hub import options
+        self.began_at = time.time()
+        self.time_limit = options.time_limit_seconds(room) if self.timed_adjustable else 0
 
     # ---- required ----------------------------------------------------------
 
@@ -78,6 +87,20 @@ class NativeGameEngine(ABC):
 
     def tick(self, dt: float) -> None:
         """Advance time-driven state. Only called when ``tick_hz > 0``."""
+
+    def time_left(self) -> int | None:
+        """Whole seconds left of the host's time limit, or None when there is none."""
+        if not self.time_limit:
+            return None
+        return max(0, int(round(self.began_at + self.time_limit - time.time())))
+
+    def time_expired(self) -> bool:
+        return bool(self.time_limit) and time.time() >= self.began_at + self.time_limit
+
+    def time_up(self) -> None:
+        """The time limit ran out: finish with the scores as they stand."""
+        if hasattr(self, "_finished"):
+            self._finished = True
 
     def on_player_join(self, player: Player) -> None:
         """A player joined or reclaimed a seat mid-game."""
