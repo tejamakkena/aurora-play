@@ -59,13 +59,38 @@ when nothing fresh is left:
 Trivia and KBC use the same device history on top of their existing
 per-room history (`content_packs.fresh_questions`).
 
+4. **What the TV remembers.** The TV keeps its own list of what its family has
+   seen (short hashes, not the text, in `SeenStore`), gives it to the server
+   when a room opens (`restore_seen`), and takes the new ones back when a game
+   ends (`seen_state`). The server counts those as seen for trivia and every
+   prompt game, so a restarted server does not start from zero.
+
 ## Hosting note
 
-On a free host, `data/` is wiped on every restart or spin-down. That loses
-the runtime pool and the device history, but not the committed library.
-To keep both, point `CONTENT_POOL_PATH` and `CONTENT_HEARD_PATH` at a
-persistent disk. Otherwise, grow the library with the script and commit
-it.
+On a free host, `data/` is wiped on every restart, redeploy and spin-down. That
+used to lose the device history, so the same questions came round again. The
+TV now carries that memory (step 4 above), so the server's own copy no longer
+matters. The runtime pool still lives in `data/`, which is why the committed
+library (below) is the part that matters.
+
+## New questions every day
+
+Three layers, cheapest first:
+
+1. **A daily job grows the committed library** (`.github/workflows/grow-content.yml`).
+   Every day it adds about 30 new items to each kind and keeps one pull request
+   (`content/daily`) open. Trivia grows from Open Trivia DB with no key; the
+   other kinds use `OPENAI_API_KEY` or `GEMINI_API_KEY` if either is a repository
+   secret (Gemini's free tier is enough). Merge the pull request when you like;
+   merging redeploys Render and the new items are served from then on. Run it
+   once from the Actions tab to try it.
+2. **The server grows a runtime pool while it runs** (above): extra items between
+   deploys, lost when the server sleeps.
+3. **The TV remembers what it has shown**, so the next game always prefers
+   something new, and only recycles the longest-ago items when the bank is used up.
+
+Bigger banks matter more than clever shuffling: with 600 questions and three
+games a night, a family sees a repeat within a few weeks; with thousands, never.
 
 ## Settings
 
@@ -91,8 +116,21 @@ it.
 
 ## Brain puzzles
 
-`games/brain_puzzles.py` generates sequences, mental maths, memory chains,
-ordering logic, calendar logic and shape rotation. Because they're computed,
-every answer is right and the supply is endless, with difficulty set by
-`level` 1-10. Analogies and odd-one-out words come from the library above.
+Brain Battle is not a quiz with different names: every round is a generated
+puzzle that trains a skill, and the end screen gives each player a title for
+the skill they were best at. `games/brain_puzzles.py` has 13 kinds:
+
+| Skill | Kinds |
+| --- | --- |
+| Number Speed | quick maths, mental chain ("start with 7, double it, take away 4"), missing number ("? times 6, plus 9, makes 81") |
+| Memory | digit chains forwards and backwards (shown, then hidden) |
+| Patterns | number sequences, letter patterns |
+| Logic | who is tallest, calendar sums, clock sums |
+| Word Smarts | analogies, odd one out, anagrams |
+| Spatial | shape rotation |
+
+Because they're computed, every answer is right and the supply is endless, with
+difficulty set by `level` 1-10 (it rises every two rounds). A 12-round game
+mixes at least ten kinds in a fresh order. Analogies and odd-one-out words come
+from the library above.
 `GET /api/brain/puzzles?level=&count=&kinds=&device=` serves Travel Mode.

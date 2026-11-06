@@ -250,9 +250,21 @@ final class TVRootViewModel: ObservableObject {
             if self.hostLines.count > 3 { self.hostLines.removeFirst(self.hostLines.count - 3) }
         }
 
+        // What the server just used, for this TV to remember (SeenStore).
+        socket.on(.seenState) { [weak self] (r: SeenStateResponse) in
+            guard let self, r.roomCode == self.currentRoomCode else { return }
+            SeenStore.merge(r.seen)
+        }
+
         socket.on(.roomUpdated) { [weak self] (response: Room) in
             guard let self else { return }
             Self.rememberRoom(response.code)
+            // Once per room: tell the server what this family has already seen.
+            if self.seenSentFor != response.code {
+                self.seenSentFor = response.code
+                self.socket.emit(.restoreSeen, payload: RestoreSeenPayload(roomCode: response.code,
+                                                                           seen: SeenStore.load()))
+            }
             if response.night?.party?.welcomed != true { self.partyWelcomeDone = false }
             switch response.state {
             case .lobby:
@@ -341,6 +353,9 @@ final class TVRootViewModel: ObservableObject {
             self?.notice = nil
         }
     }
+
+    /// The room the TV last sent its remembered questions to.
+    private var seenSentFor: String?
 
     private var currentRoomCode: String? {
         switch screen {

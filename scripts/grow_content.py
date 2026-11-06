@@ -57,17 +57,26 @@ def main() -> int:
                         help="kinds to grow (default: all): " + ", ".join(kinds))
     parser.add_argument("--target", type=int, default=300,
                         help="stop once a kind has this many items (default 300)")
+    parser.add_argument("--add", type=int, default=0,
+                        help="instead of --target, add about this many NEW items to each kind (daily growth)")
     parser.add_argument("--max-batches", type=int, default=10)
     args = parser.parse_args()
     unknown = [k for k in args.kinds if k not in kinds]
     if unknown:
         parser.error(f"unknown kind(s): {', '.join(unknown)}")
+    wanted = args.kinds or kinds
     if not llm_json.configured():
-        print("Set OPENAI_API_KEY (or GEMINI_API_KEY) first.", file=sys.stderr)
-        return 1
+        # Trivia still grows with no key at all: Open Trivia DB is free.
+        if args.add and "mc" in wanted:
+            print("No OPENAI_API_KEY or GEMINI_API_KEY: growing trivia (mc) from Open Trivia DB only.")
+            wanted = ["mc"]
+        else:
+            print("Set OPENAI_API_KEY (or GEMINI_API_KEY) first.", file=sys.stderr)
+            return 1
     total = 0
-    for kind in args.kinds or kinds:
-        total += grow(kind, args.target, args.max_batches)
+    for kind in wanted:
+        target = len(cs.all_items(kind)) + args.add if args.add else args.target
+        total += grow(kind, target, args.max_batches)
     print(f"Added {total} items. Review with git diff, then commit.")
     return 0
 

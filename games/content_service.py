@@ -28,6 +28,7 @@ supply for a kind runs low.
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import json
 import os
@@ -568,14 +569,85 @@ def _room_history(room, kind: str) -> list:
     return hist.setdefault(kind, [])
 
 
+# The TV remembers what its family has seen, not the server. A free host's disk
+# is wiped whenever the server sleeps or is redeployed, which used to make the
+# same questions come round again; the TV keeps its own list (as short hashes)
+# and gives it back to the server when a room opens (``restore_seen``), and the
+# server hands the TV the new ones when a game ends (``seen_state``).
+
+TV_SYNC_CAP = 600          # hashes kept per kind
+
+
+def key_hash(key: str) -> str:
+    """A short, stable stand-in for a content key (10 hex characters)."""
+    return hashlib.blake2s(str(key).encode("utf-8"), digest_size=5).hexdigest()
+
+
+class SeenSet(set):
+    """Raw content keys, plus a set of hashes the TV remembered. ``key in seen``
+    is true for either, so every ``not in device_seen`` check in the engines
+    honours what the TV has seen without knowing about it."""
+
+    def __init__(self, keys=(), tv: frozenset | set = frozenset()):
+        super().__init__(keys)
+        self.tv = frozenset(tv)
+
+    def __contains__(self, key) -> bool:
+        return set.__contains__(self, key) or (bool(self.tv) and isinstance(key, str)
+                                               and key_hash(key) in self.tv)
+
+    def __or__(self, other):
+        merged = SeenSet(set(self) | set(other), self.tv)
+        if isinstance(other, SeenSet):
+            merged.tv = self.tv | other.tv
+        return merged
+
+    __ror__ = __or__
+
+
+def restore_seen(room, raw) -> int:
+    """Take the TV's remembered hashes for this room. ``raw`` is
+    ``{kind: [hash, ...]}`` from an untrusted client: anything else is dropped."""
+    if not isinstance(raw, dict):
+        return 0
+    cleaned: dict[str, set] = {}
+    for kind, hashes in list(raw.items())[:40]:
+        if not isinstance(kind, str) or len(kind) > 40 or not isinstance(hashes, list):
+            continue
+        ok = {h for h in hashes[:TV_SYNC_CAP * 2]
+              if isinstance(h, str) and len(h) == 10 and all(c in "0123456789abcdef" for c in h)}
+        if ok:
+            cleaned[kind] = ok
+    with _lock:
+        tv = getattr(room, "tv_seen", None)
+        if tv is None:
+            tv = room.tv_seen = {}
+        for kind, ok in cleaned.items():
+            tv.setdefault(kind, set()).update(ok)
+    return sum(len(v) for v in cleaned.values())
+
+
+def snapshot_for_tv(room) -> dict[str, list[str]]:
+    """What this room has used, as ``{kind: [hash, ...]}`` (most recent last),
+    for the TV to remember."""
+    out: dict[str, list[str]] = {}
+    with _lock:
+        for kind, keys in (getattr(room, "content_history", None) or {}).items():
+            hashes = [key_hash(k) for k in keys][-TV_SYNC_CAP:]
+            if hashes:
+                out[kind] = hashes
+    return out
+
+
 def seen_keys(room, kind: str) -> tuple[set, set]:
-    """(seen in this room, seen by any player's device)."""
+    """(seen in this room, seen by any player's device or by the TV)."""
     with _lock:
         store = _heard_store()
         devices = set()
         for d in _devices(room):
             devices.update(store.get(d, {}).get(kind, []))
-        return set(_room_history(room, kind)), devices
+        tv = (getattr(room, "tv_seen", None) or {}).get(kind, set())
+        return set(_room_history(room, kind)), SeenSet(devices, tv)
 
 
 def record(room, kind: str, keys: list[str]) -> None:

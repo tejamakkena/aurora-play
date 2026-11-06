@@ -240,6 +240,22 @@ def finish_game(socketio, room, forfeit: bool = False) -> None:
     socketio.emit("game_ended", {"roomCode": room.code, "results": results},
                   to=room.code, namespace=NAMESPACE)
     push_room(socketio, room)
+    send_seen_state(socketio, room)
+
+
+def send_seen_state(socketio, room) -> None:
+    """Give the TV the hashes of what this room has used, to remember (best-effort)."""
+    try:
+        from games import content_service
+        with room.lock:
+            seen = content_service.snapshot_for_tv(room)
+            sids = list(room.tv_sids)
+        if seen:
+            for sid in sids:
+                socketio.emit("seen_state", {"roomCode": room.code, "seen": seen},
+                              to=sid, namespace=NAMESPACE)
+    except Exception:
+        logger.exception("seen_state failed room=%s", room.code)
 
 
 #: A running game with no action from anyone for this long is abandoned.
