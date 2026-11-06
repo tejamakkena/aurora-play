@@ -86,8 +86,8 @@ class TestWiring:
         assert "twenty_questions" not in travel.ENGINES
 
     def test_player_limits(self):
-        assert (HotTakesEngine.min_players, HotTakesEngine.max_players) == (3, 8)
-        assert (TwentyQuestionsEngine.min_players, TwentyQuestionsEngine.max_players) == (3, 8)
+        assert (HotTakesEngine.min_players, HotTakesEngine.max_players) == (3, 50)
+        assert (TwentyQuestionsEngine.min_players, TwentyQuestionsEngine.max_players) == (3, 50)
 
     @pytest.mark.parametrize("gid", ["hot_takes", "twenty_questions"])
     def test_contract_and_json(self, gid):

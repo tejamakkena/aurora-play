@@ -20,6 +20,7 @@ reveal), so a TV is a bonus rather than a requirement for playing the round.
 import random
 
 from games import content_service as cs
+from games.native_hub.engine import ROOM_CAP
 from games.native_hub.engines import _humor as H
 from games.native_hub.engines._bases import RoundBasedEngine
 
@@ -41,7 +42,7 @@ TEAM_MIN_PLAYERS = 4
 class GuessTheSongEngine(RoundBasedEngine):
     game_id = "guess_the_song"
     min_players = 2
-    max_players = 20
+    max_players = ROOM_CAP
     total_rounds = 8
     first_phase = "guess"
     # "verdict" is the grace period after the clock runs out for a judge who was

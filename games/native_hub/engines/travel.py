@@ -27,7 +27,7 @@ imports (``from ...engines.travel import HOT_TAKES``) keep working.
 
 import time
 
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 from games.native_hub.engines.talk import (  # noqa: F401  (re-exported)
     HOT_TAKES,
     TWENTY_MAX_QUESTIONS,
@@ -93,7 +93,7 @@ class StoryChainEngine(NativeGameEngine):
 
     game_id = "story_chain"
     min_players = 2
-    max_players = 8
+    max_players = ROOM_CAP
 
     def __init__(self, room, broadcaster) -> None:
         super().__init__(room, broadcaster)

@@ -10,6 +10,7 @@ import pytest
 
 from games import brain_puzzles as bp
 from games.native_hub import bots
+from games.native_hub.engine import ROOM_CAP
 from games.native_hub.engines import brain_battle as bb
 from games.native_hub.engines.brain_battle import BrainBattleEngine
 from games.native_hub.registry import ENGINES
@@ -83,7 +84,7 @@ class TestRegistration:
 
     def test_bounds(self):
         assert BrainBattleEngine.min_players == 2
-        assert BrainBattleEngine.max_players == 12
+        assert BrainBattleEngine.max_players == ROOM_CAP
         assert BrainBattleEngine.total_rounds == 12
 
     def test_swift_enum_knows_the_id(self):
@@ -95,9 +96,20 @@ class TestRegistration:
 class TestRounds:
     def test_kinds_cycle_through_every_kind(self):
         engine, _ = make()
-        first8 = [engine.kind_for_round(r) for r in range(1, 9)]
-        assert sorted(first8) == sorted(bp.ALL_KINDS)
-        assert engine.kind_for_round(9) == engine.kind_for_round(1)
+        n = len(bp.ALL_KINDS)
+        first = [engine.kind_for_round(r) for r in range(1, n + 1)]
+        assert sorted(first) == sorted(bp.ALL_KINDS)
+        assert engine.kind_for_round(n + 1) == engine.kind_for_round(1)
+
+    def test_a_twelve_round_game_mixes_at_least_ten_kinds(self):
+        engine, _ = make()
+        kinds = {engine.kind_for_round(r) for r in range(1, engine.total_rounds + 1)}
+        assert len(kinds) >= 10
+
+    def test_the_new_kinds_exist_and_train_the_listed_skills(self):
+        for kind, skill in (("chain", "Number Speed"), ("missing", "Number Speed"),
+                            ("letters", "Patterns"), ("anagram", "Word Smarts"), ("clock", "Logic")):
+            assert kind in bp.ALL_KINDS and bp.SKILLS[kind] == skill
 
     def test_level_rises_every_two_rounds(self):
         engine, _ = make()

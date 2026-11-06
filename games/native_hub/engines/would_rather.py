@@ -9,6 +9,7 @@ sees the same dilemma twice.
 """
 
 from games import content_service as cs
+from games.native_hub.engine import ROOM_CAP
 from games.native_hub.engines._bases import RoundBasedEngine
 
 MAJORITY_POINTS = 100
@@ -18,7 +19,7 @@ LONE_WOLF_POINTS = 150
 class WouldRatherEngine(RoundBasedEngine):
     game_id = "would_rather"
     min_players = 2
-    max_players = 20
+    max_players = ROOM_CAP
     total_rounds = 8
     first_phase = "vote"
     phase_seconds = {"vote": 25, "reveal": 9}

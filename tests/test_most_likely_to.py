@@ -60,7 +60,7 @@ class TestRegistration:
 
     def test_player_bounds(self):
         assert MostLikelyToEngine.min_players == 3
-        assert MostLikelyToEngine.max_players == 20
+        assert MostLikelyToEngine.max_players == 50
 
 
 class TestStart:

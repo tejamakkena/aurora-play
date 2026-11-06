@@ -12,6 +12,7 @@ and this step is skipped.
 import random
 
 from games import content_service as cs
+from games.native_hub.engine import ROOM_CAP
 from games.native_hub import options
 from games.native_hub.engines import _nhie_packs as P
 from games.native_hub.engines._bases import RoundBasedEngine
@@ -23,7 +24,7 @@ NEVER = "never"
 class NeverHaveIEverEngine(RoundBasedEngine):
     game_id = "never_have_i_ever"
     min_players = 2
-    max_players = 20
+    max_players = ROOM_CAP
     total_rounds = 10
     first_phase = "answer"
     phase_seconds = {"pack": 25, "answer": 20, "reveal": 9}

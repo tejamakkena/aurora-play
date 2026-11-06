@@ -13,7 +13,7 @@ import itertools
 import random
 import time
 
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 from games.native_hub.engines._bases import TurnBasedEngine
 
 # ---------------------------------------------------------------------------
@@ -697,7 +697,7 @@ class TambolaEngine(NativeGameEngine):
 
     game_id = "tambola"
     min_players = 2
-    max_players = 20
+    max_players = ROOM_CAP
 
     CALL_INTERVAL_SECONDS = 4.0
     PRIZES = [
@@ -905,7 +905,7 @@ def _bet_wins(bet_type, number, color):
 class RouletteEngine(NativeGameEngine):
     game_id = "roulette"
     min_players = 1
-    max_players = 8
+    max_players = ROOM_CAP
     # Only needs to notice its own spin deadline, but the default 1 Hz pump
     # would settle the wheel up to a second after the board's ball animation
     # has already come to rest. A few ticks a second keeps the number

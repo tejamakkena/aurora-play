@@ -33,12 +33,19 @@ SKILLS = {
     "analogy": "Word Smarts",
     "odd_word": "Word Smarts",
     "rotation": "Spatial",
+    # Brain Battle's second wave: more ways to train speed, patterns and words.
+    "chain": "Number Speed",
+    "missing": "Number Speed",
+    "letters": "Patterns",
+    "anagram": "Word Smarts",
+    "clock": "Logic",
 }
 
 #: Puzzles that work by voice alone (Travel Mode).
-VOICE_KINDS = ("sequence", "math", "memory", "logic", "calendar", "analogy", "odd_word")
-#: Everything, for the TV.
-ALL_KINDS = VOICE_KINDS + ("rotation",)
+VOICE_KINDS = ("sequence", "math", "memory", "logic", "calendar", "analogy", "odd_word",
+               "chain", "missing", "letters", "anagram")
+#: Everything, for the TV (rotation is drawn, and a clock time is easier to read than to say).
+ALL_KINDS = VOICE_KINDS + ("rotation", "clock")
 
 _ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
          "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
@@ -79,6 +86,13 @@ def _options(rng: random.Random, answer, distractors: list) -> list[str]:
             opts.append(str(d))
         if len(opts) == 4:
             break
+    # A small answer can lose its below-zero decoys: pad with the next numbers up.
+    bump = 1
+    while len(opts) < 4 and isinstance(answer, int):
+        bump += 1
+        if str(answer + bump) not in seen:
+            seen.add(str(answer + bump))
+            opts.append(str(answer + bump))
     rng.shuffle(opts)
     return opts
 
@@ -382,9 +396,179 @@ def _odd_word(level: int, rng: random.Random, room=None) -> dict:
     )
 
 
+# ---------------------------------------------------------------------------
+# Brain Battle's second wave: all generated, so none of them ever repeats
+# ---------------------------------------------------------------------------
+
+def _chain(level: int, rng: random.Random, room=None) -> dict:
+    """Keep a number in your head while it changes: start, then a few steps."""
+    steps = 2 if level <= 3 else 3 if level <= 6 else 4
+    value = rng.randint(3, 9 + level)
+    start = value
+    words: list[str] = []
+    for _ in range(steps):
+        options = ["add", "take"]
+        if level >= 3:
+            options.append("double")
+        if level >= 5:
+            options.append("triple")
+        if value % 2 == 0 and level >= 4:
+            options.append("halve")
+        op = rng.choice(options)
+        if op == "add":
+            k = rng.randint(2, 4 + level)
+            value += k
+            words.append(f"add {k}")
+        elif op == "take":
+            k = rng.randint(1, max(1, min(value - 1, 3 + level)))
+            value -= k
+            words.append(f"take away {k}")
+        elif op == "double":
+            value *= 2
+            words.append("double it")
+        elif op == "triple":
+            value *= 3
+            words.append("triple it")
+        else:
+            value //= 2
+            words.append("halve it")
+    joined = ", then ".join(words)
+    return _puzzle(
+        "chain", level, f"Start with {start}. {joined[0].upper() + joined[1:]}. What have you got?", value,
+        spoken=f"Start with {number_words(start)}. {joined[0].upper() + joined[1:]}. What have you got?",
+        accepts=_num_accepts(value),
+        hint="Do each step in order, and say the number out loud as you go.",
+        explain=f"Starting at {start}, {joined}, you end on {value}.",
+        options=_options(rng, value, [value + d for d in rng.sample([-10, -2, -1, 1, 2, 10], 5)]),
+    )
+
+
+def _missing(level: int, rng: random.Random, room=None) -> dict:
+    """Fill in the blank: the fastest way to feel your times tables."""
+    if level <= 2:
+        b, ans = rng.randint(2, 9), rng.randint(2, 9 + level * 3)
+        text, answer = (f"{ans + b} minus ? = {ans}", b) if rng.random() < 0.5 else (f"? plus {b} = {ans + b}", ans)
+    elif level <= 5:
+        a, ans = rng.randint(3, 9), rng.randint(3, 9)
+        text, answer = (f"{a} times ? = {a * ans}", ans) if rng.random() < 0.5 else (f"? times {ans} = {a * ans}", a)
+    elif level <= 8:
+        a, ans, c = rng.randint(3, 9), rng.randint(3, 12), rng.randint(2, 15)
+        text, answer = f"? times {a}, plus {c}, makes {ans * a + c}", ans
+    else:
+        a, ans, c = rng.randint(4, 12), rng.randint(5, 15), rng.randint(3, 20)
+        text, answer = f"? times {a}, minus {c}, makes {ans * a - c}", ans
+    spoken = text.replace("?", "what number")
+    return _puzzle(
+        "missing", level, f"Find the missing number: {text}", answer,
+        spoken=f"Find the missing number: {spoken}.",
+        accepts=_num_accepts(answer),
+        hint="Work backwards: do the opposite sum.",
+        explain=f"The missing number is {answer}.",
+        options=_options(rng, answer, [answer + d for d in rng.sample([-3, -2, -1, 1, 2, 3, 10], 6)]),
+    )
+
+
+_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+
+def _letters(level: int, rng: random.Random, room=None) -> dict:
+    """What letter comes next? Steps, skips that grow, and two interleaved runs."""
+    kind = rng.choice(["step", "back", "grow"] if level <= 4 else ["step", "back", "grow", "twin"])
+    if kind == "step":
+        step = rng.randint(1, 3 if level <= 4 else 4)
+        start = rng.randrange(0, 26 - step * 5)
+        idx = [start + step * i for i in range(5)]
+        shown, nxt = idx[:4], idx[4]
+        why = f"each letter moves {step} place{'s' if step > 1 else ''} along the alphabet"
+    elif kind == "back":
+        step = rng.randint(1, 3 if level <= 4 else 4)
+        start = rng.randrange(step * 5, 26)
+        idx = [start - step * i for i in range(5)]
+        shown, nxt = idx[:4], idx[4]
+        why = f"each letter moves {step} place{'s' if step > 1 else ''} back along the alphabet"
+    elif kind == "grow":
+        first = rng.randint(1, 2)
+        start = rng.randrange(0, 26 - (first * 4 + 6))
+        idx = [start]
+        for g in range(first, first + 4):
+            idx.append(idx[-1] + g)
+        shown, nxt = idx[:4], idx[4]
+        why = f"the jump grows by one each time: +{first}, +{first + 1}, +{first + 2}, +{first + 3}"
+    else:
+        a, b = rng.randrange(0, 10), rng.randrange(12, 20)
+        idx = [a, b, a + 1, b - 1, a + 2, b - 2]
+        shown, nxt = idx[:5], idx[5]
+        why = "two runs take turns: one goes forwards, the other backwards"
+    answer = _ALPHABET[nxt % 26]
+    seq = ", ".join(_ALPHABET[i % 26] for i in shown)
+    near = [_ALPHABET[(nxt + d) % 26] for d in (-1, 1, -2, 2, 3)]
+    return _puzzle(
+        "letters", level, f"Which letter comes next? {seq}, ?", answer,
+        spoken=f"Which letter comes next? {seq}.",
+        hint="Count the gaps between the letters.",
+        explain=f"{answer}: {why}.",
+        options=_options(rng, answer, near),
+    )
+
+
+_ANAGRAMS = {
+    4: "lamp bird rain fish moon tree gold milk rice sand wolf jump cake farm kite lion snow star boat",
+    5: "mango tiger river cloud plant bread chair water smile train eagle horse lemon spice beach globe magic night robot piano",
+    6: "garden planet orange school pencil monkey winter basket bridge rocket jungle button castle silver circle market spirit",
+    7: "kitchen balloon journey penguin blanket thunder chicken teacher diamond holiday cabinet captain network elephant",
+}
+
+
+def _anagram(level: int, rng: random.Random, room=None) -> dict:
+    size = 4 if level <= 3 else 5 if level <= 6 else 6 if level <= 8 else 7
+    words = _ANAGRAMS[size].split()
+    answer = rng.choice(words)
+    letters = list(answer)
+    for _ in range(20):
+        rng.shuffle(letters)
+        if "".join(letters) != answer:
+            break
+    scrambled = " ".join(letters).upper()
+    others = [w for w in words if w != answer]
+    return _puzzle(
+        "anagram", level, f"Unscramble these letters: {scrambled}", answer,
+        spoken=f"Unscramble these letters: {', '.join(letters).upper()}.",
+        accepts=[answer.upper()],
+        hint=f"It starts with {answer[0].upper()}.",
+        explain=f"{scrambled} spells {answer.upper()}.",
+        options=_options(rng, answer, rng.sample(others, min(6, len(others)))),
+    )
+
+
+def _clock_text(minutes: int) -> str:
+    hour, minute = divmod(minutes % (12 * 60), 60)
+    return f"{hour or 12}:{minute:02d}"
+
+
+def _clock(level: int, rng: random.Random, room=None) -> dict:
+    """Time sums: what will the clock say after a stretch of time?"""
+    start = rng.randrange(0, 12 * 60, 5 if level >= 4 else 15)
+    hours = rng.randint(1, 2 + level // 3)
+    minutes = rng.choice([0, 15, 30, 45]) if level <= 5 else rng.randrange(5, 60, 5)
+    later = rng.random() < 0.7 or level <= 3
+    delta = hours * 60 + minutes
+    result = start + delta if later else start - delta
+    answer = _clock_text(result)
+    away = f"{hours} hour{'s' if hours != 1 else ''}" + (f" {minutes} minutes" if minutes else "")
+    direction = "later" if later else "earlier"
+    near = [_clock_text(result + d) for d in (15, -15, 60, -60, 30, 45)]
+    return _puzzle(
+        "clock", level, f"It is {_clock_text(start)}. What time is it {away} {direction}?", answer,
+        hint="Add the hours first, then the minutes." if later else "Take away the hours first, then the minutes.",
+        explain=f"{_clock_text(start)} plus {away}{'' if later else ' backwards'} is {answer}.",
+        options=_options(rng, answer, near),
+    )
+
+
 _MAKERS = {
     "sequence": _sequence, "math": _math, "memory": _memory, "logic": _logic,
     "calendar": _calendar, "rotation": _rotation, "analogy": _analogy, "odd_word": _odd_word,
+    "chain": _chain, "missing": _missing, "letters": _letters, "anagram": _anagram, "clock": _clock,
 }
 
 

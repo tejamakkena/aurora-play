@@ -21,7 +21,7 @@ import random
 import time
 
 from games import content_service as cs
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 from games.native_hub.engines._bases import TurnBasedEngine
 
 # ---------------------------------------------------------------------------
@@ -389,7 +389,7 @@ MELD_CATEGORIES = ["Colors", "Animals", "Fruits", "Sports", "Movies", "Countries
 class MindMeldEngine(NativeGameEngine):
     game_id = "mind_meld"
     min_players = 3
-    max_players = 8
+    max_players = ROOM_CAP
 
     TOTAL_ROUNDS = 5
     SUBMIT_SECONDS = 20
@@ -581,7 +581,7 @@ DRAW_PROMPTS = ["Cat", "House", "Tree", "Car", "Sun", "Fish", "Robot", "Flower",
 class SpeedSculptorEngine(NativeGameEngine):
     game_id = "speed_sculptor"
     min_players = 3
-    max_players = 8
+    max_players = ROOM_CAP
 
     TOTAL_ROUNDS = 3
     DRAW_SECONDS = 20

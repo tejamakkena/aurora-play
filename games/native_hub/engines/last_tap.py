@@ -22,7 +22,7 @@ from __future__ import annotations
 import random
 import time
 
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 
 KINDS = ("reaction", "pump", "colour", "grey", "numbers")
 
@@ -48,7 +48,7 @@ TITLES = {
 class LastTapEngine(NativeGameEngine):
     game_id = "last_tap"
     min_players = 2
-    max_players = 20
+    max_players = ROOM_CAP
     # GO has to reach the phones the moment it happens, and the pump bars on
     # the TV want to move smoothly.
     tick_hz = 10.0
