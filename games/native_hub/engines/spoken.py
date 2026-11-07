@@ -20,7 +20,7 @@ import string
 import time
 
 from games import content_service as cs
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 from games.native_hub.engines import _content as C
 
 ALPHABET = string.ascii_uppercase
@@ -64,7 +64,7 @@ class AtlasEngine(NativeGameEngine):
 
     game_id = "atlas"
     min_players = 2
-    max_players = 12
+    max_players = ROOM_CAP
 
     MAX_LIVES = 3
     START_TURN_SECONDS = 10
@@ -437,7 +437,7 @@ class AntakshariEngine(NativeGameEngine):
 
     game_id = "antakshari"
     min_players = 2
-    max_players = 20
+    max_players = ROOM_CAP
 
     SING_SECONDS = 30
     LETTER_SECONDS = 12

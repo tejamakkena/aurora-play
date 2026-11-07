@@ -174,7 +174,7 @@ struct TVGameSelectionView: View {
             }
             Button("Cancel", role: .cancel) { soloChoiceGame = nil }
         } message: { game in
-            Text("Play \(game.displayName) alone with the Siri Remote, or get a room code so up to \(game.maxPlayers) friends can join on their phones.")
+            Text("Play \(game.displayName) alone with the Siri Remote, or get a room code so \(game.maxPlayers >= 50 ? "everyone" : "up to \(game.maxPlayers) friends") can join on their phones.")
         }
     }
 
@@ -672,7 +672,7 @@ private struct TVGameCard: View {
                 .minimumScaleFactor(0.7)
                 .shadow(color: .black.opacity(0.6), radius: 4, y: 1)
 
-            Text("\(game.minPlayers)–\(game.maxPlayers) players")
+            Text("\(game.playerRangeText) players")
                 .font(.system(size: 19, weight: .semibold, design: .rounded))
                 .foregroundColor(.white.opacity(isFocused ? 0.9 : 0.6))
                 .lineLimit(1)
@@ -800,7 +800,7 @@ private struct TVGameHero: View {
 
                 HStack(spacing: 12) {
                     ShellChip(systemImage: "person.2.fill",
-                              text: "\(game.minPlayers)–\(game.maxPlayers) players",
+                              text: "\(game.playerRangeText) players",
                               tint: Color.white.opacity(0.85))
                     if game.supportsRemote {
                         ShellChip(systemImage: "av.remote.fill", text: "Remote ready", tint: ShellTheme.mint)

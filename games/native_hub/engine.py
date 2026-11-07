@@ -15,6 +15,13 @@ from typing import ClassVar
 from utils.room_manager import Player, Room
 
 
+#: The most players a room-wide game seats. These games have no seat limit of
+#: their own (everyone answers on their own phone), so the number is only a
+#: safety ceiling for a small server. Games with a table or a board (poker,
+#: Ludo, chess...) keep their real limits.
+ROOM_CAP = 50
+
+
 class NativeGameEngine(ABC):
     """One instance per active game."""
 

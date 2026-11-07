@@ -1,0 +1,74 @@
+name: Grow the question bank
+
+# Every day, add a few dozen NEW questions and prompts to the committed content
+# library (games/content_library/*.json) so the games keep getting fresher.
+#
+#   * Trivia (multiple choice) grows from Open Trivia DB: free, no key.
+#   * Every other kind (Would You Rather, Herd, Most Likely To, Bluff It...)
+#     grows with the LLM when OPENAI_API_KEY or GEMINI_API_KEY is saved as a
+#     repository secret. The Gemini free tier is enough. Without a key those
+#     kinds are skipped.
+#
+# Nothing is merged for you. The job keeps ONE branch (content/daily) and ONE open
+# pull request up to date; merge it when you like. Merging redeploys the server on
+# Render, and the new items are served from then on. Run it now from the Actions tab.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      add:
+        description: "New items to add to each kind"
+        default: "30"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  grow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install the project's Python packages
+        run: pip install -r requirements.txt
+
+      - name: Add new items
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ADD: ${{ inputs.add || '30' }}
+        run: python3 scripts/grow_content.py --add "$ADD" --max-batches 4
+
+      - name: Check the library still loads and the tests pass
+        run: |
+          pip install pytest
+          python3 -m pytest tests/test_content_service.py tests/test_content_packs.py -p no:flask -q
+
+      - name: Push the branch and keep one pull request open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet -- games/content_library; then
+            echo "Nothing new today." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout -B content/daily
+          git add games/content_library
+          git commit -m "Daily content: new questions and prompts"
+          git push --force origin content/daily
+          if [ -z "$(gh pr list --head content/daily --state open --json number --jq '.[0].number')" ]; then
+            gh pr create --base main --head content/daily \
+              --title "Daily content: new questions and prompts" \
+              --body "New items for games/content_library, added by the Grow the question bank workflow. Review the diff and merge when you like; merging redeploys the server."
+          fi
+          echo "Pushed content/daily." >> "$GITHUB_STEP_SUMMARY"

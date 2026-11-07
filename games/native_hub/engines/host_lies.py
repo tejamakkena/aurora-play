@@ -29,6 +29,7 @@ pressed, the defence text, never the delivery or the verdict.
 import random
 
 from games import content_service as cs
+from games.native_hub.engine import ROOM_CAP
 from games.native_hub.engines import _hostlies as H
 from games.native_hub.engines._bases import RoundBasedEngine
 
@@ -46,7 +47,7 @@ TELLS = ("hedge", "overexplain", "repeat", "stall", "rushed")
 class HostLiesEngine(RoundBasedEngine):
     game_id = "host_lies"
     min_players = 2
-    max_players = 20
+    max_players = ROOM_CAP
     total_rounds = 8
     first_phase = "claim"
     phase_seconds = {"claim": 14, "grill": 16, "vote": 14, "reveal": 12}

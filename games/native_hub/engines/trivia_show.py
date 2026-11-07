@@ -38,7 +38,7 @@ room/device no-repeat history.
 import random
 import time
 
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 from games.native_hub.engines.content_packs import (
     fresh_questions,
     record_questions,
@@ -67,7 +67,7 @@ MIXED_CATEGORY = "Surprise Mix"
 class TriviaEngine(NativeGameEngine):
     game_id = "trivia"
     min_players = 2
-    max_players = 10
+    max_players = ROOM_CAP
 
     # ---- tuning -------------------------------------------------------------
     INTRO_SECONDS = 4

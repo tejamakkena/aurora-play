@@ -220,7 +220,9 @@ struct TVLobbyView: View {
                     .foregroundColor(ShellTheme.textSecondary)
             } else {
                 HStack(spacing: 14) {
-                    Text("\(room.players.count) / \(room.gameID.maxPlayers) players")
+                    Text(room.gameID.maxPlayers >= 50
+                         ? "\(room.players.count) players"
+                         : "\(room.players.count) / \(room.gameID.maxPlayers) players")
                         .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                     if !canStart {
@@ -530,16 +532,18 @@ private struct LobbyQRCode: View {
 // MARK: - Roster
 
 /// Everyone in the room as avatar tokens, plus ghost tokens for open seats.
-/// Up to 10 tokens at full size; bigger rooms (Tambola seats 20) switch to a
-/// compact grid so the column never overflows the screen.
+/// Up to 10 tokens at full size; bigger rooms switch to a compact grid, and a
+/// crowd of 25 or more to a tighter one, so the column never overflows the screen.
 private struct LobbyRoster: View {
     let players: [Player]
     let maxPlayers: Int
 
     private var isCompact: Bool { players.count > 10 }
-    private var tokenSize: CGFloat { isCompact ? 60 : 88 }
-    private var cellWidth: CGFloat { isCompact ? 108 : 140 }
-    private var columnCount: Int { isCompact ? 7 : 5 }
+    /// A big party (up to 50 phones) shrinks the tokens again so every name fits.
+    private var isCrowd: Bool { players.count > 24 }
+    private var tokenSize: CGFloat { isCrowd ? 44 : (isCompact ? 60 : 88) }
+    private var cellWidth: CGFloat { isCrowd ? 92 : (isCompact ? 108 : 140) }
+    private var columnCount: Int { isCrowd ? 11 : (isCompact ? 7 : 5) }
 
     /// Ghost seats fill the grid up to 10 tokens (or the game's max, if
     /// smaller); the exact count of open seats is in the line above.

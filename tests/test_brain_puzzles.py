@@ -120,3 +120,22 @@ def test_endpoint():
     assert {p["kind"] for p in body["puzzles"]} <= {"sequence", "math"}
     junk = client.get("/api/brain/puzzles?level=x&count=y").get_json()
     assert junk["level"] == 3 and len(junk["puzzles"]) == 10
+
+
+@pytest.mark.parametrize("kind", ["chain", "missing", "letters", "anagram", "clock"])
+def test_new_kinds_are_always_valid_and_never_run_dry(kind):
+    seen = set()
+    for seed in range(120):
+        rng = random.Random(seed)
+        for level in range(1, 11):
+            p = bp.make(kind, level, rng)
+            assert len(set(p["options"])) == 4 and p["answer"] in p["options"], (kind, level, p)
+            assert p["skill"] == bp.SKILLS[kind] and p["prompt"] and p["hint"] and p["explain"]
+            seen.add(p["prompt"])
+    assert len(seen) > 150          # generated, so the supply is effectively endless
+
+
+def test_clock_wraps_around_twelve():
+    p = bp.make("clock", 5, random.Random(3))
+    hour = int(p["answer"].split(":")[0])
+    assert 1 <= hour <= 12

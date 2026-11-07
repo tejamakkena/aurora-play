@@ -98,7 +98,7 @@ enum GameID: String, Codable, CaseIterable {
         // ---- Originals -------------------------------------------------
         case .trivia:
             return .init(displayName: "Trivia", sfSymbol: "brain.head.profile", category: .knowledge,
-                         minPlayers: 2, maxPlayers: 10, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .poker:
             return .init(displayName: "Poker", sfSymbol: "suit.spade.fill", category: .casino,
@@ -106,11 +106,11 @@ enum GameID: String, Codable, CaseIterable {
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .tambola:
             return .init(displayName: "Tambola", sfSymbol: "circle.grid.3x3.fill", category: .casino,
-                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .mafia:
             return .init(displayName: "Mafia", sfSymbol: "eye.fill", category: .social,
-                         minPlayers: 5, maxPlayers: 15, hasPrivateInfo: true,
+                         minPlayers: 5, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .heist:
             return .init(displayName: "Heist", sfSymbol: "banknote.fill", category: .social,
@@ -122,7 +122,7 @@ enum GameID: String, Codable, CaseIterable {
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .mindMeld:
             return .init(displayName: "Mind Meld", sfSymbol: "sparkles", category: .knowledge,
-                         minPlayers: 3, maxPlayers: 8, hasPrivateInfo: false,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .hotGrid:
             return .init(displayName: "Hot Grid", sfSymbol: "burst.fill", category: .strategy,
@@ -130,7 +130,7 @@ enum GameID: String, Codable, CaseIterable {
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .speedSculptor:
             return .init(displayName: "Speed Sculptor", sfSymbol: "paintpalette.fill", category: .creative,
-                         minPlayers: 3, maxPlayers: 8, hasPrivateInfo: true,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .draw, supportsRemote: false, soloPlayable: false)
         case .pong:
             return .init(displayName: "Pong", sfSymbol: "circle.fill", category: .action,
@@ -150,7 +150,7 @@ enum GameID: String, Codable, CaseIterable {
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .roulette:
             return .init(displayName: "Roulette", sfSymbol: "record.circle.fill", category: .casino,
-                         minPlayers: 1, maxPlayers: 8, hasPrivateInfo: false,
+                         minPlayers: 1, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .rajaMantri:
             return .init(displayName: "Raja Mantri", sfSymbol: "crown.fill", category: .social,
@@ -168,29 +168,29 @@ enum GameID: String, Codable, CaseIterable {
         // ---- Party -----------------------------------------------------
         case .bluffIt:
             return .init(displayName: "Bluff It", sfSymbol: "eye.slash.fill", category: .party,
-                         minPlayers: 3, maxPlayers: 16, hasPrivateInfo: true,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .lastTap:
             return .init(displayName: "Last Tap Standing", sfSymbol: "bolt.fill", category: .party,
-                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .herd:
             return .init(displayName: "Herd", sfSymbol: "person.3.fill", category: .party,
-                         minPlayers: 3, maxPlayers: 20, hasPrivateInfo: false,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .emojiMovie:
             return .init(displayName: "Emoji Charades", sfSymbol: "clapperboard.fill", category: .party,
-                         minPlayers: 3, maxPlayers: 16, hasPrivateInfo: true,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .npat:
             return .init(displayName: "Name Place Animal Thing", sfSymbol: "a.circle.fill", category: .party,
-                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
         case .antakshari:
             // Spoken: teams SING out loud; phones only tap Sang it / Missed
             // and the last letter (games/native_hub/engines/spoken.py).
             return .init(displayName: "Antakshari", sfSymbol: "music.note", category: .party,
-                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .atlas:
             // Spoken: the player SAYS a place out loud and the room judges
@@ -203,69 +203,69 @@ enum GameID: String, Codable, CaseIterable {
             // no Siri Remote or "Play Solo Now" path: supportsRemote and
             // soloPlayable stay false and it joins like any party game.
             return .init(displayName: "Atlas", sfSymbol: "globe", category: .party,
-                         minPlayers: 2, maxPlayers: 12, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .mostLikelyTo:
             return .init(displayName: "Most Likely To", sfSymbol: "hand.thumbsup.fill", category: .party,
-                         minPlayers: 3, maxPlayers: 20, hasPrivateInfo: false,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .brainBattle:
             return .init(displayName: "Brain Battle", sfSymbol: "brain", category: .knowledge,
-                         minPlayers: 2, maxPlayers: 12, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .hostLies:
             return .init(displayName: "The Host Is Lying", sfSymbol: "mic.fill", category: .knowledge,
-                         minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .wouldRather:
             return .init(displayName: "Would You Rather", sfSymbol: "arrow.left.arrow.right",
-                         category: .party, minPlayers: 2, maxPlayers: 20, hasPrivateInfo: false,
+                         category: .party, minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .neverHaveIEver:
             // Answers are private until the reveal: finding out who has is the game.
             return .init(displayName: "Never Have I Ever", sfSymbol: "hand.raised.fill",
-                         category: .party, minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
+                         category: .party, minPlayers: 2, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .guessTheSong:
             // The judge's phone shows the answers, so there is private info. The
             // word itself is on every screen, so a round also works on phones alone.
             return .init(displayName: "Guess the Song", sfSymbol: "music.mic",
-                         category: .party, minPlayers: 2, maxPlayers: 20, hasPrivateInfo: true,
+                         category: .party, minPlayers: 2, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .truthOrDare:
             // One phone runs the whole table (it types the names and judges),
             // so a single player is enough to start it.
             return .init(displayName: "Truth or Dare", sfSymbol: "bubble.left.and.bubble.right.fill",
-                         category: .party, minPlayers: 1, maxPlayers: 20, hasPrivateInfo: false,
+                         category: .party, minPlayers: 1, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 
         // ---- Mid group -------------------------------------------------
 
         case .cipherGrid:
             return .init(displayName: "Cipher Grid", sfSymbol: "key.fill", category: .social,
-                         minPlayers: 4, maxPlayers: 12, hasPrivateInfo: true,
+                         minPlayers: 4, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tapGrid, supportsRemote: false, soloPlayable: false)
         case .oddOneOut:
             return .init(displayName: "Odd One Out", sfSymbol: "eyeglasses", category: .social,
-                         minPlayers: 4, maxPlayers: 10, hasPrivateInfo: true,
+                         minPlayers: 4, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .sealedAuction:
             return .init(displayName: "Sealed Auction", sfSymbol: "hammer.fill", category: .strategy,
-                         minPlayers: 2, maxPlayers: 8, hasPrivateInfo: true,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .wavelength:
             return .init(displayName: "Spectrum", sfSymbol: "antenna.radiowaves.left.and.right", category: .party,
-                         minPlayers: 3, maxPlayers: 10, hasPrivateInfo: true,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .swipe, supportsRemote: false, soloPlayable: false)
         case .kbc:
             return .init(displayName: "KBC Hot Seat", sfSymbol: "trophy.fill", category: .knowledge,
-                         minPlayers: 1, maxPlayers: 20, hasPrivateInfo: true,
+                         minPlayers: 1, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .bollywoodCharades:
             // Positioned as Dumb Charades; the content pack is Bollywood
             // movies. Engine id stays "bollywood_charades" (wire protocol).
             return .init(displayName: "Dumb Charades", sfSymbol: "figure.dance", category: .party,
-                         minPlayers: 3, maxPlayers: 16, hasPrivateInfo: true,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .text, supportsRemote: false, soloPlayable: false)
 
         // ---- Duel and co-op --------------------------------------------
@@ -338,11 +338,11 @@ enum GameID: String, Codable, CaseIterable {
         // starters, the Answerer's secret word.
         case .hotTakes:
             return .init(displayName: "Hot Takes", sfSymbol: "flame.fill", category: .social,
-                         minPlayers: 3, maxPlayers: 8, hasPrivateInfo: true,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         case .twentyQuestions:
             return .init(displayName: "20 Questions", sfSymbol: "questionmark.bubble.fill", category: .knowledge,
-                         minPlayers: 3, maxPlayers: 8, hasPrivateInfo: true,
+                         minPlayers: 3, maxPlayers: 50, hasPrivateInfo: true,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
 
         // ---- Travel Mode leftover ------------------------------------------
@@ -350,7 +350,7 @@ enum GameID: String, Codable, CaseIterable {
         // `retired`), kept so older rooms still decode.
         case .storyChain:
             return .init(displayName: "Story Chain", sfSymbol: "text.book.closed.fill", category: .creative,
-                         minPlayers: 2, maxPlayers: 8, hasPrivateInfo: false,
+                         minPlayers: 2, maxPlayers: 50, hasPrivateInfo: false,
                          phoneInputStyle: .tap, supportsRemote: false, soloPlayable: false)
         }
     }
@@ -361,6 +361,10 @@ enum GameID: String, Codable, CaseIterable {
     var category: GameCategory       { meta.category }
     var minPlayers: Int              { meta.minPlayers }
     var maxPlayers: Int              { meta.maxPlayers }
+    /// "2–4" for a game with a real limit, "2+" for a room-wide game (the server caps those at 50).
+    var playerRangeText: String {
+        maxPlayers >= 50 ? "\(minPlayers)+" : "\(minPlayers)–\(maxPlayers)"
+    }
     var hasPrivateInfo: Bool         { meta.hasPrivateInfo }
     var phoneInputStyle: PhoneInputStyle { meta.phoneInputStyle }
     var supportsRemote: Bool         { meta.supportsRemote }

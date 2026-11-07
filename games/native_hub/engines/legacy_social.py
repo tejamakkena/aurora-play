@@ -15,7 +15,7 @@ built to TVTriviaBoardView/TriviaControllerView's contract.
 import random
 import time
 
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 
 # ---------------------------------------------------------------------------
 # Mafia -- verified against MafiaBoardState/MafiaControllerView. Role names
@@ -27,7 +27,7 @@ from games.native_hub.engine import NativeGameEngine
 class MafiaEngine(NativeGameEngine):
     game_id = "mafia"
     min_players = 5
-    max_players = 15
+    max_players = ROOM_CAP
 
     DAY_SECONDS = 60
     NIGHT_SECONDS = 30

@@ -23,6 +23,7 @@ import random
 import time
 
 from games import content_service as cs
+from games.native_hub.engine import ROOM_CAP
 from games.native_hub.engines._bases import RoundBasedEngine
 from games.native_hub.engines._matching import normalise
 
@@ -141,7 +142,7 @@ class HotTakesEngine(RoundBasedEngine):
     game_id = "hot_takes"
     rounds_adjustable = False      # rounds follow the player count
     min_players = 3
-    max_players = 8
+    max_players = ROOM_CAP
     first_phase = "intro"
     phase_seconds = {
         "intro": HOT_TAKES_INTRO_SECONDS,
@@ -633,7 +634,7 @@ class TwentyQuestionsEngine(RoundBasedEngine):
     game_id = "twenty_questions"
     rounds_adjustable = False      # rounds follow the player count
     min_players = 3
-    max_players = 8
+    max_players = ROOM_CAP
     first_phase = "intro"
     phase_seconds = {
         "intro": TWENTY_INTRO_SECONDS,

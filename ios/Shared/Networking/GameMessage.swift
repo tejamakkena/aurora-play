@@ -23,7 +23,8 @@ enum ClientEvent: String {
     case startNight     = "start_night"
     case nextGame       = "next_game"
     case endNight       = "end_night"
-    case cheer          = "cheer"            // the TV cheers for the guest of honour
+    case cheer          = "cheer"
+    case restoreSeen    = "restore_seen"     // TV -> server: questions this family has already seen            // the TV cheers for the guest of honour
     case beginParty     = "begin_party"     // host (or TV): lift the Game Night welcome screen
     // Teams mode (TV or host; a phone may move itself)
     case setTeams       = "set_teams"
@@ -49,6 +50,7 @@ enum ServerEvent: String {
     case error          = "error"
     case roomClosed     = "room_closed"
     case hostLine       = "host_line"      // Game Night show host banter (TV speaks it)
+    case seenState      = "seen_state"     // server -> TV: what this game used, for the TV to remember
     // Voice quizmaster
     case micReassigned  = "mic_reassigned"
     case voiceState      = "voice_state"
@@ -71,6 +73,18 @@ struct JoinRoomPayload: Encodable {
     let clientID: String = JoinRoomPayload.launchID
 
     static let launchID = UUID().uuidString
+}
+
+/// What the TV remembers having seen, by kind of content (server:
+/// games/content_service.py restore_seen). Short hashes, not the questions.
+struct RestoreSeenPayload: Encodable {
+    let roomCode: String
+    let seen: [String: [String]]
+}
+
+struct SeenStateResponse: Decodable {
+    let roomCode: String
+    let seen: [String: [String]]
 }
 
 struct CreateRoomPayload: Encodable {

@@ -573,6 +573,24 @@ def register_native_events(socketio):
             room.touch()
         push_room(socketio, room)
 
+    @socketio.on("restore_seen", namespace=NAMESPACE)
+    def handle_restore_seen(data):
+        """The TV gives back what its family has already seen ({kind: [hash]}),
+        so a free server whose disk was wiped does not repeat itself."""
+        from games import content_service
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        room = rooms.get(code) if code else None
+        if room is None:
+            return
+        with room.lock:
+            if sid not in room.tv_sids:
+                return
+            content_service.restore_seen(room, data.get("seen"))
+
     @socketio.on("cheer", namespace=NAMESPACE)
     def handle_cheer(data):
         """The host (or the TV) asks the TV to cheer for the guest of honour."""

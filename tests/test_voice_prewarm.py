@@ -61,8 +61,18 @@ def test_a_failing_render_is_swallowed(monkeypatch):
 
 def test_no_more_than_the_cap_per_call(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "k")
-    monkeypatch.setattr(voice, "synthesize_speech", lambda *a, **k: (b"x", "openai"))
+    done = []
+    finished = threading.Event()
+
+    def fake(*args, **kwargs):
+        done.append(1)
+        if len(done) == voice._PREWARM_MAX:
+            finished.set()
+        return b"x", "openai"
+
+    monkeypatch.setattr(voice, "synthesize_speech", fake)
     assert voice.prewarm([(f"line {i}", None) for i in range(40)]) == voice._PREWARM_MAX
+    assert finished.wait(5)             # let the background renders end before the next test
 
 
 def test_a_line_asked_for_twice_at_once_is_paid_for_once(monkeypatch):

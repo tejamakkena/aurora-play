@@ -20,7 +20,7 @@ The host can end the game at any time from the setup or play screen.
 
 import random
 
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 from games.native_hub.engines import _truthdare as D
 from games import content_service as cs
 
@@ -50,7 +50,7 @@ def _payload(data) -> dict:
 class TruthOrDareEngine(NativeGameEngine):
     game_id = "truth_or_dare"
     min_players = 1           # one phone can run the whole table
-    max_players = 20
+    max_players = ROOM_CAP
 
     def __init__(self, room, broadcaster):
         super().__init__(room, broadcaster)

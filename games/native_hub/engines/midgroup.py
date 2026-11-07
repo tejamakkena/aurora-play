@@ -16,7 +16,7 @@ from games.native_hub.engines.content_packs import (
     fresh_questions,
     record_questions,
 )
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 
 
 def _norm(text) -> str:
@@ -32,7 +32,7 @@ class CipherGridEngine(NativeGameEngine):
 
     game_id = "cipher_grid"
     min_players = 4
-    max_players = 12
+    max_players = ROOM_CAP
 
     GRID = 25
     RED, BLUE, NEUTRAL, ASSASSIN = "red", "blue", "neutral", "assassin"
@@ -230,7 +230,7 @@ class OddOneOutEngine(NativeGameEngine):
 
     game_id = "odd_one_out"
     min_players = 4
-    max_players = 10
+    max_players = ROOM_CAP
 
     TOTAL_ROUNDS = 3
     ROUND_SECONDS = 240
@@ -404,7 +404,7 @@ class SealedAuctionEngine(RoundBasedEngine):
 
     game_id = "sealed_auction"
     min_players = 2
-    max_players = 8
+    max_players = ROOM_CAP
     total_rounds = 8
     first_phase = "bid"
     phase_seconds = {"bid": 25, "reveal": 8}
@@ -495,7 +495,7 @@ class WavelengthEngine(RoundBasedEngine):
 
     game_id = "wavelength"
     min_players = 3
-    max_players = 10
+    max_players = ROOM_CAP
     total_rounds = 6
     first_phase = "clue"
     phase_seconds = {"clue": 45, "dial": 45, "reveal": 10}
@@ -617,7 +617,7 @@ class KBCEngine(NativeGameEngine):
 
     game_id = "kbc"
     min_players = 1
-    max_players = 20
+    max_players = ROOM_CAP
 
     ANSWER_SECONDS = 45
     POLL_SECONDS = 20
@@ -892,7 +892,7 @@ class BollywoodCharadesEngine(RoundBasedEngine):
     game_id = "bollywood_charades"
     rounds_adjustable = False      # everyone acts the same number of times
     min_players = 3
-    max_players = 16
+    max_players = ROOM_CAP
     total_rounds = 6
     first_phase = "act"
     phase_seconds = {"act": 90, "reveal": 8}

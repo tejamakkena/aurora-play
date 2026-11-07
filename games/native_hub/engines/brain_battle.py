@@ -28,6 +28,7 @@ import time
 from pathlib import Path
 
 from games import brain_puzzles as bp
+from games.native_hub.engine import ROOM_CAP
 from games.native_hub.engines._bases import RoundBasedEngine
 
 #: skill name (brain_puzzles.SKILLS values) -> end-of-game title.
@@ -111,7 +112,7 @@ class BrainBattleEngine(RoundBasedEngine):
 
     game_id = "brain_battle"
     min_players = 2
-    max_players = 12
+    max_players = ROOM_CAP
     total_rounds = 12
     first_phase = "answer"
     phase_seconds = {"memorize": 4, "answer": 20, "reveal": 7, "summary": 14}

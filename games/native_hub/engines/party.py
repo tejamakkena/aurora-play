@@ -12,7 +12,7 @@ from games.native_hub.engines import _content as C
 from games.native_hub.engines._matching import guess_matches
 from games.native_hub.engines._bases import RoundBasedEngine
 from games.native_hub.engines.last_tap import LastTapEngine
-from games.native_hub.engine import NativeGameEngine
+from games.native_hub.engine import NativeGameEngine, ROOM_CAP
 from utils.room_manager import Player
 
 
@@ -50,7 +50,7 @@ class BluffItEngine(RoundBasedEngine):
 
     game_id = "bluff_it"
     min_players = 3
-    max_players = 16
+    max_players = ROOM_CAP
     total_rounds = 5
     first_phase = "write"
     phase_seconds = {"write": 45, "pick": 30, "reveal": 8}
@@ -170,7 +170,7 @@ class HerdEngine(RoundBasedEngine):
 
     game_id = "herd"
     min_players = 3
-    max_players = 20
+    max_players = ROOM_CAP
     total_rounds = 6
     first_phase = "answer"
     phase_seconds = {"answer": 30, "reveal": 10}
@@ -260,7 +260,7 @@ class EmojiMovieEngine(RoundBasedEngine):
 
     game_id = "emoji_movie"
     min_players = 3
-    max_players = 16
+    max_players = ROOM_CAP
     total_rounds = 4
     first_phase = "compose"
     phase_seconds = {"compose": 60, "guess": 45, "reveal": 10}
@@ -361,7 +361,7 @@ class NPATEngine(RoundBasedEngine):
 
     game_id = "npat"
     min_players = 2
-    max_players = 20
+    max_players = ROOM_CAP
     total_rounds = 5
     first_phase = "fill"
     phase_seconds = {"fill": 60, "reveal": 12}
@@ -454,7 +454,7 @@ class MostLikelyToEngine(RoundBasedEngine):
 
     game_id = "most_likely_to"
     min_players = 3
-    max_players = 20
+    max_players = ROOM_CAP
     total_rounds = 5
     first_phase = "vote"
     phase_seconds = {"vote": 30, "reveal": 10}
