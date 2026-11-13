@@ -37,7 +37,7 @@ struct RootControllerView: View {
             case .waiting(let room):
                 WaitingView(room: room, onReady: vm.markReady, onLeave: vm.leaveRoom)
 
-            case .rules(_, let rules):
+            case .rules(let room, let rules):
                 // Host-gated rules card: the engine is held server-side
                 // until the host taps Begin. The host's phone gets the
                 // button; everyone else gets the waiting indicator. The
@@ -61,25 +61,7 @@ struct RootControllerView: View {
                         .buttonStyle(PhonePlayPressStyle())
                         .accessibilityLabel("Leave game")
                         Spacer()
-                        // The host can start a cheer for the guest of honour
-                        // in the middle of a game, not only in the lobby.
-                        if vm.isHost, let party = room.night?.party, party.welcomed,
-                           room.night?.finished != true {
-                            Button {
-                                PhonePlayHaptics.tap()
-                                OneStopEvents.cheer(roomCode: room.code)
-                            } label: {
-                                Label(party.honoree.isEmpty ? "Cheer" : "Cheer for \(party.honoree)",
-                                      systemImage: "megaphone.fill")
-                                    .font(.system(size: 13, weight: .heavy, design: .rounded))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 12)
-                                    .frame(height: 30)
-                                    .background(Capsule().fill(PhonePlayDesign.pink.opacity(0.85)))
-                            }
-                            .buttonStyle(PhonePlayPressStyle())
-                            .accessibilityLabel(party.honoree.isEmpty ? "Cheer" : "Cheer for \(party.honoree)")
-                        }
+                        NightCheerButton(room: room, isHost: vm.isHost)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -108,6 +90,7 @@ struct RootControllerView: View {
                         .buttonStyle(PhonePlayPressStyle())
                         .accessibilityLabel("Leave game")
                         Spacer()
+                        NightCheerButton(room: room, isHost: vm.isHost)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -837,5 +820,32 @@ final class ControllerRootViewModel: ObservableObject {
     func setContentPack(_ pack: ContentPack) {
         guard let room = currentRoom else { return }
         socket.emit(.setContentPack, payload: ["roomCode": room.code, "contentPack": pack.rawValue])
+    }
+}
+
+
+/// During a party night the host's phone can start a cheer for the guest of
+/// honour from the game screen, not only from the lobby.
+private struct NightCheerButton: View {
+    let room: Room
+    let isHost: Bool
+
+    var body: some View {
+        if isHost, let party = room.night?.party, party.welcomed, room.night?.finished != true {
+            let title: String = party.honoree.isEmpty ? "Cheer" : "Cheer for \(party.honoree)"
+            Button {
+                PhonePlayHaptics.tap()
+                OneStopEvents.cheer(roomCode: room.code)
+            } label: {
+                Label(title, systemImage: "megaphone.fill")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .frame(height: 30)
+                    .background(Capsule().fill(PhonePlayDesign.pink.opacity(0.85)))
+            }
+            .buttonStyle(PhonePlayPressStyle())
+            .accessibilityLabel(title)
+        }
     }
 }
