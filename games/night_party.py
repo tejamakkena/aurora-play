@@ -14,6 +14,7 @@ All text is emoji-free: it is shown on screen and read aloud.
 """
 
 import random
+import re
 from typing import Any
 
 from games import party_script as PS
@@ -148,6 +149,8 @@ def clean_party(raw: Any, base: dict | None = None) -> dict:
         party["occasion"] = raw["occasion"]
     if "honoree" in raw:
         party["honoree"] = clean_text(raw.get("honoree"))
+    if "honoreeSaid" in raw:
+        party["honoreeSaid"] = clean_text(raw.get("honoreeSaid"))
     if raw.get("style") in STYLES:
         party["style"] = raw["style"]
     if isinstance(raw.get("humor"), str) and raw["humor"] in H.PACK_IDS:
@@ -191,6 +194,21 @@ def _style(party: dict) -> dict:
 def _game_name(game_id: str) -> str:
     from games.native_hub.rules import rules_for
     return rules_for(game_id).get("title") or game_id
+
+
+def say_as(party: dict) -> dict[str, str]:
+    """``{name on screen: how to say it}`` when the host typed a "Say it as"
+    spelling for the guest of honour ("Venkat" -> "Ven-kut"), else empty."""
+    name, said = clean_text(party.get("honoree")), clean_text(party.get("honoreeSaid"))
+    return {name: said} if name and said and said != name else {}
+
+
+def spoken(text: str, party: dict | None) -> str:
+    """``text`` as the voice should say it: every "Say it as" name swapped in.
+    The screen keeps the real spelling; only the voice uses this."""
+    for name, said in say_as(party or {}).items():
+        text = re.sub(rf"\b{re.escape(name)}\b", said, text)
+    return text
 
 
 def indian_voice(party: dict) -> bool:

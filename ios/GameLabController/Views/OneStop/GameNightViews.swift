@@ -24,6 +24,9 @@ struct GameNightPlannerCard: View {
     @State private var starting = false
     @State private var partyOn = false
     @State private var party = NightPartySettings()
+    /// Lineups saved on this phone (SavedNights).
+    @State private var saved: [SavedNight] = []
+    @State private var restoredParty = false
 
     private static let minuteOptions = [30, 45, 60]
 
@@ -93,6 +96,7 @@ struct GameNightPlannerCard: View {
         .oneStopCard(tint: PhonePlayDesign.purple)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: expanded)
         .task(id: loadKey) { await loadPlaylist() }
+        .onAppear(perform: restoreLastParty)
     }
 
     private var header: some View {
@@ -137,6 +141,7 @@ struct GameNightPlannerCard: View {
                 if loading {
                     ProgressView().scaleEffect(0.7).tint(.white.opacity(0.6))
                 } else {
+                    savedMenu
                     Button {
                         PhonePlayHaptics.tap()
                         reloadToken += 1
@@ -272,6 +277,51 @@ struct GameNightPlannerCard: View {
         }
     }
 
+    /// Save this lineup, or bring back one saved before ("Our usual Friday").
+    private var savedMenu: some View {
+        Menu {
+            Button {
+                PhonePlayHaptics.tap()
+                SavedNights.save(plan)
+                saved = SavedNights.all()
+            } label: {
+                Label("Save this lineup", systemImage: "square.and.arrow.down")
+            }
+            .disabled(plan.games.isEmpty)
+            if !saved.isEmpty {
+                Section("Saved lineups") {
+                    ForEach(saved) { night in
+                        Button {
+                            PhonePlayHaptics.tap()
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                plan = NightPlan.restored(night, from: allGames)
+                            }
+                        } label: {
+                            Text(night.name)
+                        }
+                        .disabled(allGames.isEmpty)
+                    }
+                }
+                Menu("Delete a saved lineup") {
+                    ForEach(saved) { night in
+                        Button(role: .destructive) {
+                            SavedNights.delete(night.id)
+                            saved = SavedNights.all()
+                        } label: {
+                            Text(night.name)
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label("Saved", systemImage: "bookmark")
+                .font(.system(.caption, design: .rounded, weight: .semibold))
+                .foregroundColor(PhonePlayDesign.cyan)
+        }
+        .padding(.trailing, 10)
+        .onAppear { saved = SavedNights.all() }
+    }
+
     /// Any game can join the night, even one that suits a different group size.
     @ViewBuilder
     private var addGameMenu: some View {
@@ -346,8 +396,23 @@ struct GameNightPlannerCard: View {
         loading = false
     }
 
+    /// Bring back the last party's occasion, name and host style.
+    private func restoreLastParty() {
+        guard !restoredParty, let last = LastParty.load() else { return }
+        restoredParty = true
+        party.occasion = last.occasion
+        party.honoree = last.honoree
+        party.honoreeSaid = last.honoreeSaid
+        party.style = last.style
+        party.accent = last.accent
+    }
+
     private func start() {
         starting = true
+        if partyOn {
+            LastParty(occasion: party.occasion, honoree: party.honoree, honoreeSaid: party.honoreeSaid,
+                      style: party.style, accent: party.accent).save()
+        }
         let ids = plan.playlist
         OneStopEvents.startNight(StartNightPayload(roomCode: room.code,
                                                    playlist: ids.isEmpty ? nil : ids,

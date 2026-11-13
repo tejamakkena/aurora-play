@@ -155,9 +155,30 @@ final class TVVoiceHost: NSObject, ObservableObject {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, VoiceSettings.cloudAllowed, Self.sessionVoice != .device,
               !VoicePack.hasAnyClip(for: trimmed) else { return }
+        let said = Self.said(trimmed)
         Task.detached(priority: .utility) {
-            _ = await Self.fetchTTS(trimmed, style: style, timeout: 30)
+            _ = await Self.fetchTTS(said, style: style, timeout: 30)
         }
+    }
+
+    // MARK: Saying names right
+
+    /// Name on screen -> how to say it ("Venkat" -> "Ven-kut"), from the party's
+    /// "Say it as" field (Room.night.party.sayAs). Only the live voices use it:
+    /// the bundled pack was already rendered with the right pronunciation.
+    static var pronunciations: [String: String] = [:]
+
+    /// `text` with every "Say it as" name swapped in, matching whole words only.
+    static func said(_ text: String) -> String {
+        var out = text
+        for (name, spoken) in pronunciations where !name.isEmpty && !spoken.isEmpty {
+            let pattern = "\\b" + NSRegularExpression.escapedPattern(for: name) + "\\b"
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+            let range = NSRange(out.startIndex..., in: out)
+            out = regex.stringByReplacingMatches(in: out, range: range,
+                                                 withTemplate: NSRegularExpression.escapedTemplate(for: spoken))
+        }
+        return out
     }
 
     private let synthesizer = AVSpeechSynthesizer()
@@ -313,7 +334,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
         // switching voices mid-game.
         let timeout: TimeInterval = Self.sessionVoice == .cloud ? 20 : 8
         Task { [weak self] in
-            let data = await Self.fetchTTS(trimmed, style: style, timeout: timeout)
+            let data = await Self.fetchTTS(Self.said(trimmed), style: style, timeout: timeout)
             guard let self, token == self.speechToken else { return }
             if let data, let player = try? AVAudioPlayer(data: data) {
                 Self.sessionVoice = .cloud
@@ -415,7 +436,7 @@ final class TVVoiceHost: NSObject, ObservableObject {
         // Callers have already torn down any in-flight audio. Do NOT call
         // stopSpeaking() here: it would fire pendingSpeechCompletion before
         // this utterance even starts, arming the mic while we're talking.
-        let utterance = AVSpeechUtterance(string: text)
+        let utterance = AVSpeechUtterance(string: Self.said(text))
         utterance.voice = Self.deviceVoice
         utterance.rate = min(AVSpeechUtteranceMaximumSpeechRate,
                              AVSpeechUtteranceDefaultSpeechRate * rate)

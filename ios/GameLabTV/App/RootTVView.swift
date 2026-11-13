@@ -259,6 +259,8 @@ final class TVRootViewModel: ObservableObject {
         socket.on(.roomUpdated) { [weak self] (response: Room) in
             guard let self else { return }
             Self.rememberRoom(response.code)
+            // The party's "Say it as" spellings, for every live voice on the TV.
+            TVVoiceHost.pronunciations = response.night?.party?.sayAs ?? [:]
             // Once per room: tell the server what this family has already seen.
             if self.seenSentFor != response.code {
                 self.seenSentFor = response.code

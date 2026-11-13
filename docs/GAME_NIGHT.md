@@ -90,6 +90,12 @@ suggested lineup is only a starting point:
   Poker keeps its own Hands pick. Every other option a game has (poker chips, song
   decks...) is also shown for that game in the builder.
 - **Any scoring.** See below.
+- **Saved lineups.** "Saved" on the phone, or "Saved lineups" on the TV, keeps the
+  games, their options and the scoring to play again ("Our usual Friday"). Each
+  device keeps its own, up to eight. The last party's name and host style are
+  remembered too.
+- **Countdown calls.** In a timed game the host says "One minute to go!", "Ten
+  seconds left!" and "Time is up, everybody!".
 
 Each game gets only its own picks, so "12 rounds" for one game never carries into the next.
 
@@ -128,6 +134,8 @@ I Ever pack. Then start the night.
   lovingly, and toasts the guest of honour.
 - **Cheer on demand.** While the party runs, the host's phone has **Cheer for
   Venkat** and the TV lobby has a Cheer button; either makes the TV shout again.
+- **Say it as.** If the voice says a name wrong, type how to say it next to the
+  name ("Ven-kut"). The screen keeps the real spelling; the voice uses yours.
 - **Indian names.** Common Indian names (Venkat, Teja, Priya, ...) are said in the
   Indian voice automatically. On the phone, **Say the name** lets you force Indian or
   Standard. The Indian voice is the one set as `ELEVENLABS_VOICE_ID_INDIAN`; point both

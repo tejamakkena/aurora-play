@@ -261,7 +261,10 @@ def _logic(level: int, rng: random.Random, room=None) -> dict:
         "logic", level, ". ".join(facts) + f". Who is the {question}?", answer,
         hint=f"Line them up from {most} to {least}.",
         explain=f"In order: {', '.join(people)}. So {answer} is the {question}.",
-        options=_options(rng, answer, rng.sample([p for p in people if p != answer], len(people) - 1)),
+        # Three people leave only three choices: add someone who is not in it,
+        # so every puzzle has four buttons.
+        options=_options(rng, answer, rng.sample([p for p in people if p != answer], len(people) - 1)
+                         + rng.sample([p for p in _NAMES if p not in people], 1)),
     )
 
 

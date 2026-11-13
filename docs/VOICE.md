@@ -107,7 +107,8 @@ there is no wait:
 - Every fixed sentence (the jokes, the game teasers, the lineup frames, the cheers)
   is rendered once into the pack.
 - The sentences with a **guest of honour's name** are rendered per name, ahead of the
-  party. List the names in `tools/party_names.txt`, or type them into the **names**
+  party. List the names in `tools/party_names.txt` (`Venkat = Ven-kut` to fix how one
+  is said), or type them into the **names**
   box of the "Render voice pack" workflow (for example `Venkat, Asha, Teja`, with
   **occasions** `birthday`). Each name adds about 40 short clips. Names on the Indian-name
   list (`games/party_script.py`) are rendered with `ELEVENLABS_VOICE_ID_INDIAN`.

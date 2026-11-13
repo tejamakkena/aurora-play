@@ -476,7 +476,7 @@ def shout(room, rng: random.Random | None = None) -> str | None:
     del queue[:-MAX_QUEUED]
     try:
         from games import voice
-        voice.prewarm([(text, cue)])
+        voice.prewarm([(night_party.spoken(text, party), cue)])
     except Exception:
         pass
     return text
