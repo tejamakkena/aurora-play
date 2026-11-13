@@ -261,6 +261,7 @@ def start(room, playlist: list[str], kids: bool = False, party: dict | None = No
         # room says the same thing.
         from games import night_party
         cleaned = night_party.clean_party(party)
+        cleaned["kids"] = bool(kids)            # gentler lines on a Kids night
         welcome = night_party.welcome_script(cleaned)
         lineup = night_party.lineup_script(cleaned, playlist)
         cleaned.update({
@@ -342,6 +343,20 @@ def advance(room) -> str | None:
     from games import show_host
     show_host.game_up_next(room)
     return room.game_id
+
+
+#: A night never grows past this many games, replays included.
+MAX_NIGHT_GAMES = 12
+
+
+def replay(room) -> bool:
+    """Play the game that just finished once more, as the next game of the
+    night (it scores again). False when the night is over or already full."""
+    night = getattr(room, "night", None)
+    if not night or night.get("finished") or len(night["playlist"]) >= MAX_NIGHT_GAMES:
+        return False
+    night["playlist"].insert(night["index"] + 1, night["playlist"][night["index"]])
+    return True
 
 
 def begin_party(room) -> bool:

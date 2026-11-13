@@ -184,6 +184,52 @@ def register_native_events(socketio):
         push_room(socketio, room)
         logger.info("room %s created game=%s solo=%s", room.code, gid, solo)
 
+    # ---- restore_room --------------------------------------------------
+    # The TV's way back after the server restarted (games/room_resume.py):
+    # if the room still exists this is an ordinary TV rejoin; if it is gone,
+    # it is made again under the same code from the blob the TV kept.
+    @socketio.on("restore_room", namespace=NAMESPACE)
+    def handle_restore_room(data):
+        from games import room_resume
+        data = v.as_dict(data)
+        sid = request.sid
+        if _rate_limited(sid):
+            return
+        code = v.room_code(data.get("roomCode"))
+        if code is None:
+            push_error(socketio, sid, "Invalid room code", "INVALID_CODE")
+            return
+        room = rooms.get(code)
+        restored = False
+        if room is None:
+            saved = room_resume.parse(data.get("resume"))
+            gid = v.game_id((saved or {}).get("game"))
+            if saved is None or gid is None:
+                push_error(socketio, sid, "Room not found", "ROOM_NOT_FOUND")
+                return
+            room = rooms.create_with_code(code, gid)
+            if room is None:                       # someone took the code meanwhile
+                room = rooms.get(code)
+            else:
+                with room.lock:
+                    try:
+                        room_resume.restore(room, saved)
+                    except Exception:
+                        logger.exception("room restore failed code=%s", code)
+                restored = True
+        if room is None:
+            push_error(socketio, sid, "Room not found", "ROOM_NOT_FOUND")
+            return
+        socket_join_room(code, namespace=NAMESPACE)
+        rooms.bind_sid(sid, code)
+        with room.lock:
+            room.attach_tv(sid)
+        socketio.emit("room_joined", {"room": room.to_json(), "playerID": "", "restored": restored},
+                      to=sid, namespace=NAMESPACE)
+        push_room(socketio, room)
+        if restored:
+            logger.info("room %s restored after a restart game=%s", code, room.game_id)
+
     # ---- join_room -----------------------------------------------------
     @socketio.on("join_room", namespace=NAMESPACE)
     def handle_join_room(data):
@@ -537,6 +583,10 @@ def register_native_events(socketio):
             if not _lobby_controller(room, sid, "move to the next game"):
                 return
             if room.state is RoomState.PLAYING or not getattr(room, "night", None):
+                return
+            # "Play it again": the same game once more, as the next one.
+            if data.get("replay") and not game_night.replay(room):
+                push_error(socketio, sid, "This night is full", "NIGHT_FULL")
                 return
             if game_night.advance(room) is None:
                 finished = game_night.standings(room)

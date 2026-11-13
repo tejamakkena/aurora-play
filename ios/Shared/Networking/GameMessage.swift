@@ -24,7 +24,8 @@ enum ClientEvent: String {
     case nextGame       = "next_game"
     case endNight       = "end_night"
     case cheer          = "cheer"
-    case restoreSeen    = "restore_seen"     // TV -> server: questions this family has already seen            // the TV cheers for the guest of honour
+    case restoreSeen    = "restore_seen"     // TV -> server: questions this family has already seen
+    case restoreRoom    = "restore_room"     // TV -> server: bring my room back after a restart            // the TV cheers for the guest of honour
     case beginParty     = "begin_party"     // host (or TV): lift the Game Night welcome screen
     // Teams mode (TV or host; a phone may move itself)
     case setTeams       = "set_teams"
@@ -80,6 +81,18 @@ struct JoinRoomPayload: Encodable {
 struct RestoreSeenPayload: Encodable {
     let roomCode: String
     let seen: [String: [String]]
+}
+
+/// next_game with `replay`: play the game that just ended once more first.
+struct NextGamePayload: Encodable {
+    let roomCode: String
+    var replay: Bool = false
+}
+
+/// The TV's room code and the resume blob it kept (Room.resume).
+struct RestoreRoomPayload: Encodable {
+    let roomCode: String
+    let resume: String
 }
 
 struct SeenStateResponse: Decodable {

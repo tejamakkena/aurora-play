@@ -117,3 +117,47 @@ class TestVoicePackNames:
         lines = rvp.scan_swift(["ios/GameLabTV/Views/TVTimeLimitBadge.swift"])
         assert lines == ["One minute to go!", "Ten seconds left!", "Time is up, everybody!"]
         assert "ios/GameLabTV/Views/TVTimeLimitBadge.swift" in rvp.SWIFT_FILES
+
+
+class TestReplay:
+    def room(self, games):
+        room = RoomRegistry().create(games[0])
+        for pid in ("a", "b"):
+            room.add_player(pid, pid.upper(), f"s-{pid}")
+        game_night.start(room, games)
+        return room
+
+    def test_the_game_plays_again_as_the_next_one_and_scores_again(self):
+        room = self.room(["herd", "trivia"])
+        game_night.record_game(room, [{"playerID": "a", "name": "A", "rank": 1},
+                                      {"playerID": "b", "name": "B", "rank": 2}])
+        assert game_night.replay(room) is True
+        assert game_night.advance(room) == "herd"
+        assert room.night["playlist"] == ["herd", "herd", "trivia"]
+        game_night.record_game(room, [{"playerID": "a", "name": "A", "rank": 1},
+                                      {"playerID": "b", "name": "B", "rank": 2}])
+        assert game_night.standings(room)[0]["points"] == 20
+        assert game_night.advance(room) == "trivia"
+
+    def test_a_full_or_finished_night_cannot_replay(self):
+        room = self.room(["herd"] * game_night.MAX_NIGHT_GAMES)
+        assert game_night.replay(room) is False
+        room = self.room(["herd"])
+        game_night.advance(room)
+        assert room.night["finished"] and game_night.replay(room) is False
+
+
+class TestKidsParty:
+    def test_a_kids_night_skips_the_teasing(self):
+        room = RoomRegistry().create("trivia")
+        game_night.start(room, ["trivia", "brain_battle"], kids=True,
+                         party={"occasion": "birthday", "honoree": "Asha"})
+        party = room.night["party"]
+        assert "roast" not in party["welcomeCues"]
+        lines = NP.finale_lines(party, "Ravi", 20)
+        assert NP.KIDS_OTHERS in lines
+
+    def test_a_grown_up_night_keeps_its_jokes(self):
+        room = RoomRegistry().create("herd")
+        game_night.start(room, ["herd", "trivia"], party={"occasion": "birthday", "honoree": "Asha"})
+        assert "roast" in room.night["party"]["welcomeCues"]

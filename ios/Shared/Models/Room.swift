@@ -29,6 +29,9 @@ struct Room: Codable, Equatable {
     // When the host's time limit runs out (seconds since 1970), while a timed
     // game is on. nil otherwise.
     var timeEndsAt: Double? = nil
+    // What the TV keeps to rebuild this room if the server restarts
+    // (games/room_resume.py). Opaque: sent back as it came. nil on older servers.
+    var resume: String? = nil
     // The finished game's ranking, best first (only while state is
     // .results). Every results screen shows this as-is: rank and score come
     // from the game itself, so a game that only knows its winner, or keeps

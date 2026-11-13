@@ -105,6 +105,14 @@ def _options_json(room):
     return options.to_json(room)
 
 
+def _resume_blob(room):
+    try:
+        from games import room_resume
+        return room_resume.blob(room)
+    except Exception:
+        return None
+
+
 def _time_ends_at(room):
     engine = room.engine
     if (engine is None or room.state is not RoomState.PLAYING or room.phase != "play"
@@ -237,6 +245,9 @@ class Room:
             # Additive: the host's time limit while a timed game is on (epoch
             # seconds), so every screen can show the same countdown.
             "timeEndsAt": _time_ends_at(self),
+            # Additive: what the TV hands back to rebuild this room after the
+            # server restarts (games/room_resume.py). Opaque to the apps.
+            "resume": _resume_blob(self),
             # Additive: the final ranking, best first, while on results.
             "results": list(self.results) if self.state is RoomState.RESULTS else None,
         }
@@ -439,6 +450,16 @@ class RoomRegistry:
         with self._lock:
             room = Room(code=self.new_code(), game_id=game_id, solo=solo)
             self._rooms[room.code] = room
+            return room
+
+    def create_with_code(self, code: str, game_id: str) -> Room | None:
+        """A room under a code chosen by the caller (a TV bringing its room
+        back after a server restart), or None when that code is taken."""
+        with self._lock:
+            if code in self._rooms:
+                return None
+            room = Room(code=code, game_id=game_id)
+            self._rooms[code] = room
             return room
 
     def get(self, code: str) -> Room | None:

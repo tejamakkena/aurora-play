@@ -55,6 +55,8 @@ struct TVResultsView: View {
     /// the "+N" animation. Empty outside a night.
     var nightTotalsBefore: [String: Int] = [:]
     var onNextGame: (() -> Void)? = nil
+    /// Game Night only: play the game that just ended once more, as the next game.
+    var onReplayGame: (() -> Void)? = nil
     var onEndNight: (() -> Void)? = nil
 
     /// Reveal sequence: 0 nothing, 1 third place, 2 second, 3 first +
@@ -250,6 +252,14 @@ struct TVResultsView: View {
                 }
                 .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.pink))
                 .prefersDefaultFocus(true, in: resultsFocus)
+
+                // The same game once more, as the next game of the night.
+                if let onReplayGame, night.playlist.count < 12 {
+                    Button(action: onReplayGame) {
+                        Label("Play it again", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.gold, fontSize: 22))
+                }
 
                 if let onEndNight {
                     Button(action: onEndNight) {

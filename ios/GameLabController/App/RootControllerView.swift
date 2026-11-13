@@ -61,6 +61,25 @@ struct RootControllerView: View {
                         .buttonStyle(PhonePlayPressStyle())
                         .accessibilityLabel("Leave game")
                         Spacer()
+                        // The host can start a cheer for the guest of honour
+                        // in the middle of a game, not only in the lobby.
+                        if vm.isHost, let party = room.night?.party, party.welcomed,
+                           room.night?.finished != true {
+                            Button {
+                                PhonePlayHaptics.tap()
+                                OneStopEvents.cheer(roomCode: room.code)
+                            } label: {
+                                Label(party.honoree.isEmpty ? "Cheer" : "Cheer for \(party.honoree)",
+                                      systemImage: "megaphone.fill")
+                                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .frame(height: 30)
+                                    .background(Capsule().fill(PhonePlayDesign.pink.opacity(0.85)))
+                            }
+                            .buttonStyle(PhonePlayPressStyle())
+                            .accessibilityLabel(party.honoree.isEmpty ? "Cheer" : "Cheer for \(party.honoree)")
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -406,6 +425,7 @@ final class ControllerRootViewModel: ObservableObject {
             self.joinTimeoutTask?.cancel()
             self.pendingJoinCode = nil
             self.showJoinSheet = false
+            self.roomRetries = 0
             let room = response.room
             if !response.playerID.isEmpty { self.playerID = response.playerID }
             self.rememberRoom(room.code)
@@ -497,6 +517,17 @@ final class ControllerRootViewModel: ObservableObject {
                     self.forgetResumableRoom(ifCode: attempted)
                 }
                 self.screen = .error(r.displayText)
+            } else if r.code == "ROOM_NOT_FOUND", self.currentRoom != nil,
+                      self.roomRetries < Self.roomRetryLimit {
+                // The server restarted and lost the room. The TV brings it back
+                // under the same code (games/room_resume.py) once it reconnects,
+                // so keep knocking for a while before giving up.
+                self.roomRetries += 1
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    guard let self, self.currentRoom != nil else { return }
+                    self.rejoinIfSeated()
+                }
             } else if r.fatal == true, self.currentRoom != nil {
                 // The room is gone (closed, expired, or this seat was dropped)
                 // while a game was on screen. Say so instead of leaving a
@@ -752,6 +783,11 @@ final class ControllerRootViewModel: ObservableObject {
             if self.socket.lastInboundAt < returnedAt { self.socket.forceReconnect() }
         }
     }
+
+    /// Rejoins tried while the room is missing after a server restart: about
+    /// 45 seconds, long enough for the TV to reconnect and bring it back.
+    private var roomRetries = 0
+    private static let roomRetryLimit = 15
 
     private func rejoinIfSeated() {
         guard let room = currentRoom else { return }
