@@ -300,7 +300,11 @@ final class TVRootViewModel: ObservableObject {
                     self.nightTotalsBeforeGame = TVRootViewModel.nightTotals(response.night)
                 }
                 self.screen = .playing(response)
-            case .results: self.screen = .results(response)
+            case .results:
+                // Count the game (and a finished night) for the house
+                // leaderboard; once-only, so a repeated update is harmless.
+                HouseBoardStore.record(response)
+                self.screen = .results(response)
             }
         }
 

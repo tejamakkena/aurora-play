@@ -212,6 +212,7 @@ struct ProfileEditorView: View {
                 VStack(spacing: 22) {
                     preview
                     nameSection
+                    GameCenterStatusRow()
                     colorSection
                     avatarSection
                     statsSection

@@ -13,6 +13,8 @@ struct TVGameSelectionView: View {
     @State private var hasAppeared = false
     @State private var isPulsing = false
     @State private var showSettings = false
+    /// The house leaderboard (TVHouseBoardView).
+    @State private var showHouseBoard = false
     /// Opens the welcome guide (TVWelcomeGuide) from Settings.
     var onShowGuide: (() -> Void)? = nil
 
@@ -238,6 +240,19 @@ struct TVGameSelectionView: View {
             }
 
             Spacer(minLength: 0)
+
+            // Who has played here, signed in with Game Center: games, wins, points.
+            Button {
+                showHouseBoard = true
+            } label: {
+                Label("Leaderboard", systemImage: "trophy.fill")
+            }
+            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.gold, fontSize: 20))
+            .accessibilityIdentifier("houseBoardButton")
+            // On the button, not the screen: one cover per view stays reliable.
+            .fullScreenCover(isPresented: $showHouseBoard) {
+                TVHouseBoardView(onDone: { showHouseBoard = false })
+            }
 
             // Voice, host pace, voice pack and the welcome guide, in one place.
             Button {

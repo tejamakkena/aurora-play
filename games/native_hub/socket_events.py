@@ -273,6 +273,7 @@ def register_native_events(socketio):
 
         engine_cls = engine_for(room.game_id)
         resumed = False
+        gc_id = v.gc_id(data.get("gcID"))
 
         with room.lock:
             # One seat per phone, even when two phones share a player id
@@ -294,6 +295,8 @@ def register_native_events(socketio):
                 existing.disconnected_at = None
                 if client_id:
                     existing.client_id = client_id
+                if gc_id:
+                    existing.gc_id = gc_id
                 room.reassign_host()
                 room.touch()
                 resumed = True
@@ -315,6 +318,7 @@ def register_native_events(socketio):
                     return
                 added = room.add_player(pid, sanitize_name(data.get("playerName")), sid)
                 added.client_id = client_id
+                added.gc_id = gc_id
 
         socket_join_room(code, namespace=NAMESPACE)
         rooms.bind_sid(sid, code)
