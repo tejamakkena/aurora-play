@@ -442,7 +442,17 @@ final class PhonePlayViewModel: ObservableObject {
         case .mindGym:        mindGym = NeuroPulseViewModel()
         }
         PhonePlayHaptics.tap()
+        PhonePlayRecents.record(game.rawValue)
         active = game
+    }
+
+    /// A "Continue" chip: a game id, or "arcade:<game>" for one arcade game.
+    func openRecent(_ id: String) {
+        if id.hasPrefix("arcade:"), let choice = PocketArcadeGame(rawValue: String(id.dropFirst(7))) {
+            openArcade(choice)
+        } else if let game = PhonePlayGame(rawValue: id) {
+            open(game)
+        }
     }
 
     /// An arcade tile on the home grid: straight into that game, and back
@@ -453,6 +463,7 @@ final class PhonePlayViewModel: ObservableObject {
         model.isDirect = true
         model.play(choice)
         arcade = model
+        PhonePlayRecents.record("arcade:" + choice.rawValue)
         active = .arcade
     }
 
