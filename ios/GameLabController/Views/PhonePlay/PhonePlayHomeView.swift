@@ -39,8 +39,8 @@ struct PhonePlayRootView: View {
             WouldRatherRootView(game: game, onExit: play.closeGame)
         } else if play.active == .hotPotato, let game = play.hotPotato {
             HotPotatoRootView(game: game, onExit: play.closeGame)
-        } else if play.active == .storyChain, let game = play.storyChain {
-            StoryChainRootView(game: game, onExit: play.closeGame)
+        } else if play.active == .pointAt, let game = play.pointAt {
+            PointAtRootView(game: game, onExit: play.closeGame)
         } else if play.active == .wordOfDay, let game = play.wordOfDay {
             WordDayRootView(game: game, onExit: play.closeGame)
         } else if play.active == .arcade, let game = play.arcade {
@@ -220,7 +220,7 @@ struct PhonePlayHomeView: View {
         case .guessSong:
             return "New"
         case .headsUp, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
-             .storyChain, .arcade, .mindGym:
+             .pointAt, .arcade, .mindGym:
             return nil
         }
     }

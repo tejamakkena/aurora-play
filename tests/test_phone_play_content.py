@@ -1,5 +1,5 @@
 """Phone Play content that Swift can't check for us on Linux: the Guess the Song
-deck matches the server's word list, Secret Story templates are well formed,
+deck matches the server's word list, the Point at Them prompts are well formed,
 and the bigger Charades and Truth or Dare decks have no repeats."""
 
 import importlib.util
@@ -39,32 +39,28 @@ def test_song_decks_are_themed_like_charades():
                 assert re.fullmatch(r".+ \(.+\)", song), song
 
 
-# ---- Secret Story -----------------------------------------------------------------
+# ---- Point at Them ------------------------------------------------------------------
 
-def secret_story_templates():
-    text = (PHONE / "StoryChain" / "StoryChainDeck.swift").read_text(encoding="utf-8")
-    out = []
-    for block in re.findall(r"SecretStoryTemplate\((.*?)story: (\".*?\")\)", text, re.S):
-        body, story = block
-        blanks = re.findall(r'\.init\(prompt: "((?:[^"\\]|\\.)*)", example: "((?:[^"\\]|\\.)*)"\)', body)
-        title = re.search(r'title: "([^"]+)"', body).group(1)
-        out.append((title, blanks, swift_strings(story)[0]))
-    return out
+def point_at_prompts() -> dict[str, list[str]]:
+    text = (PHONE / "PointAt" / "PointAtDeck.swift").read_text(encoding="utf-8")
+    return {m.group(1): swift_strings(m.group(2))
+            for m in re.finditer(r"\(\.(\w+), \[(.*?)\n        \]\)", text, re.S)}
 
 
-def test_there_are_plenty_of_secret_stories():
-    templates = secret_story_templates()
-    assert len(templates) >= 8
-    assert len({t for t, _b, _s in templates}) == len(templates)
+def test_point_at_them_has_a_full_deck_at_every_level():
+    levels = point_at_prompts()
+    assert set(levels) == {"family", "teens", "adults"}
+    seen = set()
+    for level, prompts in levels.items():
+        assert len(prompts) >= 40, level
+        for prompt in prompts:
+            assert prompt.startswith("Who is most likely to ") and prompt.endswith("?"), prompt
+            assert prompt.lower() not in seen, prompt
+            seen.add(prompt.lower())
 
 
-@pytest.mark.parametrize("title,blanks,story", secret_story_templates())
-def test_each_story_uses_every_blank_exactly(title, blanks, story):
-    used = {int(n) for n in re.findall(r"\{(\d+)\}", story)}
-    assert used == set(range(len(blanks))), title
-    assert 5 <= len(blanks) <= 8, title
-    for prompt, example in blanks:
-        assert prompt and example, title
+def test_secret_story_is_gone():
+    assert not (PHONE / "StoryChain").exists()
 
 
 # ---- Truth or Dare topics -----------------------------------------------------------
