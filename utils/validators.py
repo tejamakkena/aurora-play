@@ -70,6 +70,19 @@ def player_id(value: Any) -> str | None:
     return pid
 
 
+_GC_ID_RE = re.compile(r"^[a-f0-9]{16}$")
+
+
+def gc_id(value: Any) -> str | None:
+    """A Game Center player, as the phone names it to the room: 16 lower-case
+    hex characters (the first half of a SHA-256 of Apple's team player id), so
+    the server never holds Apple's own id. None when absent or malformed."""
+    if not isinstance(value, str):
+        return None
+    gid = value.strip().lower()
+    return gid if _GC_ID_RE.match(gid) else None
+
+
 def game_id(value: Any) -> str | None:
     """Validate a GameID raw value against the allowlist."""
     if not isinstance(value, str):

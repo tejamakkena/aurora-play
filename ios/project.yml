@@ -31,7 +31,7 @@ targets:
 
     sources:
       - path: GameLabController
-        excludes: ["*.plist"]
+        excludes: ["*.plist", "*.entitlements"]
       - path: Shared
 
     dependencies:
@@ -48,6 +48,15 @@ targets:
       - name: Stamp build commit
         script: "$SRCROOT/build-stamp.sh"
         basedOnDependencyAnalysis: false
+
+    # Game Center: the only sign-in (GameCenterManager). The App ID must have
+    # the Game Center capability, and the App Store provisioning profile in
+    # IOS_PROVISION_PROFILE_BASE64 must be regenerated after enabling it, or
+    # the signed archive fails with a missing-entitlement error.
+    entitlements:
+      path: GameLabController/GameLabController.entitlements
+      properties:
+        com.apple.developer.game-center: true
 
     info:
       path: GameLabController/Info.plist

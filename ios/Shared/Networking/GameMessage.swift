@@ -72,6 +72,9 @@ struct JoinRoomPayload: Encodable {
     /// sharing this device id" and hand the first one its own seat back
     /// instead of creating a duplicate player.
     let clientID: String = JoinRoomPayload.launchID
+    /// The phone's Game Center player, hashed (GameCenterManager.shared.gcID).
+    /// nil for a guest, and then left out of the message entirely.
+    var gcID: String? = nil
 
     static let launchID = UUID().uuidString
 }

@@ -551,7 +551,8 @@ final class ControllerRootViewModel: ObservableObject {
             roomCode: upper,
             playerName: name,
             playerID: playerID,
-            isTV: false
+            isTV: false,
+            gcID: GameCenterManager.shared.gcID
         ))
 
         // Reported directly: the screen got stuck on "Joining room..."
@@ -778,7 +779,8 @@ final class ControllerRootViewModel: ObservableObject {
             roomCode: room.code,
             playerName: playerName.isEmpty ? "Player" : playerName,
             playerID: playerID,
-            isTV: false
+            isTV: false,
+            gcID: GameCenterManager.shared.gcID
         ))
     }
 

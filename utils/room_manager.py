@@ -79,10 +79,19 @@ class Player:
     #: join_room). Lets a returning phone reclaim its own seat while its old
     #: socket is still half-open. Never sent to other clients.
     client_id: str | None = None
+    #: The phone's Game Center player, hashed by the phone (utils.validators.
+    #: gc_id). The TV's house leaderboard keys on it. None for a guest.
+    gc_id: str | None = None
 
     def to_json(self) -> dict:
         """The Swift ``Player`` struct. ``isBot`` is additive -- Swift's
         ``JSONDecoder`` ignores unknown keys, so old clients keep working."""
+        out = self._base_json()
+        if self.gc_id:
+            out["gcID"] = self.gc_id        # additive: only for Game Center players
+        return out
+
+    def _base_json(self) -> dict:
         return {
             "id": self.id,
             "name": self.name,

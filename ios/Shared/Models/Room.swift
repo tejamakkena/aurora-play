@@ -123,9 +123,13 @@ struct Player: Codable, Equatable, Identifiable {
     // Bot seat-filler added by the host. Decoded with decodeIfPresent so
     // rooms created before this field existed still decode.
     var isBot: Bool = false
+    // The phone's Game Center player, hashed by the phone (GameCenterManager)
+    // so the server and the other phones never see Apple's id. nil for a guest.
+    // The TV's house leaderboard (HouseBoard.swift) keys on it.
+    var gcID: String? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, name, isReady, score, isHost, isBot
+        case id, name, isReady, score, isHost, isBot, gcID
     }
 }
 
@@ -140,6 +144,7 @@ extension Player {
         score = try c.decode(Int.self, forKey: .score)
         isHost = try c.decode(Bool.self, forKey: .isHost)
         isBot = try c.decodeIfPresent(Bool.self, forKey: .isBot) ?? false
+        gcID = try c.decodeIfPresent(String.self, forKey: .gcID)
     }
 }
 
