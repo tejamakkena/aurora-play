@@ -964,19 +964,27 @@ private struct BrainLeaderboard: View {
     private var maxScore: Int { max(1, players.map { $0.score }.max() ?? 1) }
     private var orderKey: String { sorted.map { $0.id }.joined(separator: "|") }
     private var compact: Bool { players.count > 7 }
+    /// A big room shows its top ten; the rest are summed up in one line.
+    private static let maxShown = 10
 
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 6 : 10) {
             Text("LEADERBOARD")
                 .font(.system(size: 20, weight: .heavy, design: .rounded)).tracking(4)
                 .foregroundColor(.white.opacity(0.5))
-            ForEach(Array(sorted.enumerated()), id: \.element.id) { pair in
+            ForEach(Array(sorted.prefix(Self.maxShown).enumerated()), id: \.element.id) { pair in
                 BrainLeaderRow(rank: pair.offset + 1,
                                player: pair.element,
                                fraction: Double(pair.element.score) / Double(maxScore),
                                correct: showMarks && correctIDs.contains(pair.element.id),
                                fastest: showMarks && fastestID == pair.element.id,
                                compact: compact)
+            }
+            if sorted.count > Self.maxShown {
+                let more: Int = sorted.count - Self.maxShown
+                Text(more == 1 ? "and 1 more" : "and \(more) more")
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.5))
             }
         }
         .padding(20)

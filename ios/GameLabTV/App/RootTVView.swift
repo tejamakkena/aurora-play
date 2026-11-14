@@ -11,6 +11,8 @@ struct RootTVView: View {
     // MenuPressInterceptor (used below) documents both and why a
     // window-level UIKit press recognizer is what finally works.
     @State private var showQuitConfirm = false
+    /// The welcome guide: once on first launch, and again from Settings.
+    @State private var showGuide = TVWelcomeGuide.shouldShow
     @Environment(\.scenePhase) private var scenePhase
 
     /// Menu means "back to the game list" during a game, and keeps its
@@ -67,7 +69,8 @@ struct RootTVView: View {
             case .gameSelection:
                 TVGameSelectionView(onSelect: vm.createRoom,
                                     onSelectSolo: vm.createSoloRoom,
-                                    onGameNight: vm.createNightRoom)
+                                    onGameNight: vm.createNightRoom,
+                                    onShowGuide: { showGuide = true })
 
             case .lobby(let room):
                 // A party night holds its welcome screen until the host begins
@@ -139,6 +142,9 @@ struct RootTVView: View {
         // Game Night's show host: banter between and inside the games.
         .overlay(alignment: .bottom) {
             TVShowHostOverlay(vm: vm)
+        }
+        .fullScreenCover(isPresented: $showGuide) {
+            TVWelcomeGuide { showGuide = false }
         }
         .onChange(of: keepsScreenAwake, initial: true) { _, _ in applyIdleTimer() }
         .onChange(of: scenePhase) { _, phase in

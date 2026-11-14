@@ -63,9 +63,11 @@ struct TVScoreStrip: View {
     var highlight: Set<String> = []
 
     var body: some View {
+        let sorted: [BoardPlayer] = players.sorted { $0.score > $1.score }
+        let hidden: Int = max(0, sorted.count - Self.maxShown)
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 14) {
-                ForEach(players.sorted { $0.score > $1.score }) { p in
+                ForEach(sorted.prefix(Self.maxShown)) { p in
                     HStack(spacing: 10) {
                         Circle()
                             .fill(highlight.contains(p.id) ? TVTheme.green : Color.white.opacity(0.15))
@@ -76,11 +78,20 @@ struct TVScoreStrip: View {
                     .padding(.horizontal, 20).padding(.vertical, 12)
                     .background(RoundedRectangle(cornerRadius: 12).fill(.white.opacity(0.06)))
                 }
+                if hidden > 0 {
+                    Text("+\(hidden) more")
+                        .font(.system(.headline, design: .rounded))
+                        .foregroundColor(.white.opacity(0.6))
+                        .padding(.horizontal, 20).padding(.vertical, 12)
+                }
             }
             .padding(.horizontal, 70)
         }
         .padding(.bottom, 40)
     }
+
+    /// The leaders a TV width can show; the rest become "+N more".
+    static let maxShown = 10
 }
 
 /// A player row as it appears inside `boardState`.
