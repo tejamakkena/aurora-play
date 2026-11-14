@@ -1,5 +1,9 @@
 # Reviewed false positives for the secret scan (.github/workflows/security.yml).
-# Each line is one exact finding fingerprint from the scan output; keep a note of why.
+# Each line is one exact finding fingerprint from the scan output, with the reason above it.
 
-# SavedNights.defaultsKey = "aurora_saved_nights_v1": the name of a UserDefaults slot, not a credential.
+# SavedNights keeps its lineups under a UserDefaults slot name. A name, not a credential.
 ef6af4b106f03aff7da02f1ae6900e10c863cfd1:ios/Shared/Models/SavedNights.swift:generic-api-key:18
+
+# The commit that first explained the line above quoted that name in its comment, so that comment
+# was flagged too. Same reason; the comment has since been reworded.
+a96fe40762cf9128e343d6e7f81ab4e1f2e6516a:.gitleaksignore:generic-api-key:4
