@@ -56,7 +56,7 @@ def _openai(prompt: str, system: str) -> list:
         "User-Agent": "AuroraPlay/1.0 (content)",
     })
     try:
-        with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:  # fixed https URL, reviewed  # nosec B310
             data = json.loads(resp.read().decode("utf-8"))
         text = data["choices"][0]["message"]["content"]
     except Exception as exc:

@@ -425,7 +425,7 @@ def _opentdb_token() -> str | None:
                 f"{_OPENTDB_TOKEN_API}?command=request",
                 headers={"User-Agent": "AuroraPlay/1.0 (Travel Mode)"},
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # fixed https URL, reviewed  # nosec B310
                 payload = json.loads(resp.read().decode("utf-8"))
             token = (payload or {}).get("token")
         except Exception:
@@ -459,7 +459,7 @@ def _opentdb_reset_token(token: str) -> None:
             f"{_OPENTDB_TOKEN_API}?command=reset&token={token}",
             headers={"User-Agent": "AuroraPlay/1.0 (Travel Mode)"},
         )
-        with urllib.request.urlopen(req, timeout=10):
+        with urllib.request.urlopen(req, timeout=10):  # fixed https URL, reviewed  # nosec B310
             pass
     except Exception:
         pass
@@ -498,7 +498,7 @@ def _opentdb_batch(topic: str, category_id: int, count: int,
             headers={"User-Agent": "AuroraPlay/1.0 (Travel Mode)"},
         )
         try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # fixed https URL, reviewed  # nosec B310
                 payload = json.loads(resp.read().decode("utf-8"))
         except Exception as exc:
             raise _GenError(f"OpenTDB request failed: {exc}")

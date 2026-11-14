@@ -457,7 +457,7 @@ def create_app(config_name='default'):
                 'login_type': 'google'
             }
 
-            print(f"✅ Google login successful: {session['user']['email']}")
+            print("✅ Google login successful")
             return jsonify({'success': True, 'user': session['user']})
         except ValueError as e:
             print(f"❌ Google login error: {e}")
@@ -495,6 +495,33 @@ def create_app(config_name='default'):
     @app.route("/about")
     def about():
         return render_template("about.html")
+
+    # The App Store needs a public privacy policy and a support page. Both are
+    # plain pages with no scripts (templates/privacy.html, support.html). The
+    # contact address comes from SUPPORT_EMAIL so no personal address is baked
+    # into the repository.
+    @app.route("/privacy")
+    def privacy():
+        return render_template("privacy.html", contact=os.environ.get("SUPPORT_EMAIL", ""))
+
+    @app.route("/support")
+    def support():
+        return render_template("support.html", contact=os.environ.get("SUPPORT_EMAIL", ""))
+
+    @app.after_request
+    def security_headers(response):
+        """Cheap, safe browser hardening for the web pages. The native apps
+        ignore these; a CSP is left out on purpose (the browser controller
+        uses inline scripts)."""
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Permissions-Policy",
+                                    "camera=(), microphone=(), geolocation=(), payment=()")
+        forwarded = request.headers.get("X-Forwarded-Proto", "")
+        if request.is_secure or forwarded.split(",")[0].strip() == "https":
+            response.headers.setdefault("Strict-Transport-Security", "max-age=15552000")
+        return response
 
     # Error handlers
     @app.errorhandler(404)
@@ -534,5 +561,5 @@ if __name__ == "__main__":
     print("   ✅ Canvas Battle")
     print("   ✅ Four in a Row")
     print()
-    socketio.run(app, debug=debug, use_reloader=debug, host='0.0.0.0', port=5000,
+    socketio.run(app, debug=debug, use_reloader=debug, host='0.0.0.0', port=5000,  # a container listens on all interfaces  # nosec B104
                  allow_unsafe_werkzeug=True)

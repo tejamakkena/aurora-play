@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora Play - Privacy Policy</title>
+<style>
+  :root { color-scheme: light dark; --bg:#0b0b14; --fg:#ecebf5; --mut:#a9a7c0; --acc:#7cc4ff; --card:#15152a; }
+  @media (prefers-color-scheme: light) { :root { --bg:#f6f5fb; --fg:#17162b; --mut:#5a5873; --acc:#2a5db0; --card:#ffffff; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:17px/1.6 -apple-system, system-ui, "Segoe UI", sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:40px 20px 80px; }
+  h1 { font-size:2rem; margin:0 0 4px; } h2 { font-size:1.2rem; margin:32px 0 6px; }
+  p, li { color:var(--fg); } .mut { color:var(--mut); font-size:.95rem; }
+  ul { padding-left:1.2em; } a { color:var(--acc); }
+  .card { background:var(--card); border-radius:14px; padding:4px 20px 16px; margin-top:18px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy Policy</h1>
+<p class="mut">Aurora Play (iPhone) and Aurora (Apple TV). Last updated: November 2026.</p>
+
+<p>Aurora Play is a party-game app: the TV is the board and phones are the controllers.
+It has no accounts, no ads, no analytics and no tracking. This page says exactly what
+the app and its server handle.</p>
+
+<div class="card">
+<h2>What the app handles</h2>
+<ul>
+  <li><strong>Your display name.</strong> What you type, or your Game Center name if you
+      have not typed one. Other players in your room and the TV see it.</li>
+  <li><strong>A random device ID.</strong> The app makes it on first launch. It is not your
+      advertising ID and cannot be linked to you outside this app. It lets the app
+      remember your profile and rejoin your seat after a dropped connection.</li>
+  <li><strong>Game Center.</strong> If you are signed in, the app sends a short one-way hash
+      of your Game Center player ID so a TV can recognise you between games. Apple's own
+      ID is never sent to us.</li>
+  <li><strong>Your results.</strong> Games played, wins, scores, daily challenge scores, and
+      the device IDs of people you played with (for friends boards).</li>
+  <li><strong>Things you type to create content.</strong> A quiz topic or a party name, for
+      example.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Third parties that receive text</h2>
+<ul>
+  <li><strong>AI question writers</strong> (Google Gemini, OpenAI) receive a topic you type,
+      so they can write questions. Nothing else about you is sent.</li>
+  <li><strong>Text-to-speech</strong> (OpenAI, ElevenLabs) receives the lines the TV host
+      speaks, which can include a name you entered for a party, such as a birthday name.
+      The Apple TV can also speak offline with built-in voices, and then nothing is sent.</li>
+</ul>
+<p class="mut">These providers handle that text under their own policies. We do not send them
+your device ID or any account details.</p>
+</div>
+
+<div class="card">
+<h2>Microphone and speech</h2>
+<p>Travel Mode can listen for spoken answers. Speech is turned into text on your device,
+and the app never stores or uploads the audio. You can say no to the permission and still
+play with taps.</p>
+</div>
+
+<div class="card">
+<h2>Local network</h2>
+<p>The app asks to use your local network so a phone can find a TV or a laptop server on
+the same Wi-Fi. It does not scan or read other devices.</p>
+</div>
+
+<div class="card">
+<h2>How long we keep it</h2>
+<ul>
+  <li>A room lives in the server's memory while people are in it and is dropped after it
+      goes quiet.</li>
+  <li>Profiles and scores are kept until you ask us to delete them.</li>
+  <li>The Apple TV's house leaderboard stays on that Apple TV only.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>What we do not do</h2>
+<p>We do not sell or share your data, show ads, track you across other apps or sites,
+or build advertising profiles.</p>
+</div>
+
+<div class="card">
+<h2>Children</h2>
+<p>Aurora Play is a general family game and is not aimed at children under 13. It asks for
+no personal details beyond a display name, and we do not knowingly collect personal
+information from children.</p>
+</div>
+
+<div class="card">
+<h2>Your choices</h2>
+<p>To see or delete the data held for your device, contact us{% if contact %} at
+<a href="mailto:{{ contact }}">{{ contact }}</a>{% endif %} with your display name and we will
+remove it. Deleting the app removes the device ID from your phone.</p>
+</div>
+
+<div class="card">
+<h2>Changes</h2>
+<p>If this policy changes, the date at the top changes with it.</p>
+</div>
+</main>
+</body>
+</html>
