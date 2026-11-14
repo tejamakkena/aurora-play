@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Would You Rather dilemmas
 //
-// 600 bundled (150 here, 450 in WouldRatherMore), family-friendly dilemmas. Each side is the part after
+// 660 bundled (150 here, 510 in WouldRatherMore), family-friendly dilemmas. Each side is the part after
 // "Would you rather", so the card can split them into two halves.
 
 struct WouldRatherDilemma: Identifiable, Equatable {

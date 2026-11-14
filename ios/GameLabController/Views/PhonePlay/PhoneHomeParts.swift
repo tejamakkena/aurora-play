@@ -9,6 +9,8 @@ import SwiftUI
 
 /// Wordmark and server dot on the left, profile chip on the right.
 struct PhoneHomeTopBar: View {
+    /// Opens streaks, bests and the small print (PhoneStatsSheet).
+    var onStats: (() -> Void)? = nil
     @ObservedObject private var socket = GameSocketManager.shared
 
     var body: some View {
@@ -30,6 +32,20 @@ struct PhoneHomeTopBar: View {
                 }
             }
             Spacer(minLength: 8)
+            if let onStats {
+                Button {
+                    PhonePlayHaptics.tap()
+                    onStats()
+                } label: {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.text2)
+                        .frame(width: 36, height: 36)
+                        .background(Circle().fill(PhonePlayDesign.surface2))
+                }
+                .buttonStyle(PhonePlayPressStyle())
+                .accessibilityLabel("Your stats")
+            }
             ProfileChipButton()
         }
         .padding(.horizontal, 20)

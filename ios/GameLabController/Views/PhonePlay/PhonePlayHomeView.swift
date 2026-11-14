@@ -74,6 +74,11 @@ struct PhonePlayHomeView: View {
     @State private var dailyStreak: Int = 0
     @State private var wordSeen: Bool = false
     @State private var mindGym: NeuroHomeState = NeuroHomeState(mode: .start, streak: 0)
+    @State private var today = PhoneTodayState(mindGymPulse: nil, mindGymStep: nil, mindGymStreak: 0,
+                                               quickCorrect: nil, quickStreak: 0, wordSeen: false)
+    @State private var recents: [PhoneRecentItem] = []
+    @State private var groupSize: PhoneGroupSize? = PhoneGroupSize.saved
+    @State private var showStats = false
 
     private let partyGames: [PhonePlayGame] = PhonePlayGame.allCases
         .filter { !$0.isSolo && $0.isGridCard }
@@ -87,7 +92,7 @@ struct PhonePlayHomeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            PhoneHomeTopBar()
+            PhoneHomeTopBar(onStats: { showStats = true })
             ScrollView {
                 VStack(spacing: 22) {
                     if let code = resumableRoomCode {
@@ -97,17 +102,31 @@ struct PhonePlayHomeView: View {
 
                     PhoneHomeTVEntry(appeared: appeared, action: onPlayOnTV)
 
+                    PhoneTodayCard(state: today,
+                                   onMindGym: { play.open(.mindGym) },
+                                   onQuick: { play.open(.daily) },
+                                   onWord: { play.open(.wordOfDay) },
+                                   onMindScore: play.openMindScore)
+
+                    if !recents.isEmpty {
+                        PhoneContinueRow(items: recents, onOpen: play.openRecent)
+                    }
+
                     PhonePlaySectionLabel(text: "Party games")
                         .padding(.top, 4)
 
+                    PhoneGroupSizePicker(size: $groupSize)
+
                     LazyVGrid(columns: columns, spacing: 14) {
-                        ForEach(Array(partyGames.enumerated()), id: \.element.id) { pair in
+                        ForEach(Array(sortedPartyGames.enumerated()), id: \.element.id) { pair in
+                            let note: String? = groupSize?.note(for: pair.element)
                             PhonePlayGameCard(game: pair.element,
-                                              badge: badge(for: pair.element),
+                                              badge: note ?? badge(for: pair.element),
                                               index: pair.offset,
                                               appeared: appeared) {
                                 play.open(pair.element)
                             }
+                            .opacity(note == nil ? 1 : 0.4)
                         }
                     }
 
@@ -120,18 +139,10 @@ struct PhonePlayHomeView: View {
                                       wide: true,
                                       action: onRoadTrip)
 
-                    // Everything played alone: the daily brain workout first,
-                    // then every solo game as its own tile (the arcade games
-                    // used to hide behind one "Puzzles & Arcade" tile).
-                    PhonePlaySectionLabel(text: "Brain and solo")
+                    // The arcade games, each as its own tile. Mind Gym, Quick 5
+                    // and Word of the Day live on the Today card at the top.
+                    PhonePlaySectionLabel(text: "Arcade")
                         .padding(.top, 6)
-
-                    NeuroHomeCard(state: mindGym,
-                                  appeared: appeared,
-                                  onPlay: { play.open(.mindGym) },
-                                  onProgress: play.openMindScore,
-                                  quickDone: dailyDone,
-                                  onQuick: { play.open(.daily) })
 
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(Array(soloGames.enumerated()), id: \.element.id) { pair in
@@ -156,15 +167,6 @@ struct PhonePlayHomeView: View {
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundColor(PhonePlayDesign.text3)
                         .padding(.top, 4)
-
-                    Text("Some trivia questions come from Open Trivia DB (opentdb.com), licensed CC BY-SA 4.0.")
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundColor(PhonePlayDesign.text3)
-                        .multilineTextAlignment(.center)
-
-                    Text(BuildStamp.displayString)
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundColor(PhonePlayDesign.text3.opacity(0.7))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 6)
@@ -172,13 +174,24 @@ struct PhonePlayHomeView: View {
                 .animation(PhonePlayDesign.smooth, value: resumableRoomCode)
             }
         }
+        .sheet(isPresented: $showStats) {
+            PhoneStatsSheet(today: today)
+        }
         .onAppear {
             refreshDaily()
             mindGym = NeuroHomeState.load()
+            today = PhoneTodayState.load()
+            recents = PhonePlayRecents.ids.compactMap(PhoneRecentItem.from)
             withAnimation(PhonePlayDesign.pop) {
                 appeared = true
             }
         }
+    }
+
+    /// The party games, the ones that suit the chosen group size first.
+    private var sortedPartyGames: [PhonePlayGame] {
+        guard let size = groupSize else { return partyGames }
+        return partyGames.filter { size.fits($0) } + partyGames.filter { !size.fits($0) }
     }
 
     /// The best score so far, once there is one.
@@ -233,23 +246,27 @@ struct PhonePlayCardInfo {
     let symbol: String
     let colors: [Color]
     let players: String
+    /// About how long a sitting takes ("5 min"); empty when it varies.
+    let minutes: String
 
-    init(title: String, blurb: String, symbol: String, colors: [Color], players: String) {
+    init(title: String, blurb: String, symbol: String, colors: [Color], players: String,
+         minutes: String = "") {
         self.title = title
         self.blurb = blurb
         self.symbol = symbol
         self.colors = colors
         self.players = players
+        self.minutes = minutes
     }
 
     init(game: PhonePlayGame) {
         self.init(title: game.title, blurb: game.blurb, symbol: game.symbol,
-                  colors: game.colors, players: game.players)
+                  colors: game.colors, players: game.players, minutes: game.minutes)
     }
 
     init(arcade game: PocketArcadeGame) {
         self.init(title: game.title, blurb: game.blurb, symbol: game.symbol,
-                  colors: game.colors, players: "Solo")
+                  colors: game.colors, players: "Solo", minutes: "2 min")
     }
 
     static let roadTrip = PhonePlayCardInfo(
@@ -257,7 +274,8 @@ struct PhonePlayCardInfo {
         blurb: "Hands-free riddles, quiz and brain teasers, spoken aloud. Everyone shouts the answer.",
         symbol: "car.fill",
         colors: [PhonePlayDesign.green, PhonePlayDesign.cyan],
-        players: "Whole car"
+        players: "Whole car",
+        minutes: "As long as the drive"
     )
 }
 
@@ -316,14 +334,14 @@ private struct PhonePlayGameCard: View {
                 Text(info.blurb)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                     .foregroundColor(.white.opacity(0.85))
-                    .lineLimit(3)
+                    .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(info.players)
+                Text(info.minutes.isEmpty ? info.players : "\(info.players)  \u{00B7}  \(info.minutes)")
                     .font(.system(size: 11, weight: .heavy, design: .rounded))
                     .foregroundColor(.white.opacity(0.65))
             }
             .padding(16)
-            .frame(maxWidth: .infinity, minHeight: wide ? 170 : 210, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: wide ? 150 : 180, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: PhonePlayDesign.cardRadius, style: .continuous)
                     .fill(PhonePlayDesign.gradient(info.colors))
