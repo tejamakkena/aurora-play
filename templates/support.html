@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aurora Play - Support</title>
+<style>
+  :root { color-scheme: light dark; --bg:#0b0b14; --fg:#ecebf5; --mut:#a9a7c0; --acc:#7cc4ff; --card:#15152a; }
+  @media (prefers-color-scheme: light) { :root { --bg:#f6f5fb; --fg:#17162b; --mut:#5a5873; --acc:#2a5db0; --card:#ffffff; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:17px/1.6 -apple-system, system-ui, "Segoe UI", sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:40px 20px 80px; }
+  h1 { font-size:2rem; margin:0 0 4px; } h2 { font-size:1.2rem; margin:32px 0 6px; }
+  p, li { color:var(--fg); } .mut { color:var(--mut); font-size:.95rem; }
+  ul { padding-left:1.2em; } a { color:var(--acc); }
+  .card { background:var(--card); border-radius:14px; padding:4px 20px 16px; margin-top:18px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Support</h1>
+<p class="mut">Aurora Play (iPhone) and Aurora (Apple TV)</p>
+
+<div class="card">
+<h2>Contact</h2>
+{% if contact %}<p>Email <a href="mailto:{{ contact }}">{{ contact }}</a>. Tell us your phone model, iOS version and what happened,
+and we will reply as soon as we can.</p>{% else %}<p>Use the contact address on the app's App Store page.</p>{% endif %}
+</div>
+
+<div class="card">
+<h2>How to play</h2>
+<ul>
+  <li>Open Aurora on the Apple TV and pick a game, or start a Game Night.</li>
+  <li>The TV shows a room code and a QR code. On each phone, scan it, or open Aurora Play and type the code.</li>
+  <li>No accounts are needed. Signing in to Game Center puts you on the TV's house leaderboard.</li>
+  <li>Phone Play has games you can play on the phone alone, with no TV.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>Common questions</h2>
+<p><strong>It says it cannot reach the room, or takes a minute to start.</strong>
+The game server sleeps when nobody has used it for a while and takes up to a minute to wake.
+Wait, then try the code again. Phones and TV need an internet connection.</p>
+<p><strong>The TV voice sounds robotic.</strong> In the TV's Settings, switch the voice to
+Studio (online) for the natural voice, or Offline for the built-in one.</p>
+<p><strong>I am not on the leaderboard.</strong> Sign in to Game Center on the phone (Settings, Game Center), then play a game
+on the TV. Guests can play but are not ranked.</p>
+<p><strong>A question repeated.</strong> The TV remembers what a family has seen and brings
+in fresh questions every day. Tell us which game and we will look.</p>
+<p><strong>Delete my data.</strong> Email us with your display name and we will remove it.</p>
+</div>
+
+<p class="mut" style="margin-top:28px"><a href="/privacy">Privacy policy</a></p>
+</main>
+</body>
+</html>

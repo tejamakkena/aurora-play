@@ -1,0 +1,31 @@
+name: Backend tests
+
+# The Python server had no test workflow: the suite only ran on a laptop. This
+# runs it on the Python the Dockerfile ships (3.10) and on a current one.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: dev-requirements.txt
+      - name: Install
+        run: pip install -r dev-requirements.txt
+      - name: Run the suite
+        run: python -m pytest tests -p no:flask -q

@@ -191,7 +191,7 @@ def _eleven_render(cfg: dict, spoken: str, text: str, path: Path) -> tuple[bytes
                  "Accept": "audio/mpeg", "User-Agent": "AuroraPlay/1.0 (quizmaster)"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=_TTS_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=_TTS_TIMEOUT) as resp:  # fixed https URL, reviewed  # nosec B310
             if resp.status != 200:
                 raise VoiceError(f"ElevenLabs HTTP {resp.status}")
             audio = resp.read()
@@ -267,7 +267,7 @@ def _openai_render(cfg: dict, model: str, voice: str, text: str, instructions: s
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=_TTS_TIMEOUT) as resp:
+        with urllib.request.urlopen(req, timeout=_TTS_TIMEOUT) as resp:  # fixed https URL, reviewed  # nosec B310
             if resp.status != 200:
                 raise VoiceError(f"TTS HTTP {resp.status}")
             audio = resp.read()
