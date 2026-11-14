@@ -65,4 +65,4 @@ jobs:
           curl -sSfL -o gitleaks.tgz \
             "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz"
           tar -xzf gitleaks.tgz gitleaks
-          ./gitleaks detect --source . --redact --no-banner --exit-code 1
+          ./gitleaks detect --source . --redact -v --no-banner --exit-code 1
