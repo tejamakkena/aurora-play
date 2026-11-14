@@ -55,6 +55,8 @@ struct TVResultsView: View {
     /// the "+N" animation. Empty outside a night.
     var nightTotalsBefore: [String: Int] = [:]
     var onNextGame: (() -> Void)? = nil
+    /// Game Night only: play the game that just ended once more, as the next game.
+    var onReplayGame: (() -> Void)? = nil
     var onEndNight: (() -> Void)? = nil
 
     /// Reveal sequence: 0 nothing, 1 third place, 2 second, 3 first +
@@ -250,6 +252,14 @@ struct TVResultsView: View {
                 }
                 .buttonStyle(ShellPrimaryButtonStyle(tint: ShellTheme.pink))
                 .prefersDefaultFocus(true, in: resultsFocus)
+
+                // The same game once more, as the next game of the night.
+                if let onReplayGame, night.playlist.count < 12 {
+                    Button(action: onReplayGame) {
+                        Label("Play it again", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.gold, fontSize: 22))
+                }
 
                 if let onEndNight {
                     Button(action: onEndNight) {
@@ -511,6 +521,10 @@ private struct ResultsRankingList: View {
     let isShown: Bool
 
     private var isCompact: Bool { entries.count > 7 }
+    /// A big room shows its next fourteen places; the rest are summed up in one line.
+    private static let maxShown = 14
+    private var shown: [TVResultsEntry] { Array(entries.prefix(Self.maxShown)) }
+    private var hidden: Int { max(0, entries.count - Self.maxShown) }
 
     private var columns: [GridItem] {
         if isCompact {
@@ -528,7 +542,7 @@ private struct ResultsRankingList: View {
                 .opacity(isShown ? 1 : 0)
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: isCompact ? 10 : 14) {
-                ForEach(Array(entries.enumerated()), id: \.element.id) { index, player in
+                ForEach(Array(shown.enumerated()), id: \.element.id) { index, player in
                     RankingCard(rank: player.rank, player: player, isCompact: isCompact)
                         .opacity(isShown ? 1 : 0)
                         .offset(x: isShown ? 0 : 140)
@@ -539,6 +553,13 @@ private struct ResultsRankingList: View {
                                     .delay(Double(index) * 0.07),
                                    value: isShown)
                 }
+            }
+
+            if hidden > 0 {
+                Text(hidden == 1 ? "and 1 more player" : "and \(hidden) more players")
+                    .font(.system(size: 22, weight: .semibold, design: .rounded))
+                    .foregroundColor(ShellTheme.textTertiary)
+                    .opacity(isShown ? 1 : 0)
             }
         }
     }

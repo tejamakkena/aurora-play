@@ -100,6 +100,8 @@ class TriviaEngine(NativeGameEngine):
     ROUNDS_BASE = MAIN_ROUNDS
     MAIN_QUESTIONS = QUESTIONS_PER_ROUND * MAIN_ROUNDS
     FINALE_QUESTIONS = 8
+    #: The most questions one topic quiz asks the generator for.
+    TOPIC_FETCH_MAX = 30
     #: Rungs on the finale tower; reaching this rung wins.
     TOWER_HEIGHT = 7
     #: Head start in rungs by score placing (1st, 2nd).
@@ -211,7 +213,8 @@ class TriviaEngine(NativeGameEngine):
                 (pack_key, "trivia"), [])
             items, source = topic_gen._fetch(
                 "questions", topic,
-                min(self.MAIN_QUESTIONS + self.FINALE_QUESTIONS, 20),
+                # Enough for the host's Rounds pick and the whole finale tower.
+                min(self._main_questions() + self.FINALE_QUESTIONS, self.TOPIC_FETCH_MAX),
                 session_history=history)
             if source == "bundled":
                 return False

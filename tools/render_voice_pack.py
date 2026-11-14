@@ -172,6 +172,7 @@ SWIFT_FILES = [
     "ios/GameLabTV/Views/Games/TVPokerBoardView.swift",
     "ios/GameLabTV/Views/Games/TVTriviaBoardView.swift",
     "ios/GameLabTV/Views/Games/TVHotTakesBoardView.swift",
+    "ios/GameLabTV/Views/TVTimeLimitBadge.swift",
 ]
 
 _LITERAL = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
@@ -227,13 +228,34 @@ def show_host_groups() -> list[tuple[str, list[str]]]:
             for moment, lines in show_host.LINES.items()]
 
 
-def party_names() -> list[str]:
+def parse_name(spec: str) -> tuple[str, str | None]:
+    """"Venkat" or "Venkat = Ven kut" (shown as Venkat, said as Ven kut)."""
+    name, _, said = spec.partition("=")
+    return name.strip(), (said.strip() or None)
+
+
+def party_name_specs() -> list[str]:
     """Guests of honour to render by name: tools/party_names.txt, one per line."""
     path = Path(__file__).with_name("party_names.txt")
     if not path.is_file():
         return []
     return [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()
             if ln.strip() and not ln.startswith("#")]
+
+
+def party_names() -> list[str]:
+    return [parse_name(spec)[0] for spec in party_name_specs()]
+
+
+#: name -> how the voice says it, from "Name = said" specs (filled in by main).
+SAY_AS: dict[str, str] = {}
+
+
+def spoken(text: str) -> str:
+    """A clip's text as the voice should say it (its key stays the shown text)."""
+    for name, said in SAY_AS.items():
+        text = re.sub(rf"\b{re.escape(name)}\b", said, text)
+    return text
 
 
 def party_groups(names: list[str], occasions: list[str]) -> list[tuple[str, list[str]]]:
@@ -414,7 +436,14 @@ def main() -> int:
     global PACK_DIR
     if args.out:
         PACK_DIR = Path(args.out)
-    guests = party_names() + [n.strip() for n in args.names.split(",") if n.strip()]
+    specs = party_name_specs() + [n.strip() for n in args.names.split(",") if n.strip()]
+    guests = []
+    for spec in specs:
+        name, said = parse_name(spec)
+        if name:
+            guests.append(name)
+            if said:
+                SAY_AS[name] = said
     occasions = [o.strip() for o in args.occasions.split(",") if o.strip()]
     clips, styles = collect_styled(names, swift=not args.no_swift, names=guests, occasions=occasions)
     PACK_DIR.mkdir(parents=True, exist_ok=True)
@@ -452,7 +481,7 @@ def main() -> int:
             break
         dest = PACK_DIR / f"{k}.m4a"
         try:
-            render(clips[k], dest, styles.get(k))
+            render(spoken(clips[k]), dest, styles.get(k))
         except Exception as exc:   # one bad line must not lose the rest
             print(f"  skipped {k} ({clips[k][:50]!r}): {exc}")
             dest.unlink(missing_ok=True)

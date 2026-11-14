@@ -403,6 +403,8 @@ struct TVNightSetupPanel: View {
     @State private var minutes: Int = 45
     /// The guest of honour, typed on the TV's on-screen keyboard.
     @State private var honoree: String = ""
+    /// How to say it, when the voice gets the name wrong.
+    @State private var honoreeSaid: String = ""
     /// The lineup the host sees and can change: games, rounds and scoring.
     @State private var plan = NightPlan()
     @State private var allGames: [PickedGame] = []
@@ -411,6 +413,10 @@ struct TVNightSetupPanel: View {
     @State private var choosingStyle: Bool = false
     @State private var choosingPoints: Bool = false
     @State private var showBuilder: Bool = false
+    @State private var choosingSaved: Bool = false
+    /// Lineups saved on this TV (SavedNights).
+    @State private var saved: [SavedNight] = []
+    @State private var restoredParty: Bool = false
 
     private static let lengths: [Int] = [30, 45, 60]
     private static let maxGames: Int = 8
@@ -479,9 +485,18 @@ struct TVNightSetupPanel: View {
                         Label("Scoring: \(plan.points.title)", systemImage: "trophy")
                     }
                     .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.gold, isSelected: plan.points != .classic))
+
+                    Button {
+                        saved = SavedNights.all()
+                        choosingSaved = true
+                    } label: {
+                        Label("Saved lineups", systemImage: "bookmark")
+                    }
+                    .buttonStyle(ShellPillButtonStyle(accent: ShellTheme.mint, isSelected: false))
                 }
 
                 Button {
+                    rememberParty()
                     onStart(minutes, kids, plan.playlist, partyPayload, plan.settings, plan.points.rawValue)
                 } label: {
                     Label("Start the night", systemImage: "sparkles")
@@ -497,6 +512,30 @@ struct TVNightSetupPanel: View {
         .fullScreenCover(isPresented: $showBuilder) {
             TVNightBuilderView(plan: $plan, allGames: allGames) { showBuilder = false }
         }
+        .confirmationDialog("Saved lineups", isPresented: $choosingSaved, titleVisibility: .visible) {
+            Button("Save this lineup") {
+                SavedNights.save(plan)
+                saved = SavedNights.all()
+            }
+            ForEach(saved) { night in
+                Button("Play: \(night.name)") {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        plan = NightPlan.restored(night, from: allGames)
+                    }
+                }
+            }
+            if !saved.isEmpty {
+                Button("Forget all saved lineups", role: .destructive) {
+                    SavedNights.deleteAll()
+                    saved = []
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(saved.isEmpty ? "Nothing saved yet. Save tonight's games, rounds and scoring to play them again."
+                               : "Bring back a lineup you saved, with its rounds and scoring.")
+        }
+        .onAppear(perform: restoreParty)
         .confirmationDialog("How should the night score?", isPresented: $choosingPoints,
                             titleVisibility: .visible) {
             ForEach(NightPoints.allCases) { mode in
@@ -523,6 +562,24 @@ struct TVNightSetupPanel: View {
         }
     }
 
+    /// The last party's name and host style, ready for the next one (the occasion
+    /// itself stays off, so a plain night does not turn into a party by itself).
+    private func restoreParty() {
+        guard !restoredParty, let last = LastParty.load() else { return }
+        restoredParty = true
+        honoree = last.honoree
+        honoreeSaid = last.honoreeSaid
+        if let index = NightPartyOptions.styles.firstIndex(where: { $0.id == last.style }) {
+            styleIndex = index
+        }
+    }
+
+    private func rememberParty() {
+        guard let occasion else { return }
+        LastParty(occasion: occasion.id, honoree: honoree, honoreeSaid: honoreeSaid,
+                  style: style.id, accent: "auto").save()
+    }
+
     private var occasion: NightPartyChoice? {
         occasionIndex.map { NightPartyOptions.occasions[$0] }
     }
@@ -535,7 +592,8 @@ struct TVNightSetupPanel: View {
         guard let occasion else { return nil }
         return NightPartyPayload(occasion: occasion.id,
                                  honoree: honoree.trimmingCharacters(in: .whitespacesAndNewlines),
-                                 style: style.id, humor: "mix", nhiePack: "mix", nhieRounds: 10)
+                                 style: style.id, humor: "mix", nhiePack: "mix", nhieRounds: 10,
+                                 honoreeSaid: honoreeSaid.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// Make the night a party: pick the occasion, then the host style, from a list.
@@ -560,9 +618,14 @@ struct TVNightSetupPanel: View {
                 }
             }
             if occasion != nil {
-                TextField("Name of the birthday person or guest of honour", text: $honoree)
-                    .font(.system(size: 24, weight: .semibold, design: .rounded))
-                    .accessibilityIdentifier("honoreeField")
+                HStack(spacing: 14) {
+                    TextField("Name of the birthday person or guest of honour", text: $honoree)
+                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                        .accessibilityIdentifier("honoreeField")
+                    TextField("Say it as (optional)", text: $honoreeSaid)
+                        .font(.system(size: 22, weight: .medium, design: .rounded))
+                        .accessibilityIdentifier("honoreeSaidField")
+                }
                 Text("Party games first, a welcome screen, jokes about every game, and a cheer for the name above.")
                     .font(.system(size: 18, weight: .medium, design: .rounded))
                     .foregroundColor(ShellTheme.textTertiary)

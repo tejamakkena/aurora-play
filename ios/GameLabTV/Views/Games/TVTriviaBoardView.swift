@@ -1421,8 +1421,13 @@ private struct TShowStandingsStage: View {
     }
 
     var body: some View {
-        let players: [TShowPlayer] = state.players
-        let rowHeight: CGFloat = min(96, 760 / CGFloat(max(players.count, 1)))
+        // A big room shows its top ten (with anyone moving in or out of it);
+        // everyone below is summed up in one line.
+        let limit: Int = 10
+        let players: [TShowPlayer] = state.players.filter { $0.rank <= limit || $0.prevRank <= limit }
+        let hidden: Int = max(0, state.players.count - players.count)
+        let rows: Int = min(max(players.count, 1), limit)
+        let rowHeight: CGFloat = min(96, 760 / CGFloat(rows))
         VStack(spacing: 22) {
             VStack(spacing: 4) {
                 Text("STANDINGS")
@@ -1440,8 +1445,14 @@ private struct TShowStandingsStage: View {
                         .zIndex(Double(100 - player.rank))
                 }
             }
-            .frame(width: 1100, height: rowHeight * CGFloat(max(players.count, 1)), alignment: .top)
+            .frame(width: 1100, height: rowHeight * CGFloat(rows), alignment: .top)
+            .clipped()
             .animation(.spring(response: 0.8, dampingFraction: 0.72), value: settled)
+            if hidden > 0 {
+                Text(hidden == 1 ? "and 1 more player" : "and \(hidden) more players")
+                    .font(.system(size: 26, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.6))
+            }
         }
         .task {
             settled = false

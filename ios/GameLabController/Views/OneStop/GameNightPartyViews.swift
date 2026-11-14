@@ -17,6 +17,7 @@ struct NightPartySettings: Equatable {
     var nhiePack = "mix"
     var nhieRounds = 10
     var accent = "auto"
+    var honoreeSaid = ""
 
     static let accents: [NightPartyChoice] = [
         NightPartyChoice(id: "auto", title: "Automatic", symbol: "wand.and.stars"),
@@ -60,7 +61,8 @@ struct NightPartySettings: Equatable {
         NightPartyPayload(occasion: occasion,
                           honoree: honoree.trimmingCharacters(in: .whitespacesAndNewlines),
                           style: style, humor: humor, nhiePack: nhiePack, nhieRounds: nhieRounds,
-                          accent: accent)
+                          accent: accent,
+                          honoreeSaid: honoreeSaid.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }
 
@@ -87,6 +89,15 @@ struct NightPartyForm: View {
                         .fill(Color.white.opacity(0.08)))
             }
             if settings.nameLabel != nil && !settings.honoree.trimmingCharacters(in: .whitespaces).isEmpty {
+                TextField("Say it as (optional), e.g. Ven-kut", text: $settings.honoreeSaid)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: PhonePlayDesign.chipRadius, style: .continuous)
+                        .fill(Color.white.opacity(0.06)))
+                    .accessibilityLabel("How to say the name")
                 section("SAY THE NAME") {
                     chips(NightPartySettings.accents, selected: settings.accent) { settings.accent = $0 }
                     Text("Automatic says common Indian names, like Venkat or Teja, the Indian way. The TV also does a cheer on request.")

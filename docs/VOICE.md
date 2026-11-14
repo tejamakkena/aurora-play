@@ -95,7 +95,7 @@ What makes the host feel slow, and what is done about each:
 | A free-tier server sleeps after 15 idle minutes and takes up to a minute to wake. | The TV pings `/api/voice/warm` when a room opens. For a party, also open the site or use a free uptime monitor (UptimeRobot, 5-minute checks) on `/api/voice/warm` an hour before. |
 | The server's cache is lost when it restarts (free disks are ephemeral). | Fixed lines come from the bundled pack, which needs no server. Only names and questions go to the cloud voice. |
 | A high-quality model is slower. | Keep `eleven_v4` for the bundled pack, but run the live server on `ELEVENLABS_MODEL=eleven_flash_v2_5` (about 0.3 s, half the credits, no audio tags). |
-| The offline clips and device voice read slowly. | **Host pace** on the TV's game list: Relaxed, Normal, Brisk (default), Quick. The style prompts also ask for a brisk read. |
+| The offline clips and device voice read slowly. | **Host pace** in the TV's Settings (game list, Settings): Relaxed, Normal, Brisk (default), Quick. The style prompts also ask for a brisk read. |
 
 A host moment (`answers_none`) now acts like its style (`roast`) on ElevenLabs too, not only on OpenAI.
 
@@ -107,7 +107,8 @@ there is no wait:
 - Every fixed sentence (the jokes, the game teasers, the lineup frames, the cheers)
   is rendered once into the pack.
 - The sentences with a **guest of honour's name** are rendered per name, ahead of the
-  party. List the names in `tools/party_names.txt`, or type them into the **names**
+  party. List the names in `tools/party_names.txt` (`Venkat = Ven-kut` to fix how one
+  is said), or type them into the **names**
   box of the "Render voice pack" workflow (for example `Venkat, Asha, Teja`, with
   **occasions** `birthday`). Each name adds about 40 short clips. Names on the Indian-name
   list (`games/party_script.py`) are rendered with `ELEVENLABS_VOICE_ID_INDIAN`.
@@ -125,3 +126,9 @@ The steps, once:
 
 Adding a birthday person later means running step 3 again with only the new name and
 **redo** unticked: only the missing clips are rendered.
+
+## Settings on the TV
+
+The game list's **Settings** button holds the voice (Offline or Studio), the host's
+pace, how many voice-pack lines this build carries, the server connection, and the
+welcome guide that opens on first launch.

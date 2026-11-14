@@ -120,6 +120,8 @@ def _limits(game_id: str) -> tuple[int, int]:
 #: it first, then the room-wide talking, singing and acting games.
 PARTY_HEADLINERS = ("never_have_i_ever", "guess_the_song")
 PARTY_TAGS = {"social", "music", "acting"}
+#: The group size a room-wide game is at its best with, for the picker.
+PARTY_SWEET_SPOT = 10
 
 
 def pick_games(players: int, kids: bool = False, minutes: int | None = None,
@@ -143,8 +145,12 @@ def pick_games(players: int, kids: bool = False, minutes: int | None = None,
             continue
         if minutes is not None and info["minutes"] > max(minutes, 4):
             continue
-        # 1.0 when the group fills the game well, lower at the edges.
-        fill = players / hi if hi < 50 else 1.0
+        # 1.0 when the group fills the game well, lower at the edges. A
+        # room-wide game (no real seat limit, ROOM_CAP) is at its best from
+        # about ten players, so a small group still gets its duels first.
+        from games.native_hub.engine import ROOM_CAP
+        ideal = hi if hi < ROOM_CAP else PARTY_SWEET_SPOT
+        fill = players / ideal
         score = 0.6 + 0.4 * min(1.0, fill) + rng.uniform(0, 0.25)
         if party:
             if gid in PARTY_HEADLINERS:
@@ -255,6 +261,7 @@ def start(room, playlist: list[str], kids: bool = False, party: dict | None = No
         # room says the same thing.
         from games import night_party
         cleaned = night_party.clean_party(party)
+        cleaned["kids"] = bool(kids)            # gentler lines on a Kids night
         welcome = night_party.welcome_script(cleaned)
         lineup = night_party.lineup_script(cleaned, playlist)
         cleaned.update({
@@ -272,8 +279,9 @@ def start(room, playlist: list[str], kids: bool = False, party: dict | None = No
         room.night["party"] = cleaned
         try:
             from games import voice
-            voice.prewarm(list(zip(cleaned["welcomeLines"], cleaned["welcomeCues"]))
-                          + list(zip(cleaned["lineupLines"], cleaned["lineupCues"])))
+            said = lambda t: night_party.spoken(t, cleaned)      # noqa: E731
+            voice.prewarm([(said(t), c) for t, c in zip(cleaned["welcomeLines"], cleaned["welcomeCues"])]
+                          + [(said(t), c) for t, c in zip(cleaned["lineupLines"], cleaned["lineupCues"])])
         except Exception:
             pass
     room.game_id = playlist[0]
@@ -337,6 +345,20 @@ def advance(room) -> str | None:
     return room.game_id
 
 
+#: A night never grows past this many games, replays included.
+MAX_NIGHT_GAMES = 12
+
+
+def replay(room) -> bool:
+    """Play the game that just finished once more, as the next game of the
+    night (it scores again). False when the night is over or already full."""
+    night = getattr(room, "night", None)
+    if not night or night.get("finished") or len(night["playlist"]) >= MAX_NIGHT_GAMES:
+        return False
+    night["playlist"].insert(night["index"] + 1, night["playlist"][night["index"]])
+    return True
+
+
 def begin_party(room) -> bool:
     """The host starts the show: the TV stops holding the welcome screen."""
     party = (getattr(room, "night", None) or {}).get("party")
@@ -385,7 +407,13 @@ def _party_json(party: dict | None) -> dict | None:
     return {k: party.get(k) for k in (
         "occasion", "honoree", "title", "cheer", "welcomed",
         "welcomeLines", "lineupLines", "finaleLines",
-        "welcomeCues", "lineupCues", "finaleCues", "indianVoice")}
+        "welcomeCues", "lineupCues", "finaleCues", "indianVoice")} | {
+        "sayAs": _say_as(party)}
+
+
+def _say_as(party: dict) -> dict[str, str]:
+    from games import night_party
+    return night_party.say_as(party)
 
 
 # ---------------------------------------------------------------------------

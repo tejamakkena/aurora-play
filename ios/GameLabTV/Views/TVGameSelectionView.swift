@@ -12,8 +12,9 @@ struct TVGameSelectionView: View {
     @FocusState private var focusedGame: GameID?
     @State private var hasAppeared = false
     @State private var isPulsing = false
-    @State private var studioVoice = VoiceSettings.cloudAllowed
-    @State private var paceIndex = VoiceSettings.paceIndex
+    @State private var showSettings = false
+    /// Opens the welcome guide (TVWelcomeGuide) from Settings.
+    var onShowGuide: (() -> Void)? = nil
 
     // Every soloPlayable game also supports more than one player (Neon
     // Snake, 2048, Simon Says: up to 4; Brick Breaker: up to 2) -- picking
@@ -112,6 +113,12 @@ struct TVGameSelectionView: View {
         }
         .opacity(hasAppeared ? 1 : 0)
         .offset(y: hasAppeared ? 0 : 16)
+        .fullScreenCover(isPresented: $showSettings) {
+            TVSettingsView(onShowGuide: {
+                showSettings = false
+                onShowGuide?()
+            }, onDone: { showSettings = false })
+        }
         .onAppear {
             withAnimation(.easeOut(duration: 0.4)) { hasAppeared = true }
             // Imperatively assign initial focus onto the first card, on the
@@ -232,28 +239,14 @@ struct TVGameSelectionView: View {
 
             Spacer(minLength: 0)
 
-            // Which voice reads the questions: the bundled offline voice
-            // (free, works without internet) or the cloud studio voice,
-            // which spends credits on every line.
+            // Voice, host pace, voice pack and the welcome guide, in one place.
             Button {
-                studioVoice.toggle()
-                VoiceSettings.cloudAllowed = studioVoice
+                showSettings = true
             } label: {
-                Label(studioVoice ? "Voice: Studio (online)" : "Voice: Offline",
-                      systemImage: studioVoice ? "cloud.fill" : "speaker.wave.2.fill")
+                Label("Settings", systemImage: "gearshape.fill")
             }
             .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.violet, fontSize: 20))
-            .accessibilityIdentifier("voiceModeButton")
-
-            // How fast the host talks.
-            Button {
-                paceIndex = (paceIndex + 1) % VoiceSettings.paces.count
-                VoiceSettings.paceIndex = paceIndex
-            } label: {
-                Label("Host pace: \(VoiceSettings.paces[paceIndex].name)", systemImage: "gauge.with.dots.needle.67percent")
-            }
-            .buttonStyle(ShellGlassButtonStyle(tint: ShellTheme.violet, fontSize: 20))
-            .accessibilityIdentifier("voicePaceButton")
+            .accessibilityIdentifier("settingsButton")
 
             // Connection status dot -- breathes gently while reconnecting
             // so the state reads as "actively retrying", not stuck.

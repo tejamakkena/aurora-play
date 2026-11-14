@@ -90,6 +90,20 @@ suggested lineup is only a starting point:
   Poker keeps its own Hands pick. Every other option a game has (poker chips, song
   decks...) is also shown for that game in the builder.
 - **Any scoring.** See below.
+- **Saved lineups.** "Saved" on the phone, or "Saved lineups" on the TV, keeps the
+  games, their options and the scoring to play again ("Our usual Friday"). Each
+  device keeps its own, up to eight. The last party's name and host style are
+  remembered too.
+- **Play it again.** On a night game's results, "Play it again" plays the same game
+  once more as the next game (it scores again). A night holds up to 12 games.
+- **If the server restarts.** A free server sleeps and restarts, which used to end
+  the party with "This room has closed". The TV now keeps a small copy of the room
+  and, when it reconnects, brings it back under the same code, in the lobby of the
+  game that was on, with the night's scores, settings and party intact. Phones keep
+  retrying for about 45 seconds and land back in it on their own. A game that was
+  mid-round starts again from its lobby.
+- **Countdown calls.** In a timed game the host says "One minute to go!", "Ten
+  seconds left!" and "Time is up, everybody!".
 
 Each game gets only its own picks, so "12 rounds" for one game never carries into the next.
 
@@ -127,7 +141,10 @@ I Ever pack. Then start the night.
   other. Dice ready."). At the end it names the champion, roasts everyone else
   lovingly, and toasts the guest of honour.
 - **Cheer on demand.** While the party runs, the host's phone has **Cheer for
-  Venkat** and the TV lobby has a Cheer button; either makes the TV shout again.
+  Venkat** (in the lobby and during a game) and the TV lobby has a Cheer button;
+  either makes the TV shout again. A Kids night leaves out the teasing lines.
+- **Say it as.** If the voice says a name wrong, type how to say it next to the
+  name ("Ven-kut"). The screen keeps the real spelling; the voice uses yours.
 - **Indian names.** Common Indian names (Venkat, Teja, Priya, ...) are said in the
   Indian voice automatically. On the phone, **Say the name** lets you force Indian or
   Standard. The Indian voice is the one set as `ELEVENLABS_VOICE_ID_INDIAN`; point both

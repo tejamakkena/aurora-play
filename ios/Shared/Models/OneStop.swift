@@ -54,6 +54,8 @@ struct NightParty: Codable, Equatable {
     var finaleCues: [String]? = nil
     /// True when the guest of honour's name is said in the Indian voice.
     var indianVoice: Bool? = nil
+    /// Name on screen -> how the voice says it (the host's "Say it as" spelling).
+    var sayAs: [String: String]? = nil
 
     /// The cue for line `index` of a list, or `fallback` when the server sent none.
     static func cue(_ cues: [String]?, _ index: Int, fallback: String) -> String {
@@ -73,6 +75,8 @@ struct NightPartyPayload: Encodable {
     /// How the name is said: "auto" (Indian names in the Indian voice),
     /// "indian" or "standard".
     var accent: String = "auto"
+    /// How to say the name, when the voice gets it wrong ("Ven-kut"). Blank: as written.
+    var honoreeSaid: String = ""
 }
 
 struct NightStanding: Codable, Equatable, Identifiable {

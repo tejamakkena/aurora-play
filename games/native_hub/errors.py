@@ -27,6 +27,9 @@ CATALOG: dict[str, tuple[str, str, bool]] = {
     "GAME_IN_PROGRESS": (
         "This game has already started",
         "Wait for it to finish, then join again with the same code.", False),
+    "NIGHT_FULL": (
+        "This Game Night is full",
+        "A night holds up to 12 games. Move on to the next one instead.", False),
     "NOT_HOST": (
         "Only the host can do that",
         "The host is the first phone that joined the room.", False),

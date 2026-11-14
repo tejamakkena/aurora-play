@@ -14,6 +14,7 @@ All text is emoji-free: it is shown on screen and read aloud.
 """
 
 import random
+import re
 from typing import Any
 
 from games import party_script as PS
@@ -148,6 +149,8 @@ def clean_party(raw: Any, base: dict | None = None) -> dict:
         party["occasion"] = raw["occasion"]
     if "honoree" in raw:
         party["honoree"] = clean_text(raw.get("honoree"))
+    if "honoreeSaid" in raw:
+        party["honoreeSaid"] = clean_text(raw.get("honoreeSaid"))
     if raw.get("style") in STYLES:
         party["style"] = raw["style"]
     if isinstance(raw.get("humor"), str) and raw["humor"] in H.PACK_IDS:
@@ -193,6 +196,25 @@ def _game_name(game_id: str) -> str:
     return rules_for(game_id).get("title") or game_id
 
 
+#: Said to everyone who did not win, on a Kids night (instead of a roast).
+KIDS_OTHERS = "Everybody played brilliantly tonight. Give yourselves a big clap!"
+
+
+def say_as(party: dict) -> dict[str, str]:
+    """``{name on screen: how to say it}`` when the host typed a "Say it as"
+    spelling for the guest of honour ("Venkat" -> "Ven-kut"), else empty."""
+    name, said = clean_text(party.get("honoree")), clean_text(party.get("honoreeSaid"))
+    return {name: said} if name and said and said != name else {}
+
+
+def spoken(text: str, party: dict | None) -> str:
+    """``text`` as the voice should say it: every "Say it as" name swapped in.
+    The screen keeps the real spelling; only the voice uses this."""
+    for name, said in say_as(party or {}).items():
+        text = re.sub(rf"\b{re.escape(name)}\b", said, text)
+    return text
+
+
 def indian_voice(party: dict) -> bool:
     """True when the guest of honour's name should be said the Indian way: the
     host asked for it, or (on "auto") the name is a common Indian one."""
@@ -225,8 +247,9 @@ def welcome_script(party: dict) -> list[PS.Line]:
     out.append((style["banter"], "playful"))
     for sentence in (script["intro"] if name else script["intro_noname"])[:1]:
         out.append((_fill(sentence, party), _name_cue(party, "welcome") if name else "welcome"))
-    for sentence in script["rules"][:1]:
-        out.append((sentence, "roast"))
+    if not party.get("kids"):                   # a Kids night skips the teasing
+        for sentence in script["rules"][:1]:
+            out.append((sentence, "roast"))
     shouts = script["shouts"] if name and script["shouts"] else script["shouts_noname"]
     if shouts:
         for sentence in random.choice(shouts):
@@ -264,7 +287,10 @@ def finale_script(party: dict, winner: str | None, points: int = 0) -> list[PS.L
         out.append((style["champion_lead"], "hype"))
         out.append((style["champion"].format(winner=winner), "cheer"))
         out.append((style["champion_after"], "finale"))
-        out.append((style["others"], "roast"))
+        if party.get("kids"):
+            out.append((KIDS_OTHERS, "kids"))
+        else:
+            out.append((style["others"], "roast"))
     else:
         out.append((style["nogames"], "finale"))
     toast = script["toast"] if name else script["toast_noname"]
@@ -364,6 +390,7 @@ def pack_lines(names=(), occasions=("birthday",)) -> list[PS.Line]:
                 add(style["champion"].format(winner=name), said("cheer"))
         for sentence in ("Hip hip!", "Hooray!"):
             add(sentence, "cheer")
+    add(KIDS_OTHERS, "kids")
     for occasion, script in PS.SCRIPTS.items():
         for sentence in script["rules"]:
             add(sentence, "roast")

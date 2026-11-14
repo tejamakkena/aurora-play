@@ -11,6 +11,8 @@ struct RootTVView: View {
     // MenuPressInterceptor (used below) documents both and why a
     // window-level UIKit press recognizer is what finally works.
     @State private var showQuitConfirm = false
+    /// The welcome guide: once on first launch, and again from Settings.
+    @State private var showGuide = TVWelcomeGuide.shouldShow
     @Environment(\.scenePhase) private var scenePhase
 
     /// Menu means "back to the game list" during a game, and keeps its
@@ -67,7 +69,8 @@ struct RootTVView: View {
             case .gameSelection:
                 TVGameSelectionView(onSelect: vm.createRoom,
                                     onSelectSolo: vm.createSoloRoom,
-                                    onGameNight: vm.createNightRoom)
+                                    onGameNight: vm.createNightRoom,
+                                    onShowGuide: { showGuide = true })
 
             case .lobby(let room):
                 // A party night holds its welcome screen until the host begins
@@ -114,6 +117,7 @@ struct RootTVView: View {
                                   onBackToGames: vm.quitToSelection,
                                   nightTotalsBefore: vm.nightTotalsBeforeGame,
                                   onNextGame: vm.nextGame,
+                                  onReplayGame: vm.replayGame,
                                   onEndNight: vm.endNight)
                     if let night = room.night, night.finished,
                        let lines = night.party?.finaleLines, !lines.isEmpty {
@@ -138,6 +142,9 @@ struct RootTVView: View {
         // Game Night's show host: banter between and inside the games.
         .overlay(alignment: .bottom) {
             TVShowHostOverlay(vm: vm)
+        }
+        .fullScreenCover(isPresented: $showGuide) {
+            TVWelcomeGuide { showGuide = false }
         }
         .onChange(of: keepsScreenAwake, initial: true) { _, _ in applyIdleTimer() }
         .onChange(of: scenePhase) { _, phase in
@@ -258,7 +265,9 @@ final class TVRootViewModel: ObservableObject {
 
         socket.on(.roomUpdated) { [weak self] (response: Room) in
             guard let self else { return }
-            Self.rememberRoom(response.code)
+            Self.rememberRoom(response.code, resume: response.resume)
+            // The party's "Say it as" spellings, for every live voice on the TV.
+            TVVoiceHost.pronunciations = response.night?.party?.sayAs ?? [:]
             // Once per room: tell the server what this family has already seen.
             if self.seenSentFor != response.code {
                 self.seenSentFor = response.code
@@ -313,16 +322,25 @@ final class TVRootViewModel: ObservableObject {
     private static let roomAtKey = "aurora_tv_room_at"
     private static let roomWindow: TimeInterval = 30 * 60
 
-    private static func rememberRoom(_ code: String) {
+    /// The room's resume blob (Room.resume), to rebuild it after a server restart.
+    private static let resumeKey = "aurora_tv_room_resume"
+
+    private static func rememberRoom(_ code: String, resume: String? = nil) {
         let d = UserDefaults.standard
         d.set(code, forKey: roomKey)
         d.set(Date().timeIntervalSince1970, forKey: roomAtKey)
+        if let resume { d.set(resume, forKey: resumeKey) }
     }
 
     private static func forgetRoom() {
         let d = UserDefaults.standard
         d.removeObject(forKey: roomKey)
         d.removeObject(forKey: roomAtKey)
+        d.removeObject(forKey: resumeKey)
+    }
+
+    private static func savedResume() -> String? {
+        UserDefaults.standard.string(forKey: resumeKey)
     }
 
     private static func savedRoom() -> String? {
@@ -383,6 +401,13 @@ final class TVRootViewModel: ObservableObject {
         // TV last showed. If it is gone, the server answers room-not-found
         // and the game list simply stays as it is.
         guard let code = currentRoomCode ?? Self.savedRoom() else { return }
+        // With the room's resume blob the server can make the room again if a
+        // restart lost it (same code, same Game Night scores); otherwise this
+        // is a plain rejoin as the board.
+        if let resume = Self.savedResume() {
+            socket.emit(.restoreRoom, payload: RestoreRoomPayload(roomCode: code, resume: resume))
+            return
+        }
         socket.emit(.joinRoom, payload: JoinRoomPayload(
             roomCode: code, playerName: "TV",
             playerID: AppConstants.deviceID, isTV: true
@@ -536,6 +561,13 @@ final class TVRootViewModel: ObservableObject {
         guard case .results(let room) = screen else { return }
         pendingRules = nil
         socket.emit(.nextGame, payload: RoomCodePayload(roomCode: room.code))
+    }
+
+    /// Game Night: the game that just ended once more, as the next game (it scores again).
+    func replayGame() {
+        guard case .results(let room) = screen else { return }
+        pendingRules = nil
+        socket.emit(.nextGame, payload: NextGamePayload(roomCode: room.code, replay: true))
     }
 
     /// Stops the night early (or closes a finished one); the room stays.

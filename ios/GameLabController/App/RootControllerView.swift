@@ -37,7 +37,7 @@ struct RootControllerView: View {
             case .waiting(let room):
                 WaitingView(room: room, onReady: vm.markReady, onLeave: vm.leaveRoom)
 
-            case .rules(_, let rules):
+            case .rules(let room, let rules):
                 // Host-gated rules card: the engine is held server-side
                 // until the host taps Begin. The host's phone gets the
                 // button; everyone else gets the waiting indicator. The
@@ -61,6 +61,7 @@ struct RootControllerView: View {
                         .buttonStyle(PhonePlayPressStyle())
                         .accessibilityLabel("Leave game")
                         Spacer()
+                        NightCheerButton(room: room, isHost: vm.isHost)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -89,6 +90,7 @@ struct RootControllerView: View {
                         .buttonStyle(PhonePlayPressStyle())
                         .accessibilityLabel("Leave game")
                         Spacer()
+                        NightCheerButton(room: room, isHost: vm.isHost)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -406,6 +408,7 @@ final class ControllerRootViewModel: ObservableObject {
             self.joinTimeoutTask?.cancel()
             self.pendingJoinCode = nil
             self.showJoinSheet = false
+            self.roomRetries = 0
             let room = response.room
             if !response.playerID.isEmpty { self.playerID = response.playerID }
             self.rememberRoom(room.code)
@@ -497,6 +500,17 @@ final class ControllerRootViewModel: ObservableObject {
                     self.forgetResumableRoom(ifCode: attempted)
                 }
                 self.screen = .error(r.displayText)
+            } else if r.code == "ROOM_NOT_FOUND", self.currentRoom != nil,
+                      self.roomRetries < Self.roomRetryLimit {
+                // The server restarted and lost the room. The TV brings it back
+                // under the same code (games/room_resume.py) once it reconnects,
+                // so keep knocking for a while before giving up.
+                self.roomRetries += 1
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    guard let self, self.currentRoom != nil else { return }
+                    self.rejoinIfSeated()
+                }
             } else if r.fatal == true, self.currentRoom != nil {
                 // The room is gone (closed, expired, or this seat was dropped)
                 // while a game was on screen. Say so instead of leaving a
@@ -753,6 +767,11 @@ final class ControllerRootViewModel: ObservableObject {
         }
     }
 
+    /// Rejoins tried while the room is missing after a server restart: about
+    /// 45 seconds, long enough for the TV to reconnect and bring it back.
+    private var roomRetries = 0
+    private static let roomRetryLimit = 15
+
     private func rejoinIfSeated() {
         guard let room = currentRoom else { return }
         socket.emit(.joinRoom, payload: JoinRoomPayload(
@@ -801,5 +820,32 @@ final class ControllerRootViewModel: ObservableObject {
     func setContentPack(_ pack: ContentPack) {
         guard let room = currentRoom else { return }
         socket.emit(.setContentPack, payload: ["roomCode": room.code, "contentPack": pack.rawValue])
+    }
+}
+
+
+/// During a party night the host's phone can start a cheer for the guest of
+/// honour from the game screen, not only from the lobby.
+private struct NightCheerButton: View {
+    let room: Room
+    let isHost: Bool
+
+    var body: some View {
+        if isHost, let party = room.night?.party, party.welcomed, room.night?.finished != true {
+            let title: String = party.honoree.isEmpty ? "Cheer" : "Cheer for \(party.honoree)"
+            Button {
+                PhonePlayHaptics.tap()
+                OneStopEvents.cheer(roomCode: room.code)
+            } label: {
+                Label(title, systemImage: "megaphone.fill")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .frame(height: 30)
+                    .background(Capsule().fill(PhonePlayDesign.pink.opacity(0.85)))
+            }
+            .buttonStyle(PhonePlayPressStyle())
+            .accessibilityLabel(title)
+        }
     }
 }
