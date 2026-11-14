@@ -23,7 +23,7 @@ extension PhonePlayGame {
         case .truthOrDare:    return "15 min"
         case .wouldYouRather: return "10 min"
         case .hotPotato:      return "5 min"
-        case .storyChain:     return "10 min"
+        case .pointAt:        return "10 min"
         case .daily:          return "2 min"
         case .wordOfDay:      return "1 min"
         case .arcade:         return "2 min"
@@ -41,7 +41,7 @@ extension PhonePlayGame {
         case .truthOrDare:    return 2...16
         case .wouldYouRather: return 2...30
         case .hotPotato:      return 2...12
-        case .storyChain:     return 3...10
+        case .pointAt:        return 3...30
         case .daily, .wordOfDay, .arcade, .mindGym: return 1...1
         }
     }

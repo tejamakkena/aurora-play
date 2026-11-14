@@ -85,7 +85,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
     case spy
     case mafia
     case hotPotato
-    case storyChain
+    case pointAt
     case daily
     case wordOfDay
     case arcade
@@ -98,7 +98,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         switch self {
         case .daily, .wordOfDay, .arcade, .mindGym:
             return true
-        case .headsUp, .guessSong, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .storyChain:
+        case .headsUp, .guessSong, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato, .pointAt:
             return false
         }
     }
@@ -112,7 +112,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .mindGym, .arcade:
             return false
         case .headsUp, .guessSong, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
-             .storyChain:
+             .pointAt:
             return true
         case .wordOfDay:
             // On the Today card with Mind Gym and Quick 5, not a tile of its own.
@@ -133,7 +133,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return "Truth or Dare"
         case .wouldYouRather: return "Would You Rather"
         case .hotPotato:      return "Hot Potato"
-        case .storyChain:     return "Secret Story"
+        case .pointAt:        return "Point at Them"
         case .daily:          return "Daily Brain"
         case .wordOfDay:      return "Word of the Day"
         case .arcade:         return "Puzzles & Arcade"
@@ -150,7 +150,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return "Spin to pick a player, then truth or dare."
         case .wouldYouRather: return "Two choices, one phone. Pick a side."
         case .hotPotato:      return "Name one and pass before it blows."
-        case .storyChain:     return "Everyone secretly writes a bit. The phone reads the whole mess aloud."
+        case .pointAt:        return "Who is most likely to...? On three, everyone points at once."
         case .daily:          return "Five fresh puzzles a day. Keep your streak."
         case .wordOfDay:      return "One new word a day. Hear it, then use it."
         case .arcade:         return "2048, reflex games and puzzles. Beat your best."
@@ -167,7 +167,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return "flame.fill"
         case .wouldYouRather: return "arrow.left.arrow.right"
         case .hotPotato:      return "timer"
-        case .storyChain:     return "text.book.closed.fill"
+        case .pointAt:        return "hand.point.up.left.fill"
         case .daily:          return "brain.head.profile"
         case .wordOfDay:      return "textformat.abc"
         case .arcade:         return "gamecontroller.fill"
@@ -184,7 +184,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return [PhonePlayDesign.pink, PhonePlayDesign.purple]
         case .wouldYouRather: return [PhonePlayDesign.blue, PhonePlayDesign.orange]
         case .hotPotato:      return [PhonePlayDesign.yellow, PhonePlayDesign.red]
-        case .storyChain:     return [PhonePlayDesign.indigo, PhonePlayDesign.pink]
+        case .pointAt:        return [PhonePlayDesign.pink, PhonePlayDesign.orange]
         case .daily:          return [PhonePlayDesign.green, PhonePlayDesign.cyan]
         case .wordOfDay:      return [PhonePlayDesign.purple, PhonePlayDesign.blue]
         case .arcade:         return [PhonePlayDesign.cyan, PhonePlayDesign.indigo]
@@ -201,7 +201,7 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .truthOrDare:    return "2-16 players"
         case .wouldYouRather: return "2+ players"
         case .hotPotato:      return "2-12 players"
-        case .storyChain:     return "3-10 players"
+        case .pointAt:        return "3+ players"
         case .daily:          return "Solo"
         case .wordOfDay:      return "Solo"
         case .arcade:         return "Solo"
@@ -419,7 +419,7 @@ final class PhonePlayViewModel: ObservableObject {
     @Published private(set) var truthOrDare: TruthDareViewModel? = nil
     @Published private(set) var wouldYouRather: WouldRatherViewModel? = nil
     @Published private(set) var hotPotato: HotPotatoViewModel? = nil
-    @Published private(set) var storyChain: StoryChainViewModel? = nil
+    @Published private(set) var pointAt: PointAtViewModel? = nil
     @Published private(set) var wordOfDay: WordDayViewModel? = nil
     @Published private(set) var arcade: PocketArcadeViewModel? = nil
     @Published private(set) var mindGym: NeuroPulseViewModel? = nil
@@ -439,7 +439,7 @@ final class PhonePlayViewModel: ObservableObject {
         case .truthOrDare:    truthOrDare = TruthDareViewModel()
         case .wouldYouRather: wouldYouRather = WouldRatherViewModel()
         case .hotPotato:      hotPotato = HotPotatoViewModel()
-        case .storyChain:     storyChain = StoryChainViewModel(speech: speech)
+        case .pointAt:        pointAt = PointAtViewModel()
         case .wordOfDay:      wordOfDay = WordDayViewModel()
         case .arcade:         arcade = PocketArcadeViewModel()
         case .mindGym:        mindGym = NeuroPulseViewModel()
@@ -489,7 +489,7 @@ final class PhonePlayViewModel: ObservableObject {
         truthOrDare?.shutdown()
         wouldYouRather?.shutdown()
         hotPotato?.shutdown()
-        storyChain?.shutdown()
+        pointAt?.shutdown()
         wordOfDay?.shutdown()
         arcade?.shutdown()
         mindGym?.shutdown()
@@ -501,7 +501,7 @@ final class PhonePlayViewModel: ObservableObject {
         truthOrDare = nil
         wouldYouRather = nil
         hotPotato = nil
-        storyChain = nil
+        pointAt = nil
         wordOfDay = nil
         arcade = nil
         mindGym = nil
