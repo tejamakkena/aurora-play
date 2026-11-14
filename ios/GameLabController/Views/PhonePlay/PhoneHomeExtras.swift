@@ -203,6 +203,7 @@ struct PhoneContinueRow: View {
 /// Where today's three daily habits stand, read from their own stores.
 struct PhoneTodayState: Equatable {
     var mindGymPulse: Int?          // today's Mind Score, once done
+    var mindGymStep: Int?           // the step a half-done workout is on
     var mindGymStreak: Int
     var quickCorrect: Int?          // Quick 5, right answers out of 5
     var quickStreak: Int
@@ -214,8 +215,14 @@ struct PhoneTodayState: Equatable {
         let yesterday = DailyBrain.dateKey(for: before)
         let gym = NeuroHomeState.load()
         var pulse: Int? = nil
-        if case .done(let value) = gym.mode { pulse = value }
+        var step: Int? = nil
+        switch gym.mode {
+        case .done(let value): pulse = value
+        case .resume(let reached): step = reached
+        case .start: break
+        }
         return PhoneTodayState(mindGymPulse: pulse,
+                               mindGymStep: step,
                                mindGymStreak: gym.streak,
                                quickCorrect: DailyStore.result(for: today)?.correct,
                                quickStreak: DailyStore.currentStreak(today: today, yesterday: yesterday),
@@ -247,6 +254,8 @@ struct PhoneTodayCard: View {
     let onMindGym: () -> Void
     let onQuick: () -> Void
     let onWord: () -> Void
+    /// Opens the Mind Score history (Mind Gym's progress screen).
+    var onMindScore: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -271,12 +280,25 @@ struct PhoneTodayCard: View {
                 }
             }
             HStack(spacing: 10) {
-                habit(title: "Mind Gym", detail: state.mindGymPulse.map { "Score \($0)" } ?? "5 min",
+                habit(title: "Mind Gym",
+                      detail: state.mindGymPulse.map { "Score \($0)" }
+                          ?? state.mindGymStep.map { "Step \($0) of 10" } ?? "5 min",
                       symbol: "brain.head.profile", done: state.mindGymPulse != nil, action: onMindGym)
                 habit(title: "Quick 5", detail: state.quickCorrect.map { "\($0)/5" } ?? "2 min",
                       symbol: "bolt.fill", done: state.quickCorrect != nil, action: onQuick)
                 habit(title: "Word", detail: state.wordSeen ? "Learned" : "1 min",
                       symbol: "text.book.closed.fill", done: state.wordSeen, action: onWord)
+            }
+            if let onMindScore {
+                Button {
+                    PhonePlayHaptics.tap()
+                    onMindScore()
+                } label: {
+                    Label("Your Mind Score", systemImage: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .foregroundColor(PhonePlayDesign.cyan)
+                }
+                .buttonStyle(PhonePlayPressStyle())
             }
         }
         .phonePlaySurfaceCard(padding: 14)

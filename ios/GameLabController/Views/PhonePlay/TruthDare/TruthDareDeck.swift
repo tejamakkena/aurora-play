@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Truth or Dare cards
 //
-// Bundled and offline: 40 truths and 40 dares per level. A level also
+// Bundled and offline: 55 truths and 55 dares per level. A level also
 // deals every card from the levels below it, so Teens gets the Family
 // cards too and Adults gets everything. Adults is a party level, never
 // explicit: embarrassing, cheeky and loud, nothing sexual or dangerous.
@@ -208,6 +208,60 @@ enum TruthDareDeck {
             "Have you ever been kicked out of somewhere? Where?",
             "What would you do with a completely free week and no phone?",
         ]),
+        // More family cards.
+        (.family, [
+            "What is the most embarrassing thing you have said to a teacher?",
+            "Which family tradition do you secretly love the most?",
+            "What is the best meal you have ever eaten, and where?",
+            "If you could only keep three things from your room, what would they be?",
+            "What is a skill you wish you had learned as a kid?",
+            "Who in this room would survive longest on a desert island, and why?",
+            "What is the weirdest food combination you actually enjoy?",
+            "Which movie made you cry the most?",
+            "What is the funniest nickname anyone has ever given you?",
+            "If you could live in any book or movie world, which one would it be?",
+            "What is something you are proud of that nobody here knows about?",
+            "Which chore would you happily do forever, and which would you never do again?",
+            "What is the silliest argument you have ever had?",
+            "If you could have dinner with any cartoon character, who would it be?",
+            "What did you want to be when you grew up, when you were six?",
+        ]),
+        // More teens cards.
+        (.teens, [
+            "What is the most embarrassing thing in your search history this week?",
+            "Who was your first celebrity crush?",
+            "What is the longest you have gone without checking your phone?",
+            "Which app would you delete last if you had to delete them all?",
+            "What is a rumour you once believed that turned out to be totally false?",
+            "Have you ever pretended to be sick to skip something? What was it?",
+            "What is the worst haircut you have ever had?",
+            "Who in this room would you call first in an emergency?",
+            "What is a trend you followed that you now regret?",
+            "What is the most awkward text you have ever sent to the wrong person?",
+            "Which teacher would you most like to swap places with for a day?",
+            "What is your most-used emoji, and what does it say about you?",
+            "What is one thing you would change about your school or college?",
+            "Have you ever laughed at the worst possible moment? When?",
+            "What is a secret talent you have never shown anyone here?",
+        ]),
+        // More adults cards.
+        (.adults, [
+            "What is the worst job interview you have ever had?",
+            "What is the most money you have spent on something you never used?",
+            "What is the pettiest reason you have ever stopped talking to someone?",
+            "Which bill do you always pay late?",
+            "What is the most ridiculous thing you have argued about with a partner?",
+            "What is the worst excuse you have given to leave a party early?",
+            "Which relative do you avoid at weddings, and why?",
+            "What is the most childish thing you still do?",
+            "What is a lie you told on a CV or in an interview?",
+            "What is the strangest thing you have done to impress someone?",
+            "What is your most embarrassing autocorrect mistake?",
+            "What is a habit you hide from your neighbours?",
+            "What would your browser history say about your last week?",
+            "Who here would you trust with your phone unlocked for an hour?",
+            "What is a guilty pleasure show you have watched more than once?",
+        ]),
     ]
 
     // MARK: Dares
@@ -338,6 +392,60 @@ enum TruthDareDeck {
             "Sing the national anthem in the style of a lullaby.",
             "Let the group take a silly selfie on your phone and keep it as your wallpaper for a day.",
             "Act out your best excuse for missing a deadline.",
+        ]),
+        // More family cards.
+        (.family, [
+            "Walk like a penguin to the kitchen and back.",
+            "Tell a joke so bad that everyone groans.",
+            "Talk in a whisper until your next turn.",
+            "Do a dramatic weather report for tomorrow in this room.",
+            "Name ten fruits in fifteen seconds.",
+            "Pretend to be a news reader announcing the winner of this game.",
+            "Hold a plank for twenty seconds while everyone counts.",
+            "Draw a portrait of the person on your left with your eyes closed.",
+            "Hop on one foot while saying your full name backwards.",
+            "Make up a short song about the snacks on the table.",
+            "Pretend to be a waiter and take everyone's order in a funny accent.",
+            "Do your best slow-motion run across the room.",
+            "Say the alphabet backwards as fast as you can.",
+            "Give a one-minute speech on why socks should be famous.",
+            "Act like a cat until someone laughs.",
+        ]),
+        // More teens cards.
+        (.teens, [
+            "Let the group choose a status message for your phone for one hour.",
+            "Read the last message you sent out loud in a movie-trailer voice.",
+            "Do your best dance move for ten seconds with no music.",
+            "Call a friend and sing them happy birthday, whether or not it is their birthday.",
+            "Speak like a famous YouTuber until your next turn.",
+            "Show the group the third photo in your camera roll.",
+            "Do an unboxing video of the nearest object.",
+            "Text a friend a single word chosen by the group and do not explain it.",
+            "Do a dramatic reading of the last thing you searched for.",
+            "Imitate a teacher everyone knows until someone guesses who.",
+            "Wear your socks on your hands until your next turn.",
+            "Give a compliment to every person here in under thirty seconds.",
+            "Do your best influencer intro for the room.",
+            "Let the person on your right style your hair for the next round.",
+            "Pretend to be a sports commentator describing your friends sitting still.",
+        ]),
+        // More adults cards.
+        (.adults, [
+            "Do your best impression of your boss at a Monday meeting.",
+            "Give a wedding toast for two objects in this room.",
+            "Act out a cooking show while making a glass of water.",
+            "Do a dramatic breakup scene with a cushion.",
+            "Describe your last holiday like a five-star hotel review.",
+            "Pitch a ridiculous business idea to the group in thirty seconds.",
+            "Do a slow-motion action-movie fall onto the sofa.",
+            "Narrate the next two minutes of the party like a nature documentary.",
+            "Do your best old Bollywood villain laugh.",
+            "Pretend to negotiate the price of a chair with the person on your left.",
+            "Sing the chorus of a song using only the word banana.",
+            "Do an over-the-top acceptance speech for winning best guest.",
+            "Act out ordering food in a restaurant where you do not speak the language.",
+            "Give the group a dramatic tour of the room like a museum guide.",
+            "Mime your morning routine while everyone guesses each step.",
         ]),
     ]
 }

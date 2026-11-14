@@ -74,8 +74,8 @@ struct PhonePlayHomeView: View {
     @State private var dailyStreak: Int = 0
     @State private var wordSeen: Bool = false
     @State private var mindGym: NeuroHomeState = NeuroHomeState(mode: .start, streak: 0)
-    @State private var today = PhoneTodayState(mindGymPulse: nil, mindGymStreak: 0, quickCorrect: nil,
-                                               quickStreak: 0, wordSeen: false)
+    @State private var today = PhoneTodayState(mindGymPulse: nil, mindGymStep: nil, mindGymStreak: 0,
+                                               quickCorrect: nil, quickStreak: 0, wordSeen: false)
     @State private var recents: [PhoneRecentItem] = []
     @State private var groupSize: PhoneGroupSize? = PhoneGroupSize.saved
     @State private var showStats = false
@@ -105,7 +105,8 @@ struct PhonePlayHomeView: View {
                     PhoneTodayCard(state: today,
                                    onMindGym: { play.open(.mindGym) },
                                    onQuick: { play.open(.daily) },
-                                   onWord: { play.open(.wordOfDay) })
+                                   onWord: { play.open(.wordOfDay) },
+                                   onMindScore: play.openMindScore)
 
                     if !recents.isEmpty {
                         PhoneContinueRow(items: recents, onOpen: play.openRecent)
@@ -138,18 +139,10 @@ struct PhonePlayHomeView: View {
                                       wide: true,
                                       action: onRoadTrip)
 
-                    // Everything played alone: the daily brain workout first,
-                    // then every solo game as its own tile (the arcade games
-                    // used to hide behind one "Puzzles & Arcade" tile).
-                    PhonePlaySectionLabel(text: "Brain and solo")
+                    // The arcade games, each as its own tile. Mind Gym, Quick 5
+                    // and Word of the Day live on the Today card at the top.
+                    PhonePlaySectionLabel(text: "Arcade")
                         .padding(.top, 6)
-
-                    NeuroHomeCard(state: mindGym,
-                                  appeared: appeared,
-                                  onPlay: { play.open(.mindGym) },
-                                  onProgress: play.openMindScore,
-                                  quickDone: dailyDone,
-                                  onQuick: { play.open(.daily) })
 
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(Array(soloGames.enumerated()), id: \.element.id) { pair in

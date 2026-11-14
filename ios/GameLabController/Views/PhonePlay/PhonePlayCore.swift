@@ -112,8 +112,11 @@ enum PhonePlayGame: String, CaseIterable, Identifiable {
         case .mindGym, .arcade:
             return false
         case .headsUp, .guessSong, .spy, .mafia, .truthOrDare, .wouldYouRather, .hotPotato,
-             .storyChain, .wordOfDay:
+             .storyChain:
             return true
+        case .wordOfDay:
+            // On the Today card with Mind Gym and Quick 5, not a tile of its own.
+            return false
         case .daily:
             // Daily Brain lives on the Mind Gym card now ("Quick 5"): it was a
             // second, near-identical daily brain game on the home screen.
